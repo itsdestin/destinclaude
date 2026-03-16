@@ -1,0 +1,12 @@
+{
+  "name": "claudifest-destiny-jlbc-fiscal-note",
+  "description": "Optional module — Arizona JLBC-style fiscal note drafting",
+  "version": "0.1.0",
+  "author": {
+    "name": "itsdestin"
+  },
+  "homepage": "https://github.com/itsdestin/claudifest-destiny",
+  "repository": "https://github.com/itsdestin/claudifest-destiny",
+  "license": "MIT",
+  "keywords": ["claude-code", "fiscal-note", "arizona", "jlbc", "budget-analysis"]
+}

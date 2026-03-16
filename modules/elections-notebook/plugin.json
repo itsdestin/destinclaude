@@ -1,0 +1,12 @@
+{
+  "name": "claudifest-destiny-elections-notebook",
+  "description": "Optional module — Arizona legislative elections tracking and campaign finance data",
+  "version": "0.1.0",
+  "author": {
+    "name": "itsdestin"
+  },
+  "homepage": "https://github.com/itsdestin/claudifest-destiny",
+  "repository": "https://github.com/itsdestin/claudifest-destiny",
+  "license": "MIT",
+  "keywords": ["claude-code", "elections", "arizona", "campaign-finance", "legislative"]
+}
