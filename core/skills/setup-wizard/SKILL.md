@@ -193,3 +193,153 @@ Store the selected layers in `~/.claude/toolkit-state/config.json`:
 ```
 
 **Proceed to Phase 4.**
+
+---
+
+## Phase 4: Dependency Installation
+
+Install external tools required by the selected layers. For each dependency, follow this pattern:
+
+1. Check if already installed
+2. If missing, explain what it is and why it's needed (plain language)
+3. Install using the platform-appropriate command
+4. Verify installation succeeded
+5. If install fails, provide a manual download URL as fallback
+
+Use the platform detected in Phase 1 to choose install commands.
+
+### Core Dependencies
+
+These are always checked regardless of layer selection.
+
+#### git
+
+```bash
+git --version
+```
+
+Should already be installed (they cloned the repo). If somehow missing, this is a blocker — tell the user to install git first and restart.
+
+#### gh CLI (optional)
+
+```bash
+gh --version
+```
+
+Needed for the `/contribute` command (submitting improvements back upstream). Not required for basic usage.
+
+If missing and the user wants it:
+
+| Platform | Install command |
+|----------|----------------|
+| macOS | `brew install gh` |
+| Windows | `winget install GitHub.cli` |
+| Linux | See https://github.com/cli/cli/blob/trunk/docs/install_linux.md |
+
+After install, run `gh auth login` and walk the user through the browser-based auth flow.
+
+### Life Dependencies
+
+Only install if the Life layer was selected.
+
+#### rclone
+
+```bash
+rclone --version
+```
+
+Needed for syncing journal and encyclopedia files with Google Drive.
+
+If missing:
+
+| Platform | Install command |
+|----------|----------------|
+| macOS | `brew install rclone` |
+| Windows | `winget install Rclone.Rclone` |
+| Linux | `curl https://rclone.org/install.sh \| sudo bash` |
+
+#### Google Drive authentication
+
+After rclone is installed, set up the Google Drive remote:
+
+1. Tell the user: "I need to connect rclone to your Google Drive. This will open a browser window for you to sign in with Google."
+2. Run `rclone config` and guide them through creating a remote named `gdrive` with type `drive`.
+3. Verify with: `rclone lsd gdrive:` — should list their Drive root folders.
+4. If it works, confirm: "Google Drive connected successfully."
+
+### Productivity Dependencies
+
+Only install if the Productivity layer was selected.
+
+#### Go compiler
+
+```bash
+go version
+```
+
+Needed to build the gmessages MCP server (Google Messages integration).
+
+If missing:
+
+| Platform | Install command |
+|----------|----------------|
+| macOS | `brew install go` |
+| Windows | `winget install GoLang.Go` |
+| Linux | Download from https://go.dev/dl/ |
+
+#### Build gmessages
+
+Once Go is installed:
+
+```bash
+cd <toolkit_root>/productivity/mcp-servers/gmessages && go build
+```
+
+This produces `gmessages` on macOS/Linux or `gmessages.exe` on Windows. Store the binary name in the config:
+
+```json
+{
+  "gmessages_binary": "gmessages.exe"
+}
+```
+
+If the build fails, tell the user: "The messaging integration couldn't be built right now. Everything else will work — you can try again later by running `go build` in the gmessages directory."
+
+#### Node.js (optional)
+
+```bash
+node --version
+```
+
+Some optional features may use Node.js. If missing and needed:
+
+| Platform | Install command |
+|----------|----------------|
+| macOS | `brew install node` |
+| Windows | `winget install OpenJS.NodeJS.LTS` |
+| Linux | Use nvm or package manager |
+
+#### Todoist setup
+
+If the user wants the inbox processor:
+
+1. Ask: "Do you use Todoist for task management?"
+2. If yes: "I'll need an API token. You can find it at todoist.com → Settings → Integrations → Developer. Paste it here."
+3. Store the token securely in `~/.claude/toolkit-state/config.json` under `todoist_api_token`.
+4. Verify by making a test API call: `curl -s -H "Authorization: Bearer <token>" https://api.todoist.com/rest/v2/projects | head -c 100`
+5. If valid, confirm. If invalid, ask them to double-check the token.
+
+### Summary
+
+After all dependencies are installed, show a summary:
+
+```
+Dependencies installed:
+  git: v2.x.x
+  gh: v2.x.x (or "skipped")
+  rclone: v1.x.x + Google Drive connected (or "not needed")
+  go: v1.x.x + gmessages built (or "not needed")
+  Todoist: connected (or "not needed")
+```
+
+**Proceed to Phase 5.**
