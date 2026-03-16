@@ -1,0 +1,37 @@
+# Runtime state (generated during Claude sessions)
+sessions/
+shell-snapshots/
+tasks/
+backups/
+
+# Personal content (user-specific, never committed)
+encyclopedia/
+memory/
+journals/
+
+# Environment and credentials
+.env
+*token*
+*secret*
+*credential*
+*.jsonl
+
+# Node
+node_modules/
+package-lock.json
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Go
+*.exe
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
