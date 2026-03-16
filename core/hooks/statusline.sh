@@ -56,6 +56,32 @@ else
     CTX_COLOR="$GREEN"
 fi
 
+# --- Toolkit version ---
+UPDATE_FILE="$HOME/.claude/toolkit-state/update-status.json"
+TOOLKIT_VERSION=""
+if [[ -f "$UPDATE_FILE" ]] && command -v node &>/dev/null; then
+    TOOLKIT_INFO=$(node -e "
+        const fs = require('fs');
+        try {
+            const s = JSON.parse(fs.readFileSync('$UPDATE_FILE', 'utf8'));
+            const ver = s.current || 'unknown';
+            const upd = s.update_available ? ' (Update Available)' : '';
+            console.log(ver + '\t' + (s.update_available ? '1' : '0'));
+        } catch { console.log('unknown\t0'); }
+    " 2>/dev/null) || TOOLKIT_INFO=""
+    if [[ -n "$TOOLKIT_INFO" ]]; then
+        IFS=$'\t' read -r TK_VER TK_UPD <<< "$TOOLKIT_INFO"
+        if [[ "$TK_UPD" == "1" ]]; then
+            TOOLKIT_VERSION="${YELLOW}ClaudifestDestiny v${TK_VER} (Update Available)${RESET}"
+        else
+            TOOLKIT_VERSION="${DIM}ClaudifestDestiny v${TK_VER}${RESET}"
+        fi
+    fi
+fi
+
 # Output
 echo -e "$SYNC_DISPLAY"
-echo -e "${DIM}${MODEL}${RESET}  ${CTX_COLOR}${REMAINING}% remaining context${RESET}"
+echo -e "${DIM}${MODEL}${RESET}  ${CTX_COLOR}${REMAINING}% Remaining Context${RESET}"
+if [[ -n "$TOOLKIT_VERSION" ]]; then
+    echo -e "$TOOLKIT_VERSION"
+fi

@@ -52,6 +52,41 @@ if command -v rclone &>/dev/null; then
         echo '{"hookSpecificOutput": "Warning: Encyclopedia cache sync failed. Skills will use stale cache."}' >&2
 fi
 
+# --- Toolkit version check ---
+TOOLKIT_ROOT=""
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SEARCH_DIR="$SCRIPT_DIR"
+for _ in 1 2 3 4 5; do
+    if [[ -f "$SEARCH_DIR/VERSION" ]]; then
+        TOOLKIT_ROOT="$SEARCH_DIR"
+        break
+    fi
+    SEARCH_DIR="$(dirname "$SEARCH_DIR")"
+done
+
+if [[ -n "$TOOLKIT_ROOT" ]]; then
+    STATE_DIR="$CLAUDE_DIR/toolkit-state"
+    mkdir -p "$STATE_DIR"
+    CURRENT=$(cat "$TOOLKIT_ROOT/VERSION" 2>/dev/null | tr -d '[:space:]')
+    CURRENT_TAG="v${CURRENT}"
+
+    # Fetch tags silently (fail silently if offline)
+    (cd "$TOOLKIT_ROOT" && git fetch --tags origin 2>/dev/null) || true
+
+    LATEST_TAG=$(cd "$TOOLKIT_ROOT" && git tag --sort=-v:refname 2>/dev/null | head -1)
+    LATEST=${LATEST_TAG#v}
+
+    if [[ -n "$LATEST" && "$CURRENT" != "$LATEST" ]]; then
+        UPDATE_AVAILABLE=true
+    else
+        UPDATE_AVAILABLE=false
+    fi
+
+    cat > "$STATE_DIR/update-status.json" << VEREOF
+{"current": "${CURRENT:-unknown}", "latest": "${LATEST:-unknown}", "update_available": ${UPDATE_AVAILABLE}}
+VEREOF
+fi
+
 # --- Check inbox ---
 if [[ -f "$CLAUDE_DIR/hooks/check-inbox.sh" ]]; then
     bash "$CLAUDE_DIR/hooks/check-inbox.sh" 2>/dev/null || true
