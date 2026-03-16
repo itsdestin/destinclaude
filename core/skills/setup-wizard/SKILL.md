@@ -343,3 +343,151 @@ Dependencies installed:
 ```
 
 **Proceed to Phase 5.**
+
+---
+
+## Phase 5: Personalization
+
+Fill in template variables, install selected layers, and configure CLAUDE.md.
+
+### Step 1: Collect template variables
+
+Read `<toolkit_root>/core/templates/template-variables.json`. For each variable:
+
+1. Show the user the prompt text from the variable definition
+2. If there's a default, show it: "(default: Claude)"
+3. Accept their answer, or use the default if they press enter / say "default is fine"
+4. Store all responses in `~/.claude/toolkit-state/config.json` under a `variables` key
+
+Example interaction:
+```
+What's your name? > Alex
+Where should Claude store files on your Google Drive? (default: Claude) > Claude
+What Todoist project should Claude use as your inbox? (default: Claude's Inbox) > My Inbox
+```
+
+Only ask about variables relevant to the selected layers. Skip `TODOIST_PROJECT` if Productivity isn't selected, skip `DRIVE_ROOT`/`JOURNAL_DIR`/`ENCYCLOPEDIA_DIR` if Life isn't selected.
+
+### Step 2: Process template files
+
+For each file listed in a variable's `used_in` array (and that belongs to an installed layer):
+
+1. Read the file
+2. Replace all `{{VARIABLE_NAME}}` placeholders with the user's values
+3. Write the processed file back
+
+### Step 3: Install encyclopedia starter templates (if Life layer selected)
+
+Copy the starter templates from `<toolkit_root>/life/templates/` to the user's local encyclopedia directory (`~/.claude/<ENCYCLOPEDIA_DIR>/`):
+
+1. For each template file (Core Identity.md, Status Snapshot.md, People Database.md, Chronicle.md, Beliefs and Positions.md, Predictions.md, Open Threads and Goals.md, Preferences and Reference Data.md):
+   - Replace `{{USER_NAME}}` with the user's name
+   - Write to the encyclopedia directory
+2. Only copy files that don't already exist — never overwrite existing encyclopedia content
+
+### Step 4: Merge CLAUDE.md fragments
+
+Read the CLAUDE.md fragment templates from `<toolkit_root>/core/templates/claude-md-fragments/`. Each fragment is a section to add to the user's CLAUDE.md.
+
+1. If `~/.claude/CLAUDE.md` doesn't exist, create it with a header and all selected fragments
+2. If it exists (backed up in Phase 2):
+   - For each fragment, check if its section marker already exists in the file
+   - If not present, append it at the end
+   - If already present (from a previous install), replace the section content between markers
+3. Each fragment section is wrapped with markers for clean updates:
+
+```markdown
+<!-- claudifest:installed-skills:start -->
+## Installed Skills
+...
+<!-- claudifest:installed-skills:end -->
+```
+
+### Step 5: Install plugin layers
+
+For each selected layer, register it as a Claude Code plugin:
+
+1. The toolkit root directory structure already contains `core/plugin.json`, `life/plugin.json`, `productivity/plugin.json`, and `modules/*/plugin.json`
+2. Tell the user which plugins to add. They can add plugins via Claude Code's `/install-plugin` command or by adding the paths to their Claude Code settings.
+
+### Step 6: Configure MCP servers (if applicable)
+
+Based on selected layers and conflict resolutions from Phase 2:
+
+1. **Todoist** (if Productivity selected and Todoist token provided):
+   - Add to `~/.claude.json` under the appropriate mcpServers section
+   - Use the stored API token
+
+2. **gmessages** (if Productivity selected and build succeeded):
+   - Add to `~/.claude.json` with the correct binary path
+   - Note: the user will need to pair with their phone separately (link to gmessages README)
+
+Show the user what MCP servers were configured.
+
+---
+
+## Phase 6: Verification
+
+Run a health check on everything that was installed.
+
+### Step 1: Core checks
+
+- [ ] `git --version` returns successfully
+- [ ] Toolkit root directory exists and contains `VERSION`
+- [ ] `~/.claude/CLAUDE.md` exists and contains toolkit sections
+- [ ] Hook scripts in `core/hooks/` are present and executable
+
+### Step 2: Life checks (if installed)
+
+- [ ] `rclone lsd gdrive:` returns successfully (Google Drive connected)
+- [ ] Encyclopedia template files exist in `~/.claude/<ENCYCLOPEDIA_DIR>/`
+- [ ] Journal directory exists or can be created at `~/.claude/<JOURNAL_DIR>/`
+
+### Step 3: Productivity checks (if installed)
+
+- [ ] gmessages binary exists (if Go was available)
+- [ ] Todoist API responds (if token was provided)
+
+### Step 4: Report results
+
+For each check, show a pass/fail indicator:
+
+```
+Verification Results:
+
+Core:
+  Git installed ......................... OK
+  Toolkit root valid ................... OK
+  CLAUDE.md configured ................. OK
+  Hooks installed ...................... OK
+
+Life:
+  Google Drive connected ............... OK
+  Encyclopedia templates created ....... OK
+  Journal directory ready .............. OK
+
+Productivity:
+  gmessages built ...................... OK
+  Todoist connected .................... OK
+```
+
+If anything failed, show: "These items need attention:" with specific guidance on how to fix each one. Offer to retry the failed items.
+
+### Step 5: Completion message
+
+```
+Setup complete! Here's what's installed:
+
+  Layers: Core, Life, Productivity
+  Skills: journaling-assistant, encyclopedia-*, inbox-processor, skill-creator
+  Hooks: 8 active hooks for file protection and sync
+  MCP servers: Todoist, gmessages
+
+Try saying "let's journal" to start your first journal entry, or ask
+me anything about what's installed.
+
+Tip: Run /update anytime to check for toolkit updates.
+     Run /contribute to share improvements you make back with the community.
+```
+
+Save the final config state to `~/.claude/toolkit-state/config.json` with `setup_completed: true` and `setup_completed_at: <ISO timestamp>`.
