@@ -122,7 +122,7 @@ For each skill directory in `~/.claude/skills/` that shares a name with a toolki
 
 ### Step 5: Resolve MCP server conflicts
 
-If any existing MCP server names match toolkit servers (e.g., `gmessages`, `todoist`):
+If any existing MCP server names match toolkit servers (e.g., `gmessages`, `imessages`, `todoist`):
 
 1. Show the user the existing config vs. what the toolkit would set up
 2. Offer: **Keep yours** / **Use toolkit's** / **Skip this server**
@@ -156,8 +156,8 @@ ClaudifestDestiny has four layers you can install:
   Productivity (recommended)
     Task management and communication — an inbox processor that
     triages notes from your phone, a skill creator for building
-    new Claude skills, and a Google Messages integration for
-    reading/sending texts.
+    new Claude skills, and text messaging integration (Google
+    Messages for Android, or iMessage for macOS users).
 
   Modules (optional, pick individually)
     Specialized tools for niche use cases:
@@ -386,6 +386,68 @@ If it fails, common fixes:
 
 Only install if the Productivity layer was selected.
 
+#### Messaging setup
+
+The toolkit supports two text messaging integrations. Which one to offer depends on the platform:
+
+- **macOS users** get a choice between **iMessage** (reads the native Messages app) and **Google Messages** (for Android phones)
+- **Windows and Linux users** only get **Google Messages** (iMessage requires macOS)
+
+**Step 1 — Present the choice (macOS only):**
+
+If the platform is macOS, ask:
+
+```
+How do you send text messages?
+
+  1. iMessage (Apple Messages app on this Mac)
+  2. Google Messages (Android phone)
+  3. Both
+  4. Neither — skip messaging
+```
+
+If the platform is Windows or Linux, ask:
+
+```
+Do you use Google Messages on an Android phone? The toolkit can
+read and send texts through it.
+
+  1. Yes, set it up
+  2. No, skip messaging
+```
+
+Record the user's choice as `messaging_choice` in config: `"imessages"`, `"gmessages"`, `"both"`, or `"none"`.
+
+**Step 2 — Set up iMessage (if selected or "both"):**
+
+iMessage requires macOS and Node.js (already a toolkit dependency). No compilation or build step needed — it's a single JavaScript file.
+
+Tell the user: "The iMessage server reads your Messages history and can send texts through the Messages app. It needs one permission to work: **Full Disk Access** for your terminal app."
+
+Walk them through granting Full Disk Access:
+
+1. "Open **System Settings** (click the Apple menu → System Settings)"
+2. "Go to **Privacy & Security** in the sidebar"
+3. "Scroll down to **Full Disk Access** and click it"
+4. "Find your terminal app (Terminal, iTerm2, or whichever app you run Claude in) and toggle it **on**"
+5. "You may need to restart your terminal after enabling this"
+
+Verify it works by running a quick test:
+
+```bash
+node <toolkit_root>/productivity/mcp-servers/imessages/index.js <<< '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"0.1"}}}' 2>/dev/null | head -1
+```
+
+If it returns a JSON response, confirm: "iMessage server is working. It can read your message history and send texts through the Messages app."
+
+If it fails or the platform isn't macOS, tell the user: "iMessage couldn't be set up — it requires macOS with Full Disk Access enabled. You can try again later."
+
+Store `imessages_available: true/false` in config.
+
+**Step 3 — Set up Google Messages (if selected or "both"):**
+
+This requires the Go compiler to build from source.
+
 #### Go compiler
 
 ```bash
@@ -463,9 +525,12 @@ Dependencies installed:
   gh: v2.x.x (or "skipped")
   gcloud: v4xx.x.x (or "skipped")
   rclone: v1.x.x + Google Drive connected (or "not needed")
-  go: v1.x.x + gmessages built (or "not needed")
+  iMessage: ready (or "not selected" / "macOS only")
+  go: v1.x.x + gmessages built (or "not selected")
   Todoist: connected (or "not needed")
 ```
+
+Only show the messaging rows relevant to the user's choice.
 
 **Proceed to Phase 5.**
 
@@ -659,7 +724,27 @@ The Todoist MCP server is a cloud-hosted service — no local binary needed. Add
 
 Note: The Todoist MCP server handles authentication through its own OAuth flow when Claude first connects — the API token collected earlier is a fallback for direct API calls, not for MCP.
 
-**gmessages** (if Productivity selected and build succeeded):
+**imessages** (if Productivity selected, macOS, and `messaging_choice` is `"imessages"` or `"both"`):
+
+The imessages MCP server is a local Node.js script — no build step needed. Add this to `~/.claude.json`:
+
+```json
+{
+  "mcpServers": {
+    "imessages": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["<toolkit_root>/productivity/mcp-servers/imessages/index.js"]
+    }
+  }
+}
+```
+
+Replace `<toolkit_root>` with the actual path.
+
+Tell the user: "iMessage is registered. Claude can now read your message history and send texts through the Messages app. Make sure Full Disk Access stays enabled for your terminal."
+
+**gmessages** (if Productivity selected, build succeeded, and `messaging_choice` is `"gmessages"` or `"both"`):
 
 The gmessages MCP server is a local program that Claude runs on your computer. Add this to `~/.claude.json`, using the platform-appropriate binary name:
 
@@ -689,8 +774,11 @@ After configuring, show the user what was set up:
 ```
 MCP servers configured:
   Todoist ..................... Connected (cloud)
+  imessages .................. Registered (local — macOS Messages)
   gmessages .................. Registered (local — pair phone later)
 ```
+
+Only show the messaging servers the user actually selected. For example, if they chose iMessage only, don't show gmessages.
 
 ---
 
@@ -718,7 +806,8 @@ Run a health check on everything that was installed.
 
 ### Step 3: Productivity checks (if installed)
 
-- [ ] gmessages binary exists (if Go was available)
+- [ ] imessages server responds to initialize (if iMessage was selected and macOS)
+- [ ] gmessages binary exists (if Google Messages was selected and Go was available)
 - [ ] Todoist API responds (if token was provided)
 
 ### Step 4: Report results
@@ -740,6 +829,7 @@ Life:
   Journal directory ready .............. OK
 
 Productivity:
+  imessages ready ...................... OK
   gmessages built ...................... OK
   Todoist connected .................... OK
 ```
@@ -754,7 +844,7 @@ Setup complete! Here's what's installed:
   Layers: Core, Life, Productivity
   Skills: journaling-assistant, encyclopedia-*, inbox-processor, skill-creator
   Hooks: 8 active hooks for file protection and sync
-  MCP servers: Todoist, gmessages
+  MCP servers: Todoist, imessages, gmessages (varies by selection)
 
 Tip: Run /update anytime to check for toolkit updates.
 ```
