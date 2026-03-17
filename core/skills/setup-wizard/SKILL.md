@@ -238,7 +238,18 @@ If missing and the user wants it:
 | Windows | `winget install GitHub.cli` |
 | Linux | See https://github.com/cli/cli/blob/trunk/docs/install_linux.md |
 
-After install, run `gh auth login` and walk the user through the browser-based auth flow.
+After install, sign in to GitHub:
+
+1. Run `gh auth login`
+2. Tell the user: "This will ask a few questions in the terminal, then open your browser to sign in."
+3. Walk them through each prompt:
+   - **Where do you use GitHub?** → Choose "GitHub.com"
+   - **Preferred protocol** → Choose "HTTPS"
+   - **Authenticate** → Choose "Login with a web browser"
+4. A code will appear in the terminal (like `A1B2-C3D4`). Tell the user: "Copy that code — your browser is about to open and ask for it."
+5. The browser opens to GitHub. The user pastes the code, clicks Authorize, and it's done.
+6. Verify: `gh auth status` — should show "Logged in to github.com"
+7. If it works, confirm: "GitHub is connected. You can use /contribute to submit improvements to the toolkit."
 
 #### gcloud CLI (optional)
 
@@ -246,9 +257,9 @@ After install, run `gh auth login` and walk the user through the browser-based a
 gcloud --version
 ```
 
-Needed whenever a toolkit feature requires direct Google API authorization (e.g., OAuth tokens for Google APIs that aren't covered by rclone or other tool-specific auth). If a layer or module needs to call a Google API directly — Drive, Calendar, Gmail, Sheets, etc. — gcloud provides the auth credentials.
+Tell the user: "Some toolkit features talk directly to Google services — like reading your Google Drive or Calendar. The Google Cloud SDK gives Claude permission to do that on your behalf. It's free and only takes a minute."
 
-If missing and the user wants it:
+If the user wants it and it's not installed:
 
 | Platform | Install command |
 |----------|----------------|
@@ -256,12 +267,33 @@ If missing and the user wants it:
 | Windows | `winget install Google.CloudSDK` |
 | Linux | `curl https://sdk.cloud.google.com \| bash` |
 
-After install:
+**After install, walk through sign-in step by step:**
 
-1. Run `gcloud init` and walk the user through signing in with their Google account
-2. Run `gcloud auth application-default login` to set up Application Default Credentials — this is what scripts and tools use to authenticate with Google APIs without needing per-tool OAuth flows
-3. Verify with: `gcloud auth application-default print-access-token | head -c 20` — should print a token prefix
-4. If it works, confirm: "Google API credentials are set up. Any toolkit feature that needs direct Google API access will use these automatically."
+**Step 1 — Initialize gcloud:**
+
+Run `gcloud init`. Tell the user: "This will ask you to sign in with Google. A browser window will open."
+
+Walk them through each prompt:
+- **Log in?** → Type `Y` and press Enter
+- The browser opens to Google sign-in → User signs in with their Google account and clicks Allow
+- Back in the terminal, it asks to pick a project → Tell the user: "You can press Enter to skip this — we don't need a Google Cloud project for what we're doing."
+
+**Step 2 — Set up app credentials:**
+
+Tell the user: "One more sign-in — this one lets scripts and tools use your Google account automatically, so you won't have to sign in again each time."
+
+Run `gcloud auth application-default login`
+
+- The browser opens again → User signs in and clicks Allow
+- Terminal says "Credentials saved" → Done
+
+**Step 3 — Verify it works:**
+
+Run: `gcloud auth application-default print-access-token | head -c 20`
+
+If it prints a string of characters, confirm: "Google is connected. Any toolkit feature that needs Google access will use these credentials automatically — you won't need to sign in again."
+
+If it fails, tell the user: "That didn't work. No worries — everything else in the toolkit works without it. You can try again later by running `gcloud auth application-default login`."
 
 Store the install status in `~/.claude/toolkit-state/config.json` under `gcloud_installed: true`.
 
@@ -285,7 +317,7 @@ Only install if the Life layer was selected.
 rclone --version
 ```
 
-Needed for syncing journal and encyclopedia files with Google Drive.
+Tell the user: "Rclone is a tool that syncs files between your computer and cloud storage — like Google Drive. The toolkit uses it to back up your journal and encyclopedia files automatically."
 
 If missing:
 
@@ -297,12 +329,56 @@ If missing:
 
 #### Google Drive authentication
 
-After rclone is installed, set up the Google Drive remote:
+After rclone is installed, connect it to Google Drive. Tell the user: "Now I need to connect rclone to your Google Drive. I'll walk you through it — your browser will open for you to sign in with Google."
 
-1. Tell the user: "I need to connect rclone to your Google Drive. This will open a browser window for you to sign in with Google."
-2. Run `rclone config` and guide them through creating a remote named `gdrive` with type `drive`.
-3. Verify with: `rclone lsd gdrive:` — should list their Drive root folders.
-4. If it works, confirm: "Google Drive connected successfully."
+**Do NOT run `rclone config` interactively** — it has too many confusing prompts. Instead, create the config directly:
+
+**Step 1 — Create the config file:**
+
+```bash
+mkdir -p ~/.config/rclone
+```
+
+Check if a config already exists: `rclone listremotes`. If `gdrive:` is already listed, skip to verification.
+
+**Step 2 — Run the targeted setup command:**
+
+```bash
+rclone config create gdrive drive
+```
+
+This will:
+- Open a browser window for Google sign-in
+- Ask the user to sign in and click "Allow"
+- Save the credentials automatically
+
+Tell the user: "A browser window should open. Sign in with the Google account that has the Drive you want to use, then click Allow."
+
+If the direct command doesn't work and you need to fall back to `rclone config` (interactive mode), walk the user through it:
+- **n** for new remote
+- Name: **gdrive**
+- Storage type: Look for **Google Drive** in the numbered list — it's typically **#24**, but the number can change between versions. Tell the user: "Find 'Google Drive' in the list and type its number."
+- **client_id** → press Enter (leave blank)
+- **client_secret** → press Enter (leave blank)
+- **scope** → type **1** (full access)
+- **service_account_file** → press Enter (leave blank)
+- **Edit advanced config?** → **n**
+- **Use auto config?** → **y** (opens browser)
+- After browser sign-in: **y** to confirm
+
+If the browser doesn't open automatically (common on remote/headless Linux), rclone will print a URL and ask for a verification code. Tell the user: "Copy that URL, open it in a browser, sign in, and paste the code it gives you back here."
+
+**Step 3 — Verify:**
+
+```bash
+rclone lsd gdrive:
+```
+
+This should print a list of folders from their Google Drive root. If it does, confirm: "Google Drive is connected! Your journal and encyclopedia files will sync here automatically."
+
+If it fails, common fixes:
+- "Did you sign in with the right Google account?" (they may have multiple)
+- "Try running `rclone config delete gdrive` and we'll set it up again."
 
 ### Productivity Dependencies
 
@@ -314,7 +390,7 @@ Only install if the Productivity layer was selected.
 go version
 ```
 
-Needed to build the gmessages MCP server (Google Messages integration).
+Tell the user: "Go is a programming language. The toolkit includes a text messaging feature written in Go — I need to compile (build) it so your computer can run it. This only takes a few seconds."
 
 If missing:
 
@@ -324,47 +400,56 @@ If missing:
 | Windows | `winget install GoLang.Go` |
 | Linux | Download from https://go.dev/dl/ |
 
+After install, verify: `go version` — should print something like `go1.22.x`.
+
 #### Build gmessages
 
-Once Go is installed:
+Tell the user: "Now I'll build the text messaging server. This compiles the source code into a program your computer can run."
 
 ```bash
-cd <toolkit_root>/productivity/mcp-servers/gmessages && go build
+cd <toolkit_root>/productivity/mcp-servers/gmessages && go build -o gmessages
 ```
 
-This produces `gmessages` on macOS/Linux or `gmessages.exe` on Windows. Store the binary name in the config:
+On Windows, use `go build -o gmessages.exe` instead.
+
+Verify the binary was created:
+
+```bash
+ls -la <toolkit_root>/productivity/mcp-servers/gmessages/gmessages*
+```
+
+Store the binary path in the config:
 
 ```json
 {
-  "gmessages_binary": "gmessages.exe"
+  "gmessages_binary": "<toolkit_root>/productivity/mcp-servers/gmessages/gmessages"
 }
 ```
 
-If the build fails, tell the user: "The messaging integration couldn't be built right now. Everything else will work — you can try again later by running `go build` in the gmessages directory."
+If the build fails, tell the user: "The text messaging feature couldn't be built right now — no worries, everything else will work fine. You can try again later by asking Claude to rebuild gmessages."
 
-#### Node.js (optional)
-
-```bash
-node --version
-```
-
-Some optional features may use Node.js. If missing and needed:
-
-| Platform | Install command |
-|----------|----------------|
-| macOS | `brew install node` |
-| Windows | `winget install OpenJS.NodeJS.LTS` |
-| Linux | Use nvm or package manager |
+If the build succeeds, tell the user: "Text messaging server built. Note: you'll need to pair it with your phone later — I'll explain how when we finish setup."
 
 #### Todoist setup
 
-If the user wants the inbox processor:
+Ask the user: "Do you use Todoist? It's a task management app. If you do, I can connect Claude to it so you can manage tasks, process your inbox, and get overviews — all through conversation."
 
-1. Ask: "Do you use Todoist for task management?"
-2. If yes: "I'll need an API token. You can find it at todoist.com → Settings → Integrations → Developer. Paste it here."
-3. Store the token securely in `~/.claude/toolkit-state/config.json` under `todoist_api_token`.
+If they don't use Todoist: "No problem — skip this. You can always set it up later."
+
+If they do use Todoist:
+
+1. Tell them: "I need an API token — it's like a password that lets Claude talk to your Todoist account."
+2. Walk them to it step by step:
+   - "Open todoist.com in your browser and sign in"
+   - "Click your profile picture in the top-left corner"
+   - "Click **Settings**"
+   - "Click **Integrations** in the left sidebar"
+   - "Scroll down to **Developer** and click it"
+   - "You'll see an **API token** — it's a long string of letters and numbers. Copy it and paste it here."
+3. Store the token in `~/.claude/toolkit-state/config.json` under `todoist_api_token`.
 4. Verify by making a test API call: `curl -s -H "Authorization: Bearer <token>" https://api.todoist.com/rest/v2/projects | head -c 100`
-5. If valid, confirm. If invalid, ask them to double-check the token.
+5. If it returns JSON data, confirm: "Todoist is connected! You can say things like 'what's on my todo list?' or 'add a task to buy groceries.'"
+6. If it fails: "That token didn't work. Double-check that you copied the whole thing — it should be about 40 characters long. Try again?"
 
 ### Summary
 
@@ -525,17 +610,56 @@ After verification, confirm: "Toolkit registered — all skills, commands, and h
 
 ### Step 6: Configure MCP servers (if applicable)
 
-Based on selected layers and conflict resolutions from Phase 2:
+MCP servers let Claude talk to external services. They're configured in `~/.claude.json` — read the file first (it may have existing settings to preserve), then add entries under the `mcpServers` key.
 
-1. **Todoist** (if Productivity selected and Todoist token provided):
-   - Add to `~/.claude.json` under the appropriate mcpServers section
-   - Use the stored API token
+Tell the user: "Now I'll register the services we set up so Claude can use them automatically in every conversation."
 
-2. **gmessages** (if Productivity selected and build succeeded):
-   - Add to `~/.claude.json` with the correct binary path
-   - Note: the user will need to pair with their phone separately (link to gmessages README)
+**Todoist** (if Productivity selected and Todoist token provided):
 
-Show the user what MCP servers were configured.
+The Todoist MCP server is a cloud-hosted service — no local binary needed. Add this to `~/.claude.json`:
+
+```json
+{
+  "mcpServers": {
+    "todoist": {
+      "type": "http",
+      "url": "https://ai.todoist.net/mcp"
+    }
+  }
+}
+```
+
+Note: The Todoist MCP server handles authentication through its own OAuth flow when Claude first connects — the API token collected earlier is a fallback for direct API calls, not for MCP.
+
+**gmessages** (if Productivity selected and build succeeded):
+
+The gmessages MCP server is a local program that Claude runs on your computer. Add this to `~/.claude.json`:
+
+```json
+{
+  "mcpServers": {
+    "gmessages": {
+      "type": "stdio",
+      "command": "<toolkit_root>/productivity/mcp-servers/gmessages/gmessages",
+      "args": []
+    }
+  }
+}
+```
+
+Replace `<toolkit_root>` with the actual path (e.g., `~/.claude/plugins/claudifest-destiny`). On Windows, use `gmessages.exe`.
+
+Tell the user: "The text messaging server is registered. To pair it with your phone, you'll need to scan a QR code — ask Claude 'help me set up Google Messages' in a future session and it will walk you through it."
+
+**Important:** When merging into `~/.claude.json`, preserve ALL existing content. The file contains Claude Code's own settings — only add or update the `mcpServers` entries. Never overwrite the rest of the file.
+
+After configuring, show the user what was set up:
+
+```
+MCP servers configured:
+  Todoist ..................... Connected (cloud)
+  gmessages .................. Registered (local — pair phone later)
+```
 
 ---
 
