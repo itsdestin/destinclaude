@@ -4,14 +4,22 @@ All notable changes to DestinClaude will be documented in this file.
 
 ## v1.1.1 (2026-03-17)
 
+### Security
+- Sanitized SQL inputs in iMessage MCP server — proper LIKE wildcard escaping, input validation, and centralized sanitize function to prevent injection via sqlite3 CLI
+- Topic files moved from world-writable `/tmp/` to `~/.claude/topics/` to prevent symlink attacks
+
 ### Fixes
-- **Security:** Sanitized SQL inputs in iMessage MCP server — added proper LIKE wildcard escaping, input validation, and centralized sanitize function to prevent injection via sqlite3 CLI
-- **Installer:** Fixed broken symlink target — `core/commands/setup.md` did not exist; corrected to `commands/setup.md` in both install.sh and install.ps1
-- **Installer:** Non-terminal fallback now shows proper "Download complete!" banner box instead of bare text
-- **Hooks:** Topic files moved from world-writable `/tmp/` to `~/.claude/topics/` to prevent symlink attacks
-- **Hooks:** git-sync stash pop failures now warn instead of being silently swallowed
-- **Config:** Synced plugin.json version with VERSION file
-- **Docs:** Updated stale "ClaudifestDestiny" reference to "DestinClaude" in template-variables.json
+- **Installer:** Command symlink now points to `core/commands/setup-wizard.md` (was pointing to nonexistent `commands/setup.md`)
+- **Installer:** Non-terminal fallback shows proper "Download complete!" banner box instead of bare text
+- **Installer:** Cleans up stale `setup.md` symlinks on upgrade
+- **Hooks:** git-sync stash pop failures now warn to stderr instead of being silently swallowed
+
+### Cleanup
+- Removed root-level `commands/` and `skills/` copies — canonical files now live exclusively in `core/`
+- Both installers point directly to `core/` paths, eliminating copy drift
+- Synced `plugin.json` version with `VERSION` file
+- Removed stale "ClaudifestDestiny" reference in `template-variables.json`
+- Removed resolved known issues from spec
 
 ## v1.1.0 (2026-03-17)
 
