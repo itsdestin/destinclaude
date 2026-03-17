@@ -238,6 +238,41 @@ If missing and the user wants it:
 
 After install, run `gh auth login` and walk the user through the browser-based auth flow.
 
+#### gcloud CLI (optional)
+
+```bash
+gcloud --version
+```
+
+Needed whenever a toolkit feature requires direct Google API authorization (e.g., OAuth tokens for Google APIs that aren't covered by rclone or other tool-specific auth). If a layer or module needs to call a Google API directly — Drive, Calendar, Gmail, Sheets, etc. — gcloud provides the auth credentials.
+
+If missing and the user wants it:
+
+| Platform | Install command |
+|----------|----------------|
+| macOS | `brew install --cask google-cloud-sdk` |
+| Windows | `winget install Google.CloudSDK` |
+| Linux | `curl https://sdk.cloud.google.com \| bash` |
+
+After install:
+
+1. Run `gcloud init` and walk the user through signing in with their Google account
+2. Run `gcloud auth application-default login` to set up Application Default Credentials — this is what scripts and tools use to authenticate with Google APIs without needing per-tool OAuth flows
+3. Verify with: `gcloud auth application-default print-access-token | head -c 20` — should print a token prefix
+4. If it works, confirm: "Google API credentials are set up. Any toolkit feature that needs direct Google API access will use these automatically."
+
+Store the install status in `~/.claude/toolkit-state/config.json` under `gcloud_installed: true`.
+
+**Usage guidance for Claude:** Whenever a toolkit skill, hook, or script needs to call a Google API directly (not through rclone or another tool with its own auth), use `gcloud auth application-default print-access-token` to get a bearer token. Example:
+
+```bash
+TOKEN=$(gcloud auth application-default print-access-token)
+curl -s -H "Authorization: Bearer $TOKEN" \
+  "https://www.googleapis.com/drive/v3/files?q=name='example'"
+```
+
+If gcloud is not installed and a feature needs it, tell the user: "This feature needs Google API access. Run `/setup` again or install gcloud manually with `brew install --cask google-cloud-sdk` (Mac) / `winget install Google.CloudSDK` (Windows)."
+
 ### Life Dependencies
 
 Only install if the Life layer was selected.
@@ -337,6 +372,7 @@ After all dependencies are installed, show a summary:
 Dependencies installed:
   git: v2.x.x
   gh: v2.x.x (or "skipped")
+  gcloud: v4xx.x.x (or "skipped")
   rclone: v1.x.x + Google Drive connected (or "not needed")
   go: v1.x.x + gmessages built (or "not needed")
   Todoist: connected (or "not needed")
