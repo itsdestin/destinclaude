@@ -208,6 +208,8 @@ Install external tools required by the selected layers. For each dependency, fol
 
 Use the platform detected in Phase 1 to choose install commands.
 
+**Note:** On macOS, the bootstrap installer already installs Homebrew before launching the setup wizard. All `brew install` commands below can be run directly without checking for Homebrew first.
+
 ### Core Dependencies
 
 These are always checked regardless of layer selection.

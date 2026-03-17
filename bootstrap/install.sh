@@ -30,68 +30,46 @@ if [[ "$OS" == "windows" ]]; then
     [[ ! $REPLY =~ ^[Yy]$ ]] && exit 0
 fi
 
+# --- Check for Homebrew (macOS only) ---
+if [[ "$OS" == "macos" ]]; then
+    if command -v brew &> /dev/null; then
+        echo "  Homebrew found: $(brew --version | head -1)"
+    else
+        echo ""
+        echo "  Installing Homebrew (the Mac package manager)..."
+        echo "  This is used to install everything else — Node.js, git tools,"
+        echo "  Google Cloud SDK, and more."
+        echo ""
+        echo "  (If asked for your password, nothing will appear as you type"
+        echo "   — that's normal. Just type it and press Enter.)"
+        echo ""
+        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+        # Homebrew on Apple Silicon installs to /opt/homebrew
+        if [[ -f /opt/homebrew/bin/brew ]]; then
+            eval "$(/opt/homebrew/bin/brew shellenv)"
+        elif [[ -f /usr/local/bin/brew ]]; then
+            eval "$(/usr/local/bin/brew shellenv)"
+        fi
+        if command -v brew &> /dev/null; then
+            echo "  Homebrew installed"
+        else
+            echo ""
+            echo "  Homebrew installation didn't take effect in this session."
+            echo "  Close this terminal, open a new one, and re-run this script."
+            exit 1
+        fi
+    fi
+fi
+
 # --- Check for Node.js ---
 if command -v node &> /dev/null; then
     echo "  Node.js found: $(node --version)"
 else
     echo "  Installing Node.js..."
     if [[ "$OS" == "macos" ]]; then
-        if command -v brew &> /dev/null; then
-            brew install node
-        else
-            echo ""
-            echo "  Node.js is required. How would you like to install it?"
-            echo ""
-            echo "  1) Download Node.js directly (simplest — just installs Node)"
-            echo "  2) Install Homebrew first, then use it for Node"
-            echo "     (Homebrew is a package manager — handy if you plan to"
-            echo "      install other developer tools later)"
-            echo ""
-            read -p "  Choose 1 or 2: " -n 1 -r < /dev/tty
-            echo ""
-            if [[ "$REPLY" == "2" ]]; then
-                echo ""
-                echo "  Installing Homebrew..."
-                echo "  (If asked for your password, nothing will appear as you type"
-                echo "   — that's normal. Just type it and press Enter.)"
-                echo ""
-                /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-                # Homebrew on Apple Silicon installs to /opt/homebrew
-                if [[ -f /opt/homebrew/bin/brew ]]; then
-                    eval "$(/opt/homebrew/bin/brew shellenv)"
-                elif [[ -f /usr/local/bin/brew ]]; then
-                    eval "$(/usr/local/bin/brew shellenv)"
-                fi
-                echo "  Installing Node.js via Homebrew..."
-                brew install node
-            else
-                echo ""
-                echo "  Downloading Node.js installer..."
-                ARCH="$(uname -m)"
-                if [[ "$ARCH" == "arm64" ]]; then
-                    NODE_PKG_URL="https://nodejs.org/dist/v22.15.0/node-v22.15.0.pkg"
-                else
-                    NODE_PKG_URL="https://nodejs.org/dist/v22.15.0/node-v22.15.0.pkg"
-                fi
-                curl -fSL -o /tmp/node-installer.pkg "$NODE_PKG_URL"
-                echo "  Running Node.js installer..."
-                echo "  (Your Mac will ask for your password. When you type it,"
-                echo "   nothing will appear on screen — that's normal. Just type"
-                echo "   it and press Enter.)"
-                echo ""
-                sudo installer -pkg /tmp/node-installer.pkg -target /
-                rm -f /tmp/node-installer.pkg
-            fi
-            if ! command -v node &> /dev/null; then
-                echo ""
-                echo "  Node.js installation didn't seem to take effect in this session."
-                echo "  Close this terminal, open a new one, and re-run this script."
-                exit 1
-            fi
-        fi
+        brew install node
     elif [[ "$OS" == "linux" ]]; then
         if command -v apt-get &> /dev/null; then
-            echo "  Using apt to install Node.js..."
             echo "  (If asked for your password, nothing will appear as you type"
             echo "   — that's normal. Just type it and press Enter.)"
             curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
@@ -105,6 +83,12 @@ else
         fi
     else
         echo "  Please install Node.js from https://nodejs.org"
+        exit 1
+    fi
+    if ! command -v node &> /dev/null; then
+        echo ""
+        echo "  Node.js installation didn't seem to take effect in this session."
+        echo "  Close this terminal, open a new one, and re-run this script."
         exit 1
     fi
     echo "  Node.js installed: $(node --version)"
