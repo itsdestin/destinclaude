@@ -17,6 +17,36 @@ const readline = require('readline');
 
 const DB_PATH = path.join(os.homedir(), 'Library/Messages/chat.db');
 
+/**
+ * Sanitize a string for safe use inside a SQL single-quoted LIKE pattern.
+ * - Rejects inputs that are too long or contain dangerous characters
+ *   (null bytes, backslashes, semicolons) that could break out of the query.
+ * - Doubles single quotes for SQL escaping.
+ * - Escapes LIKE wildcard characters (% and _) so user input is treated literally.
+ */
+const MAX_SQL_INPUT_LENGTH = 500;
+
+function sanitizeSqlLikeInput(input) {
+  if (typeof input !== 'string') {
+    throw new Error('Input must be a string.');
+  }
+  if (input.length > MAX_SQL_INPUT_LENGTH) {
+    throw new Error(`Input too long (max ${MAX_SQL_INPUT_LENGTH} characters).`);
+  }
+  // Reject null bytes and backslashes which could cause unexpected behavior
+  if (/[\x00\\]/.test(input)) {
+    throw new Error('Input contains invalid characters.');
+  }
+  // Escape single quotes for SQL string literals
+  let safe = input.replace(/'/g, "''");
+  // Escape LIKE special characters using '!' as the escape char.
+  // The corresponding LIKE clause must include: ESCAPE '!'
+  safe = safe.replace(/!/g, '!!');
+  safe = safe.replace(/%/g, '!%');
+  safe = safe.replace(/_/g, '!_');
+  return safe;
+}
+
 // Apple's Core Data epoch starts 2001-01-01; Unix epoch starts 1970-01-01
 const APPLE_EPOCH_OFFSET = 978307200;
 
@@ -102,11 +132,12 @@ function handleMessages({ contact, conversation_id, limit = 50 } = {}) {
   let chatId = conversation_id;
 
   if (!chatId && contact) {
+    const safe = sanitizeSqlLikeInput(contact);
     const matches = sqliteQuery(`
       SELECT ROWID, chat_identifier, display_name
       FROM chat
-      WHERE lower(display_name) LIKE lower('%${contact.replace(/'/g, "''")}%')
-         OR lower(chat_identifier) LIKE lower('%${contact.replace(/'/g, "''")}%')
+      WHERE lower(display_name) LIKE lower('%${safe}%') ESCAPE '!'
+         OR lower(chat_identifier) LIKE lower('%${safe}%') ESCAPE '!'
       LIMIT 10
     `);
     if (matches.length === 0) {
@@ -162,7 +193,7 @@ function handleMessages({ contact, conversation_id, limit = 50 } = {}) {
 function handleSearch({ query, limit = 50 } = {}) {
   if (!query) return { error: 'missing_param', message: "'query' is required." };
 
-  const safe = query.replace(/'/g, "''");
+  const safe = sanitizeSqlLikeInput(query);
   const rows = sqliteQuery(`
     SELECT
       m.ROWID as id,
@@ -178,7 +209,7 @@ function handleSearch({ query, limit = 50 } = {}) {
     LEFT JOIN chat_message_join cmj ON cmj.message_id = m.ROWID
     LEFT JOIN chat c ON c.ROWID = cmj.chat_id
     LEFT JOIN handle h ON h.ROWID = m.handle_id
-    WHERE m.text LIKE '%${safe}%'
+    WHERE m.text LIKE '%${safe}%' ESCAPE '!'
     ORDER BY m.date DESC
     LIMIT ${Number(limit)}
   `);
