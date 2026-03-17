@@ -585,9 +585,13 @@ done
 mkdir -p ~/.claude/hooks
 
 # Core hooks (always — skip any the user chose to "keep yours" in Phase 2)
-for hook in checklist-reminder.sh git-sync.sh session-start.sh statusline.sh title-update.sh todo-capture.sh write-guard.sh; do
+# NOTE: statusline.sh is NOT a hook — it's configured separately via settings.json "statusLine"
+for hook in checklist-reminder.sh git-sync.sh session-start.sh title-update.sh todo-capture.sh write-guard.sh; do
   ln -sf "$TOOLKIT_ROOT/core/hooks/$hook" ~/.claude/hooks/$hook
 done
+
+# Statusline script — symlink to ~/.claude/ (not hooks/)
+ln -sf "$TOOLKIT_ROOT/core/hooks/statusline.sh" ~/.claude/statusline.sh
 
 # Life hooks (if Life layer selected)
 ln -sf "$TOOLKIT_ROOT/life/hooks/sync-encyclopedia.sh" ~/.claude/hooks/sync-encyclopedia.sh
@@ -598,6 +602,21 @@ ln -sf "$TOOLKIT_ROOT/life/hooks/sync-encyclopedia.sh" ~/.claude/hooks/sync-ency
 Hooks must also be registered in `~/.claude/settings.json` under the `hooks` key so Claude Code invokes them at the right trigger points. Read the existing `settings.json` (create it if missing), then merge the toolkit's hook registrations into the `hooks` object. Preserve any existing hook entries the user chose to keep in Phase 2.
 
 Refer to the hook scripts themselves for the correct trigger point (`SessionStart`, `PreToolUse`, `PostToolUse`, `Stop`, `UserPromptSubmit`) and matcher pattern for each hook.
+
+#### 5d-ii: Register the statusline
+
+The statusline is NOT a hook — it's a separate config entry in `settings.json`. Add this top-level key:
+
+```json
+{
+  "statusLine": {
+    "type": "command",
+    "command": "bash ~/.claude/statusline.sh"
+  }
+}
+```
+
+This tells Claude Code to run the statusline script and display its output at the bottom of the terminal. The script shows sync status, model name, remaining context percentage, and toolkit version.
 
 #### 5e: Verify symlinks
 
@@ -683,6 +702,8 @@ Run a health check on everything that was installed.
 - [ ] All expected symlinks in `~/.claude/skills/` resolve (not broken)
 - [ ] All expected symlinks in `~/.claude/commands/` resolve (not broken)
 - [ ] Hooks are registered in `~/.claude/settings.json` under the `hooks` key
+- [ ] `statusLine` is configured in `~/.claude/settings.json` (separate from hooks)
+- [ ] `~/.claude/statusline.sh` exists and resolves (not a broken symlink)
 
 ### Step 2: Life checks (if installed)
 
