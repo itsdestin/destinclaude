@@ -33,7 +33,7 @@ Canonical architecture reference for the user's Claude Code automation system. D
 |-----------|----------|-------------------|
 | 11 custom skills | `~/.claude/skills/{name}/` | Each skill's `specs/{name}-spec.md` |
 | 5 hooks | `~/.claude/hooks/` | `backup-system-spec.md` (git-sync, session-start), `write-guard-spec.md`, `statusline-spec.md` (title-update), this spec (checklist-reminder) |
-| 2 MCP servers (todoist, gmessages) | Configured in `~/.claude.json`, code at `~/.claude/mcp-servers/` | `gmessages-mcp-spec.md`; todoist documented in CLAUDE.md. See `claudifest-destiny-spec.md` Known Issues for gaps. |
+| 2 MCP servers (todoist, gmessages) | Configured in `~/.claude.json`, code at `~/.claude/mcp-servers/` | `gmessages-mcp-spec.md`; todoist documented in CLAUDE.md. See `destinclaude-spec.md` Known Issues for gaps. |
 | Statusline | `~/.claude/statusline.sh` + hooks | `statusline-spec.md` |
 | Encyclopedia system | `~/.claude/encyclopedia/` (cache), `gdrive:Claude/The Journal/System/` (source of truth) | `encyclopedia-system-spec.md` |
 | Backup/sync | `~/.claude/hooks/git-sync.sh` + `session-start.sh` | `backup-system-spec.md` |

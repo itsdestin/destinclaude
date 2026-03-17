@@ -1,5 +1,5 @@
 ---
-description: Show all ClaudifestDestiny features, commands, skills, and useful phrases
+description: Show all DestinClaude features, commands, skills, and useful phrases
 ---
 
 Show the user a complete reference of everything the toolkit provides — both what's installed and what's available but not installed.
@@ -21,7 +21,7 @@ If the file doesn't exist or can't be read, check which skill symlinks exist in 
 Present this as a clean, scannable reference card. Show installed features first, then available-but-not-installed layers at the bottom.
 
 ```
-ClaudifestDestiny Toolkit — Quick Reference
+DestinClaude Toolkit — Quick Reference
 
 COMMANDS (type these in Claude)
   /setup ................ Run or re-run the setup wizard
@@ -118,7 +118,7 @@ For each layer/module that is NOT installed, show a one-line description of what
 - **Elections Notebook** — Track Arizona legislative candidates and campaign finance data across all 30 districts.
 - **JLBC Fiscal Note** — Draft fiscal impact analyses for Arizona legislation in official JLBC format.
 
-If everything is installed, show: "You have everything installed! Check https://github.com/itsdestin/claudifest-destiny for new modules."
+If everything is installed, show: "You have everything installed! Check https://github.com/itsdestin/destinclaude for new modules."
 
 ## When a user asks about an uninstalled feature
 

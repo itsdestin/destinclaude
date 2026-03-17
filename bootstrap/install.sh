@@ -1,5 +1,5 @@
 #!/bin/bash
-# ClaudifestDestiny Bootstrap Installer — macOS / Linux
+# DestinClaude Bootstrap Installer — macOS / Linux
 # Downloads prerequisites and clones the toolkit so Claude Code can finish setup.
 set -e
 
@@ -8,7 +8,7 @@ set -e
 # (We do NOT use `exec < /dev/tty` because that kills the curl pipe.)
 
 echo "==================================="
-echo "  ClaudifestDestiny Installer"
+echo "  DestinClaude Installer"
 echo "==================================="
 echo ""
 
@@ -127,13 +127,13 @@ else
 fi
 
 # --- Clone the toolkit ---
-TOOLKIT_DIR="$HOME/.claude/plugins/claudifest-destiny"
+TOOLKIT_DIR="$HOME/.claude/plugins/destinclaude"
 if [ -d "$TOOLKIT_DIR" ]; then
     echo "  Toolkit already cloned at $TOOLKIT_DIR"
 else
     echo "  Cloning toolkit..."
     mkdir -p "$HOME/.claude/plugins"
-    git clone https://github.com/itsdestin/claudifest-destiny.git "$TOOLKIT_DIR"
+    git clone https://github.com/itsdestin/destinclaude.git "$TOOLKIT_DIR"
     echo "  Toolkit cloned"
 fi
 

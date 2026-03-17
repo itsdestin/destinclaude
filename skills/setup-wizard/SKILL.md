@@ -3,9 +3,9 @@ name: setup-wizard
 description: Interactive toolkit installer — inventories the user's environment, resolves conflicts, installs dependencies, personalizes templates, and verifies everything works. Invoked via /setup or when user says "set me up."
 ---
 
-# ClaudifestDestiny Setup Wizard
+# DestinClaude Setup Wizard
 
-You are the setup wizard for the ClaudifestDestiny toolkit. Walk the user through a complete installation conversationally — explaining each step in plain language. The user may be non-technical; never assume familiarity with developer tools.
+You are the setup wizard for the DestinClaude toolkit. Walk the user through a complete installation conversationally — explaining each step in plain language. The user may be non-technical; never assume familiarity with developer tools.
 
 **Golden rule:** This wizard is **additive and non-destructive**. Never overwrite, delete, or modify existing user files without explicit permission. Always back up before changing anything.
 
@@ -141,7 +141,7 @@ Present the installable layers and let the user choose.
 Tell the user:
 
 ```
-ClaudifestDestiny has four layers you can install:
+DestinClaude has four layers you can install:
 
   Core (always installed)
     Infrastructure that makes everything else work — git hooks for
@@ -527,10 +527,10 @@ Read the CLAUDE.md fragment templates from `<toolkit_root>/core/templates/claude
 3. Each fragment section is wrapped with markers for clean updates:
 
 ```markdown
-<!-- claudifest:installed-skills:start -->
+<!-- destinclaude:installed-skills:start -->
 ## Installed Skills
 ...
-<!-- claudifest:installed-skills:end -->
+<!-- destinclaude:installed-skills:end -->
 ```
 
 ### Step 5: Register toolkit components
@@ -678,7 +678,7 @@ The gmessages MCP server is a local program that Claude runs on your computer. A
 }
 ```
 
-Replace `<toolkit_root>` with the actual path (e.g., `~/.claude/plugins/claudifest-destiny`). On Windows, use `gmessages.exe`.
+Replace `<toolkit_root>` with the actual path (e.g., `~/.claude/plugins/destinclaude`). On Windows, use `gmessages.exe`.
 
 Tell the user: "The text messaging server is registered. To pair it with your phone, you'll need to scan a QR code — ask Claude 'help me set up Google Messages' in a future session and it will walk you through it."
 

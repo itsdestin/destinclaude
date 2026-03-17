@@ -110,4 +110,4 @@ Once authenticated, you'll see Claude's prompt — a place where you can type in
 
 Now that Claude Code is installed and working:
 - [Your First Conversation](02-your-first-conversation.md) — learn how to talk to Claude
-- [Installing the Toolkit](03-installing-the-toolkit.md) — add the ClaudifestDestiny skills and tools
+- [Installing the Toolkit](03-installing-the-toolkit.md) — add the DestinClaude skills and tools

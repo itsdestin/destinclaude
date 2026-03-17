@@ -34,7 +34,7 @@ Hooks run in the background. They're the invisible assistants that keep everythi
 
 ## What This Toolkit Adds
 
-ClaudifestDestiny is a collection of skills, hooks, and tools that transform Claude Code from a general-purpose assistant into a personal knowledge system. Here's what it includes:
+DestinClaude is a collection of skills, hooks, and tools that transform Claude Code from a general-purpose assistant into a personal knowledge system. Here's what it includes:
 
 - **Journaling** — A conversational journaling system that helps you document your life
 - **Encyclopedia** — A living biography that Claude maintains about you, your relationships, and your history

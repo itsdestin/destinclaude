@@ -1,12 +1,12 @@
 {
-  "name": "claudifest-destiny-core",
+  "name": "destinclaude-core",
   "description": "Foundation layer — hooks, specs system, memory templates, setup wizard",
   "version": "0.1.0",
   "author": {
     "name": "itsdestin"
   },
-  "homepage": "https://github.com/itsdestin/claudifest-destiny",
-  "repository": "https://github.com/itsdestin/claudifest-destiny",
+  "homepage": "https://github.com/itsdestin/destinclaude",
+  "repository": "https://github.com/itsdestin/destinclaude",
   "license": "MIT",
   "keywords": ["claude-code", "hooks", "specs", "setup", "foundation"]
 }

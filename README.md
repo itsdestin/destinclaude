@@ -1,10 +1,10 @@
-# ClaudifestDestiny
+# DestinClaude
 
-**Website:** https://itsdestin.github.io/claudifest-destiny/
+**Website:** https://itsdestin.github.io/destinclaude/
 
 **A modular toolkit that transforms Claude Code into a personal knowledge system, journal, task manager, and more.**
 
-ClaudifestDestiny is a collection of skills, hooks, commands, and tools for [Claude Code](https://docs.anthropic.com/en/docs/claude-code) — Anthropic's CLI for Claude. It adds a journaling system, a living encyclopedia of your life, task management, text messaging, and domain-specific modules — all through plain-English conversation.
+DestinClaude is a collection of skills, hooks, commands, and tools for [Claude Code](https://docs.anthropic.com/en/docs/claude-code) — Anthropic's CLI for Claude. It adds a journaling system, a living encyclopedia of your life, task management, text messaging, and domain-specific modules — all through plain-English conversation.
 
 <!-- TODO: Add demo GIF/screenshot here -->
 
@@ -25,7 +25,7 @@ Read the [System Architecture](docs/system-architecture.md) for the full technic
 
 ```bash
 # Clone the toolkit
-git clone https://github.com/itsdestin/claudifest-destiny.git ~/.claude/plugins/claudifest-destiny
+git clone https://github.com/itsdestin/destinclaude.git ~/.claude/plugins/destinclaude
 
 # Open Claude Code and run the setup wizard
 claude
@@ -36,12 +36,12 @@ Or use the bootstrap script (installs prerequisites too):
 
 **Mac/Linux:**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/itsdestin/claudifest-destiny/master/bootstrap/install.sh -o /tmp/install.sh && bash /tmp/install.sh
+curl -fsSL https://raw.githubusercontent.com/itsdestin/destinclaude/master/bootstrap/install.sh -o /tmp/install.sh && bash /tmp/install.sh
 ```
 
 **Windows (PowerShell):**
 ```powershell
-powershell -ExecutionPolicy Bypass -c "iwr -useb https://raw.githubusercontent.com/itsdestin/claudifest-destiny/master/bootstrap/install.ps1 -OutFile install.ps1; .\install.ps1"
+powershell -ExecutionPolicy Bypass -c "iwr -useb https://raw.githubusercontent.com/itsdestin/destinclaude/master/bootstrap/install.ps1 -OutFile install.ps1; .\install.ps1"
 ```
 
 ## What's Inside

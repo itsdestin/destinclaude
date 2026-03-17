@@ -1,13 +1,13 @@
 # System Architecture
 
-This document covers the technical architecture of ClaudifestDestiny for power users and developers who want to understand, extend, or contribute to the system.
+This document covers the technical architecture of DestinClaude for power users and developers who want to understand, extend, or contribute to the system.
 
 ## Layer System
 
 The toolkit is organized into four installable layers, each a standalone Claude Code plugin:
 
 ```
-claudifest-destiny/
+destinclaude/
 ├── core/           → Foundation (required)
 ├── life/           → Personal knowledge system
 ├── productivity/   → Task management & communication
@@ -119,7 +119,7 @@ Personal data is protected through multiple layers:
 1. **`.private-manifest`** — Gitignore-style patterns for files that should never be shared. Default patterns cover encyclopedia, journal, memory, credentials.
 2. **Write guard** — Hook that prevents accidental writes to protected paths.
 3. **Contribution filter** — The `/contribute` command and contribution detector both exclude private content.
-4. **Setup marker comments** — CLAUDE.md modifications are wrapped in `<!-- CLAUDIFEST-DESTINY BEGIN/END -->` markers for clean removal.
+4. **Setup marker comments** — CLAUDE.md modifications are wrapped in `<!-- DESTINCLAUDE BEGIN/END -->` markers for clean removal.
 
 ## State Files
 

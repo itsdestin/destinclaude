@@ -2,7 +2,7 @@
 description: Contribute your toolkit improvements back to the upstream project
 ---
 
-Help the user contribute their local toolkit improvements back to the upstream ClaudifestDestiny repo as a pull request.
+Help the user contribute their local toolkit improvements back to the upstream DestinClaude repo as a pull request.
 
 ## Steps
 
@@ -14,11 +14,11 @@ Help the user contribute their local toolkit improvements back to the upstream C
 
 2. **Check for a fork.** See if the user already has a fork:
    ```bash
-   gh repo list --fork --json nameWithOwner | grep claudifest-destiny
+   gh repo list --fork --json nameWithOwner | grep destinclaude
    ```
    If no fork exists, create one:
    ```bash
-   gh repo fork itsdestin/claudifest-destiny --clone=false
+   gh repo fork itsdestin/destinclaude --clone=false
    ```
 
 3. **Find changes.** In the toolkit root directory, diff against the installed release tag:
@@ -55,13 +55,13 @@ Help the user contribute their local toolkit improvements back to the upstream C
     ```bash
     # Add fork remote if not already present
     FORK_OWNER=$(gh api user --jq .login)
-    git remote add fork https://github.com/${FORK_OWNER}/claudifest-destiny.git 2>/dev/null || true
+    git remote add fork https://github.com/${FORK_OWNER}/destinclaude.git 2>/dev/null || true
     git push fork contrib/<short-description>
     ```
 
 11. **Create pull request.**
     ```bash
-    gh pr create --repo itsdestin/claudifest-destiny --head ${FORK_OWNER}:contrib/<short-description> --title "<descriptive title>" --body "<plain-language description of the changes>"
+    gh pr create --repo itsdestin/destinclaude --head ${FORK_OWNER}:contrib/<short-description> --title "<descriptive title>" --body "<plain-language description of the changes>"
     ```
 
 12. **Report success.** Show the user the PR URL and tell them: "Done! The maintainer will see your suggestion. Thanks for contributing!"

@@ -32,8 +32,8 @@ The scripts check for these and install any that are missing:
 
 After checking prerequisites, the script downloads the toolkit itself:
 
-- **From:** `https://github.com/itsdestin/claudifest-destiny`
-- **To:** `~/.claude/plugins/claudifest-destiny/` (inside your Claude Code configuration directory)
+- **From:** `https://github.com/itsdestin/destinclaude`
+- **To:** `~/.claude/plugins/destinclaude/` (inside your Claude Code configuration directory)
 - **Size:** A few megabytes
 - **What it contains:** Skills, hooks, commands, and templates — all plain text files you can read
 

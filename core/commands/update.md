@@ -2,7 +2,7 @@
 description: Check for toolkit updates and install the latest version
 ---
 
-Check for and install updates to the ClaudifestDestiny toolkit.
+Check for and install updates to the DestinClaude toolkit.
 
 ## Steps
 

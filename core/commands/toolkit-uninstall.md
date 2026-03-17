@@ -2,11 +2,11 @@
 description: Remove the toolkit and restore your previous setup
 ---
 
-Safely remove the ClaudifestDestiny toolkit and restore the user's previous configuration.
+Safely remove the DestinClaude toolkit and restore the user's previous configuration.
 
 ## Steps
 
-1. **Confirm with user.** Ask: "This will remove the ClaudifestDestiny toolkit and restore your previous setup. Are you sure you want to uninstall?" Wait for explicit confirmation before proceeding.
+1. **Confirm with user.** Ask: "This will remove the DestinClaude toolkit and restore your previous setup. Are you sure you want to uninstall?" Wait for explicit confirmation before proceeding.
 
 2. **Read backup manifest.** Check for the pre-toolkit backup at `~/.claude/backups/pre-toolkit/`. Read the manifest file (`manifest.json`) which records:
    - Files that were backed up before the toolkit modified them
@@ -26,11 +26,11 @@ Safely remove the ClaudifestDestiny toolkit and restore the user's previous conf
 
 5. **Clean CLAUDE.md.** If CLAUDE.md was modified (not replaced), remove only the sections between toolkit marker comments. The setup wizard wraps each section with markers like:
    ```
-   <!-- claudifest:section-name:start -->
+   <!-- destinclaude:section-name:start -->
    ...content added by toolkit...
-   <!-- claudifest:section-name:end -->
+   <!-- destinclaude:section-name:end -->
    ```
-   Find and remove all `<!-- claudifest:*:start -->` / `<!-- claudifest:*:end -->` blocks (and their contents). Leave all other content intact.
+   Find and remove all `<!-- destinclaude:*:start -->` / `<!-- destinclaude:*:end -->` blocks (and their contents). Leave all other content intact.
 
 6. **Remove toolkit plugins.** Remove the toolkit plugin directories from Claude Code's plugin system. The plugin directories are the layer folders (`core/`, `life/`, `productivity/`, `modules/`) within the toolkit installation directory.
 

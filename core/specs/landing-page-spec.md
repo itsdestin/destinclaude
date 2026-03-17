@@ -8,7 +8,7 @@ last_updated: 2026-03-17
 
 A single-page site that non-technical friends can open from a text message, understand what the toolkit does, and install it — without ever seeing GitHub.
 
-**Live URL:** https://itsdestin.github.io/claudifest-destiny/
+**Live URL:** https://itsdestin.github.io/destinclaude/
 **Source:** `docs/index.html` (served via GitHub Pages from `master` branch, `/docs` path)
 
 ## Architecture
@@ -97,7 +97,7 @@ Single self-contained `docs/index.html`. CSS inline, fonts loaded from Google Fo
 - GitHub Pages source: `master` branch, `/docs` path
 - `.nojekyll` file prevents Jekyll processing
 - `gh-pages` branch exists but is not the active source
-- No custom domain configured (uses `itsdestin.github.io/claudifest-destiny/`)
+- No custom domain configured (uses `itsdestin.github.io/destinclaude/`)
 
 ## Changelog
 

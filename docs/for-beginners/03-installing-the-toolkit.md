@@ -1,6 +1,6 @@
 # Installing the Toolkit
 
-There are two ways to install ClaudifestDestiny: the automated way (recommended) and the manual way.
+There are two ways to install DestinClaude: the automated way (recommended) and the manual way.
 
 ## Option A: Run the Bootstrap Script (Recommended)
 
@@ -8,7 +8,7 @@ The bootstrap script checks that everything is installed, downloads the toolkit,
 
 **On Mac or Linux:**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/itsdestin/claudifest-destiny/master/bootstrap/install.sh -o /tmp/install.sh && bash /tmp/install.sh
+curl -fsSL https://raw.githubusercontent.com/itsdestin/destinclaude/master/bootstrap/install.sh -o /tmp/install.sh && bash /tmp/install.sh
 ```
 
 Or if you've already downloaded the repo:
@@ -28,7 +28,7 @@ powershell -ExecutionPolicy Bypass -File bootstrap\install.ps1
 
 The script will:
 1. Check for Node.js, Git, and Claude Code (install any that are missing)
-2. Clone the toolkit to `~/.claude/plugins/claudifest-destiny/`
+2. Clone the toolkit to `~/.claude/plugins/destinclaude/`
 3. Tell you what to do next
 
 > **Curious what the script does?** Read the [prerequisites explanation](../../bootstrap/prerequisites.md) for a plain-language breakdown.
@@ -38,7 +38,7 @@ The script will:
 If you'd rather do it yourself:
 
 ```bash
-git clone https://github.com/itsdestin/claudifest-destiny.git ~/.claude/plugins/claudifest-destiny
+git clone https://github.com/itsdestin/destinclaude.git ~/.claude/plugins/destinclaude
 ```
 
 That's it — the toolkit is downloaded.

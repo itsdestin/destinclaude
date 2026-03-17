@@ -1,8 +1,8 @@
-# ClaudifestDestiny Bootstrap Installer — Windows
+# DestinClaude Bootstrap Installer — Windows
 # Downloads prerequisites and clones the toolkit so Claude Code can finish setup.
 
 Write-Host "===================================" -ForegroundColor Cyan
-Write-Host "  ClaudifestDestiny Installer" -ForegroundColor Cyan
+Write-Host "  DestinClaude Installer" -ForegroundColor Cyan
 Write-Host "===================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -95,14 +95,14 @@ if (-not $claudeFound) {
 }
 
 # --- Clone the toolkit ---
-$toolkitDir = Join-Path $HOME ".claude\plugins\claudifest-destiny"
+$toolkitDir = Join-Path $HOME ".claude\plugins\destinclaude"
 if (Test-Path $toolkitDir) {
     Write-Host "  Toolkit already cloned at $toolkitDir" -ForegroundColor Green
 } else {
     Write-Host "  Cloning toolkit..." -ForegroundColor Yellow
     $pluginsDir = Join-Path $HOME ".claude\plugins"
     if (-not (Test-Path $pluginsDir)) { New-Item -ItemType Directory -Path $pluginsDir -Force | Out-Null }
-    git clone https://github.com/itsdestin/claudifest-destiny.git $toolkitDir
+    git clone https://github.com/itsdestin/destinclaude.git $toolkitDir
     Write-Host "  Toolkit cloned" -ForegroundColor Green
 }
 
