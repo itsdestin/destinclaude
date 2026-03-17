@@ -257,6 +257,69 @@
     margin-bottom: 0;
   }
 
+  /* --- PREREQ GRID --- */
+  .prereq-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+
+  .prereq-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+  }
+
+  .prereq-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+
+  .prereq-header h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .prereq-badge {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 4px;
+  }
+
+  .prereq-badge.required {
+    background: rgba(224, 120, 64, 0.12);
+    color: var(--accent);
+    border: 1px solid rgba(224, 120, 64, 0.25);
+  }
+
+  .prereq-badge.optional {
+    background: rgba(45, 36, 24, 0.05);
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+  }
+
+  .prereq-card p {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+
+  .prereq-note {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    text-align: center;
+    font-style: italic;
+  }
+
   /* --- INSTALL --- */
   .install-box {
     background: var(--bg-card);
@@ -548,6 +611,7 @@
   @media (max-width: 768px) {
     .hero { padding: 48px 0 0; }
     .features-grid { grid-template-columns: 1fr; }
+    .prereq-grid { grid-template-columns: 1fr; }
     .docs-grid { grid-template-columns: 1fr; }
     .hints-row { flex-direction: column; gap: 8px; align-items: flex-start; padding-left: 24px; }
     section { padding: 20px 0; }
@@ -595,6 +659,45 @@
         <p>This toolkit teaches Claude how to do all of that, and more.</p>
         <p class="permission-note">Nothing happens without your permission. Claude will always ask before taking any action.</p>
       </div>
+    </div>
+  </section>
+
+  <!-- BEFORE YOU BEGIN -->
+  <section>
+    <div class="container">
+      <p class="section-label">Before you begin</p>
+      <h2 class="section-title">You'll need a couple of accounts.</h2>
+      <div class="prereq-grid">
+        <div class="prereq-card">
+          <div class="prereq-header">
+            <span class="prereq-badge required">Required</span>
+            <h3>Anthropic</h3>
+          </div>
+          <p>Claude Code runs on Anthropic's API. You'll need either an <a href="https://console.anthropic.com/" target="_blank">API key</a> or a <a href="https://claude.ai/upgrade" target="_blank">Claude Max subscription</a>.</p>
+        </div>
+        <div class="prereq-card">
+          <div class="prereq-header">
+            <span class="prereq-badge required">Required</span>
+            <h3>Google</h3>
+          </div>
+          <p>Used for Google Drive backup and sync. Any Google account works — personal Gmail is fine.</p>
+        </div>
+        <div class="prereq-card">
+          <div class="prereq-header">
+            <span class="prereq-badge optional">Optional</span>
+            <h3>GitHub</h3>
+          </div>
+          <p>Only needed if you want to contribute improvements back. <a href="https://github.com/signup" target="_blank">Free to create.</a></p>
+        </div>
+        <div class="prereq-card">
+          <div class="prereq-header">
+            <span class="prereq-badge optional">Optional</span>
+            <h3>Todoist</h3>
+          </div>
+          <p>Enables task management and inbox processing. <a href="https://todoist.com/users/showregister" target="_blank">Free plan</a> works great.</p>
+        </div>
+      </div>
+      <p class="prereq-note">Don't worry about setting these up perfectly now — Claude will walk you through connecting each service during setup.</p>
     </div>
   </section>
 
