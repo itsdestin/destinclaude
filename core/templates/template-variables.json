@@ -46,7 +46,7 @@
     "PERSONAL_SYNC_BACKEND": {
       "description": "Where to back up personal data (memory, CLAUDE.md, config). Options: 'drive' (Google Drive via rclone), 'github' (private GitHub repo), 'none' (skip). Written to config.json; read by personal-sync.sh hook at runtime.",
       "used_in": [],
-      "prompt": "Your toolkit improvements sync to the public ClaudifestDestiny repo — that's just skills, hooks, and commands, nothing personal. But your memory, preferences, and personal config need a private home. Where should Claude back those up?\n\n1. Google Drive (recommended if you set up Drive earlier)\n2. Private GitHub repo\n3. Skip for now",
+      "prompt": "Your toolkit improvements sync to the public DestinClaude repo — that's just skills, hooks, and commands, nothing personal. But your memory, preferences, and personal config need a private home. Where should Claude back those up?\n\n1. Google Drive (recommended if you set up Drive earlier)\n2. Private GitHub repo\n3. Skip for now",
       "default": "none",
       "required": false
     },
