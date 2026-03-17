@@ -1,6 +1,6 @@
 ---
 name: setup-wizard
-description: Interactive toolkit installer — inventories the user's environment, resolves conflicts, installs dependencies, personalizes templates, and verifies everything works. Invoked via /setup or when user says "set me up."
+description: Interactive toolkit installer — inventories the user's environment, resolves conflicts, installs dependencies, personalizes templates, and verifies everything works. Invoked via /setup-wizard or when user says "set me up."
 ---
 
 # DestinClaude Setup Wizard
@@ -69,6 +69,8 @@ If conflicts exist (toolkit skills that share names with existing skills, existi
 
 If nothing exists, say: "Clean slate — this will be a fresh install. Easy!"
 
+After presenting findings, give a one-sentence plain-English summary: "I checked your computer and found [nothing existing / some existing setup to work around]."
+
 **Wait for the user to acknowledge before proceeding to Phase 2.**
 
 ---
@@ -98,14 +100,14 @@ Do NOT modify CLAUDE.md yet — that happens in Phase 5 (Personalization). Just 
 
 ### Step 3: Resolve hook conflicts
 
-For each hook script in the user's `~/.claude/hooks/` that shares a filename or trigger point with a toolkit hook:
+Hooks are automatic behaviors — things Claude does on its own without you asking. For each hook where you already have one and the toolkit also includes one that triggers at the same point:
 
-1. Back up: `cp ~/.claude/hooks/<name> ~/.claude/backups/pre-toolkit/<name>`
-2. Show the user both versions side by side (a brief summary, not full source)
+1. Back up the user's version: `cp ~/.claude/hooks/<name> ~/.claude/backups/pre-toolkit/<name>`
+2. Explain both in plain English — what each one does automatically, not the code. For example: "Your version automatically backs up files after every change. The toolkit's version does the same thing but also syncs to Google Drive."
 3. Offer three options:
-   - **Merge** — combine both hooks into one script (you'll do this programmatically)
-   - **Keep yours** — skip installing the toolkit's version of this hook
-   - **Use toolkit's** — replace with the toolkit version (backup already saved)
+   - **Merge** — combine both automatic behaviors into one (Claude handles this)
+   - **Keep yours** — keep your existing behavior, skip the toolkit's version
+   - **Use toolkit's** — switch to the toolkit's version (your original is backed up)
 4. Record the user's choice for each conflict
 
 ### Step 4: Resolve skill name conflicts
@@ -122,13 +124,13 @@ For each skill directory in `~/.claude/skills/` that shares a name with a toolki
 
 ### Step 5: Resolve MCP server conflicts
 
-If any existing MCP server names match toolkit servers (e.g., `gmessages`, `todoist`):
+If any existing MCP server names match toolkit servers (e.g., `gmessages`, `imessages`, `todoist`, `macos-automator`, `home-mcp`, `apple-events`):
 
 1. Show the user the existing config vs. what the toolkit would set up
 2. Offer: **Keep yours** / **Use toolkit's** / **Skip this server**
 3. Record the choice
 
-**After all conflicts are resolved, confirm:** "All conflicts resolved. Here's the plan: [summary of decisions]. Ready to choose your layers?"
+**After all conflicts are resolved, summarize:** "We resolved all the conflicts — your existing files are backed up safely. Here's the plan: [summary of decisions]. Ready to choose your layers?"
 
 ---
 
@@ -156,8 +158,8 @@ DestinClaude has four layers you can install:
   Productivity (recommended)
     Task management and communication — an inbox processor that
     triages notes from your phone, a skill creator for building
-    new Claude skills, and a Google Messages integration for
-    reading/sending texts.
+    new Claude skills, and text messaging integration (Google
+    Messages for Android, or iMessage for macOS users).
 
   Modules (optional, pick individually)
     Specialized tools for niche use cases:
@@ -167,7 +169,7 @@ DestinClaude has four layers you can install:
       Arizona legislation
 
 Which would you like?
-  1. Full install (everything)
+  1. Full install (everything) (default)
   2. Core + Life + Productivity (skip modules)
   3. Core only (just the basics)
   4. Let me pick individually
@@ -191,6 +193,8 @@ Store the selected layers in `~/.claude/toolkit-state/config.json`:
   "installed_at": "<ISO timestamp>"
 }
 ```
+
+Summarize: "You chose to install [list of selected layers]. Now I'll make sure you have everything those layers need."
 
 **Proceed to Phase 4.**
 
@@ -230,7 +234,7 @@ gh --version
 
 Tell the user: "GitHub is how the toolkit receives updates and backs up your configuration. Without it, you won't get new features or bug fixes, and your setup won't be backed up to the cloud. I'd strongly recommend setting this up — it only takes a minute. Want me to handle it for you?"
 
-If the user agrees (or `gh` is already installed but not authenticated), proceed with installation and authentication below. If the user declines, warn them clearly: "Understood — just so you know, without GitHub you'll miss out on toolkit updates and cloud backups of your configuration. You can always set it up later by running `/setup` again."
+If the user agrees (or `gh` is already installed but not authenticated), proceed with installation and authentication below. If the user declines, warn them clearly: "Understood — just so you know, without GitHub you'll miss out on toolkit updates and cloud backups of your configuration. You can always set it up later by running `/setup-wizard` again."
 
 If missing:
 
@@ -307,7 +311,7 @@ curl -s -H "Authorization: Bearer $TOKEN" \
   "https://www.googleapis.com/drive/v3/files?q=name='example'"
 ```
 
-If gcloud is not installed and a feature needs it, tell the user: "This feature needs Google API access. Run `/setup` again or install gcloud manually with `brew install --cask google-cloud-sdk` (Mac) / `winget install Google.CloudSDK` (Windows)."
+If gcloud is not installed and a feature needs it, tell the user: "This feature needs Google API access. Run `/setup-wizard` again or install gcloud manually with `brew install --cask google-cloud-sdk` (Mac) / `winget install Google.CloudSDK` (Windows)."
 
 ### Life Dependencies
 
@@ -359,7 +363,7 @@ Tell the user: "A browser window should open. Sign in with the Google account th
 If the direct command doesn't work and you need to fall back to `rclone config` (interactive mode), walk the user through it:
 - **n** for new remote
 - Name: **gdrive**
-- Storage type: Look for **Google Drive** in the numbered list — it's typically **#24**, but the number can change between versions. Tell the user: "Find 'Google Drive' in the list and type its number."
+- Storage type: Don't ask the user to find a number in the list — it changes between versions. Instead, tell them: "Type `drive` and press Enter — that filters the list to just Google Drive." If that doesn't work, run `rclone config | grep -n "Google Drive"` in a separate terminal to find the number, then tell the user which number to type.
 - **client_id** → press Enter (leave blank)
 - **client_secret** → press Enter (leave blank)
 - **scope** → type **1** (full access)
@@ -385,6 +389,68 @@ If it fails, common fixes:
 ### Productivity Dependencies
 
 Only install if the Productivity layer was selected.
+
+#### Messaging setup
+
+The toolkit supports two text messaging integrations. Which one to offer depends on the platform:
+
+- **macOS users** get a choice between **iMessage** (reads the native Messages app) and **Google Messages** (for Android phones)
+- **Windows and Linux users** only get **Google Messages** (iMessage requires macOS)
+
+**Step 1 — Present the choice (macOS only):**
+
+If the platform is macOS, ask:
+
+```
+How do you send text messages?
+
+  1. iMessage (Apple Messages app on this Mac)
+  2. Google Messages (Android phone)
+  3. Both
+  4. Neither — skip messaging
+```
+
+If the platform is Windows or Linux, ask:
+
+```
+Do you use Google Messages on an Android phone? The toolkit can
+read and send texts through it.
+
+  1. Yes, set it up
+  2. No, skip messaging
+```
+
+Record the user's choice as `messaging_choice` in config: `"imessages"`, `"gmessages"`, `"both"`, or `"none"`.
+
+**Step 2 — Set up iMessage (if selected or "both"):**
+
+iMessage requires macOS and Node.js (already a toolkit dependency). No compilation or build step needed — it's a single JavaScript file.
+
+Tell the user: "The iMessage server reads your Messages history and can send texts through the Messages app. It needs one permission to work: **Full Disk Access** for your terminal app."
+
+Walk them through granting Full Disk Access:
+
+1. "Open **System Settings** (click the Apple menu → System Settings)"
+2. "Go to **Privacy & Security** in the sidebar"
+3. "Scroll down to **Full Disk Access** and click it"
+4. "Find your terminal app (Terminal, iTerm2, or whichever app you run Claude in) and toggle it **on**"
+5. "You may need to restart your terminal after enabling this"
+
+Verify it works by running a quick test:
+
+```bash
+node <toolkit_root>/productivity/mcp-servers/imessages/index.js <<< '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"0.1"}}}' 2>/dev/null | head -1
+```
+
+If it returns a JSON response, confirm: "iMessage server is working. It can read your message history and send texts through the Messages app."
+
+If it fails or the platform isn't macOS, tell the user: "iMessage couldn't be set up — it requires macOS with Full Disk Access enabled. You can try again later."
+
+Store `imessages_available: true/false` in config.
+
+**Step 3 — Set up Google Messages (if selected or "both"):**
+
+This requires the Go compiler to build from source.
 
 #### Go compiler
 
@@ -463,9 +529,14 @@ Dependencies installed:
   gh: v2.x.x (or "skipped")
   gcloud: v4xx.x.x (or "skipped")
   rclone: v1.x.x + Google Drive connected (or "not needed")
-  go: v1.x.x + gmessages built (or "not needed")
+  iMessage: ready (or "not selected" / "macOS only")
+  go: v1.x.x + gmessages built (or "not selected")
   Todoist: connected (or "not needed")
 ```
+
+Only show the messaging rows relevant to the user's choice.
+
+Summarize: "All the tools you need are installed. Now let's personalize everything for you."
 
 **Proceed to Phase 5.**
 
@@ -497,6 +568,17 @@ What Todoist project should Claude use as your inbox? (default: Claude's Inbox) 
 ```
 
 Only ask about variables relevant to the selected layers. Skip `TODOIST_PROJECT` if Productivity isn't selected, skip `DRIVE_ROOT`/`JOURNAL_DIR`/`ENCYCLOPEDIA_DIR` if Life isn't selected.
+
+When asking about `GIT_REMOTE`, if the user seems unsure or says they don't know what GitHub is, offer to explain it and help them set up a free account and repository. Frame it as: "GitHub is a free service that stores a backup of your settings online — like a safety net. Want me to walk you through setting one up? It takes about 2 minutes." If they decline, skip it gracefully.
+
+When asking about `PERSONAL_SYNC_BACKEND`, frame the distinction clearly: "Your toolkit improvements — skills, hooks, and commands — sync to the public DestinClaude repo. That's all system-level code, nothing personal. But your memory (things Claude learns about you), your preferences, and your personal config need a private home so they're backed up and available if you switch devices."
+
+Then present the options:
+1. **Google Drive** — recommended if the user already set up rclone for the Life layer. Set `PERSONAL_SYNC_BACKEND: "drive"`.
+2. **Private GitHub repo** — if the user chose this, check if `gh` is authenticated. If so, offer to create a private repo for them: `gh repo create claude-personal-data --private --clone`. Clone to `~/.claude/toolkit-state/personal-sync-repo/`, set the `personal-sync` remote, and store the URL in `PERSONAL_SYNC_REPO`. If `gh` is not available, ask for a repo URL directly.
+3. **Skip for now** — set `PERSONAL_SYNC_BACKEND: "none"`. Tell them: "No problem — your data stays on this device only. You can set this up later by running `/setup-wizard` again."
+
+Only ask `PERSONAL_SYNC_REPO` if the user chose the GitHub backend.
 
 ### Step 2: Process template files
 
@@ -539,7 +621,7 @@ Claude Code auto-discovers skills from `~/.claude/skills/`, commands from `~/.cl
 
 **Important:** `enabledPlugins` in `settings.json` only works for marketplace plugins (`"name@marketplace": true`). It does NOT support local path-based registration. Always use symlinks for local toolkit components.
 
-**Windows symlink fallback:** On Windows, `ln -sf` may fail if Developer Mode is not enabled. After each `ln -sf` call, check if the symlink resolves (`[ -e target ]`). If it doesn't, fall back to copying instead (`cp -R` for directories, `cp` for files). The bootstrap installer already does this — the wizard must match. When using copy fallback, inform the user: "Symlinks aren't available on your system — using copies instead. Everything works the same, but if you update the toolkit you'll need to re-run `/setup` to refresh these copies."
+**Windows symlink fallback:** On Windows, `ln -sf` may fail if Developer Mode is not enabled. After each `ln -sf` call, check if the symlink resolves (`[ -e target ]`). If it doesn't, fall back to copying instead (`cp -R` for directories, `cp` for files). The bootstrap installer already does this — the wizard must match. When using copy fallback, inform the user: "Symlinks aren't available on your system — using copies instead. Everything works the same, but if you update the toolkit you'll need to re-run `/setup-wizard` to refresh these copies."
 
 #### 5a: Symlink skills
 
@@ -576,7 +658,7 @@ Only run the blocks for layers the user selected in Phase 3.
 mkdir -p ~/.claude/commands
 
 # Core commands (always)
-for cmd in setup.md contribute.md toolkit.md toolkit-uninstall.md update.md; do
+for cmd in setup-wizard.md contribute.md toolkit.md toolkit-uninstall.md update.md health.md; do
   ln -sf "$TOOLKIT_ROOT/core/commands/$cmd" ~/.claude/commands/$cmd
 done
 ```
@@ -642,6 +724,28 @@ MCP servers let Claude talk to external services. They're configured in `~/.clau
 
 Tell the user: "Now I'll register the services we set up so Claude can use them automatically in every conversation."
 
+#### Auto-registering platform MCPs
+
+Read `<toolkit_root>/core/mcp-manifest.json`. For each entry where `"auto": true` and `platform` matches the current platform (or `"platform": "all"`):
+
+1. Check if it's already registered in `~/.claude.json` — skip if so
+2. Build the config object from the manifest entry (`type`, `command`, `args`, `env`, `url` as applicable)
+3. Replace any `{{toolkit_root}}` placeholders with the actual toolkit root path
+4. On Windows, use `command_windows` instead of `command` if present
+5. Merge into `~/.claude.json` under `mcpServers`
+
+After registering all auto MCPs, tell the user which were added:
+
+```
+Registered platform MCPs:
+  macos-automator ........ AppleScript + JXA Mac automation
+  home-mcp ............... HomeKit device control
+  apple-events ........... Native Reminders + Calendar
+```
+
+(shows only the MCPs relevant to the detected platform — Windows users see `windows-control` instead)
+
+**Important:** When merging into `~/.claude.json`, preserve ALL existing content. Only add or update the `mcpServers` entries.
 **Todoist** (if Productivity selected and Todoist token provided):
 
 The Todoist MCP server is a cloud-hosted service — no local binary needed. Add this to `~/.claude.json`:
@@ -659,7 +763,27 @@ The Todoist MCP server is a cloud-hosted service — no local binary needed. Add
 
 Note: The Todoist MCP server handles authentication through its own OAuth flow when Claude first connects — the API token collected earlier is a fallback for direct API calls, not for MCP.
 
-**gmessages** (if Productivity selected and build succeeded):
+**imessages** (if Productivity selected, macOS, and `messaging_choice` is `"imessages"` or `"both"`):
+
+The imessages MCP server is a local Node.js script — no build step needed. Add this to `~/.claude.json`:
+
+```json
+{
+  "mcpServers": {
+    "imessages": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["<toolkit_root>/productivity/mcp-servers/imessages/index.js"]
+    }
+  }
+}
+```
+
+Replace `<toolkit_root>` with the actual path.
+
+Tell the user: "iMessage is registered. Claude can now read your message history and send texts through the Messages app. Make sure Full Disk Access stays enabled for your terminal."
+
+**gmessages** (if Productivity selected, build succeeded, and `messaging_choice` is `"gmessages"` or `"both"`):
 
 The gmessages MCP server is a local program that Claude runs on your computer. Add this to `~/.claude.json`, using the platform-appropriate binary name:
 
@@ -689,8 +813,13 @@ After configuring, show the user what was set up:
 ```
 MCP servers configured:
   Todoist ..................... Connected (cloud)
+  imessages .................. Registered (local — macOS Messages)
   gmessages .................. Registered (local — pair phone later)
 ```
+
+Only show the messaging servers the user actually selected. For example, if they chose iMessage only, don't show gmessages.
+
+Summarize: "Everything is personalized for you — your name, preferences, and services are all configured."
 
 ---
 
@@ -718,8 +847,10 @@ Run a health check on everything that was installed.
 
 ### Step 3: Productivity checks (if installed)
 
-- [ ] gmessages binary exists (if Go was available)
+- [ ] imessages server responds to initialize (if iMessage was selected and macOS)
+- [ ] gmessages binary exists (if Google Messages was selected and Go was available)
 - [ ] Todoist API responds (if token was provided)
+- [ ] macos-automator, home-mcp, apple-events registered in `~/.claude.json` (if macOS and selected)
 
 ### Step 4: Report results
 
@@ -740,8 +871,12 @@ Life:
   Journal directory ready .............. OK
 
 Productivity:
+  imessages ready ...................... OK
   gmessages built ...................... OK
   Todoist connected .................... OK
+  macos-automator registered ........... OK (macOS only)
+  home-mcp registered .................. OK (macOS only)
+  apple-events registered .............. OK (macOS only)
 ```
 
 If anything failed, show: "These items need attention:" with specific guidance on how to fix each one. Offer to retry the failed items.
@@ -749,24 +884,32 @@ If anything failed, show: "These items need attention:" with specific guidance o
 ### Step 5: Completion message
 
 ```
+All systems check out — you're good to go!
+
 Setup complete! Here's what's installed:
 
   Layers: Core, Life, Productivity
   Skills: journaling-assistant, encyclopedia-*, inbox-processor, skill-creator
   Hooks: 8 active hooks for file protection and sync
-  MCP servers: Todoist, gmessages
-
-Tip: Run /update anytime to check for toolkit updates.
+  MCP servers: Todoist, imessages, gmessages (varies by selection)
 ```
 
 Save the final config state to `~/.claude/toolkit-state/config.json` with `setup_completed: true` and `setup_completed_at: <ISO timestamp>`.
 
-### Step 6: Show the reference card
+### Step 6: First-run guided experience
 
-After the completion summary, immediately run the `/toolkit` command to show the full reference card. This is the user's first look at everything they can do — present it prominently.
+After the completion summary, give the user a concrete next action instead of a wall of features. Show:
 
-Tell the user: "Here's your quick reference — you can pull this up anytime by typing /toolkit."
+```
+Want to try something right now?
 
-Then show the full `/toolkit` output (which includes all installed features, trigger phrases, and any available-but-not-installed modules).
+  1. "Let's journal" — write your first journal entry
+  2. "Check my inbox" — see if there's anything waiting
+  3. I'll explore on my own
+
+(Tip: type /toolkit anytime to see all your features and useful phrases)
+```
+
+Only show options for installed layers (e.g., don't show "Let's journal" if Life isn't installed, don't show "Check my inbox" if Productivity isn't installed). If the user picks option 3 or just wants to explore, show the full `/toolkit` reference card.
 
 Do NOT ask the user for feature requests, feedback, or contributions at this point — they just finished a long setup. Let them explore.
