@@ -153,6 +153,16 @@ else
     echo "  Toolkit cloned"
 fi
 
+# --- Register /setup command and wizard skill ---
+# Claude Code auto-discovers commands from ~/.claude/commands/ and skills
+# from ~/.claude/skills/. Symlink the setup wizard into these standard
+# locations so /setup works immediately — no plugin registration needed.
+echo "  Registering setup wizard..."
+mkdir -p "$HOME/.claude/commands" "$HOME/.claude/skills"
+ln -sf "$TOOLKIT_DIR/commands/setup.md" "$HOME/.claude/commands/setup.md"
+ln -sf "$TOOLKIT_DIR/skills/setup-wizard" "$HOME/.claude/skills/setup-wizard"
+echo "  Setup wizard registered"
+
 echo ""
 echo "==================================="
 echo "  Ready!"
@@ -160,16 +170,10 @@ echo "==================================="
 echo ""
 echo "Next steps:"
 echo "  1. Open a terminal (or stay in this one)"
-echo "  2. Run this command to launch Claude with the toolkit loaded:"
-echo ""
-echo "     claude --plugin-dir $TOOLKIT_DIR"
-echo ""
+echo "  2. Type: claude"
 echo "  3. Type: /setup"
 echo ""
 echo "The /setup command launches the setup wizard, which walks you"
 echo "through choosing what to install, personalizing your setup,"
 echo "and verifying everything works."
-echo ""
-echo "Tip: After setup, the wizard will configure the toolkit as a"
-echo "permanent plugin so you can just run 'claude' normally."
 echo ""
