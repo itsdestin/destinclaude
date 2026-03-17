@@ -2,6 +2,33 @@
 
 All notable changes to DestinClaude will be documented in this file.
 
+## v1.1.0 (2026-03-17)
+
+### Versioning Policy
+DestinClaude follows [Semantic Versioning](https://semver.org/):
+- **Major (X.0.0)** — Breaking changes that require users to re-run `/setup-wizard` or manually migrate config
+- **Minor (1.X.0)** — New features, new layers/skills/MCPs, significant UX changes; backward-compatible
+- **Patch (1.0.X)** — Bug fixes, copy/doc updates, hook/script corrections; no new features
+
+Tags (`vX.Y.Z`) are pushed to master and automatically create a GitHub Release via Actions.
+
+### Features
+- macOS device control MCPs added to setup wizard: `macos-automator`, `home-mcp`, `apple-events` — all macOS-gated, auto-registered on Mac installs
+- iMessage option added to setup wizard (Productivity layer, macOS)
+- Session name + rate limit display added to statusline
+- `/health` command added
+- Personal data sync hook (memory, CLAUDE.md, config backup)
+- GitHub Actions workflow: pushing a `v*` tag now auto-creates a GitHub Release with changelog notes
+
+### Fixes & Cleanup
+- Renamed throughout from ClaudifestDestiny → DestinClaude
+- `/setup` command renamed to `/setup-wizard` — all references updated across docs, scripts, and hooks
+- `sha256sum` macOS fallback fixed
+- Statusline and hook cross-platform fixes
+- Setup wizard: stale `/setup` → `/setup-wizard` references fixed in installer
+- MCP server configs ported from desktop (windows-control, todoist, gmessages)
+- Landing page copy updates (Claude Pro prereq, tagline, setup instruction)
+
 ## v1.0.1 (2026-03-16)
 
 ### Fixes
@@ -28,37 +55,3 @@ All notable changes to DestinClaude will be documented in this file.
 ## v1.0.0 (2026-03-16)
 
 Initial public release.
-
-### Core
-- Session hooks — git sync, statusline, write guard, title update, todo capture, checklist reminder, usage tracking
-- Specs system for structured feature documentation with mandate/decision/implementation tiers
-- Memory system templates for cross-session persistence
-- Setup wizard with non-destructive installation, conflict resolution, and layer selection
-- `/update` command with changelog display and safe merge-based updates
-- `/contribute` command for forking, filtering private content, and creating upstream PRs
-- `/toolkit-uninstall` command for clean removal with backup restoration
-- Contribution detector — proactive SessionStart hook that suggests sharing improvements
-- Statusline with toolkit version display and update notification
-
-### Life
-- Journaling assistant with Socratic-style conversational prompts
-- Encyclopedia system — 8 modular source files with 4-level compilation (Full/Personal/Professional/Public)
-- Encyclopedia interviewer for gap-filling interviews
-- Encyclopedia librarian for reports, briefings, and deep search
-- Google Drive sync via rclone
-
-### Productivity
-- Inbox processor for Todoist integration with active resolution
-- Skill creator for building, testing, and benchmarking skills
-- Google Messages MCP server for SMS/RCS through Claude
-
-### Modules (Optional)
-- Arizona Elections Notebook — legislative candidate and campaign finance tracking
-- JLBC Fiscal Note Drafter — fiscal impact analysis in official format
-
-### Documentation
-- Beginner's guide (4 pages, zero jargon)
-- Quickstart for existing Claude Code users
-- System architecture deep dive
-- Contributing guide
-- Bootstrap scripts for macOS/Linux (bash) and Windows (PowerShell)
