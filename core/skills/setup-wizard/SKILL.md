@@ -69,6 +69,8 @@ If conflicts exist (toolkit skills that share names with existing skills, existi
 
 If nothing exists, say: "Clean slate — this will be a fresh install. Easy!"
 
+After presenting findings, give a one-sentence plain-English summary: "I checked your computer and found [nothing existing / some existing setup to work around]."
+
 **Wait for the user to acknowledge before proceeding to Phase 2.**
 
 ---
@@ -98,14 +100,14 @@ Do NOT modify CLAUDE.md yet — that happens in Phase 5 (Personalization). Just 
 
 ### Step 3: Resolve hook conflicts
 
-For each hook script in the user's `~/.claude/hooks/` that shares a filename or trigger point with a toolkit hook:
+Hooks are automatic behaviors — things Claude does on its own without you asking. For each hook where you already have one and the toolkit also includes one that triggers at the same point:
 
-1. Back up: `cp ~/.claude/hooks/<name> ~/.claude/backups/pre-toolkit/<name>`
-2. Show the user both versions side by side (a brief summary, not full source)
+1. Back up the user's version: `cp ~/.claude/hooks/<name> ~/.claude/backups/pre-toolkit/<name>`
+2. Explain both in plain English — what each one does automatically, not the code. For example: "Your version automatically backs up files after every change. The toolkit's version does the same thing but also syncs to Google Drive."
 3. Offer three options:
-   - **Merge** — combine both hooks into one script (you'll do this programmatically)
-   - **Keep yours** — skip installing the toolkit's version of this hook
-   - **Use toolkit's** — replace with the toolkit version (backup already saved)
+   - **Merge** — combine both automatic behaviors into one (Claude handles this)
+   - **Keep yours** — keep your existing behavior, skip the toolkit's version
+   - **Use toolkit's** — switch to the toolkit's version (your original is backed up)
 4. Record the user's choice for each conflict
 
 ### Step 4: Resolve skill name conflicts
@@ -128,7 +130,7 @@ If any existing MCP server names match toolkit servers (e.g., `gmessages`, `imes
 2. Offer: **Keep yours** / **Use toolkit's** / **Skip this server**
 3. Record the choice
 
-**After all conflicts are resolved, confirm:** "All conflicts resolved. Here's the plan: [summary of decisions]. Ready to choose your layers?"
+**After all conflicts are resolved, summarize:** "We resolved all the conflicts — your existing files are backed up safely. Here's the plan: [summary of decisions]. Ready to choose your layers?"
 
 ---
 
@@ -167,7 +169,7 @@ ClaudifestDestiny has four layers you can install:
       Arizona legislation
 
 Which would you like?
-  1. Full install (everything)
+  1. Full install (everything) (default)
   2. Core + Life + Productivity (skip modules)
   3. Core only (just the basics)
   4. Let me pick individually
@@ -191,6 +193,8 @@ Store the selected layers in `~/.claude/toolkit-state/config.json`:
   "installed_at": "<ISO timestamp>"
 }
 ```
+
+Summarize: "You chose to install [list of selected layers]. Now I'll make sure you have everything those layers need."
 
 **Proceed to Phase 4.**
 
@@ -359,7 +363,7 @@ Tell the user: "A browser window should open. Sign in with the Google account th
 If the direct command doesn't work and you need to fall back to `rclone config` (interactive mode), walk the user through it:
 - **n** for new remote
 - Name: **gdrive**
-- Storage type: Look for **Google Drive** in the numbered list — it's typically **#24**, but the number can change between versions. Tell the user: "Find 'Google Drive' in the list and type its number."
+- Storage type: Don't ask the user to find a number in the list — it changes between versions. Instead, tell them: "Type `drive` and press Enter — that filters the list to just Google Drive." If that doesn't work, run `rclone config | grep -n "Google Drive"` in a separate terminal to find the number, then tell the user which number to type.
 - **client_id** → press Enter (leave blank)
 - **client_secret** → press Enter (leave blank)
 - **scope** → type **1** (full access)
@@ -532,6 +536,8 @@ Dependencies installed:
 
 Only show the messaging rows relevant to the user's choice.
 
+Summarize: "All the tools you need are installed. Now let's personalize everything for you."
+
 **Proceed to Phase 5.**
 
 ---
@@ -562,6 +568,17 @@ What Todoist project should Claude use as your inbox? (default: Claude's Inbox) 
 ```
 
 Only ask about variables relevant to the selected layers. Skip `TODOIST_PROJECT` if Productivity isn't selected, skip `DRIVE_ROOT`/`JOURNAL_DIR`/`ENCYCLOPEDIA_DIR` if Life isn't selected.
+
+When asking about `GIT_REMOTE`, if the user seems unsure or says they don't know what GitHub is, offer to explain it and help them set up a free account and repository. Frame it as: "GitHub is a free service that stores a backup of your settings online — like a safety net. Want me to walk you through setting one up? It takes about 2 minutes." If they decline, skip it gracefully.
+
+When asking about `PERSONAL_SYNC_BACKEND`, frame the distinction clearly: "Your toolkit improvements — skills, hooks, and commands — sync to the public ClaudifestDestiny repo. That's all system-level code, nothing personal. But your memory (things Claude learns about you), your preferences, and your personal config need a private home so they're backed up and available if you switch devices."
+
+Then present the options:
+1. **Google Drive** — recommended if the user already set up rclone for the Life layer. Set `PERSONAL_SYNC_BACKEND: "drive"`.
+2. **Private GitHub repo** — if the user chose this, check if `gh` is authenticated. If so, offer to create a private repo for them: `gh repo create claude-personal-data --private --clone`. Clone to `~/.claude/toolkit-state/personal-sync-repo/`, set the `personal-sync` remote, and store the URL in `PERSONAL_SYNC_REPO`. If `gh` is not available, ask for a repo URL directly.
+3. **Skip for now** — set `PERSONAL_SYNC_BACKEND: "none"`. Tell them: "No problem — your data stays on this device only. You can set this up later by running `/setup` again."
+
+Only ask `PERSONAL_SYNC_REPO` if the user chose the GitHub backend.
 
 ### Step 2: Process template files
 
@@ -641,7 +658,7 @@ Only run the blocks for layers the user selected in Phase 3.
 mkdir -p ~/.claude/commands
 
 # Core commands (always)
-for cmd in setup.md contribute.md toolkit.md toolkit-uninstall.md update.md; do
+for cmd in setup.md contribute.md toolkit.md toolkit-uninstall.md update.md health.md; do
   ln -sf "$TOOLKIT_ROOT/core/commands/$cmd" ~/.claude/commands/$cmd
 done
 ```
@@ -780,6 +797,8 @@ MCP servers configured:
 
 Only show the messaging servers the user actually selected. For example, if they chose iMessage only, don't show gmessages.
 
+Summarize: "Everything is personalized for you — your name, preferences, and services are all configured."
+
 ---
 
 ## Phase 6: Verification
@@ -839,24 +858,32 @@ If anything failed, show: "These items need attention:" with specific guidance o
 ### Step 5: Completion message
 
 ```
+All systems check out — you're good to go!
+
 Setup complete! Here's what's installed:
 
   Layers: Core, Life, Productivity
   Skills: journaling-assistant, encyclopedia-*, inbox-processor, skill-creator
   Hooks: 8 active hooks for file protection and sync
   MCP servers: Todoist, imessages, gmessages (varies by selection)
-
-Tip: Run /update anytime to check for toolkit updates.
 ```
 
 Save the final config state to `~/.claude/toolkit-state/config.json` with `setup_completed: true` and `setup_completed_at: <ISO timestamp>`.
 
-### Step 6: Show the reference card
+### Step 6: First-run guided experience
 
-After the completion summary, immediately run the `/toolkit` command to show the full reference card. This is the user's first look at everything they can do — present it prominently.
+After the completion summary, give the user a concrete next action instead of a wall of features. Show:
 
-Tell the user: "Here's your quick reference — you can pull this up anytime by typing /toolkit."
+```
+Want to try something right now?
 
-Then show the full `/toolkit` output (which includes all installed features, trigger phrases, and any available-but-not-installed modules).
+  1. "Let's journal" — write your first journal entry
+  2. "Check my inbox" — see if there's anything waiting
+  3. I'll explore on my own
+
+(Tip: type /toolkit anytime to see all your features and useful phrases)
+```
+
+Only show options for installed layers (e.g., don't show "Let's journal" if Life isn't installed, don't show "Check my inbox" if Productivity isn't installed). If the user picks option 3 or just wants to explore, show the full `/toolkit` reference card.
 
 Do NOT ask the user for feature requests, feedback, or contributions at this point — they just finished a long setup. Let them explore.

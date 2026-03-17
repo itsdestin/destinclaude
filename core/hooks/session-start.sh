@@ -1,9 +1,10 @@
 #!/bin/bash
-# SessionStart hook: pull latest from Git, sync encyclopedia cache, extract MCP config, check inbox
+# SessionStart hook: pull latest from Git, sync personal data, sync encyclopedia cache, extract MCP config, check inbox
 set -euo pipefail
 
 CLAUDE_DIR="${CLAUDE_DIR:-$HOME/.claude}"
 ENCYCLOPEDIA_DIR="$CLAUDE_DIR/encyclopedia"
+CONFIG_FILE="$CLAUDE_DIR/toolkit-state/config.json"
 MCP_CONFIG="$CLAUDE_DIR/mcp-servers/mcp-config.json"
 CLAUDE_JSON="$HOME/.claude.json"
 
@@ -50,6 +51,62 @@ mkdir -p "$ENCYCLOPEDIA_DIR"
 if command -v rclone &>/dev/null; then
     rclone sync "gdrive:Claude/The Journal/System/" "$ENCYCLOPEDIA_DIR/" 2>/dev/null || \
         echo '{"hookSpecificOutput": "Warning: Encyclopedia cache sync failed. Skills will use stale cache."}' >&2
+fi
+
+# --- Personal data pull (cross-device sync for memory, CLAUDE.md, config) ---
+if [[ -f "$CONFIG_FILE" ]]; then
+    PS_BACKEND=""
+    PS_DRIVE_ROOT="Claude"
+    PS_REPO=""
+
+    if command -v node &>/dev/null; then
+        read -r PS_BACKEND PS_DRIVE_ROOT PS_REPO < <(node -e "
+            const fs = require('fs');
+            try {
+                const c = JSON.parse(fs.readFileSync(process.argv[1], 'utf8'));
+                const b = c.PERSONAL_SYNC_BACKEND || 'none';
+                const d = c.DRIVE_ROOT || 'Claude';
+                const r = c.PERSONAL_SYNC_REPO || '';
+                process.stdout.write(b + ' ' + d + ' ' + r);
+            } catch { process.stdout.write('none Claude '); }
+        " "$CONFIG_FILE" 2>/dev/null) || true
+    else
+        PS_BACKEND=$(grep -o '"PERSONAL_SYNC_BACKEND"[[:space:]]*:[[:space:]]*"[^"]*"' "$CONFIG_FILE" 2>/dev/null | head -1 | sed 's/.*"PERSONAL_SYNC_BACKEND"[[:space:]]*:[[:space:]]*"//' | sed 's/"$//' || echo "none")
+        PS_DRIVE_ROOT=$(grep -o '"DRIVE_ROOT"[[:space:]]*:[[:space:]]*"[^"]*"' "$CONFIG_FILE" 2>/dev/null | head -1 | sed 's/.*"DRIVE_ROOT"[[:space:]]*:[[:space:]]*"//' | sed 's/"$//' || echo "Claude")
+    fi
+
+    if [[ "$PS_BACKEND" == "drive" ]] && command -v rclone &>/dev/null; then
+        REMOTE_BASE="gdrive:$PS_DRIVE_ROOT/Backup/personal"
+        # Pull memory files
+        if rclone lsd "$REMOTE_BASE/memory/" 2>/dev/null | grep -q .; then
+            for REMOTE_PROJECT in $(rclone lsd "$REMOTE_BASE/memory/" 2>/dev/null | awk '{print $NF}'); do
+                LOCAL_MEMORY="$CLAUDE_DIR/projects/$REMOTE_PROJECT/memory"
+                mkdir -p "$LOCAL_MEMORY"
+                rclone sync "$REMOTE_BASE/memory/$REMOTE_PROJECT/" "$LOCAL_MEMORY/" --update 2>/dev/null || true
+            done
+        fi
+        # Pull CLAUDE.md
+        rclone copyto "$REMOTE_BASE/CLAUDE.md" "$CLAUDE_DIR/CLAUDE.md" --update 2>/dev/null || true
+        # Pull config (careful: don't overwrite if local is newer)
+        rclone copyto "$REMOTE_BASE/toolkit-state/config.json" "$CONFIG_FILE" --update 2>/dev/null || true
+    elif [[ "$PS_BACKEND" == "github" ]] && command -v git &>/dev/null; then
+        REPO_DIR="$CLAUDE_DIR/toolkit-state/personal-sync-repo"
+        if [[ -d "$REPO_DIR/.git" ]]; then
+            (cd "$REPO_DIR" && git pull personal-sync main 2>/dev/null) || true
+            # Copy pulled data to local paths
+            if [[ -d "$REPO_DIR/memory" ]]; then
+                for PROJECT_DIR in "$REPO_DIR"/memory/*/; do
+                    [[ ! -d "$PROJECT_DIR" ]] && continue
+                    PROJECT_KEY=$(basename "$PROJECT_DIR")
+                    LOCAL_MEMORY="$CLAUDE_DIR/projects/$PROJECT_KEY/memory"
+                    mkdir -p "$LOCAL_MEMORY"
+                    cp -r "$PROJECT_DIR"* "$LOCAL_MEMORY/" 2>/dev/null || true
+                done
+            fi
+            [[ -f "$REPO_DIR/CLAUDE.md" ]] && cp "$REPO_DIR/CLAUDE.md" "$CLAUDE_DIR/CLAUDE.md" 2>/dev/null || true
+            [[ -f "$REPO_DIR/toolkit-state/config.json" ]] && cp "$REPO_DIR/toolkit-state/config.json" "$CONFIG_FILE" 2>/dev/null || true
+        fi
+    fi
 fi
 
 # --- Toolkit version check ---

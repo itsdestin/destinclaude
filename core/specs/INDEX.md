@@ -12,6 +12,7 @@ All feature specifications. Skill specs live in their skill folder; system specs
 | Memory System | system | ~/.claude/specs/memory-system-spec.md | 1.1 |
 | People Cross-Reference | system | ~/.claude/specs/people-crossref-spec.md | 1.1 |
 | Google Messages MCP | system | ~/.claude/specs/gmessages-mcp-spec.md | 1.2 |
+| Personal Data Sync | system | core/specs/personal-sync-spec.md | 1.0 |
 | Statusline | system | core/specs/statusline-spec.md | 1.3 |
 | Landing Page | system | core/specs/landing-page-spec.md | 1.1 |
 | Encyclopedia System | system | ~/.claude/specs/encyclopedia-system-spec.md | 1.0 |

@@ -1,46 +1,60 @@
 {
-  "description": "Template variables used by the setup wizard to personalize toolkit files. Each variable has a prompt shown to the user during setup, a default value (null = required input), and a list of files where the variable appears.",
+  "description": "Template variables used by the setup wizard to personalize toolkit files. Each variable has a prompt shown to the user during setup, a default value (null = required input), and a list of files where the variable appears. IMPORTANT: used_in must ONLY reference template files (life/templates/, core/templates/), NEVER skill files or hooks. Skills and hooks read personalized values from ~/.claude/toolkit-state/config.json at runtime. This separation ensures /contribute never leaks personal data — skill files stay identical to upstream.",
   "variables": {
     "USER_NAME": {
-      "description": "User's display name — used in encyclopedia headers, journal entries, compiled documents",
-      "used_in": ["life/skills/encyclopedia-compile/SKILL.md", "life/skills/journaling-assistant/SKILL.md", "core/templates/claude-md-fragments/"],
+      "description": "User's display name — used in encyclopedia headers and compiled documents",
+      "used_in": ["life/templates/Core Identity.md", "life/templates/Status Snapshot.md"],
       "prompt": "What's your name?",
       "default": null,
       "required": true
     },
     "DRIVE_ROOT": {
-      "description": "Google Drive base path for toolkit data (rclone remote prefix)",
-      "used_in": ["life/skills/google-drive/SKILL.md", "core/hooks/sync-to-drive.sh", "core/hooks/sync-from-drive.sh"],
+      "description": "Google Drive base path for toolkit data (rclone remote prefix). Written to config.json; read by hooks at runtime.",
+      "used_in": [],
       "prompt": "Where should Claude store files on your Google Drive? ('Root' just means a top-level folder — one of the first folders you see when you open Drive, not inside any other folder.)",
       "default": "Claude",
       "required": true
     },
     "TODOIST_PROJECT": {
-      "description": "Todoist project name for inbox processing",
-      "used_in": ["productivity/skills/inbox-processor/SKILL.md", "productivity/hooks/check-inbox.sh"],
+      "description": "Todoist project name for inbox processing. Written to config.json; read by hooks at runtime.",
+      "used_in": [],
       "prompt": "What Todoist project should Claude use as your inbox?",
       "default": "Claude's Inbox",
       "required": false
     },
     "GIT_REMOTE": {
-      "description": "User's personal git remote for config backup",
-      "used_in": ["core/hooks/git-sync.sh"],
-      "prompt": "Do you have a GitHub repo for backing up your Claude config? (leave blank to skip)",
+      "description": "User's personal git remote for config backup. Written to config.json; read by hooks at runtime.",
+      "used_in": [],
+      "prompt": "Do you have a GitHub repo for backing up your Claude config? If so, paste the URL here. If you're not sure what this means, just leave it blank — I can explain GitHub and help you set one up if you're interested.",
       "default": null,
       "required": false
     },
     "JOURNAL_DIR": {
-      "description": "Local directory path for journal entries",
-      "used_in": ["life/skills/journaling-assistant/SKILL.md"],
-      "prompt": "Where should journal entries be saved locally?",
+      "description": "Local directory path for journal entries. Written to config.json; read by skills at runtime.",
+      "used_in": [],
+      "prompt": "What folder name should Claude use for your journal? This creates a folder inside Claude's config directory — you don't need to create it yourself.",
       "default": "journals",
       "required": false
     },
     "ENCYCLOPEDIA_DIR": {
-      "description": "Local cache directory for encyclopedia modular source files",
-      "used_in": ["life/skills/encyclopedia-update/SKILL.md", "life/skills/encyclopedia-compile/SKILL.md", "life/skills/encyclopedia-librarian/SKILL.md", "life/skills/encyclopedia-interviewer/SKILL.md"],
-      "prompt": "Where should encyclopedia files be cached locally?",
+      "description": "Local cache directory for encyclopedia modular source files. Written to config.json; read by skills at runtime.",
+      "used_in": [],
+      "prompt": "What folder name should Claude use for your encyclopedia files? Same deal — it's created automatically inside Claude's config directory.",
       "default": "encyclopedia",
+      "required": false
+    },
+    "PERSONAL_SYNC_BACKEND": {
+      "description": "Where to back up personal data (memory, CLAUDE.md, config). Options: 'drive' (Google Drive via rclone), 'github' (private GitHub repo), 'none' (skip). Written to config.json; read by personal-sync.sh hook at runtime.",
+      "used_in": [],
+      "prompt": "Your toolkit improvements sync to the public ClaudifestDestiny repo — that's just skills, hooks, and commands, nothing personal. But your memory, preferences, and personal config need a private home. Where should Claude back those up?\n\n1. Google Drive (recommended if you set up Drive earlier)\n2. Private GitHub repo\n3. Skip for now",
+      "default": "none",
+      "required": false
+    },
+    "PERSONAL_SYNC_REPO": {
+      "description": "Private GitHub repo URL for personal data backup. Only used when PERSONAL_SYNC_BACKEND is 'github'. Written to config.json; read by personal-sync.sh hook at runtime.",
+      "used_in": [],
+      "prompt": "What's the URL of your private GitHub repo for personal data? (I can create one for you if you don't have one yet.)",
+      "default": null,
       "required": false
     }
   }
