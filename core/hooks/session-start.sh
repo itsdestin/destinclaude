@@ -106,7 +106,7 @@ if [[ -f "$REMINDER_FILE" ]] && command -v node &>/dev/null; then
     " 2>/dev/null) || SESSIONS_SINCE=0
     SESSIONS_SINCE=$((SESSIONS_SINCE + 1))
     if [[ "$SESSIONS_SINCE" -ge 20 ]]; then
-        echo "Tip: Type /toolkit to see all your features and useful phrases." >&2
+        echo '{"hookSpecificOutput": "Tip: Type /toolkit to see all your features and useful phrases."}' >&2
         SESSIONS_SINCE=0
     fi
     cat > "$REMINDER_FILE" << REMEOF
