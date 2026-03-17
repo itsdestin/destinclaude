@@ -1,5 +1,7 @@
 # ClaudifestDestiny
 
+**Website:** https://itsdestin.github.io/claudifest-destiny/
+
 **A modular toolkit that transforms Claude Code into a personal knowledge system, journal, task manager, and more.**
 
 ClaudifestDestiny is a collection of skills, hooks, commands, and tools for [Claude Code](https://docs.anthropic.com/en/docs/claude-code) — Anthropic's CLI for Claude. It adds a journaling system, a living encyclopedia of your life, task management, text messaging, and domain-specific modules — all through plain-English conversation.
