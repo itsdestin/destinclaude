@@ -228,29 +228,33 @@
     font-size: 0.9rem;
   }
 
-  /* --- INTRO CALLOUT --- */
-  .intro-callout {
-    background: var(--bg-surface);
-    border-left: 3px solid var(--accent);
-    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-    padding: 20px 24px;
-    margin-bottom: 8px;
+  /* --- INTRO BOX --- */
+  .intro-box {
+    background: var(--bg-card);
+    border: 2px solid var(--border-accent);
+    border-radius: var(--radius);
+    padding: 32px 28px;
+    box-shadow: 0 0 40px var(--accent-glow), 0 0 80px rgba(224, 120, 64, 0.05);
     line-height: 1.7;
   }
 
-  .intro-callout p {
-    font-size: 0.92rem;
+  .intro-box p {
+    font-size: 0.95rem;
     color: var(--text-secondary);
+    margin-bottom: 12px;
   }
 
-  .intro-callout strong {
+  .intro-box p:last-child { margin-bottom: 0; }
+
+  .intro-box strong {
     color: var(--text-primary);
   }
 
-  .intro-callout .permission-note {
-    margin-top: 8px;
+  .intro-box .permission-note {
     font-weight: 600;
-    color: var(--text-primary);
+    color: var(--accent);
+    font-style: italic;
+    margin-bottom: 0;
   }
 
   /* --- INSTALL --- */
@@ -581,9 +585,12 @@
   <!-- INTRO -->
   <section>
     <div class="container">
-      <div class="intro-callout">
-        <p><strong>Claude can create every type of file, search the web, open any app, and navigate your screen</strong> if you desire. It is designed to be a complete personal assistant.</p>
-        <p class="permission-note">It will not do any of this without your permission.</p>
+      <p class="section-label">What is this?</p>
+      <h2 class="section-title">Meet your new personal assistant.</h2>
+      <div class="intro-box">
+        <p>Claude can <strong>create every type of file</strong>, <strong>search the web</strong>, <strong>open any app</strong>, and <strong>navigate your screen</strong> if you desire. Think of it as a personal assistant that lives inside your computer — one that remembers your preferences, manages your tasks, keeps a journal for you, and builds a living encyclopedia of your life.</p>
+        <p>This toolkit teaches Claude how to do all of that, and more.</p>
+        <p class="permission-note">Nothing happens without your permission. Claude will always ask before taking any action.</p>
       </div>
     </div>
   </section>
