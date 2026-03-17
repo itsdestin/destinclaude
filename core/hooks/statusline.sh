@@ -1,42 +1,56 @@
 #!/bin/bash
 # Claude Code status line script
-# Line 1: Sync status (from .sync-status file)
-# Line 2: Model + context remaining + session cost
+# Line 1: Session name (bold white)
+# Line 2: Sync status (from .sync-status file)
+# Line 3: Model name (gray) + Context Remaining: XX% (green)
+# Line 4: Rate limit info — 5h (XX%): Resets at TIME | 7d (XX%): Resets on DAY at TIME
+# (Line 5: permission mode — rendered natively by Claude Code, not controlled here)
 
 STATUS_FILE="$HOME/.claude/.sync-status"
 
-# Read session JSON from stdin and extract fields
+# Read session JSON from stdin
 SESSION=$(cat)
 
+# Parse fields from JSON
 PARSED=$(echo "$SESSION" | node -e "
 let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{
-  try{const j=JSON.parse(d);
-    const m=j.model?.display_name||'unknown';
-    const rem=j.context_window?.remaining_percentage!=null?Math.round(j.context_window.remaining_percentage):100;
-    console.log(m+'\t'+rem);
-  }catch{console.log('unknown\t100')}
+  try {
+    const j=JSON.parse(d);
+    const name = j.session_name || '';
+    const m = j.model?.display_name || 'unknown';
+    const rem = j.context_window?.remaining_percentage != null
+      ? Math.round(j.context_window.remaining_percentage)
+      : 100;
+    console.log(name + '\t' + m + '\t' + rem);
+  } catch { console.log('\tunknown\t100'); }
 })" 2>/dev/null)
 
-IFS=$'\t' read -r MODEL REMAINING <<< "$PARSED"
+IFS=$'\t' read -r SESSION_NAME MODEL REMAINING <<< "$PARSED"
 
-# Defaults if node failed
+# Defaults
 MODEL=${MODEL:-unknown}
 REMAINING=${REMAINING:-100}
 
 # ANSI colors
-GREEN="\033[32m"
-YELLOW="\033[33m"
-RED="\033[31m"
-DIM="\033[2m"
-RESET="\033[0m"
+BOLD='\033[1m'
+WHITE='\033[97m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+RED='\033[31m'
+DIM='\033[2m'
+RESET='\033[0m'
 
-# Read sync status
+# --- Line 1: Session name ---
+if [[ -n "$SESSION_NAME" ]]; then
+    printf "%b\n" "${BOLD}${WHITE}${SESSION_NAME}${RESET}"
+fi
+
+# --- Line 2: Sync status ---
 SYNC=""
 if [ -f "$STATUS_FILE" ]; then
     SYNC=$(cat "$STATUS_FILE" 2>/dev/null)
 fi
 
-# Color the sync status
 if [[ "$SYNC" == OK:* ]] || [[ "$SYNC" == "Changes Synced"* ]]; then
     SYNC_DISPLAY="${GREEN}${SYNC}${RESET}"
 elif [[ "$SYNC" == WARN:* ]]; then
@@ -47,7 +61,9 @@ else
     SYNC_DISPLAY="${DIM}No sync status${RESET}"
 fi
 
-# Color context remaining (inverted — low remaining = warning)
+printf "%b\n" "$SYNC_DISPLAY"
+
+# --- Line 3: Model + Context Remaining ---
 if [ "$REMAINING" -lt 20 ] 2>/dev/null; then
     CTX_COLOR="$RED"
 elif [ "$REMAINING" -lt 50 ] 2>/dev/null; then
@@ -56,32 +72,78 @@ else
     CTX_COLOR="$GREEN"
 fi
 
-# --- Toolkit version ---
+printf "%b\n" "${DIM}${MODEL}${RESET}  ${CTX_COLOR}Context Remaining: ${REMAINING}%${RESET}"
+
+# --- Line 4: Rate limit info (via usage-fetch.js) ---
+USAGE_DISPLAY=""
+USAGE_FETCH="$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || echo "${BASH_SOURCE[0]}")")/usage-fetch.js"
+if [[ -f "$USAGE_FETCH" ]] && command -v node &>/dev/null; then
+    USAGE_JSON=$(node "$USAGE_FETCH" 2>/dev/null) || USAGE_JSON=""
+    if [[ -n "$USAGE_JSON" ]]; then
+        USAGE_RAW=$(node -e "
+            const d = JSON.parse(process.argv[1]);
+            const fiveH = d.five_hour;
+            const sevenD = d.seven_day;
+            const parts = [];
+            let maxPct = 0;
+
+            if (fiveH && fiveH.utilization != null) {
+                const pct = fiveH.utilization;
+                if (pct > maxPct) maxPct = pct;
+                const resetsAt = new Date(fiveH.resets_at);
+                const timeStr = resetsAt.toLocaleTimeString('en-US', {
+                    hour: 'numeric', minute: '2-digit', hour12: true
+                });
+                parts.push('5h (' + pct + '%): Resets at ' + timeStr);
+            }
+
+            if (sevenD && sevenD.utilization != null) {
+                const pct = sevenD.utilization;
+                if (pct > maxPct) maxPct = pct;
+                const resetsAt = new Date(sevenD.resets_at);
+                const dayStr = resetsAt.toLocaleDateString('en-US', { weekday: 'long' });
+                const timeStr = resetsAt.toLocaleTimeString('en-US', {
+                    hour: 'numeric', minute: '2-digit', hour12: true
+                });
+                parts.push('7d (' + pct + '%): Resets on ' + dayStr + ' at ' + timeStr);
+            }
+
+            process.stdout.write(maxPct + '\t' + parts.join(' | '));
+        " "$USAGE_JSON" 2>/dev/null) || USAGE_RAW=""
+
+        if [[ -n "$USAGE_RAW" ]]; then
+            MAX_PCT="${USAGE_RAW%%$'\t'*}"
+            USAGE_LINE="${USAGE_RAW#*$'\t'}"
+            if [[ "$MAX_PCT" -ge 80 ]] 2>/dev/null; then
+                USAGE_DISPLAY="${RED}${USAGE_LINE}${RESET}"
+            elif [[ "$MAX_PCT" -ge 50 ]] 2>/dev/null; then
+                USAGE_DISPLAY="${YELLOW}${USAGE_LINE}${RESET}"
+            else
+                USAGE_DISPLAY="${YELLOW}${USAGE_LINE}${RESET}"
+            fi
+        fi
+    fi
+fi
+
+if [[ -n "$USAGE_DISPLAY" ]]; then
+    printf "%b\n" "$USAGE_DISPLAY"
+fi
+
+# --- Toolkit version (shown only when update is available) ---
 UPDATE_FILE="$HOME/.claude/toolkit-state/update-status.json"
-TOOLKIT_VERSION=""
 if [[ -f "$UPDATE_FILE" ]] && command -v node &>/dev/null; then
     TOOLKIT_INFO=$(node -e "
         const fs = require('fs');
         try {
             const s = JSON.parse(fs.readFileSync(process.argv[1], 'utf8'));
             const ver = s.current || 'unknown';
-            const upd = s.update_available ? ' (Update Available)' : '';
             console.log(ver + '\t' + (s.update_available ? '1' : '0'));
         } catch { console.log('unknown\t0'); }
     " "$UPDATE_FILE" 2>/dev/null) || TOOLKIT_INFO=""
     if [[ -n "$TOOLKIT_INFO" ]]; then
         IFS=$'\t' read -r TK_VER TK_UPD <<< "$TOOLKIT_INFO"
         if [[ "$TK_UPD" == "1" ]]; then
-            TOOLKIT_VERSION="${YELLOW}ClaudifestDestiny v${TK_VER} (Update Available)${RESET}"
-        else
-            TOOLKIT_VERSION="${DIM}ClaudifestDestiny v${TK_VER}${RESET}"
+            printf "%b\n" "${YELLOW}ClaudifestDestiny v${TK_VER} (Update Available)${RESET}"
         fi
     fi
-fi
-
-# Output
-echo -e "$SYNC_DISPLAY"
-echo -e "${DIM}${MODEL}${RESET}  ${CTX_COLOR}${REMAINING}% Remaining Context${RESET}"
-if [[ -n "$TOOLKIT_VERSION" ]]; then
-    echo -e "$TOOLKIT_VERSION"
 fi

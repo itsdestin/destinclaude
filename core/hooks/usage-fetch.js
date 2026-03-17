@@ -17,14 +17,27 @@ try {
   }
 } catch {}
 
-// Read OAuth token
+// Read OAuth token — try file first, then macOS keychain
 let token;
 try {
+  // Try file-based credentials (Linux / Windows)
   const creds = JSON.parse(fs.readFileSync(credsPath, 'utf8'));
   token = creds.claudeAiOauth.accessToken;
   if (!token) throw new Error('no token');
 } catch {
-  process.exit(1);
+  try {
+    // macOS: credentials live in the keychain
+    const { execSync } = require('child_process');
+    const user = process.env.USER || process.env.USERNAME || require('os').userInfo().username;
+    const raw = execSync(
+      `security find-generic-password -s "Claude Code-credentials" -a "${user}" -w`,
+      { encoding: 'utf8', timeout: 5000 }
+    ).trim();
+    token = JSON.parse(raw).claudeAiOauth.accessToken;
+    if (!token) throw new Error('no token');
+  } catch {
+    process.exit(1);
+  }
 }
 
 // Fetch usage limits
