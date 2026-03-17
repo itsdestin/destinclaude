@@ -106,7 +106,7 @@ if (Test-Path $toolkitDir) {
     Write-Host "  Toolkit cloned" -ForegroundColor Green
 }
 
-# --- Register /setup command and wizard skill ---
+# --- Register /setup-wizard command and wizard skill ---
 Write-Host "  Registering setup wizard..." -ForegroundColor Yellow
 $commandsDir = Join-Path $HOME ".claude\commands"
 $skillsDir = Join-Path $HOME ".claude\skills"
@@ -114,7 +114,7 @@ if (-not (Test-Path $commandsDir)) { New-Item -ItemType Directory -Path $command
 if (-not (Test-Path $skillsDir)) { New-Item -ItemType Directory -Path $skillsDir -Force | Out-Null }
 
 $commandSrc = Join-Path $toolkitDir "core\commands\setup.md"
-$commandDst = Join-Path $commandsDir "setup.md"
+$commandDst = Join-Path $commandsDir "setup-wizard.md"
 $skillSrc = Join-Path $toolkitDir "core\skills\setup-wizard"
 $skillDst = Join-Path $skillsDir "setup-wizard"
 
