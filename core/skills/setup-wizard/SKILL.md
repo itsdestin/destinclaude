@@ -745,6 +745,60 @@ If `uvx` is not installed, install it first: `pip install uv` or `pipx install u
 
 Tell the user: "Windows desktop control is registered. Claude can now interact with windows, click buttons, take screenshots, and automate desktop tasks."
 
+**macos-automator** (macOS only):
+
+The macos-automator MCP server lets Claude run AppleScript and JXA (JavaScript for Automation) to control any Mac app — Finder, Safari, Mail, Contacts, Music, and more. It's installed via `npx` (comes with Node.js — no separate install). Add this to `~/.claude.json`:
+
+```json
+{
+  "mcpServers": {
+    "macos-automator": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@steipete/macos-automator-mcp@latest"]
+    }
+  }
+}
+```
+
+Tell the user: "Mac automation is registered. Claude can now control any app on your Mac using AppleScript — automate Finder, send Mail, control Music, and more."
+
+**home-mcp** (macOS only):
+
+The home-mcp server lets Claude control your HomeKit smart home — lights, locks, thermostats, scenes, and automations. Requires the Home app on macOS with your devices already set up. Add this to `~/.claude.json`:
+
+```json
+{
+  "mcpServers": {
+    "home-mcp": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "home-mcp@latest"]
+    }
+  }
+}
+```
+
+Tell the user: "HomeKit control is registered. Claude can turn lights on/off, run scenes, and check the status of your smart home devices."
+
+**apple-events** (macOS only):
+
+The apple-events MCP server gives Claude native access to Reminders and Calendar using EventKit — the same framework the built-in apps use. No Google Calendar needed. Add this to `~/.claude.json`:
+
+```json
+{
+  "mcpServers": {
+    "apple-events": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-apple-events@latest"]
+    }
+  }
+}
+```
+
+Tell the user: "Apple Reminders and Calendar are registered. Claude can create reminders, check your calendar, and manage events natively."
+
 **Todoist** (if Productivity selected and Todoist token provided):
 
 The Todoist MCP server is a cloud-hosted service — no local binary needed. Add this to `~/.claude.json`:
