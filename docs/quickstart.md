@@ -12,7 +12,7 @@ git clone https://github.com/itsdestin/destinclaude.git ~/.claude/plugins/destin
 
 ```
 claude
-> /setup
+> /setup-wizard
 ```
 
 The setup wizard handles everything: conflict resolution with your existing setup, layer selection, dependency installation, personalization, and verification.
@@ -24,7 +24,7 @@ That's it. Your new commands:
 | Command | What It Does |
 |---------|-------------|
 | `/toolkit` | See all features, commands, and useful phrases |
-| `/setup` | Re-run setup wizard (safe to run again) |
+| `/setup-wizard` | Re-run setup wizard (safe to run again) |
 | `/update` | Check for and install toolkit updates |
 | `/health` | Quick check that everything is working |
 | `/toolkit-uninstall` | Cleanly remove the toolkit |
