@@ -54,7 +54,7 @@ claude
 Then type:
 
 ```
-/setup
+/setup-wizard
 ```
 
 Claude will walk you through the rest. Here's what to expect:
