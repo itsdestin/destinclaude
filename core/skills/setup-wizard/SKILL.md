@@ -658,7 +658,7 @@ Only run the blocks for layers the user selected in Phase 3.
 mkdir -p ~/.claude/commands
 
 # Core commands (always)
-for cmd in setup.md contribute.md toolkit.md toolkit-uninstall.md update.md health.md; do
+for cmd in setup-wizard.md contribute.md toolkit.md toolkit-uninstall.md update.md health.md; do
   ln -sf "$TOOLKIT_ROOT/core/commands/$cmd" ~/.claude/commands/$cmd
 done
 ```
