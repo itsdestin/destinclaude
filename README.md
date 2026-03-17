@@ -29,7 +29,7 @@ git clone https://github.com/itsdestin/destinclaude.git ~/.claude/plugins/destin
 
 # Open Claude Code and run the setup wizard
 claude
-> /setup
+> /setup-wizard
 ```
 
 Or use the bootstrap script (installs prerequisites too):
@@ -50,7 +50,7 @@ powershell -ExecutionPolicy Bypass -c "iwr -useb https://raw.githubusercontent.c
 - **Session hooks** — Auto-sync, statusline, write guards, git backup
 - **Specs system** — Structured documentation that persists across conversations
 - **Memory templates** — Organized persistent memory for Claude
-- **Commands** — `/setup`, `/update`, `/health`, `/contribute`, `/toolkit-uninstall`
+- **Commands** — `/setup-wizard`, `/update`, `/health`, `/contribute`, `/toolkit-uninstall`
 - **Contribution detector** — Notices your improvements, offers to share them upstream
 
 ### Life (Personal Knowledge)
@@ -78,7 +78,7 @@ Each layer is a standalone [Claude Code plugin](https://docs.anthropic.com/en/do
 | Productivity | Core | Inbox processing, messaging, skill tools |
 | Modules | Nothing | Domain-specific tools (fully independent) |
 
-The setup wizard (`/setup`) handles layer selection, conflict resolution with your existing setup, dependency installation, and personalization. Everything is non-destructive — your existing configuration is backed up and can be restored with `/toolkit-uninstall`.
+The setup wizard (`/setup-wizard`) handles layer selection, conflict resolution with your existing setup, dependency installation, and personalization. Everything is non-destructive — your existing configuration is backed up and can be restored with `/toolkit-uninstall`.
 
 ## See What You Can Do
 
