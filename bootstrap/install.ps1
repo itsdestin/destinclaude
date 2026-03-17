@@ -106,7 +106,7 @@ if (Test-Path $toolkitDir) {
     Write-Host "  Toolkit cloned" -ForegroundColor Green
 }
 
-# --- Register /setup command and wizard skill ---
+# --- Register /setup-wizard command and wizard skill ---
 Write-Host "  Registering setup wizard..." -ForegroundColor Yellow
 $commandsDir = Join-Path $HOME ".claude\commands"
 $skillsDir = Join-Path $HOME ".claude\skills"
@@ -149,7 +149,7 @@ Write-Host "  |                                      |" -ForegroundColor Green
 Write-Host "  |   Now run these two commands:        |" -ForegroundColor Green
 Write-Host "  |                                      |" -ForegroundColor Green
 Write-Host "  |     1.  claude                       |" -ForegroundColor Green
-Write-Host "  |     2.  /setup                       |" -ForegroundColor Green
+Write-Host "  |     2.  /setup-wizard                       |" -ForegroundColor Green
 Write-Host "  |                                      |" -ForegroundColor Green
 Write-Host "  ========================================" -ForegroundColor Green
 Write-Host ""

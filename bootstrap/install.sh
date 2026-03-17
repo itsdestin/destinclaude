@@ -72,7 +72,7 @@ else
         if command -v apt-get &> /dev/null; then
             echo "  (If asked for your password, nothing will appear as you type"
             echo "   — that's normal. Just type it and press Enter.)"
-            curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+            curl -fsSL https://deb.nodesource.com/setup-wizard_lts.x | sudo -E bash -
             sudo apt-get install -y nodejs
         elif command -v dnf &> /dev/null; then
             sudo dnf install -y nodejs
@@ -137,33 +137,33 @@ else
     echo "  Toolkit cloned"
 fi
 
-# --- Register /setup command and wizard skill ---
+# --- Register /setup-wizard command and wizard skill ---
 # Claude Code auto-discovers commands from ~/.claude/commands/ and skills
 # from ~/.claude/skills/. Symlink the setup wizard into these standard
-# locations so /setup works immediately — no plugin registration needed.
+# locations so /setup-wizard works immediately — no plugin registration needed.
 echo "  Registering setup wizard..."
 mkdir -p "$HOME/.claude/commands" "$HOME/.claude/skills"
 
 # Remove any stale symlinks/copies before creating new ones
-rm -f "$HOME/.claude/commands/setup.md" 2>/dev/null
+rm -f "$HOME/.claude/commands/setup-wizard.md" 2>/dev/null
 # rm -f won't remove a directory symlink on some systems; use explicit check
-if [ -L "$HOME/.claude/skills/setup-wizard" ]; then
-    rm "$HOME/.claude/skills/setup-wizard"
-elif [ -d "$HOME/.claude/skills/setup-wizard" ]; then
-    rm -rf "$HOME/.claude/skills/setup-wizard"
+if [ -L "$HOME/.claude/skills/setup-wizard-wizard" ]; then
+    rm "$HOME/.claude/skills/setup-wizard-wizard"
+elif [ -d "$HOME/.claude/skills/setup-wizard-wizard" ]; then
+    rm -rf "$HOME/.claude/skills/setup-wizard-wizard"
 fi
 
 # Use the core skill directly (not the root-level copy) to avoid symlink chains
-ln -sf "$TOOLKIT_DIR/core/commands/setup.md" "$HOME/.claude/commands/setup.md"
-ln -sf "$TOOLKIT_DIR/core/skills/setup-wizard" "$HOME/.claude/skills/setup-wizard"
+ln -sf "$TOOLKIT_DIR/core/commands/setup-wizard.md" "$HOME/.claude/commands/setup-wizard.md"
+ln -sf "$TOOLKIT_DIR/core/skills/setup-wizard-wizard" "$HOME/.claude/skills/setup-wizard-wizard"
 
 # Verify symlinks resolve correctly
 SETUP_OK=true
-if [ ! -e "$HOME/.claude/commands/setup.md" ]; then
-    echo "  WARNING: /setup command symlink is broken"
+if [ ! -e "$HOME/.claude/commands/setup-wizard.md" ]; then
+    echo "  WARNING: /setup-wizard command symlink is broken"
     SETUP_OK=false
 fi
-if [ ! -e "$HOME/.claude/skills/setup-wizard/SKILL.md" ]; then
+if [ ! -e "$HOME/.claude/skills/setup-wizard-wizard/SKILL.md" ]; then
     echo "  WARNING: setup-wizard skill symlink is broken"
     SETUP_OK=false
 fi
@@ -173,8 +173,8 @@ if [ "$SETUP_OK" = true ]; then
 else
     echo ""
     echo "  Symlink creation failed. Falling back to copy..."
-    cp "$TOOLKIT_DIR/core/commands/setup.md" "$HOME/.claude/commands/setup.md"
-    cp -R "$TOOLKIT_DIR/core/skills/setup-wizard" "$HOME/.claude/skills/setup-wizard"
+    cp "$TOOLKIT_DIR/core/commands/setup-wizard.md" "$HOME/.claude/commands/setup-wizard.md"
+    cp -R "$TOOLKIT_DIR/core/skills/setup-wizard-wizard" "$HOME/.claude/skills/setup-wizard-wizard"
     echo "  Setup wizard registered (copied)"
 fi
 
@@ -188,7 +188,7 @@ echo "  |                                      |"
 echo "  |   Now run these two commands:        |"
 echo "  |                                      |"
 echo "  |     1.  claude                       |"
-echo "  |     2.  /setup                       |"
+echo "  |     2.  /setup-wizard                       |"
 echo "  |                                      |"
 echo "  ========================================"
 echo ""
