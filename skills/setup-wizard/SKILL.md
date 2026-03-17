@@ -751,16 +751,17 @@ Setup complete! Here's what's installed:
   Hooks: 8 active hooks for file protection and sync
   MCP servers: Todoist, gmessages
 
-Try saying "let's journal" to start your first journal entry, or
-type /toolkit to see everything you can do.
-
 Tip: Run /update anytime to check for toolkit updates.
 ```
 
 Save the final config state to `~/.claude/toolkit-state/config.json` with `setup_completed: true` and `setup_completed_at: <ISO timestamp>`.
 
-### Step 6: Wrap up
+### Step 6: Show the reference card
 
-Do NOT ask the user for feature requests, feedback, or contributions at this point — they just finished a long setup process. Let them explore on their own.
+After the completion summary, immediately run the `/toolkit` command to show the full reference card. This is the user's first look at everything they can do — present it prominently.
 
-Simply end with: "You're all set. Try saying 'let's journal' or type /toolkit to see everything you can do."
+Tell the user: "Here's your quick reference — you can pull this up anytime by typing /toolkit."
+
+Then show the full `/toolkit` output (which includes all installed features, trigger phrases, and any available-but-not-installed modules).
+
+Do NOT ask the user for feature requests, feedback, or contributions at this point — they just finished a long setup. Let them explore.

@@ -92,4 +92,29 @@ if [[ -f "$CLAUDE_DIR/hooks/check-inbox.sh" ]]; then
     bash "$CLAUDE_DIR/hooks/check-inbox.sh" 2>/dev/null || true
 fi
 
+# --- Periodic /toolkit reminder ---
+# Remind user about /toolkit every ~20 sessions so they discover features they may have forgotten
+STATE_DIR="$CLAUDE_DIR/toolkit-state"
+REMINDER_FILE="$STATE_DIR/toolkit-reminder.json"
+if [[ -f "$REMINDER_FILE" ]] && command -v node &>/dev/null; then
+    SESSIONS_SINCE=$(node -e "
+        const fs = require('fs');
+        try {
+            const s = JSON.parse(fs.readFileSync('$REMINDER_FILE', 'utf8'));
+            console.log(s.sessions_since_reminder || 0);
+        } catch { console.log(0); }
+    " 2>/dev/null) || SESSIONS_SINCE=0
+    SESSIONS_SINCE=$((SESSIONS_SINCE + 1))
+    if [[ "$SESSIONS_SINCE" -ge 20 ]]; then
+        echo "Tip: Type /toolkit to see all your features and useful phrases." >&2
+        SESSIONS_SINCE=0
+    fi
+    cat > "$REMINDER_FILE" << REMEOF
+{"sessions_since_reminder": ${SESSIONS_SINCE}}
+REMEOF
+else
+    mkdir -p "$STATE_DIR"
+    echo '{"sessions_since_reminder": 1}' > "$REMINDER_FILE"
+fi
+
 exit 0

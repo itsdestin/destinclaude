@@ -2,11 +2,23 @@
 description: Show all ClaudifestDestiny features, commands, skills, and useful phrases
 ---
 
-Show the user a complete reference of everything the toolkit provides. Read the toolkit config at `~/.claude/toolkit-state/config.json` to determine which layers are installed, then present only the relevant features.
+Show the user a complete reference of everything the toolkit provides — both what's installed and what's available but not installed.
+
+## How to determine installed layers
+
+Read `~/.claude/toolkit-state/config.json`. Look for:
+- `installed_layers` array (e.g., `["core", "life", "productivity"]`)
+- `installed_modules` array (e.g., `["elections-notebook"]`)
+
+If the file doesn't exist or can't be read, check which skill symlinks exist in `~/.claude/skills/` to infer installed layers:
+- Life: `journaling-assistant` or `encyclopedia-update` exists
+- Productivity: `inbox-processor` or `skill-creator` exists
+- Elections: `elections-notebook` exists
+- JLBC: `jlbc-fiscal-note` exists
 
 ## Output Format
 
-Present this as a clean, scannable reference card. Use the installed layers from the config to determine which sections to show.
+Present this as a clean, scannable reference card. Show installed features first, then available-but-not-installed layers at the bottom.
 
 ```
 ClaudifestDestiny Toolkit — Quick Reference
@@ -17,12 +29,13 @@ COMMANDS (type these in Claude)
   /toolkit .............. Show this reference card
   /toolkit-uninstall .... Remove the toolkit and restore your previous setup
 
-SKILLS (activated by name or by saying certain phrases)
+YOUR SKILLS (say these phrases or use the skill name)
+```
 
-  Core:
-    setup-wizard ........ "set me up" / /setup
+Then list skills grouped by installed layer. For each skill, show the trigger phrases. Only show layers that are actually installed:
 
-  Life: (if installed)
+```
+  Life:
     journaling .......... "let's journal" / "daily journal" / "let's catch up"
     encyclopedia ........ "update my encyclopedia" / "compile the encyclopedia"
     interviewer ......... "interview me" / "fill gaps in my encyclopedia"
@@ -30,21 +43,31 @@ SKILLS (activated by name or by saying certain phrases)
                           "pull together everything about [topic]"
     google-drive ........ "sync to drive" / "upload to drive"
 
-  Productivity: (if installed)
+  Productivity:
     inbox-processor ..... "check my inbox" / "process my notes"
     skill-creator ....... "create a skill" / "build a new skill"
 
-  Modules: (if installed)
+  Elections Notebook:
     elections-notebook .. "update the elections notebook" / "pull candidate data"
-    jlbc-fiscal-note .... "draft a fiscal note" / "fiscal impact for [bill]"
 
+  JLBC Fiscal Note:
+    jlbc-fiscal-note .... "draft a fiscal note" / "fiscal impact for [bill]"
+```
+
+Then show hooks:
+
+```
 HOOKS (run automatically — you don't need to do anything)
     git-sync ............ Backs up your config after every file change
     session-start ....... Syncs encyclopedia + checks inbox on startup
     write-guard ......... Prevents file conflicts between sessions
     statusline .......... Shows model, context %, sync status at bottom of screen
     checklist-reminder .. Reminds about system changes at session end
+```
 
+Then the phrase guide — only include phrases for installed layers:
+
+```
 WHAT TO SAY
   Here are useful phrases to get started:
 
@@ -73,10 +96,31 @@ WHAT TO SAY
       Generate the full Encyclopedia document from all source files
 
     "Draft a fiscal note for [bill]"
-      Create an AZ JLBC-style fiscal impact analysis (requires module)
+      Create an AZ JLBC-style fiscal impact analysis
 
     "Update the elections notebook"
-      Refresh candidate and campaign finance data (requires module)
+      Refresh candidate and campaign finance data
 ```
 
-Only show sections for layers the user actually has installed. If `~/.claude/toolkit-state/config.json` doesn't exist or can't be read, show everything with "(if installed)" annotations.
+## Available but not installed
+
+**Always show this section** if any layers or modules are not installed. This is how users discover features they might want.
+
+```
+AVAILABLE (not installed — run /setup to add)
+```
+
+For each layer/module that is NOT installed, show a one-line description of what it adds:
+
+- **Life** — Daily journaling with a conversational assistant, a living Encyclopedia that builds your biography over time, and Google Drive sync for automatic backups.
+- **Productivity** — Process notes from your phone via Todoist, create custom Claude skills, and read/send texts through Google Messages.
+- **Elections Notebook** — Track Arizona legislative candidates and campaign finance data across all 30 districts.
+- **JLBC Fiscal Note** — Draft fiscal impact analyses for Arizona legislation in official JLBC format.
+
+If everything is installed, show: "You have everything installed! Check https://github.com/itsdestin/claudifest-destiny for new modules."
+
+## When a user asks about an uninstalled feature
+
+If the user asks about a feature that belongs to a layer they haven't installed (e.g., they say "let's journal" but Life isn't installed, or "check my inbox" but Productivity isn't installed), respond with:
+
+"That feature is part of the **[Layer Name]** layer, which isn't installed yet. Here's what it includes: [one-line description]. Want me to install it? Just say /setup and I'll add it to your existing setup."
