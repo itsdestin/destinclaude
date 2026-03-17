@@ -403,12 +403,35 @@ Read the CLAUDE.md fragment templates from `<toolkit_root>/core/templates/claude
 <!-- claudifest:installed-skills:end -->
 ```
 
-### Step 5: Install plugin layers
+### Step 5: Register the toolkit plugin
 
-For each selected layer, register it as a Claude Code plugin:
+Claude Code does not auto-discover plugins from `~/.claude/plugins/`. The toolkit must be explicitly registered so it loads on every future session without `--plugin-dir`.
 
-1. The toolkit root directory structure already contains `core/plugin.json`, `life/plugin.json`, `productivity/plugin.json`, and `modules/*/plugin.json`
-2. Tell the user which plugins to add. They can add plugins via Claude Code's `/install-plugin` command or by adding the paths to their Claude Code settings.
+Register the root plugin (which includes core) by adding it to `~/.claude/settings.json` under `enabledPlugins`. Read the file first (create it if missing), then add:
+
+```json
+{
+  "enabledPlugins": {
+    "claudifest-destiny": "/path/to/toolkit"
+  }
+}
+```
+
+Use the actual `toolkit_root` path detected in Phase 1. Preserve any existing settings in the file.
+
+For additional layers the user selected (life, productivity, modules), register each as a separate plugin entry pointing to its subdirectory:
+
+```json
+{
+  "enabledPlugins": {
+    "claudifest-destiny": "/path/to/toolkit",
+    "claudifest-destiny-life": "/path/to/toolkit/life",
+    "claudifest-destiny-productivity": "/path/to/toolkit/productivity"
+  }
+}
+```
+
+After writing, confirm: "Toolkit registered — from now on you can just run `claude` and everything will be loaded automatically."
 
 ### Step 6: Configure MCP servers (if applicable)
 

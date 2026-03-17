@@ -311,25 +311,29 @@
     white-space: pre-wrap;
     word-break: break-all;
     position: relative;
+    user-select: none;
   }
 
-  .install-cmd .prompt { color: var(--accent); user-select: none; }
+  .install-cmd .prompt { color: var(--accent); }
 
   .copy-btn {
     position: absolute;
-    top: 10px;
-    right: 10px;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
+    top: 50%;
+    right: 12px;
+    transform: translateY(-50%);
+    background: var(--accent);
+    border: none;
     border-radius: 6px;
-    padding: 5px 10px;
-    font-family: var(--font-mono);
-    font-size: 0.7rem;
-    color: var(--text-secondary);
+    padding: 8px 16px;
+    font-family: var(--font-body);
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #fff;
     cursor: pointer;
-    transition: background 0.2s, color 0.2s;
+    transition: background 0.2s, transform 0.2s;
+    letter-spacing: 0.02em;
   }
-  .copy-btn:hover { background: var(--bg-card-hover); color: var(--text-primary); }
+  .copy-btn:hover { background: var(--accent-dark, #a0784a); transform: translateY(-50%) scale(1.05); }
 
   .install-step {
     font-size: 0.9rem;
@@ -608,12 +612,12 @@
         <div class="install-panel active" id="panel-mac" role="tabpanel">
           <p class="install-step"><strong>Open Terminal:</strong> Press <kbd>Cmd</kbd> + <kbd>Space</kbd> to open Spotlight, type <strong>Terminal</strong>, and press Enter. A window with a blinking cursor will appear.</p>
           <p class="install-step-label">Paste this and press Enter:</p>
-          <div class="install-cmd" id="cmd-mac"><span class="prompt">$ </span>curl -fsSL https://raw.githubusercontent.com/itsdestin/claudifest-destiny/master/bootstrap/install.sh -o /tmp/install.sh && bash /tmp/install.sh<button class="copy-btn" onclick="copyCmd('mac')">Copy</button></div>
+          <div class="install-cmd" id="cmd-mac" data-cmd="curl -fsSL https://raw.githubusercontent.com/itsdestin/claudifest-destiny/master/bootstrap/install.sh -o /tmp/install.sh && bash /tmp/install.sh"><span class="prompt">$ </span>curl -fsSL https://raw.githubusercontent.com/itsdestin/claudifest-destiny/master/bootstrap/install.sh -o /tmp/install.sh && bash /tmp/install.sh<button class="copy-btn" onclick="copyCmd('mac')">Copy</button></div>
         </div>
         <div class="install-panel" id="panel-win" role="tabpanel">
           <p class="install-step"><strong>Open Windows Terminal:</strong> Press the <kbd>Windows</kbd> key, type <strong>Terminal</strong>, and press Enter. A window with a blinking cursor will appear.</p>
           <p class="install-step-label">Paste this and press Enter:</p>
-          <div class="install-cmd" id="cmd-win"><span class="prompt">&gt; </span>powershell -ExecutionPolicy Bypass -c "iwr -useb https://raw.githubusercontent.com/itsdestin/claudifest-destiny/master/bootstrap/install.ps1 -OutFile install.ps1; .\install.ps1"<button class="copy-btn" onclick="copyCmd('win')">Copy</button></div>
+          <div class="install-cmd" id="cmd-win" data-cmd='powershell -ExecutionPolicy Bypass -c "iwr -useb https://raw.githubusercontent.com/itsdestin/claudifest-destiny/master/bootstrap/install.ps1 -OutFile install.ps1; .\install.ps1"'><span class="prompt">&gt; </span>powershell -ExecutionPolicy Bypass -c "iwr -useb https://raw.githubusercontent.com/itsdestin/claudifest-destiny/master/bootstrap/install.ps1 -OutFile install.ps1; .\install.ps1"<button class="copy-btn" onclick="copyCmd('win')">Copy</button></div>
         </div>
       </div>
     </div>
@@ -740,8 +744,7 @@
     // Copy command
     function copyCmd(platform) {
       const el = document.getElementById('cmd-' + platform);
-      // Get text excluding the prompt span and copy button
-      const text = el.textContent.replace(/^[$>]\s*/, '').replace(/Copy$/, '').trim();
+      const text = el.getAttribute('data-cmd');
       navigator.clipboard.writeText(text).then(() => {
         const btn = el.querySelector('.copy-btn');
         btn.textContent = 'Copied!';
