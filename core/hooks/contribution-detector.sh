@@ -9,8 +9,9 @@ TRACKER="$STATE_DIR/contribution-tracker.json"
 TOOLKIT_ROOT=""
 
 # --- Find toolkit root directory ---
-# Walk up from this script's location to find VERSION file
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Resolve symlinks first, then walk up to find VERSION file
+SCRIPT_REAL="$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}" 2>/dev/null || python3 -c "import os,sys; print(os.path.realpath(sys.argv[1]))" "${BASH_SOURCE[0]}" 2>/dev/null || echo "${BASH_SOURCE[0]}")"
+SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_REAL")" && pwd)"
 SEARCH="$SCRIPT_DIR"
 for _ in 1 2 3 4 5; do
     if [[ -f "$SEARCH/VERSION" ]]; then
@@ -87,13 +88,13 @@ while IFS= read -r filepath; do
     if command -v node &>/dev/null; then
         STATUS=$(node -e "
             const fs = require('fs');
-            const t = JSON.parse(fs.readFileSync('$TRACKER', 'utf8'));
-            const f = '$filepath';
+            const t = JSON.parse(fs.readFileSync(process.argv[1], 'utf8'));
+            const f = process.argv[2];
             if (t.declined && t.declined[f]) console.log('declined');
             else if (t.contributed && t.contributed[f]) console.log('contributed');
             else if (t.suggested && t.suggested[f]) console.log('suggested');
             else console.log('new');
-        " 2>/dev/null) || STATUS="new"
+        " "$TRACKER" "$filepath" 2>/dev/null) || STATUS="new"
     else
         STATUS="new"
     fi
@@ -113,19 +114,19 @@ if command -v node &>/dev/null; then
         let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{
             const files = d.trim().split('\n').filter(Boolean);
             const obj = {};
-            files.forEach(f => obj[f] = '$TODAY');
+            files.forEach(f => obj[f] = process.argv[1]);
             console.log(JSON.stringify(obj));
         });
-    " 2>/dev/null) || CHANGES_JSON="{}"
+    " "$TODAY" 2>/dev/null) || CHANGES_JSON="{}"
 
     node -e "
         const fs = require('fs');
-        const t = JSON.parse(fs.readFileSync('$TRACKER', 'utf8'));
-        const newChanges = JSON.parse('$CHANGES_JSON');
+        const t = JSON.parse(fs.readFileSync(process.argv[1], 'utf8'));
+        const newChanges = JSON.parse(process.argv[2]);
         t.suggested = { ...t.suggested, ...newChanges };
-        t.installed_version = '$INSTALLED_TAG';
-        fs.writeFileSync('$TRACKER', JSON.stringify(t, null, 2));
-    " 2>/dev/null || true
+        t.installed_version = process.argv[3];
+        fs.writeFileSync(process.argv[1], JSON.stringify(t, null, 2));
+    " "$TRACKER" "$CHANGES_JSON" "$INSTALLED_TAG" 2>/dev/null || true
 fi
 
 # --- Output context for Claude session ---

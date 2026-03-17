@@ -1,7 +1,8 @@
 #!/bin/bash
 # Claude Code status line script
 # Line 1: Sync status (from .sync-status file)
-# Line 2: Model + context remaining + session cost
+# Line 2: Model + context remaining
+# Line 3: Toolkit version (if available)
 
 STATUS_FILE="$HOME/.claude/.sync-status"
 
@@ -11,11 +12,11 @@ SESSION=$(cat)
 PARSED=$(echo "$SESSION" | node -e "
 let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{
   try{const j=JSON.parse(d);
-    const m=j.model?.display_name||'unknown';
+    const m=j.model?.display_name||j.model?.id||'unknown';
     const rem=j.context_window?.remaining_percentage!=null?Math.round(j.context_window.remaining_percentage):100;
     console.log(m+'\t'+rem);
-  }catch{console.log('unknown\t100')}
-})" 2>/dev/null)
+  }catch(e){console.error('statusline parse error: '+e.message);console.log('unknown\t100')}
+})" 2>>"$HOME/.claude/statusline.log")
 
 IFS=$'\t' read -r MODEL REMAINING <<< "$PARSED"
 
@@ -23,12 +24,12 @@ IFS=$'\t' read -r MODEL REMAINING <<< "$PARSED"
 MODEL=${MODEL:-unknown}
 REMAINING=${REMAINING:-100}
 
-# ANSI colors
-GREEN="\033[32m"
-YELLOW="\033[33m"
-RED="\033[31m"
-DIM="\033[2m"
-RESET="\033[0m"
+# ANSI colors (single-quoted for printf %b compatibility)
+GREEN='\033[32m'
+YELLOW='\033[33m'
+RED='\033[31m'
+DIM='\033[2m'
+RESET='\033[0m'
 
 # Read sync status
 SYNC=""
@@ -44,7 +45,7 @@ elif [[ "$SYNC" == WARN:* ]]; then
 elif [[ "$SYNC" == ERR:* ]]; then
     SYNC_DISPLAY="${RED}${SYNC}${RESET}"
 else
-    SYNC_DISPLAY="${DIM}No sync status${RESET}"
+    SYNC_DISPLAY="${DIM}No Sync Status${RESET}"
 fi
 
 # Color context remaining (inverted — low remaining = warning)
@@ -65,7 +66,6 @@ if [[ -f "$UPDATE_FILE" ]] && command -v node &>/dev/null; then
         try {
             const s = JSON.parse(fs.readFileSync(process.argv[1], 'utf8'));
             const ver = s.current || 'unknown';
-            const upd = s.update_available ? ' (Update Available)' : '';
             console.log(ver + '\t' + (s.update_available ? '1' : '0'));
         } catch { console.log('unknown\t0'); }
     " "$UPDATE_FILE" 2>/dev/null) || TOOLKIT_INFO=""
@@ -79,9 +79,9 @@ if [[ -f "$UPDATE_FILE" ]] && command -v node &>/dev/null; then
     fi
 fi
 
-# Output
-echo -e "$SYNC_DISPLAY"
-echo -e "${DIM}${MODEL}${RESET}  ${CTX_COLOR}${REMAINING}% Remaining Context${RESET}"
+# Output (printf %b for portable ANSI escape handling)
+printf '%b\n' "$SYNC_DISPLAY"
+printf '%b\n' "${DIM}${MODEL}${RESET}  ${CTX_COLOR}${REMAINING}% Remaining Context${RESET}"
 if [[ -n "$TOOLKIT_VERSION" ]]; then
-    echo -e "$TOOLKIT_VERSION"
+    printf '%b\n' "$TOOLKIT_VERSION"
 fi

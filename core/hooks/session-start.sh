@@ -54,7 +54,9 @@ fi
 
 # --- Toolkit version check ---
 TOOLKIT_ROOT=""
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Resolve symlinks to find the real script location (not the symlink in ~/.claude/hooks/)
+SCRIPT_REAL="$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}" 2>/dev/null || python3 -c "import os,sys; print(os.path.realpath(sys.argv[1]))" "${BASH_SOURCE[0]}" 2>/dev/null || echo "${BASH_SOURCE[0]}")"
+SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_REAL")" && pwd)"
 SEARCH_DIR="$SCRIPT_DIR"
 for _ in 1 2 3 4 5; do
     if [[ -f "$SEARCH_DIR/VERSION" ]]; then
@@ -100,10 +102,10 @@ if [[ -f "$REMINDER_FILE" ]] && command -v node &>/dev/null; then
     SESSIONS_SINCE=$(node -e "
         const fs = require('fs');
         try {
-            const s = JSON.parse(fs.readFileSync('$REMINDER_FILE', 'utf8'));
+            const s = JSON.parse(fs.readFileSync(process.argv[1], 'utf8'));
             console.log(s.sessions_since_reminder || 0);
         } catch { console.log(0); }
-    " 2>/dev/null) || SESSIONS_SINCE=0
+    " "$REMINDER_FILE" 2>/dev/null) || SESSIONS_SINCE=0
     SESSIONS_SINCE=$((SESSIONS_SINCE + 1))
     if [[ "$SESSIONS_SINCE" -ge 20 ]]; then
         echo '{"hookSpecificOutput": "Tip: Type /toolkit to see all your features and useful phrases."}' >&2
