@@ -79,7 +79,7 @@
 
   /* --- HERO --- */
   .hero {
-    padding: 120px 0 80px;
+    padding: 100px 0 48px;
     text-align: center;
   }
 
@@ -110,17 +110,9 @@
     background-clip: text;
   }
 
-  .hero-tagline {
-    font-size: clamp(1.1rem, 2.5vw, 1.35rem);
-    color: var(--text-secondary);
-    max-width: 600px;
-    margin: 0 auto 20px;
-    line-height: 1.6;
-  }
-
   .hero-personal {
-    font-size: 0.95rem;
-    color: var(--text-dim);
+    font-size: 1.05rem;
+    color: var(--text-secondary);
     font-style: italic;
     margin-bottom: 32px;
   }
@@ -282,53 +274,95 @@
   }
   .copy-btn:hover { background: var(--bg-card-hover); color: var(--text-primary); }
 
-  .install-then {
-    margin-top: 20px;
-    text-align: center;
-    font-size: 0.95rem;
+  .install-step {
+    font-size: 0.9rem;
     color: var(--text-secondary);
-  }
-  .install-then strong { color: var(--text-primary); }
-
-  /* --- EXPANDABLE HINTS --- */
-  .hint-toggle {
-    background: none;
-    border: none;
-    font-family: var(--font-display);
-    font-size: 0.85rem;
-    color: var(--text-dim);
-    cursor: pointer;
-    padding: 8px 0;
-    transition: color 0.2s;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .hint-toggle:hover { color: var(--text-secondary); }
-  .hint-toggle .arrow {
-    display: inline-block;
-    transition: transform 0.2s;
-    font-size: 0.7rem;
-  }
-  .hint-toggle.open .arrow { transform: rotate(90deg); }
-
-  .hint-content {
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.3s ease;
-    font-size: 0.85rem;
-    color: var(--text-dim);
-    padding-left: 18px;
+    margin-bottom: 16px;
     line-height: 1.6;
   }
-  .hint-content.open { max-height: 200px; }
+  .install-step strong { color: var(--text-primary); }
 
-  .hints-row {
-    display: flex;
-    gap: 32px;
-    margin-top: 16px;
-    justify-content: center;
-    flex-wrap: wrap;
+  .install-step-label {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+    font-family: var(--font-mono);
+  }
+
+  kbd {
+    display: inline-block;
+    background: var(--bg-deep);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 2px 7px;
+    font-family: var(--font-mono);
+    font-size: 0.8em;
+    color: var(--text-primary);
+    box-shadow: 0 1px 0 var(--border);
+    vertical-align: baseline;
+  }
+
+  /* --- NEXT STEP CARD --- */
+  .next-step-section { padding-top: 0; }
+
+  .next-step-card {
+    background: var(--bg-card);
+    border: 2px solid var(--border-accent);
+    border-radius: var(--radius);
+    padding: 40px 32px;
+    text-align: center;
+    box-shadow: 0 0 40px var(--accent-glow), 0 0 80px rgba(56, 189, 248, 0.05);
+  }
+
+  .next-step-instruction {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+    line-height: 1.6;
+  }
+  .next-step-instruction kbd { margin: 0 2px; }
+
+  .next-step-cmd {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--bg-deep);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px 28px;
+    margin-bottom: 20px;
+  }
+
+  .prompt-big {
+    font-family: var(--font-mono);
+    font-size: 1.1rem;
+    color: var(--accent);
+    user-select: none;
+  }
+
+  .cmd-text {
+    font-family: var(--font-mono);
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: 0.02em;
+  }
+
+  .next-step-phrase {
+    font-family: var(--font-display);
+    font-size: clamp(1.6rem, 4vw, 2.2rem);
+    font-weight: 700;
+    color: var(--accent);
+    margin: 12px 0 20px;
+    letter-spacing: -0.02em;
+  }
+
+  .next-step-sub {
+    font-size: 0.88rem;
+    color: var(--text-dim);
+    max-width: 480px;
+    margin: 0 auto;
+    line-height: 1.6;
   }
 
   /* --- DOCS GRID --- */
@@ -440,11 +474,55 @@
     <div class="container">
       <span class="hero-badge animate">Open Source Toolkit</span>
       <h1 class="animate animate-d1">ClaudifestDestiny</h1>
-      <p class="hero-tagline animate animate-d2">A modular toolkit that transforms Claude Code into a personal knowledge system, journal, task manager, and more.</p>
-      <p class="hero-personal animate animate-d3">Built for my friends. Shared with everyone.</p>
-      <a href="https://github.com/itsdestin/claudifest-destiny/blob/master/docs/for-beginners/00-what-is-claude.md" class="hero-link animate animate-d4">New to Claude Code? Start here</a>
+      <p class="hero-personal animate animate-d2">Built for my friends. Shared with everyone.</p>
+      <a href="https://github.com/itsdestin/claudifest-destiny/blob/master/docs/for-beginners/00-what-is-claude.md" class="hero-link animate animate-d3">New to Claude Code? Start here</a>
     </div>
   </header>
+
+  <!-- INSTALL -->
+  <section>
+    <div class="container">
+      <p class="section-label">Get started</p>
+      <h2 class="section-title">Step 1: Run the installer</h2>
+      <div class="install-box">
+        <div class="install-tabs" role="tablist">
+          <button class="install-tab active" role="tab" aria-selected="true" data-tab="mac">Mac / Linux</button>
+          <button class="install-tab" role="tab" aria-selected="false" data-tab="win">Windows</button>
+        </div>
+        <div class="install-panel active" id="panel-mac" role="tabpanel">
+          <p class="install-step"><strong>Open Terminal:</strong> Press <kbd>Cmd</kbd> + <kbd>Space</kbd> to open Spotlight, type <strong>Terminal</strong>, and press Enter. A window with a blinking cursor will appear.</p>
+          <p class="install-step-label">Paste this and press Enter:</p>
+          <div class="install-cmd" id="cmd-mac"><span class="prompt">$ </span>curl -fsSL https://raw.githubusercontent.com/itsdestin/claudifest-destiny/master/bootstrap/install.sh | bash<button class="copy-btn" onclick="copyCmd('mac')">Copy</button></div>
+        </div>
+        <div class="install-panel" id="panel-win" role="tabpanel">
+          <p class="install-step"><strong>Open Windows Terminal:</strong> Press the <kbd>Windows</kbd> key, type <strong>Terminal</strong>, and press Enter. A window with a blinking cursor will appear.</p>
+          <p class="install-step-label">Paste this and press Enter:</p>
+          <div class="install-cmd" id="cmd-win"><span class="prompt">&gt; </span>powershell -ExecutionPolicy Bypass -c "iwr -useb https://raw.githubusercontent.com/itsdestin/claudifest-destiny/master/bootstrap/install.ps1 -OutFile install.ps1; .\install.ps1"<button class="copy-btn" onclick="copyCmd('win')">Copy</button></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- NEXT STEP: OPEN CLAUDE -->
+  <section class="next-step-section">
+    <div class="container">
+      <h2 class="section-title">Step 2: Talk to Claude</h2>
+      <div class="next-step-card">
+        <div class="next-step-inner">
+          <p class="next-step-instruction">In that same terminal window, type:</p>
+          <div class="next-step-cmd">
+            <span class="prompt-big">$</span>
+            <span class="cmd-text">claude</span>
+          </div>
+          <p class="next-step-instruction">and press <kbd>Enter</kbd>. Claude will open. Then type:</p>
+          <div class="next-step-phrase">set me up</div>
+          <p class="next-step-sub">Claude will walk you through the rest — choosing what to install, setting up your preferences, and making sure everything works.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="container"><div class="divider"></div></div>
 
   <!-- FEATURES -->
   <section>
@@ -474,48 +552,6 @@
         </div>
       </div>
       <p class="features-note">Each layer is independent. Life and Productivity both build on Core, but don't depend on each other. <a href="https://github.com/itsdestin/claudifest-destiny/blob/master/docs/system-architecture.md">Want the technical details?</a></p>
-    </div>
-  </section>
-
-  <div class="container"><div class="divider"></div></div>
-
-  <!-- INSTALL -->
-  <section>
-    <div class="container">
-      <p class="section-label">Get started</p>
-      <h2 class="section-title">Two commands. That's it.</h2>
-      <div class="install-box">
-        <div class="install-tabs" role="tablist">
-          <button class="install-tab active" role="tab" aria-selected="true" data-tab="mac">Mac / Linux</button>
-          <button class="install-tab" role="tab" aria-selected="false" data-tab="win">Windows</button>
-        </div>
-        <div class="install-panel active" id="panel-mac" role="tabpanel">
-          <div class="install-cmd" id="cmd-mac"><span class="prompt">$ </span>curl -fsSL https://raw.githubusercontent.com/itsdestin/claudifest-destiny/master/bootstrap/install.sh | bash<button class="copy-btn" onclick="copyCmd('mac')">Copy</button></div>
-        </div>
-        <div class="install-panel" id="panel-win" role="tabpanel">
-          <div class="install-cmd" id="cmd-win"><span class="prompt">&gt; </span>powershell -ExecutionPolicy Bypass -c "iwr -useb https://raw.githubusercontent.com/itsdestin/claudifest-destiny/master/bootstrap/install.ps1 -OutFile install.ps1; .\install.ps1"<button class="copy-btn" onclick="copyCmd('win')">Copy</button></div>
-        </div>
-      </div>
-      <p class="install-then">Then open Claude Code in your terminal and say <strong>"set me up"</strong></p>
-
-      <div class="hints-row">
-        <div>
-          <button class="hint-toggle" onclick="toggleHint(this)">
-            <span class="arrow">&#9656;</span> What's a terminal?
-          </button>
-          <div class="hint-content">
-            A terminal is a program where you type commands instead of clicking buttons. On Mac, press Cmd+Space, type "Terminal", and press Enter. On Linux, press Ctrl+Alt+T.
-          </div>
-        </div>
-        <div>
-          <button class="hint-toggle" onclick="toggleHint(this)">
-            <span class="arrow">&#9656;</span> What's PowerShell?
-          </button>
-          <div class="hint-content">
-            PowerShell is Windows' built-in command-line tool. Press the Windows key, type "PowerShell", and press Enter. A blue window will appear.
-          </div>
-        </div>
-      </div>
     </div>
   </section>
 
