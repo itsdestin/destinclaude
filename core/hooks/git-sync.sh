@@ -121,7 +121,9 @@ if [[ "$SHOULD_PUSH" == "true" ]]; then
         fi
 
         # Restore stashed changes on failure path
-        [[ "$STASHED" == "true" ]] && git stash pop -q 2>/dev/null || true
+        if [[ "$STASHED" == "true" ]]; then
+            git stash pop -q 2>/dev/null || echo "Warning: stash pop failed — check 'git stash list'" >&2
+        fi
     else
         # Rebase succeeded — reset fail counter
         [[ -f "$REBASE_FAIL_COUNT_FILE" ]] && rm -f "$REBASE_FAIL_COUNT_FILE"
@@ -149,7 +151,9 @@ if [[ "$SHOULD_PUSH" == "true" ]]; then
         echo "OK: Changes Synced" > "$CLAUDE_DIR/.sync-status"
 
         # Restore stashed changes on success path
-        [[ "$STASHED" == "true" ]] && git stash pop -q 2>/dev/null || true
+        if [[ "$STASHED" == "true" ]]; then
+            git stash pop -q 2>/dev/null || echo "Warning: stash pop failed — check 'git stash list'" >&2
+        fi
     fi
 fi
 
