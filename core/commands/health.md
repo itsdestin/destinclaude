@@ -54,6 +54,6 @@ Run a lightweight health check on the installed toolkit. This is the same verifi
      Google Messages ..................... OK
    ```
 
-4. **If anything failed:** Show "These items need attention:" with specific, plain-English guidance on how to fix each one. Offer to fix automatically where possible. For issues that require re-running setup, suggest: "You can fix this by running `/setup` — it's safe to run again and won't change your existing settings."
+4. **If anything failed:** Show "These items need attention:" with specific, plain-English guidance on how to fix each one. Offer to fix automatically where possible. For issues that require re-running setup, suggest: "You can fix this by running `/setup-wizard` — it's safe to run again and won't change your existing settings."
 
 5. **If everything passed:** Show: "Everything looks good! All [N] checks passed."
