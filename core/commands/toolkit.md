@@ -8,13 +8,11 @@ Show the user a complete reference of everything the toolkit provides — both w
 
 Read `~/.claude/toolkit-state/config.json`. Look for:
 - `installed_layers` array (e.g., `["core", "life", "productivity"]`)
-- `installed_modules` array (e.g., `["elections-notebook"]`)
+- `installed_modules` array (e.g., `[]`)
 
 If the file doesn't exist or can't be read, check which skill symlinks exist in `~/.claude/skills/` to infer installed layers:
 - Life: `journaling-assistant` or `encyclopedia-update` exists
 - Productivity: `inbox-processor` or `skill-creator` exists
-- Elections: `elections-notebook` exists
-- JLBC: `jlbc-fiscal-note` exists
 
 ## Output Format
 
@@ -47,12 +45,6 @@ Then list skills grouped by installed layer. For each skill, show the trigger ph
   Productivity:
     inbox-processor ..... "check my inbox" / "process my notes"
     skill-creator ....... "create a skill" / "build a new skill"
-
-  Elections Notebook:
-    elections-notebook .. "update the elections notebook" / "pull candidate data"
-
-  JLBC Fiscal Note:
-    jlbc-fiscal-note .... "draft a fiscal note" / "fiscal impact for [bill]"
 ```
 
 Then show hooks:
@@ -95,13 +87,11 @@ WHAT TO SAY
 
     "Compile the encyclopedia"
       Generate the full Encyclopedia document from all source files
-
-    "Draft a fiscal note for [bill]"
-      Create an AZ JLBC-style fiscal impact analysis
-
-    "Update the elections notebook"
-      Refresh candidate and campaign finance data
 ```
+
+## Modules
+
+Modules are optional domain-specific add-ons. Run `/toolkit` to see available modules, or check `~/.claude/toolkit-state/config.json` for installed modules.
 
 ## Available but not installed
 
@@ -111,12 +101,10 @@ WHAT TO SAY
 AVAILABLE (not installed — run /setup-wizard to add)
 ```
 
-For each layer/module that is NOT installed, show a one-line description of what it adds:
+For each layer that is NOT installed, show a one-line description of what it adds:
 
 - **Life** — Daily journaling with a conversational assistant, a living Encyclopedia that builds your biography over time, and Google Drive sync for automatic backups.
 - **Productivity** — Process notes from your phone via Todoist, create custom Claude skills, and read/send texts through Google Messages.
-- **Elections Notebook** — Track Arizona legislative candidates and campaign finance data across all 30 districts.
-- **JLBC Fiscal Note** — Draft fiscal impact analyses for Arizona legislation in official JLBC format.
 
 If everything is installed, show: "You have everything installed! Check https://github.com/itsdestin/destinclaude for new modules."
 
