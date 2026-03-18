@@ -17,17 +17,25 @@ Single self-contained `docs/index.html`. CSS inline, fonts loaded from Google Fo
 
 ### Brand Icons
 
-Two SVG icon files in `docs/`:
-- `icon-light.svg` — for light mode (cream background `#f5efe8`, dark D `#2d2418`)
-- `icon-dark.svg` — for dark mode (charcoal background `#2a2520`, light D `#f0e8dd`)
+Four SVG icon files in `docs/`, split into two sets:
 
-Design: Terminal-inspired, modeled after the Claude Code input box. Elements (left to right):
+**Active (outlined paths)** — used everywhere (favicon, nav, footer):
+- `favicon-light.svg` — cream background `#f5efe8`, dark D `#2d2418`
+- `favicon-dark.svg` — charcoal background `#2a2520`, light D `#f0e8dd`
+
+**Design reference (text-based)** — kept as editable originals, not used in production:
+- `icon-light-reference.svg` — same visual, but D and C are `<text>` elements using Cascadia Code
+- `icon-dark-reference.svg` — same visual, text-based
+
+**Why outlined paths:** SVG `<text>` elements rely on the browser loading the specified font. Favicons render in an isolated context where page fonts (Cascadia Code, Consolas) are not available — the browser falls back to a default font with different metrics, causing the "DC" letters to shift downward. Converting the letters to `<path>` outlines (traced from Consolas Bold via fontTools) eliminates the font dependency. The outlined versions use the same paths everywhere for consistency, with a subtle same-color stroke (`stroke-width="25"` in font units) for slight extra boldness to compensate for sub-pixel rendering at small sizes. The text-based reference files are retained for future design iteration (easier to edit than raw paths).
+
+**Design:** Terminal-inspired, modeled after the Claude Code input box. Elements (left to right):
 - **Chevron** (`>`) — filled polygon with flat horizontal top/bottom cuts (parallel to decorative lines), wide opening angle (~103°), slightly bolder than letter strokes
-- **D** — Cascadia Code bold, color matches page text color per mode
-- **C** — Cascadia Code bold, always in accent orange (`#e07840` light / `#e8945c` dark)
+- **D** — Cascadia Code bold (reference) / Consolas Bold outlines (favicon), color matches page text color per mode
+- **C** — same font treatment, always in accent orange (`#e07840` light / `#e8945c` dark)
 - **Cursor block** — rectangular block with minimal rounding (`rx="0.5"`), accent orange with reduced opacity
 
-Framing: rounded rect with accent-color border + subtle horizontal accent lines at top and bottom (inside the border). Favicon swaps between the two SVGs on theme toggle.
+Framing: rounded rect with accent-color border + subtle horizontal accent lines at top and bottom (inside the border). All instances (favicon, nav, footer) use the outlined versions and swap between light/dark on theme toggle.
 
 ## Page Sections
 
@@ -179,7 +187,7 @@ Framing: rounded rect with accent-color border + subtle horizontal accent lines 
 
 ## Changelog
 
-- **v1.4 (2026-03-18):** Major landing page redesign (mockup in `docs/index-mockup.html`). Added: sticky navigation bar with section links; dark mode toggle (CSS variables, `prefers-color-scheme`, `localStorage`); brand icons (`icon-light.svg` + `icon-dark.svg`) — terminal-inspired `> DC` motif with flat-cut chevron, Cascadia Code font, accent cursor block; "How It Works" 3-step flow (Install → Chat → It just works); hero tagline + CTA button; animated demo terminal section showing a journaling session; FAQ accordion (6 questions); polished footer with icon, GitHub SVG, back-to-top button; scroll-triggered animations via IntersectionObserver; OS auto-detection for install tabs (defaults to macOS); accessibility fixes (`:focus-visible`, `<button>` integration tags, ARIA attributes); Open Graph + Twitter Card meta tags; adaptive demo terminal (light/dark mode). Spec updated with Brand Icons subsection, new sections 0 (Nav), 1.5 (How It Works), 9 (Demo), 10 (FAQ), 11 (Footer). Visual Design split into Light/Dark/Shared subsections.
+- **v1.4 (2026-03-18):** Major landing page redesign (mockup in `docs/index-mockup.html`). Added: sticky navigation bar with section links; dark mode toggle (CSS variables, `prefers-color-scheme`, `localStorage`); brand icons — terminal-inspired `> DC` motif with flat-cut chevron, Cascadia Code font, accent cursor block, split into text-based reference icons (`icon-*-reference.svg`) for nav/footer and traced-outline favicons (`favicon-*.svg`) with Consolas Bold glyph paths for font-independent rendering at small sizes; "How It Works" 3-step flow (Install → Chat → It just works); hero tagline + CTA button; animated demo terminal section showing a journaling session; FAQ accordion (6 questions); polished footer with icon, GitHub SVG, back-to-top button; scroll-triggered animations via IntersectionObserver; OS auto-detection for install tabs (defaults to macOS); accessibility fixes (`:focus-visible`, `<button>` integration tags, ARIA attributes); Open Graph + Twitter Card meta tags; adaptive demo terminal (light/dark mode). Live site `index.html` favicon updated from inline diamond to `favicon-light.svg`. Spec updated with Brand Icons subsection (including favicon font-rendering challenge), new sections 0 (Nav), 1.5 (How It Works), 9 (Demo), 10 (FAQ), 11 (Footer). Visual Design split into Light/Dark/Shared subsections.
 - **v1.3 (2026-03-18):** Documented implemented Integrations section (18 services with icons, expandable descriptions, "More coming soon" pill). Updated hero title from "Claudifest Destin-y" to "DestinClaude". Updated prerequisites: GitHub changed to Required, Google changed to "Google or Apple", added PAID/FREE badges, name-first card layout with right-aligned links. Added section numbering for Integrations (new section 7), renumbered Documentation to 8 and Footer to 9.
 - **v1.2 (2026-03-17):** Added Planned Updates section with integrations icons feature request (from inbox 2026-03-17).
 - **v1.1 (2026-03-17):** Updated to reflect warm cream/orange color scheme, added sections 2 (What Is This?), 3 (Before You Begin), 5 (Step 2: Talk to Claude). Removed tagline from hero, added title box with subtitle. Updated all color values.
