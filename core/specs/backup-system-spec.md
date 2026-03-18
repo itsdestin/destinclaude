@@ -1,7 +1,7 @@
 # Backup & Sync -- Spec
 
-**Version:** 3.2
-**Last updated:** 2026-03-16
+**Version:** 3.3
+**Last updated:** 2026-03-18
 **Feature location:** `~/.claude/hooks/git-sync.sh`, `~/.claude/hooks/drive-archive.sh`
 
 ## Purpose
@@ -48,6 +48,17 @@ The hook supports multiple independent Git repositories. File path routing deter
 | Claude Mobile | `~/claude-mobile/` | `{github-user}/claude-mobile` (private) | `master` |
 
 Each project has independent push markers and rebase-fail counters. Drive archive only runs for the Claude Config repo.
+
+### Interactive Restore (Setup Wizard)
+
+The setup wizard (`core/skills/setup-wizard/SKILL.md`) provides an interactive restore path for returning users on new devices. When the user identifies prior use, the wizard:
+
+- **GitHub backend:** Clones or pulls the private config repo, rewrites hardcoded paths, and merges `mcp-servers/mcp-config.json` back into `~/.claude.json`
+- **Drive backend:** Configures rclone, then pulls encyclopedia files, personal data, and transcripts using the same rclone paths as the session-start hook
+
+After restore, the wizard runs an abbreviated dependency check and skips personalization (Phase 5). The session-start hook then handles all subsequent downsyncing automatically on every session start.
+
+The manual `restore.sh` script (in the private config repo) remains available as a power-user alternative.
 
 ### Tracked Files (Claude Config)
 
@@ -129,6 +140,7 @@ The hook fires on every PostToolUse for Write/Edit but immediately exits if the 
 
 | Date | Version | What changed | Type | Approved by |
 |------|---------|-------------|------|-------------|
+| 2026-03-18 | 3.3 | Added Interactive Restore section: setup wizard now handles restore for returning users via GitHub or Drive, complementing the existing manual restore.sh path. | Update | — |
 | 2026-03-16 | 3.2 | Multi-project backup support: git-sync.sh now routes files to the correct Git repo based on path prefix (`~/.claude/` → claude-config, `~/claude-mobile/` → claude-mobile). Each project gets independent push markers and rebase-fail counters. Branch detection is automatic. New mandate: all Claude projects must be backed up to private GitHub repos by default. | Update | — |
 | 2026-03-16 | 3.1 | Added `mcp-config.json`: session-start hook extracts mcpServers from `.claude.json` into a Git-tracked file (`mcp-servers/mcp-config.json`); restore.sh merges it back on restore. Solves the problem where `.claude.json` is excluded from Git but MCP server definitions don't regenerate automatically. | Update | — |
 | 2026-03-15 | 3.0 | Git + Drive hybrid migration: primary sync moved from rclone/Drive snapshots to Git + GitHub (immediate commit, debounced 15-min push). Drive archive retained as secondary write-only layer for specs, skills, CLAUDE.md, transcripts. Removed obsolete design decisions (dedup window, pull-before-push, stage-then-swap, session heartbeat, device tagging, history merge). Added new design decisions (immediate commit / debounced push, .gitignore strategy, Drive archive scope, Drive archive is best-effort). Updated mandates for Git context (credential exclusion via .gitignore, RESTORE.md in Git repo). | Architecture | — |
