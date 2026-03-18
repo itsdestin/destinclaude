@@ -36,12 +36,7 @@ RED='\033[31m'
 DIM='\033[2m'
 RESET='\033[0m'
 
-# --- Line 1: Session name (only if named) ---
-if [[ -n "$SESSION_NAME" ]]; then
-    printf '%b\n' "${BOLD}${WHITE}${SESSION_NAME}${RESET}"
-fi
-
-# --- Line 2: Sync status ---
+# --- Sync status (computed first, used for both display and announcement alignment) ---
 SYNC=""
 if [ -f "$STATUS_FILE" ]; then
     SYNC=$(cat "$STATUS_FILE" 2>/dev/null)
@@ -57,7 +52,51 @@ else
     SYNC_DISPLAY="${DIM}No Sync Status${RESET}"
 fi
 
-printf '%b\n' "$SYNC_DISPLAY"
+# --- Announcement fragment (right-aligned on line 1) ---
+COLS=${COLUMNS:-$(tput cols 2>/dev/null)}
+COLS=${COLS:-80}
+CACHE_FILE="$HOME/.claude/.announcement-cache.json"
+
+if [[ -n "$SESSION_NAME" ]]; then
+    LEFT_ANSI_CONTENT="${BOLD}${WHITE}${SESSION_NAME}${RESET}"
+    LEFT_PLAIN="$SESSION_NAME"
+else
+    LEFT_ANSI_CONTENT="$SYNC_DISPLAY"
+    LEFT_PLAIN=$(printf '%b' "$SYNC_DISPLAY" | sed 's/\x1b\[[0-9;]*[A-Za-z]//g')
+fi
+
+ANNOUNCEMENT_FRAGMENT=""
+if [[ -f "$CACHE_FILE" ]] && command -v node &>/dev/null; then
+    ANNOUNCEMENT_FRAGMENT=$(node -e "
+const fs = require('fs');
+const cols = parseInt(process.argv[2], 10) || 80;
+const leftPlain = process.argv[3] || '';
+try {
+    const cache = JSON.parse(fs.readFileSync(process.argv[1], 'utf8'));
+    if (!cache.message) process.exit(0);
+    const STALE_MS = 7 * 24 * 60 * 60 * 1000;
+    if ((Date.now() - new Date(cache.fetched_at).getTime()) >= STALE_MS) process.exit(0);
+    const d = new Date();
+    const today = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    if (cache.expires && cache.expires < today) process.exit(0);
+    const PREFIX = '\u2605 ';
+    const MIN_PAD = 2;
+    const available = cols - leftPlain.length;
+    if (available < PREFIX.length + MIN_PAD + 1) process.exit(0);
+    const maxMsgLen = available - PREFIX.length - MIN_PAD;
+    let msg = cache.message;
+    if (msg.length > maxMsgLen) msg = msg.slice(0, maxMsgLen - 1) + '\u2026';
+    const pad = available - PREFIX.length - msg.length;
+    process.stdout.write(' '.repeat(pad) + '\x1b[1;33m' + PREFIX + msg + '\x1b[0m');
+} catch (_) {}
+" "$CACHE_FILE" "$COLS" "$LEFT_PLAIN" 2>/dev/null) || ANNOUNCEMENT_FRAGMENT=""
+fi
+
+# --- Lines 1-2: Session name / sync status + announcement ---
+printf '%b\n' "${LEFT_ANSI_CONTENT}${ANNOUNCEMENT_FRAGMENT}"
+if [[ -n "$SESSION_NAME" ]]; then
+    printf '%b\n' "$SYNC_DISPLAY"
+fi
 
 # --- Line 3: Model + Context Remaining ---
 if [ "$REMAINING" -lt 20 ] 2>/dev/null; then
