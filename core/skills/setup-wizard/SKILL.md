@@ -143,7 +143,7 @@ Present the installable layers and let the user choose.
 Tell the user:
 
 ```
-DestinClaude has four layers you can install:
+DestinClaude has three layers you can install:
 
   Core (always installed)
     Infrastructure that makes everything else work — git hooks for
@@ -161,23 +161,19 @@ DestinClaude has four layers you can install:
     new Claude skills, and text messaging integration (Google
     Messages for Android, or iMessage for macOS users).
 
-  Modules (optional, pick individually)
-    Specialized tools for niche use cases:
-    - Elections Notebook — tracks Arizona legislative candidates
-      and campaign finance data
-    - JLBC Fiscal Note — drafts fiscal impact analyses for
-      Arizona legislation
+Modules are optional domain-specific add-ons. Available modules
+will be listed during setup.
 
 Which would you like?
   1. Full install (everything) (default)
-  2. Core + Life + Productivity (skip modules)
+  2. Core + Life + Productivity
   3. Core only (just the basics)
   4. Let me pick individually
 ```
 
 ### Step 2: Handle individual selection
 
-If the user picks option 4, walk through each layer and each module, asking yes/no.
+If the user picks option 4, walk through each layer, asking yes/no.
 
 ### Step 3: Record selections
 
@@ -188,7 +184,7 @@ Store the selected layers in `~/.claude/toolkit-state/config.json`:
   "platform": "<detected>",
   "toolkit_root": "<path>",
   "installed_layers": ["core", "life", "productivity"],
-  "installed_modules": ["elections-notebook"],
+  "installed_modules": [],
   "conflict_resolutions": { ... },
   "installed_at": "<ISO timestamp>"
 }
@@ -642,12 +638,6 @@ done
 for skill in inbox-processor skill-creator; do
   ln -sf "$TOOLKIT_ROOT/productivity/skills/$skill" ~/.claude/skills/$skill
 done
-
-# Module skills (if individual modules selected)
-# Elections Notebook:
-ln -sf "$TOOLKIT_ROOT/modules/elections-notebook/skills/elections-notebook" ~/.claude/skills/elections-notebook
-# JLBC Fiscal Note:
-ln -sf "$TOOLKIT_ROOT/modules/jlbc-fiscal-note/skills/jlbc-fiscal-note" ~/.claude/skills/jlbc-fiscal-note
 ```
 
 Only run the blocks for layers the user selected in Phase 3.
