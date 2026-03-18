@@ -78,13 +78,28 @@ The life layer's encyclopedia system maintains a living biography through 8 modu
 
 **Sync architecture:** Files are stored in Google Drive (`gdrive:Claude/The Journal/System/`) and cached locally at `~/.claude/encyclopedia/`. The `sync-encyclopedia.sh` hook syncs on session start. The encyclopedia-update skill writes changes back to Drive after user approval.
 
+## Setup Wizard
+
+The `/setup-wizard` skill is the primary entry point for both first-time installs and returns from another device. It runs as a guided conversation — no executable code, just structured prompts that Claude follows.
+
+**Phase 0 — Prior use check:** The wizard's first question is whether the user has run DestinClaude before on another device. Returning users choose a backup source and enter a restore sub-flow; new users proceed to Phase 1.
+
+- **Phase 0A (GitHub restore):** Clones or pulls the user's private config repo into `~/.claude/`, rewrites hardcoded HOME paths and project slugs, and merges `mcp-servers/mcp-config.json` back into `~/.claude.json`. Then jumps to Phase 0C.
+- **Phase 0B (Drive restore):** Installs rclone if missing, configures the `gdrive:` remote, and syncs encyclopedia files, personal data (memory, CLAUDE.md, config), and conversation transcripts from Drive. Then jumps to Phase 0C.
+- **Phase 0C (abbreviated check):** Runs the same dependency checks as Phase 4 but frames them as "confirming everything your restored config needs." Skips Phase 5 (personalization) entirely since templates and config already exist from backup. Proceeds directly to Phase 6 (verification).
+- **iCloud restore:** Not yet implemented — noted as coming soon, falls through to fresh install.
+
+**Phases 1–6 (fresh install):** Environment check → conflict resolution → layer selection → dependency install → personalization (encyclopedia templates, CLAUDE.md fragments, marketplace plugins) → verification.
+
+**Pre-toolkit backup:** Before modifying any existing file, the setup wizard backs up to `~/.claude/backups/pre-toolkit/` with a manifest recording what was changed. The `/toolkit-uninstall` command uses this to restore the original setup.
+
 ## Backup and Sync
 
 **Git sync:** The `git-sync.sh` hook commits and pushes changes to a private git remote after file modifications. This provides cross-device sync and version history.
 
 **Google Drive sync:** rclone handles bidirectional sync for encyclopedia files and journal entries. Configured during setup with `rclone config` for Google Drive OAuth.
 
-**Pre-toolkit backup:** Before modifying any existing file, the setup wizard backs up to `~/.claude/backups/pre-toolkit/` with a manifest recording what was changed. The `/toolkit-uninstall` command uses this to restore the original setup.
+**Personal data sync:** The `personal-sync.sh` hook (PostToolUse, 15-min debounce) backs up memory files, CLAUDE.md, and `toolkit-state/config.json` to either a private GitHub repo or Google Drive (`gdrive:{DRIVE_ROOT}/Backup/personal/`). The `session-start.sh` hook pulls the latest personal data at the start of every session for cross-device continuity. On a brand-new device, the setup wizard Phase 0B performs the initial pull before the session-start hook is ever invoked.
 
 ## Memory System
 

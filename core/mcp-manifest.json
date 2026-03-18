@@ -71,7 +71,7 @@
     "command_windows": "{{toolkit_root}}/productivity/mcp-servers/gmessages/gmessages.exe",
     "args": [],
     "auto": false,
-    "setup_note": "Requires Go compiler to build from source, then phone pairing via QR code"
+    "setup_note": "Windows: pre-built binary included (no Go needed). macOS/Linux: requires Go compiler to build from source. All platforms require phone pairing after install."
   },
   {
     "name": "todoist",

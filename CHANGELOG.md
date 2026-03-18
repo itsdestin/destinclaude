@@ -2,6 +2,20 @@
 
 All notable changes to DestinClaude will be documented in this file.
 
+## v1.1.3 (2026-03-18)
+
+### Features
+- **Setup wizard Phase 0 — returning-user restore gate** — The wizard now asks "Have you used DestinClaude before on another device?" before running any install steps. Returning users choose their backup source (GitHub or Google Drive) and get a dedicated restore sub-flow that clones/pulls their config, rewrites hardcoded paths, merges MCP server definitions, and pulls encyclopedia + personal data. Both paths skip fresh-install Phases 1–5 and jump straight to an abbreviated dependency check (Phase 0C) followed by verification (Phase 6). iCloud restore is noted as coming soon.
+
+### Documentation
+- `README.md` — Added "Returning User on a New Device?" entry under Get Started
+- `docs/quickstart.md` — Added note that the wizard handles restore for returning users
+- `docs/for-beginners/03-installing-the-toolkit.md` — Added Step 0 (Prior Use Check) to wizard walkthrough
+- `bootstrap/prerequisites.md` — Updated "After the Script" section to mention the prior-use question
+- `docs/system-architecture.md` — Added Setup Wizard section documenting the Phase 0 restore path
+- `core/specs/backup-system-spec.md` — Added Interactive Restore subsection (v3.3)
+- `core/specs/personal-sync-spec.md` — Clarified how session-start pull relates to the Phase 0B restore flow
+
 ## v1.1.2 (2026-03-18)
 
 ### Features

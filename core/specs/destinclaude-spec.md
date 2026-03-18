@@ -1,6 +1,6 @@
 # DestinClaude Toolkit — Spec
 
-**Version:** 1.9
+**Version:** 2.0
 **Last updated:** 2026-03-18
 **Feature location:** `~/.claude/plugins/destinclaude/` (toolkit root)
 
@@ -150,12 +150,11 @@ The messaging setup (iMessage permissions + Google Messages Go compilation) is e
 
 ### Other gaps
 
-- No automated test for verifying MCP server connectivity after setup.
+- Linux desktop control MCP server equivalent to `windows-control` / `macos-automator` not yet bundled.
 
 ## Planned Updates
 
 - Add Linux desktop control MCP server equivalent (Mac resolved via macos-automator/home-mcp/apple-events in v1.1.0)
-- Add MCP connectivity verification to Phase 6
 - Add recovery/bail-out instructions to `/contribute` command for non-technical users
 - Extract messaging setup from the main wizard into a standalone post-setup flow
 - Add difficulty options for install: (1) full beginner — hold my hand, (2) some experience — guidance but not every explanation, (3) expert — let's hurry this up (from inbox 2026-03-17)
@@ -168,6 +167,7 @@ The messaging setup (iMessage permissions + Google Messages Go compilation) is e
 
 | Date | Version | What changed | Type |
 |------|---------|-------------|------|
+| 2026-03-18 | 2.0 | Phase 6 connectivity probes: replace registration/existence checks with JSON-RPC initialize handshake tests for all stdio MCP servers and a POST probe for todoist. Windows gmessages now uses pre-built binary (no Go required). Updated mcp-manifest.json setup_note for gmessages. Major bump: behavioral change to verification flow. | Update |
 | 2026-03-18 | 1.9 | Corrected stale Mac desktop control gap — macOS resolved in v1.1.0 via macos-automator/home-mcp/apple-events; Linux still open. Updated Known Issues and Planned Updates accordingly. | Fix |
 | 2026-03-18 | 1.8 | Add marketplace plugin registration to setup wizard (Phase 5 Step 5f + Phase 6 check): 14 plugins via `enabledPlugins`. Document in Component Registration section and Design Decisions. Partially resolve "superpowers in repo" planned item. | Update |
 | 2026-03-17 | 1.7 | Inbox processing: add 5 planned updates (difficulty options, superpowers in repo, restore from Drive, setup wizard tips, iCloud support) | Inbox |

@@ -681,9 +681,23 @@ Store `imessages_available: true/false` in config.
 
 **Step 3 — Set up Google Messages (if selected or "both"):**
 
-This requires the Go compiler to build from source.
+#### gmessages binary
 
-#### Go compiler
+**On Windows:** The toolkit ships with a pre-built `gmessages.exe` — no Go compiler needed. Check if it's already present:
+
+```bash
+ls <toolkit_root>/productivity/mcp-servers/gmessages/gmessages.exe
+```
+
+If it exists, tell the user: "Good news — the text messaging server is already included for Windows. No build needed." Store the binary path and skip to Todoist setup:
+
+```json
+{
+  "gmessages_binary": "<toolkit_root>/productivity/mcp-servers/gmessages/gmessages.exe"
+}
+```
+
+**On macOS/Linux (or if the Windows binary is missing):** Build from source using the Go compiler.
 
 ```bash
 go version
@@ -691,30 +705,25 @@ go version
 
 Tell the user: "Go is a programming language. The toolkit includes a text messaging feature written in Go — I need to compile (build) it so your computer can run it. This only takes a few seconds."
 
-If missing:
+If Go is missing:
 
 | Platform | Install command |
 |----------|----------------|
 | macOS | `brew install go` |
-| Windows | `winget install GoLang.Go` |
 | Linux | Download from https://go.dev/dl/ |
 
 After install, verify: `go version` — should print something like `go1.22.x`.
 
-#### Build gmessages
-
-Tell the user: "Now I'll build the text messaging server. This compiles the source code into a program your computer can run."
+Build the server:
 
 ```bash
 cd <toolkit_root>/productivity/mcp-servers/gmessages && go build -o gmessages
 ```
 
-On Windows, use `go build -o gmessages.exe` instead.
-
 Verify the binary was created:
 
 ```bash
-ls -la <toolkit_root>/productivity/mcp-servers/gmessages/gmessages*
+ls -la <toolkit_root>/productivity/mcp-servers/gmessages/gmessages
 ```
 
 Store the binary path in the config:
@@ -1104,10 +1113,56 @@ Run a health check on everything that was installed.
 
 ### Step 3: Productivity checks (if installed)
 
-- [ ] imessages server responds to initialize (if iMessage was selected and macOS)
-- [ ] gmessages binary exists (if Google Messages was selected and Go was available)
-- [ ] Todoist API responds (if token was provided)
-- [ ] macos-automator, home-mcp, apple-events registered in `~/.claude.json` (if macOS and selected)
+Use the MCP initialize handshake to verify each server can actually start and speak MCP — not just that it's registered or that the binary exists. Use this payload for all stdio probes:
+
+```
+INIT='{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"0.1"}}}'
+```
+
+A probe passes if the response contains `"result"`. Wrap each probe in `timeout 15` to avoid hanging if a server stalls.
+
+**imessages** (macOS only, if selected):
+```bash
+echo "$INIT" | timeout 15 node <toolkit_root>/productivity/mcp-servers/imessages/index.js 2>/dev/null | head -1
+```
+
+**gmessages** (if selected and binary is present):
+```bash
+# Windows:
+echo "$INIT" | timeout 15 "<gmessages_binary_path>" 2>/dev/null | head -1
+# macOS/Linux:
+echo "$INIT" | timeout 15 <gmessages_binary_path> 2>/dev/null | head -1
+```
+
+**todoist** (HTTP, if token was provided):
+```bash
+curl -s --max-time 10 -X POST https://ai.todoist.net/mcp \
+  -H "Content-Type: application/json" \
+  -d "$INIT" 2>/dev/null | head -c 300
+```
+Pass if the response contains `"result"` or `"protocolVersion"`.
+
+**windows-control** (Windows only, if registered):
+```bash
+echo "$INIT" | timeout 15 uvx windows-mcp 2>/dev/null | head -1
+```
+
+**macos-automator** (macOS only, if registered):
+```bash
+echo "$INIT" | timeout 15 npx -y @steipete/macos-automator-mcp@latest 2>/dev/null | head -1
+```
+
+**home-mcp** (macOS only, if registered):
+```bash
+echo "$INIT" | timeout 15 npx -y home-mcp@latest 2>/dev/null | head -1
+```
+
+**apple-events** (macOS only, if registered):
+```bash
+echo "$INIT" | timeout 15 npx -y @modelcontextprotocol/server-apple-events@latest 2>/dev/null | head -1
+```
+
+Only probe servers that were selected and registered. If a probe times out or returns no `"result"`, mark it WARN (not hard FAIL) — the server may work fine once Claude Code loads it, since some servers behave differently when launched by Claude vs. a raw pipe. Show the warning with a note: "This server may still work — try `/health` after restarting Claude."
 
 ### Step 4: Report results
 
@@ -1128,12 +1183,13 @@ Life:
   Journal directory ready .............. OK
 
 Productivity:
-  imessages ready ...................... OK
-  gmessages built ...................... OK
-  Todoist connected .................... OK
-  macos-automator registered ........... OK (macOS only)
-  home-mcp registered .................. OK (macOS only)
-  apple-events registered .............. OK (macOS only)
+  imessages responds to initialize ...... OK
+  gmessages responds to initialize ...... OK
+  Todoist responds to initialize ........ OK
+  windows-control responds to initialize  OK  (Windows only)
+  macos-automator responds to initialize  OK  (macOS only)
+  home-mcp responds to initialize ....... OK  (macOS only)
+  apple-events responds to initialize ... OK  (macOS only)
 ```
 
 If anything failed, show: "These items need attention:" with specific guidance on how to fix each one. Offer to retry the failed items.
