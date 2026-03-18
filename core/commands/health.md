@@ -21,6 +21,7 @@ Run a lightweight health check on the installed toolkit. This is the same verifi
 
    **Core (always):**
    - [ ] `git --version` succeeds
+   - [ ] On Windows: Developer Mode is enabled (check `reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock" /v AllowDevelopmentWithoutDevLicense`). If not enabled, show WARN with: "Developer Mode is off — symlinks won't work. Run the PowerShell installer or enable it in Settings > System > For Developers."
    - [ ] Toolkit root directory exists and contains `VERSION`
    - [ ] `~/.claude/CLAUDE.md` exists and contains toolkit sections
    - [ ] All expected symlinks in `~/.claude/skills/` resolve (not broken)

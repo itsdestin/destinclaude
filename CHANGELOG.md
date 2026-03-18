@@ -2,6 +2,17 @@
 
 All notable changes to DestinClaude will be documented in this file.
 
+## v1.1.4 (2026-03-18)
+
+### Features
+- **Windows Developer Mode auto-enablement** — PowerShell installer now detects whether Developer Mode is enabled and auto-enables it via UAC elevation before creating symlinks. If the user declines the prompt, the existing copy fallback handles it gracefully. Bash installer on Windows now checks Developer Mode status and nudges users toward the PowerShell installer when it's off.
+
+### Documentation
+- `bootstrap/prerequisites.md` — Added Windows Developer Mode note to "What Does NOT Happen" section
+- `docs/for-beginners/03-installing-the-toolkit.md` — Added Developer Mode step to "what the script does" list
+- `core/specs/destinclaude-spec.md` — Added Design Decision for auto-enabling Developer Mode, updated install flow diagram (v2.1)
+- `core/skills/setup-wizard/SKILL.md` — Updated Windows symlink fallback note to reflect installer now handles Developer Mode
+
 ## v1.1.3 (2026-03-18)
 
 ### Features

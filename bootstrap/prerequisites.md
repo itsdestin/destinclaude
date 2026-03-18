@@ -42,8 +42,10 @@ After checking prerequisites, the script downloads the toolkit itself:
 - No accounts are created
 - No data is sent anywhere
 - No background services are started
-- No system settings are changed (beyond adding the programs above)
+- No system settings are changed (beyond adding the programs above, and enabling Developer Mode on Windows — see below)
 - Nothing runs automatically — you choose what to install next by talking to Claude
+
+> **Windows note:** The PowerShell installer enables Windows Developer Mode if it isn't already on. This is required for symlinks, which the toolkit uses to stay up to date automatically. You'll see a standard Windows permission prompt — approve it to continue. If you decline, the toolkit still installs fine using file copies instead, but you'll need to re-run `/setup-wizard` after each toolkit update to refresh them.
 
 ## After the Script
 

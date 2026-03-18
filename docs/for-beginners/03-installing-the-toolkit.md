@@ -28,8 +28,9 @@ powershell -ExecutionPolicy Bypass -File bootstrap\install.ps1
 
 The script will:
 1. Check for Node.js, Git, and Claude Code (install any that are missing)
-2. Clone the toolkit to `~/.claude/plugins/destinclaude/`
-3. Tell you what to do next
+2. On Windows: enable Developer Mode if needed (you'll see a permission prompt)
+3. Clone the toolkit to `~/.claude/plugins/destinclaude/`
+4. Tell you what to do next
 
 > **Curious what the script does?** Read the [prerequisites explanation](../../bootstrap/prerequisites.md) for a plain-language breakdown.
 
