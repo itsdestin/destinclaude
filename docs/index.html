@@ -278,6 +278,7 @@
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 20px;
+    position: relative;
   }
 
   .prereq-header {
@@ -321,12 +322,44 @@
     border: 1px solid var(--border);
   }
 
+  .prereq-badge.paid {
+    background: rgba(220, 53, 53, 0.1);
+    color: #c0392b;
+    border: 1px solid rgba(220, 53, 53, 0.25);
+  }
+
+  .prereq-badge.free {
+    background: rgba(39, 174, 96, 0.1);
+    color: #27ae60;
+    border: 1px solid rgba(39, 174, 96, 0.25);
+  }
+
   .prereq-card p {
     font-size: 0.85rem;
     color: var(--text-secondary);
     line-height: 1.5;
   }
 
+  .prereq-link {
+    position: absolute;
+    top: 18px;
+    right: 16px;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--accent);
+    background: var(--accent-subtle);
+    border: 1px solid var(--border-accent);
+    border-radius: 6px;
+    padding: 5px 12px;
+    text-decoration: none;
+    transition: background 0.2s, transform 0.2s;
+  }
+  .prereq-link:hover {
+    background: rgba(224, 120, 64, 0.12);
+    transform: translateY(-1px);
+    color: var(--accent);
+  }
 
   .prereq-note {
     font-size: 0.85rem;
@@ -786,24 +819,30 @@
       <div class="prereq-grid">
         <div class="prereq-card">
           <div class="prereq-header">
-            <span class="prereq-badge required">Required</span>
             <h3>Anthropic</h3>
+            <span class="prereq-badge required">Required</span>
+            <span class="prereq-badge paid">Paid — $20</span>
           </div>
-          <p>Requires a <a href="https://claude.ai/upgrade" target="_blank">Claude Pro subscription</a> — 100% worth the $20/month with this setup.</p>
+          <p>Requires a Claude Pro subscription, which underlies the whole system. <strong>Worth it.</strong></p>
+          <a href="https://claude.ai/upgrade" target="_blank" class="prereq-link">Subscribe &rarr;</a>
         </div>
         <div class="prereq-card">
           <div class="prereq-header">
-            <span class="prereq-badge required">Required</span>
             <h3>Google or Apple</h3>
+            <span class="prereq-badge required">Required</span>
+            <span class="prereq-badge free">Free</span>
           </div>
           <p>DestinClaude stores all of your personal information in your own Google Drive or Apple iCloud account.</p>
+          <a href="https://accounts.google.com/signup" target="_blank" class="prereq-link">Sign Up &rarr;</a>
         </div>
         <div class="prereq-card">
           <div class="prereq-header">
-            <span class="prereq-badge recommended">Recommended</span>
             <h3>GitHub</h3>
+            <span class="prereq-badge required">Required</span>
+            <span class="prereq-badge free">Free</span>
           </div>
-          <p>Required to receive toolkit updates. You can <a href="https://github.com/signup" target="_blank">sign up free</a> with your Google or Apple account.</p>
+          <p>Required to receive toolkit updates. Sign up with your Google or Apple account.</p>
+          <a href="https://github.com/signup" target="_blank" class="prereq-link">Sign Up &rarr;</a>
         </div>
       </div>
       <div class="integrations-section">
