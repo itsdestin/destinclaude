@@ -12,6 +12,11 @@
 <style>
   *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
+  /* Remove blue tap/focus highlight on mobile */
+  * { -webkit-tap-highlight-color: transparent; }
+  *:focus { outline: none; }
+  button:focus, a:focus { outline: none; }
+
   :root {
     --bg-deep: #faf6f1;
     --bg-surface: #f5efe8;
@@ -883,8 +888,8 @@
       <h2 class="section-title">Step 1: Run the installer</h2>
       <div class="install-box">
         <div class="install-tabs" role="tablist">
-          <button class="install-tab active" role="tab" aria-selected="true" data-tab="mac">Mac / Linux</button>
-          <button class="install-tab" role="tab" aria-selected="false" data-tab="win">Windows</button>
+          <button class="install-tab active" role="tab" aria-selected="true" data-tab="mac"><strong>MacOS</strong> / <strong>Linux</strong></button>
+          <button class="install-tab" role="tab" aria-selected="false" data-tab="win"><strong>Windows</strong></button>
         </div>
         <div class="install-panel active" id="panel-mac" role="tabpanel">
           <p class="install-step"><strong>Open Terminal:</strong> Press <kbd>Cmd</kbd> + <kbd>Space</kbd> to open Spotlight, type <strong>Terminal</strong>, and press Enter. A window with a blinking cursor will appear.</p>
