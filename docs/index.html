@@ -5,17 +5,29 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DestinClaude — A Toolkit for Claude Code by Anthropic</title>
 <meta name="description" content="A modular toolkit that transforms Claude Code into a personal knowledge system, journal, task manager, and more.">
-<link rel="icon" href="favicon-light.svg">
+
+<!-- OG / Social Meta Tags (#13) -->
+<meta property="og:title" content="DestinClaude — A Toolkit for Claude Code">
+<meta property="og:description" content="A modular toolkit that transforms Claude Code into a personal knowledge system, journal, task manager, and more.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://itsdestin.github.io/destinclaude/">
+<meta property="og:image" content="https://itsdestin.github.io/destinclaude/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="DestinClaude — A Toolkit for Claude Code">
+<meta name="twitter:description" content="A modular toolkit that transforms Claude Code into a personal knowledge system, journal, task manager, and more.">
+<meta name="twitter:image" content="https://itsdestin.github.io/destinclaude/og-image.png">
+
+<link rel="icon" href="favicon-light.svg" id="favicon">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
-  /* Remove blue tap/focus highlight on mobile */
+  /* (#9) Fix: only hide outlines for mouse, preserve for keyboard */
   * { -webkit-tap-highlight-color: transparent; }
   *:focus { outline: none; }
-  button:focus, a:focus { outline: none; }
+  *:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
 
   :root {
     --bg-deep: #faf6f1;
@@ -35,6 +47,48 @@
     --font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
     --radius: 12px;
     --radius-sm: 8px;
+    --nav-height: 56px;
+
+    /* Demo terminal — light mode */
+    --demo-bg: #ffffff;
+    --demo-titlebar: #f5efe8;
+    --demo-border: rgba(45, 36, 24, 0.08);
+    --demo-shadow: rgba(0, 0, 0, 0.06);
+    --demo-titlebar-text: rgba(45, 36, 24, 0.4);
+    --demo-text: #6b5d4f;
+    --demo-user: #2d2418;
+    --demo-response: #6b5d4f;
+    --demo-action: #1e8a4a;
+    --demo-dim: #9a8d7f;
+  }
+
+  /* (#2) Dark mode */
+  [data-theme="dark"] {
+    --bg-deep: #1a1612;
+    --bg-surface: #231e19;
+    --bg-card: #2a2420;
+    --bg-card-hover: #332c26;
+    --text-primary: #f0e8dd;
+    --text-secondary: #b8a898;
+    --text-dim: #7a6e62;
+    --accent: #e8945c;
+    --accent-glow: rgba(232, 148, 92, 0.15);
+    --accent-subtle: rgba(232, 148, 92, 0.08);
+    --accent-warm: #f0a06c;
+    --border: rgba(240, 232, 221, 0.1);
+    --border-accent: rgba(232, 148, 92, 0.3);
+
+    /* Demo terminal — dark mode */
+    --demo-bg: #1e1a16;
+    --demo-titlebar: #2a2420;
+    --demo-border: rgba(255, 255, 255, 0.06);
+    --demo-shadow: rgba(0, 0, 0, 0.25);
+    --demo-titlebar-text: rgba(255, 255, 255, 0.35);
+    --demo-text: #d4c8b8;
+    --demo-user: #f0e8dd;
+    --demo-response: #b8a898;
+    --demo-action: #5dbe88;
+    --demo-dim: #7a6e62;
   }
 
   html { scroll-behavior: smooth; }
@@ -46,6 +100,7 @@
     line-height: 1.7;
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
+    padding-top: var(--nav-height);
   }
 
   /* --- Ambient background --- */
@@ -72,6 +127,86 @@
     z-index: 0;
   }
 
+  /* (#1) Sticky nav */
+  .nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: var(--bg-deep);
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    height: var(--nav-height);
+    transition: background 0.3s, border-color 0.3s;
+  }
+
+  .nav-inner {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 0 24px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .nav-logo {
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .nav-icon { flex-shrink: 0; }
+  .nav-icon-dark { display: none; }
+  .nav-icon-light { display: block; }
+  [data-theme="dark"] .nav-icon-dark { display: block; }
+  [data-theme="dark"] .nav-icon-light { display: none; }
+
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    list-style: none;
+  }
+
+  .nav-links a {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  .nav-links a:hover { color: var(--accent); }
+
+  /* (#2) Dark mode toggle */
+  .theme-toggle {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+    font-size: 1rem;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+  }
+  .theme-toggle:hover { border-color: var(--border-accent); }
+  .theme-toggle .icon-sun { display: none; }
+  .theme-toggle .icon-moon { display: inline; }
+  [data-theme="dark"] .theme-toggle .icon-sun { display: inline; }
+  [data-theme="dark"] .theme-toggle .icon-moon { display: none; }
+
   .container {
     max-width: 960px;
     margin: 0 auto;
@@ -83,9 +218,9 @@
   a { color: var(--accent); text-decoration: none; transition: color 0.2s; }
   a:hover { color: #e8a87c; }
 
-  /* --- HERO --- */
+  /* --- HERO (#4 improved) --- */
   .hero {
-    padding: 64px 0 0;
+    padding: 80px 0 0;
     text-align: center;
   }
 
@@ -122,6 +257,11 @@
     margin-bottom: 12px;
   }
 
+  [data-theme="dark"] .title-box {
+    background: rgba(232, 148, 92, 0.08);
+    border-color: rgba(232, 148, 92, 0.2);
+  }
+
   .title-sub {
     font-family: var(--font-mono);
     font-size: 0.8rem;
@@ -130,22 +270,51 @@
     margin-top: 6px;
   }
 
-  .title-accent {
-    color: var(--accent);
-  }
+  .title-accent { color: var(--accent); }
 
-  .hero-subtitle {
-    font-size: 0.95rem;
-    color: var(--text-dim);
-    font-style: italic;
-    margin-bottom: 8px;
+  /* (#4) Tagline + CTA */
+  .hero-tagline {
+    font-size: 1.25rem;
+    color: var(--text-secondary);
+    max-width: 520px;
+    margin: 20px auto 8px;
+    line-height: 1.6;
   }
 
   .hero-personal {
     font-size: 1.05rem;
     color: var(--text-secondary);
     font-style: italic;
-    margin-bottom: 0;
+    margin-bottom: 28px;
+  }
+
+  .hero-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--accent);
+    color: #fff;
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 600;
+    padding: 14px 32px;
+    border-radius: 100px;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 24px rgba(224, 120, 64, 0.3);
+  }
+  .hero-cta:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 32px rgba(224, 120, 64, 0.4);
+    color: #fff;
+  }
+  .hero-cta-arrow {
+    transition: transform 0.2s;
+  }
+  .hero-cta:hover .hero-cta-arrow {
+    transform: translateX(3px);
   }
 
   .hero-link {
@@ -176,6 +345,99 @@
     font-weight: 700;
     letter-spacing: -0.02em;
     margin-bottom: 40px;
+  }
+
+  /* (#3) Scroll-triggered animations */
+  .reveal {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .reveal-d1 { transition-delay: 0.1s; }
+  .reveal-d2 { transition-delay: 0.2s; }
+  .reveal-d3 { transition-delay: 0.3s; }
+  .reveal-d4 { transition-delay: 0.4s; }
+
+  /* Hero still uses load-time animation */
+  .animate {
+    opacity: 0;
+    animation: fadeUp 0.6s ease forwards;
+  }
+  .animate-d1 { animation-delay: 0.1s; }
+  .animate-d2 { animation-delay: 0.2s; }
+  .animate-d3 { animation-delay: 0.3s; }
+  .animate-d4 { animation-delay: 0.4s; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* --- (#11) HOW IT WORKS --- */
+  .how-it-works {
+    padding: 48px 0 24px;
+  }
+
+  .steps-flow {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 0;
+    margin-bottom: 0;
+  }
+
+  .step-item {
+    text-align: center;
+    flex: 1;
+    max-width: 240px;
+  }
+
+  .step-icon-wrap {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 16px;
+    background: var(--accent-subtle);
+    border: 2px solid var(--border-accent);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.6rem;
+  }
+
+  .step-num {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+
+  .step-item h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+
+  .step-item p {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+
+  .step-arrow {
+    display: flex;
+    align-items: center;
+    padding-top: 20px;
+    color: var(--border-accent);
+    font-size: 1.5rem;
+    flex-shrink: 0;
   }
 
   /* --- FEATURES GRID --- */
@@ -251,9 +513,7 @@
 
   .intro-box p:last-child { margin-bottom: 0; }
 
-  .intro-box strong {
-    color: var(--text-primary);
-  }
+  .intro-box strong { color: var(--text-primary); }
 
   .intro-box .permission-note {
     font-weight: 400;
@@ -261,7 +521,7 @@
     font-style: italic;
     margin: 16px auto 0;
     text-align: center;
-    background: #f0e8de;
+    background: var(--bg-surface);
     border: 1px solid var(--border-accent);
     border-radius: var(--radius-sm);
     padding: 8px 16px;
@@ -324,12 +584,6 @@
     border: 1px solid rgba(224, 120, 64, 0.25);
   }
 
-  .prereq-badge.recommended {
-    background: rgba(224, 120, 64, 0.08);
-    color: var(--accent-warm);
-    border: 1px solid rgba(224, 120, 64, 0.2);
-  }
-
   .prereq-badge.optional {
     background: rgba(45, 36, 24, 0.05);
     color: var(--text-dim);
@@ -342,10 +596,22 @@
     border: 1px solid rgba(220, 53, 53, 0.25);
   }
 
+  [data-theme="dark"] .prereq-badge.paid {
+    background: rgba(220, 100, 100, 0.15);
+    color: #e88;
+    border-color: rgba(220, 100, 100, 0.3);
+  }
+
   .prereq-badge.free {
     background: rgba(39, 174, 96, 0.1);
     color: #27ae60;
     border: 1px solid rgba(39, 174, 96, 0.25);
+  }
+
+  [data-theme="dark"] .prereq-badge.free {
+    background: rgba(39, 174, 96, 0.15);
+    color: #5dbe88;
+    border-color: rgba(39, 174, 96, 0.3);
   }
 
   .prereq-card p {
@@ -427,7 +693,7 @@
   .install-panel.active { display: block; }
 
   .install-cmd {
-    background: #f0e8de;
+    background: var(--bg-surface);
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
     padding: 16px 20px 52px;
@@ -452,7 +718,7 @@
     border: none;
     border-radius: 6px;
     padding: 8px 16px;
-    font-family: var(--font-body);
+    font-family: var(--font-display);
     font-size: 0.8rem;
     font-weight: 600;
     color: #fff;
@@ -460,7 +726,7 @@
     transition: background 0.2s, transform 0.2s;
     letter-spacing: 0.02em;
   }
-  .copy-btn:hover { background: var(--accent-dark, #a0784a); transform: scale(1.05); }
+  .copy-btn:hover { background: #c86830; transform: scale(1.05); }
 
   .install-step {
     font-size: 0.9rem;
@@ -515,7 +781,7 @@
     display: inline-flex;
     align-items: center;
     gap: 12px;
-    background: #f0e8de;
+    background: var(--bg-surface);
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
     padding: 14px 28px;
@@ -576,18 +842,6 @@
     margin-top: 40px;
   }
 
-  .wait-link {
-    display: inline-block;
-    font-size: 1.05rem;
-    font-weight: 600;
-    color: var(--accent);
-    border-bottom: 1px dashed var(--border-accent);
-    padding-bottom: 2px;
-    margin-bottom: 12px;
-    transition: color 0.2s, border-color 0.2s;
-  }
-  .wait-link:hover { color: #e8a87c; border-color: #e8a87c; }
-
   .wait-sub {
     font-size: 0.88rem;
     color: var(--text-dim);
@@ -595,6 +849,89 @@
   }
   .wait-sub a { color: var(--text-secondary); }
   .wait-sub a:hover { color: var(--accent); }
+
+  /* --- (#7) DEMO SECTION --- */
+  .demo-section {
+    padding: 48px 0 24px;
+  }
+
+  .demo-terminal {
+    background: var(--demo-bg);
+    border: 2px solid var(--border-accent);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: 0 0 60px var(--accent-glow), 0 8px 32px var(--demo-shadow);
+    transition: background 0.3s, box-shadow 0.3s;
+  }
+
+  .demo-titlebar {
+    background: var(--demo-titlebar);
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid var(--demo-border);
+    transition: background 0.3s;
+  }
+
+  .demo-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+  .demo-dot.red { background: #ff5f57; }
+  .demo-dot.yellow { background: #ffbd2e; }
+  .demo-dot.green { background: #28ca41; }
+
+  .demo-titlebar-text {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--demo-titlebar-text);
+    margin-left: 8px;
+    transition: color 0.3s;
+  }
+
+  .demo-body {
+    padding: 20px 24px;
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    line-height: 1.8;
+    color: var(--demo-text);
+    min-height: 280px;
+    position: relative;
+    transition: color 0.3s;
+  }
+
+  .demo-line {
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+  }
+  .demo-line.show { opacity: 1; transform: translateY(0); }
+
+  .demo-prompt { color: var(--accent); }
+  .demo-user { color: var(--demo-user); }
+  .demo-response { color: var(--demo-response); }
+  .demo-action { color: var(--demo-action); }
+  .demo-dim { color: var(--demo-dim); }
+
+  .demo-controls {
+    text-align: center;
+    margin-top: 16px;
+  }
+
+  .demo-replay-btn {
+    background: var(--accent-subtle);
+    border: 1px solid var(--border-accent);
+    border-radius: 100px;
+    padding: 8px 20px;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--accent);
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .demo-replay-btn:hover { background: rgba(224, 120, 64, 0.12); }
 
   /* --- DOCS GRID --- */
   .docs-grid {
@@ -648,28 +985,67 @@
     line-height: 1.5;
   }
 
-  /* --- FOOTER --- */
-  footer {
-    padding: 48px 0;
-    text-align: center;
-    border-top: 1px solid var(--border);
-    margin-top: 32px;
+  /* --- (#10) FAQ ACCORDION --- */
+  .faq-section {
+    padding: 24px 0 48px;
   }
 
-  .footer-content {
-    font-size: 0.85rem;
-    color: var(--text-dim);
-    line-height: 1.8;
-  }
-  .footer-content a { color: var(--text-secondary); }
-  .footer-content a:hover { color: var(--accent); }
-
-  /* --- DIVIDER --- */
-  .divider {
-    width: 48px;
-    height: 1px;
-    background: var(--border);
+  .faq-list {
+    max-width: 720px;
     margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .faq-item {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .faq-item:hover { border-color: var(--border-accent); }
+
+  .faq-question {
+    width: 100%;
+    padding: 18px 24px;
+    background: transparent;
+    border: none;
+    text-align: left;
+    font-family: var(--font-display);
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .faq-chevron {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    transition: transform 0.3s;
+    flex-shrink: 0;
+  }
+
+  .faq-item.open .faq-chevron {
+    transform: rotate(180deg);
+  }
+
+  .faq-answer {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+  }
+
+  .faq-answer-inner {
+    padding: 0 24px 18px;
+    font-size: 0.88rem;
+    color: var(--text-secondary);
+    line-height: 1.7;
   }
 
   /* --- INTEGRATIONS --- */
@@ -700,6 +1076,7 @@
     margin-bottom: 12px;
   }
 
+  /* (#9) Integration tags: proper button elements */
   .integration-tag {
     display: inline-flex;
     align-items: center;
@@ -711,6 +1088,7 @@
     border: 1px solid var(--border);
     border-radius: 100px;
     padding: 4px 12px;
+    font-family: var(--font-display);
   }
 
   .tag-icon {
@@ -718,6 +1096,10 @@
     height: 16px;
     flex-shrink: 0;
     object-fit: contain;
+  }
+
+  [data-theme="dark"] .tag-icon {
+    filter: brightness(1.2);
   }
 
   .integration-tag.soon {
@@ -729,21 +1111,14 @@
     opacity: 0.5;
   }
 
-  .integrations-more {
-    font-size: 0.82rem;
-    color: var(--text-dim);
-    font-style: italic;
-    text-align: center;
-    margin-bottom: 6px;
-  }
-
   .integration-tag[data-desc] {
     cursor: pointer;
-    transition: background 0.2s, border-color 0.2s;
+    transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
   }
 
   .integration-tag[data-desc]:hover {
     border-color: var(--border-accent);
+    box-shadow: 0 0 12px var(--accent-glow);
   }
 
   .integration-tag.active {
@@ -773,53 +1148,192 @@
     color: var(--text-primary);
   }
 
+  /* --- (#6) FOOTER --- */
+  footer {
+    padding: 48px 0;
+    text-align: center;
+    border-top: 1px solid var(--border);
+    margin-top: 32px;
+  }
+
+  .footer-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .footer-logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--text-primary);
+    text-decoration: none;
+  }
+
+
+  .footer-links {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .footer-links a {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .footer-links a:hover { color: var(--accent); }
+
+  .footer-links svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .footer-legal {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+  }
+
+  .back-to-top {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 40px;
+    height: 40px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    font-size: 1.1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 0.3s, transform 0.3s;
+    z-index: 50;
+    box-shadow: 0 2px 12px rgba(224, 120, 64, 0.3);
+  }
+  .back-to-top.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .back-to-top:hover { background: #c86830; }
+
+  /* --- DIVIDER --- */
+  .divider {
+    width: 48px;
+    height: 1px;
+    background: var(--border);
+    margin: 0 auto;
+  }
+
   /* --- RESPONSIVE --- */
   @media (max-width: 768px) {
     .hero { padding: 48px 0 0; }
     .features-grid { grid-template-columns: 1fr; }
     .prereq-grid { grid-template-columns: 1fr; }
     .docs-grid { grid-template-columns: 1fr; }
-    .hints-row { flex-direction: column; gap: 8px; align-items: flex-start; padding-left: 24px; }
     section { padding: 20px 0; }
+    .steps-flow { gap: 0; }
+    .step-item { max-width: none; }
+    .step-icon-wrap { width: 48px; height: 48px; font-size: 1.2rem; border-radius: 12px; }
+    .step-num { font-size: 0.6rem; }
+    .step-item h3 { font-size: 0.85rem; }
+    .step-item p { font-size: 0.75rem; }
+    .step-arrow { font-size: 1rem; padding-top: 14px; }
+    .nav-links { gap: 12px; }
+    .nav-links a { font-size: 0.78rem; }
+    .nav-links .nav-hide-mobile { display: none; }
   }
-
-  /* --- ANIMATIONS --- */
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  .animate {
-    opacity: 0;
-    animation: fadeUp 0.6s ease forwards;
-  }
-  .animate-d1 { animation-delay: 0.1s; }
-  .animate-d2 { animation-delay: 0.2s; }
-  .animate-d3 { animation-delay: 0.3s; }
-  .animate-d4 { animation-delay: 0.4s; }
-  .animate-d5 { animation-delay: 0.5s; }
-  .animate-d6 { animation-delay: 0.6s; }
 </style>
 </head>
 <body>
 
-  <!-- HERO -->
-  <header class="hero">
+  <!-- (#1) STICKY NAV -->
+  <nav class="nav" role="navigation" aria-label="Main navigation">
+    <div class="nav-inner">
+      <a href="#" class="nav-logo">
+        <img src="favicon-light.svg" alt="DestinClaude" class="nav-icon nav-icon-light" width="22" height="22">
+        <img src="favicon-dark.svg" alt="DestinClaude" class="nav-icon nav-icon-dark" width="22" height="22">
+        <span>Destin<span style="color: var(--accent)">Claude</span></span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="#about">About</a></li>
+        <li><a href="#prerequisites" class="nav-hide-mobile">Prerequisites</a></li>
+        <li><a href="#install">Install</a></li>
+        <li><a href="#features" class="nav-hide-mobile">Features</a></li>
+        <li><a href="#documentation">Docs</a></li>
+        <li><a href="#faq">FAQ</a></li>
+        <li>
+          <!-- (#2) Theme toggle uses CSS display toggling, no innerHTML -->
+          <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode" title="Toggle dark mode">
+            <span class="icon-moon" aria-hidden="true">&#9790;</span>
+            <span class="icon-sun" aria-hidden="true">&#9728;</span>
+          </button>
+        </li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- HERO (#4 improved) -->
+  <header class="hero" id="top">
     <div class="container">
       <div class="title-box animate animate-d1">
         <h1>Destin<span class="title-accent">Claude</span></h1>
         <p class="title-sub">For <a href="https://docs.anthropic.com/en/docs/claude-code" style="color: var(--accent); text-decoration: none;">Claude Code</a> by Anthropic</p>
       </div>
-      <p class="hero-personal animate animate-d2">Trust me, I promise it's actually kinda cool.</p>
+      <p class="hero-tagline animate animate-d2">Your life, organized by conversation.</p>
+      <p class="hero-personal animate animate-d3">Trust me, I promise it's actually kinda cool.</p>
+      <div class="animate animate-d4">
+        <a href="#install" class="hero-cta">Get Started <span class="hero-cta-arrow">&darr;</span></a>
+      </div>
     </div>
   </header>
 
-  <!-- INTRO -->
-  <section>
+  <!-- (#11) HOW IT WORKS -->
+  <section class="how-it-works" id="how-it-works">
     <div class="container">
-      <p class="section-label">What is this?</p>
-      <h2 class="section-title">A tool to remember everything that matters.</h2>
-      <div class="intro-box">
+      <div class="steps-flow reveal">
+        <div class="step-item">
+          <div class="step-icon-wrap">&#128187;</div>
+          <p class="step-num">Step 1</p>
+          <h3>Install</h3>
+          <p>Run one command in your terminal. The setup wizard handles everything.</p>
+        </div>
+        <div class="step-arrow">&rarr;</div>
+        <div class="step-item">
+          <div class="step-icon-wrap">&#128172;</div>
+          <p class="step-num">Step 2</p>
+          <h3>Chat</h3>
+          <p>Journal, vent, plan, ask questions. Just type naturally.</p>
+        </div>
+        <div class="step-arrow">&rarr;</div>
+        <div class="step-item">
+          <div class="step-icon-wrap">&#10024;</div>
+          <p class="step-num">Step 3</p>
+          <h3>It just works</h3>
+          <p>Calendar events, tasks, a living record of your life — built automatically.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="container"><div class="divider"></div></div>
+
+  <!-- INTRO -->
+  <section id="about">
+    <div class="container">
+      <p class="section-label reveal">What is this?</p>
+      <h2 class="section-title reveal">A tool to remember everything that matters.</h2>
+      <div class="intro-box reveal">
         <p>Claude Code is an AI tool developed by Anthropic. However, this AI tool is nothing like the ChatGPT or Gemini you might be familiar with. Claude can <strong>create every type of file</strong>, <strong>search the web</strong>, <strong>open any app</strong>, and <strong>navigate your screen</strong> if you desire. Destin's modifications turn all of that into a personal system that helps you stay on top of the things you care about — without the overhead of actually organizing them yourself.</p>
         <p>Snap a screenshot of a flyer for an event next month, and it lands on your calendar. Forward yourself a rambling voice memo and the action items get pulled out. Journal about your day to decompress, and DestinClaude quietly picks up on the rest — a goal you mentioned making progress on, a dentist appointment you need to schedule, an overdue assignment worth surfacing before you close the laptop. <strong>You just talk. The structure happens on its own.</strong></p>
         <p>Over time, it builds a living record of your life — the kind of thing you'd never sit down and write yourself, but wish you had. Who you met at that conference two years ago. What your friend's kid's name is. The argument that changed your mind about something. The details that make you <em>you</em>, preserved so you can actually find them when they matter most.</p>
@@ -828,13 +1342,43 @@
     </div>
   </section>
 
-  <!-- BEFORE YOU BEGIN -->
-  <section>
+  <!-- (#7) DEMO SECTION -->
+  <section class="demo-section" id="demo">
     <div class="container">
-      <p class="section-label">Before you begin</p>
-      <h2 class="section-title">You'll need a couple of accounts.</h2>
+      <p class="section-label reveal">See it in action</p>
+      <h2 class="section-title reveal">What a session looks like</h2>
+      <div class="demo-terminal reveal" id="demo-terminal">
+        <div class="demo-titlebar">
+          <div class="demo-dot red"></div>
+          <div class="demo-dot yellow"></div>
+          <div class="demo-dot green"></div>
+          <span class="demo-titlebar-text">DestinClaude — Terminal</span>
+        </div>
+        <div class="demo-body" id="demo-body">
+          <div class="demo-line" data-delay="200"><span class="demo-prompt">&gt; </span><span class="demo-user">Let's journal. Today was a long one — had that meeting with Sarah about the nonprofit rebrand, then spent the afternoon prepping my talk for Friday.</span></div>
+          <div class="demo-line" data-delay="1400"><br><span class="demo-response">Got it. How did the meeting with Sarah go? Any decisions made on the rebrand direction?</span></div>
+          <div class="demo-line" data-delay="2600"><br><span class="demo-prompt">&gt; </span><span class="demo-user">Yeah, we're going with the warm palette. She wants a first draft by March 28th. Oh, and remind me — I need to email Jake the slide deck before my talk.</span></div>
+          <div class="demo-line" data-delay="3800"><br><span class="demo-action">&#10003; Created task: "Email Jake slide deck" — due Friday morning</span></div>
+          <div class="demo-line" data-delay="4400"><span class="demo-action">&#10003; Created task: "Nonprofit rebrand first draft" — due March 28</span></div>
+          <div class="demo-line" data-delay="5000"><span class="demo-action">&#10003; Updated Encyclopedia: Sarah &rarr; nonprofit rebrand collaboration</span></div>
+          <div class="demo-line" data-delay="5600"><span class="demo-dim">Journal saved &rarr; 2026-03-18.md</span></div>
+        </div>
+      </div>
+      <div class="demo-controls reveal">
+        <button class="demo-replay-btn" id="demo-replay" aria-label="Replay demo">&#8635; Replay</button>
+      </div>
+    </div>
+  </section>
+
+  <div class="container"><div class="divider"></div></div>
+
+  <!-- BEFORE YOU BEGIN -->
+  <section id="prerequisites">
+    <div class="container">
+      <p class="section-label reveal">Before you begin</p>
+      <h2 class="section-title reveal">You'll need a couple of accounts.</h2>
       <div class="prereq-grid">
-        <div class="prereq-card">
+        <div class="prereq-card reveal reveal-d1">
           <div class="prereq-badges">
             <span class="prereq-badge required">Required</span>
             <span class="prereq-badge paid">Paid — $20</span>
@@ -845,7 +1389,7 @@
           <p>Requires a subscription for Claude Code, which underlies the system.</p>
           <a href="https://claude.ai/upgrade" target="_blank" class="prereq-link">Subscribe to Claude Pro &rarr;</a>
         </div>
-        <div class="prereq-card">
+        <div class="prereq-card reveal reveal-d2">
           <div class="prereq-badges">
             <span class="prereq-badge required">Required</span>
             <span class="prereq-badge free">Free</span>
@@ -856,7 +1400,7 @@
           <p>DestinClaude stores all of your personal information in your own Google Drive or Apple iCloud account.</p>
           <a href="https://accounts.google.com/signup" target="_blank" class="prereq-link">Create Google Account &rarr;</a>
         </div>
-        <div class="prereq-card">
+        <div class="prereq-card reveal reveal-d3">
           <div class="prereq-badges">
             <span class="prereq-badge required">Required</span>
             <span class="prereq-badge free">Free</span>
@@ -868,28 +1412,28 @@
           <a href="https://github.com/signup" target="_blank" class="prereq-link">Create GitHub Account &rarr;</a>
         </div>
       </div>
-      <div class="integrations-section">
+      <div class="integrations-section reveal">
         <h3 class="integrations-title">Available Integrations</h3>
         <p class="integrations-intro">DestinClaude is designed to link with all of the following services:</p>
         <div class="integrations-tags">
-          <span class="integration-tag" data-desc="DestinClaude can automatically back up your journal entries, Encyclopedia, and system files to Google Drive — keeping everything safe and synced across sessions."><img class="tag-icon" src="https://upload.wikimedia.org/wikipedia/commons/1/12/Google_Drive_icon_%282020%29.svg" alt="">Google Drive</span>
-          <span class="integration-tag" data-desc="DestinClaude can create, read, and edit documents — drafting cover letters, memos, reports, and more directly in Google Docs."><img class="tag-icon" src="https://upload.wikimedia.org/wikipedia/commons/6/66/Google_Docs_2020_Logo.svg" alt="">Google Docs</span>
-          <span class="integration-tag" data-desc="DestinClaude can create and analyze spreadsheets — building trackers, organizing data, and working with structured information in Google Sheets."><img class="tag-icon" src="https://upload.wikimedia.org/wikipedia/commons/a/ae/Google_Sheets_2020_Logo.svg" alt="">Google Sheets</span>
-          <span class="integration-tag" data-desc="DestinClaude can create and edit slide decks and visual presentations in Google Slides."><img class="tag-icon" src="https://upload.wikimedia.org/wikipedia/commons/1/16/Google_Slides_2020_Logo.svg" alt="">Google Slides</span>
-          <span class="integration-tag" data-desc="DestinClaude can read and create events on your Google Calendar. Mention an appointment in conversation or screenshot a flyer, and it can get scheduled automatically."><img class="tag-icon" src="https://upload.wikimedia.org/wikipedia/commons/a/a5/Google_Calendar_icon_%282020%29.svg" alt="">Google Calendar</span>
-          <span class="integration-tag" data-desc="DestinClaude can search your inbox, read threads, and compose replies in Gmail — all without leaving the terminal."><img class="tag-icon" src="https://upload.wikimedia.org/wikipedia/commons/7/7e/Gmail_icon_%282020%29.svg" alt="">Gmail</span>
-          <span class="integration-tag" data-desc="DestinClaude can read your SMS and RCS conversations and send texts on your behalf through Google Messages."><img class="tag-icon" src="https://upload.wikimedia.org/wikipedia/commons/0/05/Google_Messages_logo.svg" alt="">Google Messages</span>
-          <span class="integration-tag" data-desc="DestinClaude can access your Apple Messages conversations and send texts through iMessage."><img class="tag-icon" src="https://cdn.simpleicons.org/imessage" alt="">iMessage</span>
-          <span class="integration-tag" data-desc="DestinClaude can automatically back up your journal entries, Encyclopedia, and system files to iCloud Drive — keeping everything safe and synced across sessions."><img class="tag-icon" src="https://cdn.simpleicons.org/icloud" alt="">iCloud</span>
-          <span class="integration-tag" data-desc="DestinClaude can read your existing Apple Notes and create new ones for quick reference and capture."><img class="tag-icon" src="https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_Notes_icon.svg" alt="">Apple Notes</span>
-          <span class="integration-tag" data-desc="DestinClaude can add items to your Apple Reminders lists and help you keep track of things to do."><img class="tag-icon" src="https://aroundsketch.com/Apple-App-Icons/App-Icon/Apple/Reminders/@SVG.svg" alt="">Apple Reminders</span>
-          <span class="integration-tag" data-desc="DestinClaude can read and create events on your Apple Calendar. Mention an appointment in conversation or screenshot a flyer, and it can get scheduled automatically."><img class="tag-icon" src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Apple_Calendar_%28iOS%29.svg" alt="">Apple Calendar</span>
-          <span class="integration-tag" data-desc="DestinClaude can search your inbox, read threads, and compose replies through Apple Mail."><img class="tag-icon" src="https://upload.wikimedia.org/wikipedia/commons/4/4e/Mail_%28iOS%29.svg" alt="">Apple Mail</span>
-          <span class="integration-tag" data-desc="DestinClaude can manage your task list, process inbox items captured from your phone, create tasks from conversations, and help you stay on top of priorities."><img class="tag-icon" src="https://cdn.simpleicons.org/todoist" alt="">Todoist</span>
-          <span class="integration-tag" data-desc="DestinClaude can receive toolkit updates and sync your configuration through GitHub, keeping your installation current with the latest features and fixes."><img class="tag-icon" src="https://cdn.simpleicons.org/github" alt="">GitHub</span>
-          <span class="integration-tag" data-desc="DestinClaude can navigate websites, fill out forms, take screenshots, and interact with web pages through Chrome."><img class="tag-icon" src="https://upload.wikimedia.org/wikipedia/commons/e/e1/Google_Chrome_icon_%28February_2022%29.svg" alt="">Chrome</span>
-          <span class="integration-tag" data-desc="DestinClaude can navigate websites, fill out forms, take screenshots, and interact with web pages through Safari."><img class="tag-icon" src="https://upload.wikimedia.org/wikipedia/commons/5/52/Safari_browser_logo.svg" alt="">Safari</span>
-          <span class="integration-tag" data-desc="DestinClaude can generate graphics, edit presentations, and work with visual content directly in Canva."><img class="tag-icon" src="https://www.google.com/s2/favicons?domain=canva.com&sz=32" alt="">Canva</span>
+          <button class="integration-tag" tabindex="0" data-desc="DestinClaude can automatically back up your journal entries, Encyclopedia, and system files to Google Drive — keeping everything safe and synced across sessions."><img class="tag-icon" src="https://upload.wikimedia.org/wikipedia/commons/1/12/Google_Drive_icon_%282020%29.svg" alt="">Google Drive</button>
+          <button class="integration-tag" tabindex="0" data-desc="DestinClaude can create, read, and edit documents — drafting cover letters, memos, reports, and more directly in Google Docs."><img class="tag-icon" src="https://upload.wikimedia.org/wikipedia/commons/6/66/Google_Docs_2020_Logo.svg" alt="">Google Docs</button>
+          <button class="integration-tag" tabindex="0" data-desc="DestinClaude can create and analyze spreadsheets — building trackers, organizing data, and working with structured information in Google Sheets."><img class="tag-icon" src="https://upload.wikimedia.org/wikipedia/commons/a/ae/Google_Sheets_2020_Logo.svg" alt="">Google Sheets</button>
+          <button class="integration-tag" tabindex="0" data-desc="DestinClaude can create and edit slide decks and visual presentations in Google Slides."><img class="tag-icon" src="https://upload.wikimedia.org/wikipedia/commons/1/16/Google_Slides_2020_Logo.svg" alt="">Google Slides</button>
+          <button class="integration-tag" tabindex="0" data-desc="DestinClaude can read and create events on your Google Calendar. Mention an appointment in conversation or screenshot a flyer, and it can get scheduled automatically."><img class="tag-icon" src="https://upload.wikimedia.org/wikipedia/commons/a/a5/Google_Calendar_icon_%282020%29.svg" alt="">Google Calendar</button>
+          <button class="integration-tag" tabindex="0" data-desc="DestinClaude can search your inbox, read threads, and compose replies in Gmail — all without leaving the terminal."><img class="tag-icon" src="https://upload.wikimedia.org/wikipedia/commons/7/7e/Gmail_icon_%282020%29.svg" alt="">Gmail</button>
+          <button class="integration-tag" tabindex="0" data-desc="DestinClaude can read your SMS and RCS conversations and send texts on your behalf through Google Messages."><img class="tag-icon" src="https://upload.wikimedia.org/wikipedia/commons/0/05/Google_Messages_logo.svg" alt="">Google Messages</button>
+          <button class="integration-tag" tabindex="0" data-desc="DestinClaude can access your Apple Messages conversations and send texts through iMessage."><img class="tag-icon" src="https://cdn.simpleicons.org/imessage" alt="">iMessage</button>
+          <button class="integration-tag" tabindex="0" data-desc="DestinClaude can automatically back up your journal entries, Encyclopedia, and system files to iCloud Drive — keeping everything safe and synced across sessions."><img class="tag-icon" src="https://cdn.simpleicons.org/icloud" alt="">iCloud</button>
+          <button class="integration-tag" tabindex="0" data-desc="DestinClaude can read your existing Apple Notes and create new ones for quick reference and capture."><img class="tag-icon" src="https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_Notes_icon.svg" alt="">Apple Notes</button>
+          <button class="integration-tag" tabindex="0" data-desc="DestinClaude can add items to your Apple Reminders lists and help you keep track of things to do."><img class="tag-icon" src="https://aroundsketch.com/Apple-App-Icons/App-Icon/Apple/Reminders/@SVG.svg" alt="">Apple Reminders</button>
+          <button class="integration-tag" tabindex="0" data-desc="DestinClaude can read and create events on your Apple Calendar. Mention an appointment in conversation or screenshot a flyer, and it can get scheduled automatically."><img class="tag-icon" src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Apple_Calendar_%28iOS%29.svg" alt="">Apple Calendar</button>
+          <button class="integration-tag" tabindex="0" data-desc="DestinClaude can search your inbox, read threads, and compose replies through Apple Mail."><img class="tag-icon" src="https://upload.wikimedia.org/wikipedia/commons/4/4e/Mail_%28iOS%29.svg" alt="">Apple Mail</button>
+          <button class="integration-tag" tabindex="0" data-desc="DestinClaude can manage your task list, process inbox items captured from your phone, create tasks from conversations, and help you stay on top of priorities."><img class="tag-icon" src="https://cdn.simpleicons.org/todoist" alt="">Todoist</button>
+          <button class="integration-tag" tabindex="0" data-desc="DestinClaude can receive toolkit updates and sync your configuration through GitHub, keeping your installation current with the latest features and fixes."><img class="tag-icon" src="https://cdn.simpleicons.org/github" alt="">GitHub</button>
+          <button class="integration-tag" tabindex="0" data-desc="DestinClaude can navigate websites, fill out forms, take screenshots, and interact with web pages through Chrome."><img class="tag-icon" src="https://upload.wikimedia.org/wikipedia/commons/e/e1/Google_Chrome_icon_%28February_2022%29.svg" alt="">Chrome</button>
+          <button class="integration-tag" tabindex="0" data-desc="DestinClaude can navigate websites, fill out forms, take screenshots, and interact with web pages through Safari."><img class="tag-icon" src="https://upload.wikimedia.org/wikipedia/commons/5/52/Safari_browser_logo.svg" alt="">Safari</button>
+          <button class="integration-tag" tabindex="0" data-desc="DestinClaude can generate graphics, edit presentations, and work with visual content directly in Canva."><img class="tag-icon" src="https://www.google.com/s2/favicons?domain=canva.com&sz=32" alt="">Canva</button>
           <span class="integration-tag soon">More coming soon...</span>
         </div>
         <div class="integration-desc" id="integration-desc"></div>
@@ -900,21 +1444,21 @@
   </section>
 
   <!-- INSTALL -->
-  <section>
+  <section id="install">
     <div class="container">
-      <p class="section-label">Get started</p>
-      <h2 class="section-title">Step 1: Run the installer</h2>
-      <div class="install-box">
+      <p class="section-label reveal">Get started</p>
+      <h2 class="section-title reveal">Step 1: Run the installer</h2>
+      <div class="install-box reveal">
         <div class="install-tabs" role="tablist">
-          <button class="install-tab active" role="tab" aria-selected="true" data-tab="mac"><strong>MacOS</strong></button>
-          <button class="install-tab" role="tab" aria-selected="false" data-tab="win"><strong>Windows</strong></button>
+          <button class="install-tab active" role="tab" aria-selected="true" aria-controls="panel-mac" id="tab-mac" data-tab="mac"><strong>MacOS</strong></button>
+          <button class="install-tab" role="tab" aria-selected="false" aria-controls="panel-win" id="tab-win" data-tab="win"><strong>Windows</strong></button>
         </div>
-        <div class="install-panel active" id="panel-mac" role="tabpanel">
+        <div class="install-panel active" id="panel-mac" role="tabpanel" aria-labelledby="tab-mac">
           <p class="install-step"><strong>Open Terminal:</strong> Press <kbd>Cmd</kbd> + <kbd>Space</kbd> to open Spotlight, type <strong>Terminal</strong>, and press Enter. A window with a blinking cursor will appear.</p>
           <p class="install-step-label">Paste this and press Enter:</p>
           <div class="install-cmd" id="cmd-mac" data-cmd="curl -fsSL https://raw.githubusercontent.com/itsdestin/destinclaude/master/bootstrap/install.sh -o /tmp/install.sh && bash /tmp/install.sh"><span class="prompt">$ </span>curl -fsSL https://raw.githubusercontent.com/itsdestin/destinclaude/master/bootstrap/install.sh -o /tmp/install.sh && bash /tmp/install.sh<button class="copy-btn" onclick="copyCmd('mac')">Copy</button></div>
         </div>
-        <div class="install-panel" id="panel-win" role="tabpanel">
+        <div class="install-panel" id="panel-win" role="tabpanel" aria-labelledby="tab-win">
           <p class="install-step"><strong>Open Windows Terminal:</strong> Press the <kbd>Windows</kbd> key, type <strong>Terminal</strong>, and press Enter. A window with a blinking cursor will appear.</p>
           <p class="install-step-label">Paste this and press Enter:</p>
           <div class="install-cmd" id="cmd-win" data-cmd='powershell -ExecutionPolicy Bypass -c "iwr -useb https://raw.githubusercontent.com/itsdestin/destinclaude/master/bootstrap/install.ps1 -OutFile install.ps1; .\install.ps1"'><span class="prompt">&gt; </span>powershell -ExecutionPolicy Bypass -c "iwr -useb https://raw.githubusercontent.com/itsdestin/destinclaude/master/bootstrap/install.ps1 -OutFile install.ps1; .\install.ps1"<button class="copy-btn" onclick="copyCmd('win')">Copy</button></div>
@@ -926,8 +1470,8 @@
   <!-- NEXT STEP: OPEN CLAUDE -->
   <section class="next-step-section">
     <div class="container">
-      <h2 class="section-title">Step 2: Talk to DestinClaude</h2>
-      <div class="next-step-card">
+      <h2 class="section-title reveal">Step 2: Talk to DestinClaude</h2>
+      <div class="next-step-card reveal">
         <div class="next-step-inner">
           <p class="next-step-instruction">In that same terminal window, type:</p>
           <div class="next-step-cmd">
@@ -952,32 +1496,32 @@
   <div class="container"><div class="divider"></div></div>
 
   <!-- FEATURES -->
-  <section>
+  <section id="features">
     <div class="container">
-      <h2 class="section-title">DestinClaude helps install what you need.</h2>
+      <h2 class="section-title reveal">DestinClaude helps install what you need.</h2>
       <div class="features-grid">
-        <div class="feature-card">
+        <div class="feature-card reveal reveal-d1">
           <span class="feature-icon">&#9670;</span>
           <h3>Core</h3>
           <p>The foundation. Session hooks, git sync, write guards, a specs system for documenting features, persistent memory, and commands for updates and contributions.</p>
         </div>
-        <div class="feature-card">
+        <div class="feature-card reveal reveal-d2">
           <span class="feature-icon">&#9733;</span>
           <h3>Life</h3>
           <p>A personal knowledge system. Conversational journaling, a living encyclopedia that DestinClaude maintains about you, and automatic Google Drive backup.</p>
         </div>
-        <div class="feature-card">
+        <div class="feature-card reveal reveal-d3">
           <span class="feature-icon">&#9889;</span>
           <h3>Productivity</h3>
           <p>Task management and communication. Process your Todoist inbox, build custom skills, and read or send text messages through DestinClaude.</p>
         </div>
-        <div class="feature-card">
+        <div class="feature-card reveal reveal-d4">
           <span class="feature-icon">&#10070;</span>
           <h3>Modules</h3>
           <p>Optional add-ons for specific domains. Install additional skills tailored to your work or interests.</p>
         </div>
       </div>
-      <p class="features-note">Each layer is independent. Life and Productivity both build on Core, but don't depend on each other. <a href="https://github.com/itsdestin/destinclaude/blob/master/docs/system-architecture.md">Want the technical details?</a></p>
+      <p class="features-note reveal">Each layer is independent. Life and Productivity both build on Core, but don't depend on each other. <a href="https://github.com/itsdestin/destinclaude/blob/master/docs/system-architecture.md">Want the technical details?</a></p>
     </div>
   </section>
 
@@ -986,22 +1530,22 @@
   <!-- DOCUMENTATION -->
   <section id="documentation">
     <div class="container">
-      <p class="section-label">Learn more</p>
-      <h2 class="section-title">Documentation</h2>
+      <p class="section-label reveal">Learn more</p>
+      <h2 class="section-title reveal">Documentation</h2>
       <div class="docs-grid">
-        <a href="https://github.com/itsdestin/destinclaude/blob/master/docs/quickstart.md" class="doc-card">
+        <a href="https://github.com/itsdestin/destinclaude/blob/master/docs/quickstart.md" class="doc-card reveal reveal-d1">
           <h3>Quickstart</h3>
           <p>Already use Claude Code? Four steps and you're done.</p>
         </a>
-        <a href="https://github.com/itsdestin/destinclaude/blob/master/docs/for-beginners/00-what-is-claude.md" class="doc-card">
+        <a href="https://github.com/itsdestin/destinclaude/blob/master/docs/for-beginners/00-what-is-claude.md" class="doc-card reveal reveal-d2">
           <h3>Beginner's Guide</h3>
           <p>Never used Claude Code? Start from the very beginning.</p>
         </a>
-        <a href="https://github.com/itsdestin/destinclaude/blob/master/docs/system-architecture.md" class="doc-card">
+        <a href="https://github.com/itsdestin/destinclaude/blob/master/docs/system-architecture.md" class="doc-card reveal reveal-d3">
           <h3>System Architecture</h3>
           <p>Technical deep dive into layers, hooks, specs, and data flow.</p>
         </a>
-        <a href="https://github.com/itsdestin/destinclaude/blob/master/core/specs/INDEX.md" class="doc-card">
+        <a href="https://github.com/itsdestin/destinclaude/blob/master/core/specs/INDEX.md" class="doc-card reveal reveal-d4">
           <h3>Specs Index</h3>
           <p>Feature documentation and design decisions.</p>
         </a>
@@ -1009,52 +1553,173 @@
     </div>
   </section>
 
-  <!-- FOOTER -->
+  <div class="container"><div class="divider"></div></div>
+
+  <!-- (#10) FAQ SECTION -->
+  <section class="faq-section" id="faq">
+    <div class="container">
+      <p class="section-label reveal">Common questions</p>
+      <h2 class="section-title reveal">FAQ</h2>
+      <div class="faq-list">
+        <div class="faq-item reveal">
+          <button class="faq-question" aria-expanded="false">
+            Is my data private?
+            <span class="faq-chevron">&#9660;</span>
+          </button>
+          <div class="faq-answer" role="region">
+            <div class="faq-answer-inner">Everything DestinClaude creates — journal entries, your Encyclopedia, tasks — is stored in <strong>your own</strong> Google Drive or iCloud account. Nothing is sent to third-party servers beyond the services you explicitly connect. Your data stays yours.</div>
+          </div>
+        </div>
+        <div class="faq-item reveal">
+          <button class="faq-question" aria-expanded="false">
+            What does the $20/month get me?
+            <span class="faq-chevron">&#9660;</span>
+          </button>
+          <div class="faq-answer" role="region">
+            <div class="faq-answer-inner">The $20 goes to Anthropic for a Claude Pro subscription, which gives you access to Claude Code — the underlying AI that powers everything. DestinClaude itself is free and open source. You're paying for the AI, not the toolkit.</div>
+          </div>
+        </div>
+        <div class="faq-item reveal">
+          <button class="faq-question" aria-expanded="false">
+            Can I use this without Google?
+            <span class="faq-chevron">&#9660;</span>
+          </button>
+          <div class="faq-answer" role="region">
+            <div class="faq-answer-inner">Yes. DestinClaude supports Apple's ecosystem as an alternative — iCloud Drive for storage, Apple Calendar, Apple Mail, iMessage, Apple Notes, and Apple Reminders. You can also mix and match (e.g., Google Drive + Apple Calendar).</div>
+          </div>
+        </div>
+        <div class="faq-item reveal">
+          <button class="faq-question" aria-expanded="false">
+            What if I break something?
+            <span class="faq-chevron">&#9660;</span>
+          </button>
+          <div class="faq-answer" role="region">
+            <div class="faq-answer-inner">DestinClaude always asks for permission before taking actions, so it's hard to break things accidentally. If something does go wrong, the system uses git version control under the hood — you can always roll back. And you can reinstall from scratch at any time with the same one-line command.</div>
+          </div>
+        </div>
+        <div class="faq-item reveal">
+          <button class="faq-question" aria-expanded="false">
+            Do I need to know how to code?
+            <span class="faq-chevron">&#9660;</span>
+          </button>
+          <div class="faq-answer" role="region">
+            <div class="faq-answer-inner">Not at all. You'll copy one command into a terminal window, and the setup wizard handles the rest conversationally. If you can send a text message, you can use DestinClaude.</div>
+          </div>
+        </div>
+        <div class="faq-item reveal">
+          <button class="faq-question" aria-expanded="false">
+            Does it work on Mac and Windows?
+            <span class="faq-chevron">&#9660;</span>
+          </button>
+          <div class="faq-answer" role="region">
+            <div class="faq-answer-inner">Yes, both are fully supported. The installer auto-detects your platform and configures everything accordingly. Apple ecosystem integrations (iMessage, Apple Notes, etc.) are only available on Mac.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- (#6) FOOTER -->
   <footer>
     <div class="container">
-      <p class="footer-content">
-        Built by <a href="https://github.com/itsdestin">Destin</a><br>
-        <a href="https://github.com/itsdestin/destinclaude" class="prereq-badge free" style="text-decoration:none; margin: 8px 0; display:inline-block;">Open Source</a><br>
-        MIT License
-      </p>
+      <div class="footer-inner">
+        <a href="#top" class="footer-logo">
+          <img src="favicon-light.svg" alt="DestinClaude" class="nav-icon nav-icon-light" width="20" height="20">
+          <img src="favicon-dark.svg" alt="DestinClaude" class="nav-icon nav-icon-dark" width="20" height="20">
+          <span>Destin<span style="color: var(--accent)">Claude</span></span>
+        </a>
+        <div class="footer-links">
+          <a href="https://github.com/itsdestin/destinclaude" target="_blank">
+            <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+            GitHub
+          </a>
+          <a href="https://github.com/itsdestin" target="_blank">Built by Destin</a>
+          <span class="prereq-badge free" style="font-size: 0.7rem;">Open Source</span>
+        </div>
+        <p class="footer-legal">MIT License</p>
+      </div>
     </div>
   </footer>
 
+  <!-- (#6) Back to top button -->
+  <button class="back-to-top" id="back-to-top" aria-label="Back to top">&uarr;</button>
+
   <script>
-    // Tab switching
-    document.querySelectorAll('.install-tab').forEach(tab => {
-      tab.addEventListener('click', () => {
-        document.querySelectorAll('.install-tab').forEach(t => {
+    // (#2) Dark mode toggle — uses CSS-based icon switching, no innerHTML
+    var themeToggle = document.getElementById('theme-toggle');
+    var htmlEl = document.documentElement;
+
+    function getPreferredTheme() {
+      var stored = localStorage.getItem('dc-theme');
+      if (stored) return stored;
+      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+
+    function applyTheme(theme) {
+      var favicon = document.getElementById('favicon');
+      if (theme === 'dark') {
+        htmlEl.setAttribute('data-theme', 'dark');
+        if (favicon) favicon.href = 'favicon-dark.svg';
+      } else {
+        htmlEl.removeAttribute('data-theme');
+        if (favicon) favicon.href = 'favicon-light.svg';
+      }
+    }
+
+    applyTheme(getPreferredTheme());
+
+    themeToggle.addEventListener('click', function() {
+      var current = htmlEl.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+      var next = current === 'dark' ? 'light' : 'dark';
+      localStorage.setItem('dc-theme', next);
+      applyTheme(next);
+    });
+
+    // (#8) OS auto-detection for install tabs
+    (function autoDetectOS() {
+      var ua = navigator.userAgent || navigator.platform || '';
+      // Default to macOS; only switch to Windows if positively detected
+      var targetTab = /Win/i.test(ua) ? 'win' : 'mac';
+      document.querySelectorAll('.install-tab').forEach(function(t) {
+        t.classList.remove('active');
+        t.setAttribute('aria-selected', 'false');
+      });
+      document.querySelectorAll('.install-panel').forEach(function(p) { p.classList.remove('active'); });
+      var tab = document.querySelector('[data-tab="' + targetTab + '"]');
+      if (tab) { tab.classList.add('active'); tab.setAttribute('aria-selected', 'true'); }
+      var panel = document.getElementById('panel-' + targetTab);
+      if (panel) panel.classList.add('active');
+    })();
+
+    // Tab switching (manual override)
+    document.querySelectorAll('.install-tab').forEach(function(tab) {
+      tab.addEventListener('click', function() {
+        document.querySelectorAll('.install-tab').forEach(function(t) {
           t.classList.remove('active');
           t.setAttribute('aria-selected', 'false');
         });
-        document.querySelectorAll('.install-panel').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.install-panel').forEach(function(p) { p.classList.remove('active'); });
         tab.classList.add('active');
         tab.setAttribute('aria-selected', 'true');
         document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
       });
     });
 
-    // Expandable hints
-    function toggleHint(btn) {
-      btn.classList.toggle('open');
-      btn.nextElementSibling.classList.toggle('open');
-    }
-
-    // Integration descriptions
-    document.querySelectorAll('.integration-tag[data-desc]').forEach(tag => {
-      tag.addEventListener('click', () => {
-        const desc = document.getElementById('integration-desc');
-        const name = tag.textContent.trim();
-        const text = tag.getAttribute('data-desc');
+    // (#9) Integration descriptions — uses textContent and createTextNode (safe DOM methods)
+    document.querySelectorAll('.integration-tag[data-desc]').forEach(function(tag) {
+      tag.addEventListener('click', function() {
+        var desc = document.getElementById('integration-desc');
+        var name = tag.textContent.trim();
+        var text = tag.getAttribute('data-desc');
         if (tag.classList.contains('active')) {
           tag.classList.remove('active');
           desc.classList.remove('visible');
           return;
         }
-        document.querySelectorAll('.integration-tag.active').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.integration-tag.active').forEach(function(t) { t.classList.remove('active'); });
         tag.classList.add('active');
-        desc.textContent = '';
+        // Clear previous content safely
+        while (desc.firstChild) { desc.removeChild(desc.firstChild); }
         var nameSpan = document.createElement('span');
         nameSpan.className = 'integration-desc-name';
         nameSpan.textContent = name + ': ';
@@ -1066,14 +1731,86 @@
 
     // Copy command
     function copyCmd(platform) {
-      const el = document.getElementById('cmd-' + platform);
-      const text = el.getAttribute('data-cmd');
-      navigator.clipboard.writeText(text).then(() => {
-        const btn = el.querySelector('.copy-btn');
+      var el = document.getElementById('cmd-' + platform);
+      var text = el.getAttribute('data-cmd');
+      navigator.clipboard.writeText(text).then(function() {
+        var btn = el.querySelector('.copy-btn');
         btn.textContent = 'Copied!';
-        setTimeout(() => btn.textContent = 'Copy', 2000);
+        setTimeout(function() { btn.textContent = 'Copy'; }, 2000);
       });
     }
+
+    // (#3) Scroll-triggered animations via IntersectionObserver
+    var revealObserver = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          revealObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+    document.querySelectorAll('.reveal').forEach(function(el) { revealObserver.observe(el); });
+
+    // (#7) Demo terminal animation
+    function runDemo() {
+      var lines = document.querySelectorAll('#demo-body .demo-line');
+      lines.forEach(function(line) { line.classList.remove('show'); });
+      lines.forEach(function(line) {
+        var delay = parseInt(line.getAttribute('data-delay') || 0);
+        setTimeout(function() { line.classList.add('show'); }, delay);
+      });
+    }
+
+    // Run demo when it scrolls into view
+    var demoObserver = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) {
+          runDemo();
+          demoObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.3 });
+
+    demoObserver.observe(document.getElementById('demo-terminal'));
+
+    document.getElementById('demo-replay').addEventListener('click', runDemo);
+
+    // (#10) FAQ accordion
+    document.querySelectorAll('.faq-question').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var item = btn.parentElement;
+        var answer = item.querySelector('.faq-answer');
+        var isOpen = item.classList.contains('open');
+
+        // Close all others
+        document.querySelectorAll('.faq-item.open').forEach(function(openItem) {
+          openItem.classList.remove('open');
+          openItem.querySelector('.faq-answer').style.maxHeight = '0';
+          openItem.querySelector('.faq-question').setAttribute('aria-expanded', 'false');
+        });
+
+        if (!isOpen) {
+          item.classList.add('open');
+          answer.style.maxHeight = answer.scrollHeight + 'px';
+          btn.setAttribute('aria-expanded', 'true');
+        }
+      });
+    });
+
+    // (#6) Back to top button
+    var backToTop = document.getElementById('back-to-top');
+    window.addEventListener('scroll', function() {
+      if (window.scrollY > 400) {
+        backToTop.classList.add('visible');
+      } else {
+        backToTop.classList.remove('visible');
+      }
+    });
+
+    backToTop.addEventListener('click', function() {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
   </script>
 
 </body>

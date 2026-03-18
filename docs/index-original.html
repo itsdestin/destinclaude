@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DestinClaude — A Toolkit for Claude Code by Anthropic</title>
+<meta name="description" content="A modular toolkit that transforms Claude Code into a personal knowledge system, journal, task manager, and more.">
+<link rel="icon" href="favicon-light.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  /* Remove blue tap/focus highlight on mobile */
+  * { -webkit-tap-highlight-color: transparent; }
+  *:focus { outline: none; }
+  button:focus, a:focus { outline: none; }
+
+  :root {
+    --bg-deep: #faf6f1;
+    --bg-surface: #f5efe8;
+    --bg-card: #ffffff;
+    --bg-card-hover: #fef9f4;
+    --text-primary: #2d2418;
+    --text-secondary: #6b5d4f;
+    --text-dim: #9a8d7f;
+    --accent: #e07840;
+    --accent-glow: rgba(224, 120, 64, 0.12);
+    --accent-subtle: rgba(224, 120, 64, 0.06);
+    --accent-warm: #f0965c;
+    --border: rgba(45, 36, 24, 0.1);
+    --border-accent: rgba(224, 120, 64, 0.3);
+    --font-display: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: var(--font-display);
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  /* --- Ambient background --- */
+  body::before {
+    content: '';
+    position: fixed;
+    top: -40%;
+    left: -20%;
+    width: 80%;
+    height: 80%;
+    background: radial-gradient(ellipse, rgba(224, 120, 64, 0.06) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  body::after {
+    content: '';
+    position: fixed;
+    bottom: -30%;
+    right: -20%;
+    width: 70%;
+    height: 70%;
+    background: radial-gradient(ellipse, rgba(240, 150, 92, 0.05) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 0 24px;
+    position: relative;
+    z-index: 1;
+  }
+
+  a { color: var(--accent); text-decoration: none; transition: color 0.2s; }
+  a:hover { color: #e8a87c; }
+
+  /* --- HERO --- */
+  .hero {
+    padding: 64px 0 0;
+    text-align: center;
+  }
+
+  .hero-badge {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: var(--accent-subtle);
+    border: 1px solid var(--border-accent);
+    padding: 6px 16px;
+    border-radius: 100px;
+    margin-bottom: 32px;
+  }
+
+  .hero h1 {
+    font-size: clamp(2.5rem, 6vw, 4rem);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    margin-bottom: 0;
+    color: var(--text-primary);
+  }
+
+  .title-box {
+    display: inline-block;
+    padding: 16px 28px 14px;
+    background: rgba(224, 120, 64, 0.07);
+    border: 1px solid rgba(224, 120, 64, 0.15);
+    border-radius: 16px;
+    margin-bottom: 12px;
+  }
+
+  .title-sub {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    letter-spacing: 0.05em;
+    margin-top: 6px;
+  }
+
+  .title-accent {
+    color: var(--accent);
+  }
+
+  .hero-subtitle {
+    font-size: 0.95rem;
+    color: var(--text-dim);
+    font-style: italic;
+    margin-bottom: 8px;
+  }
+
+  .hero-personal {
+    font-size: 1.05rem;
+    color: var(--text-secondary);
+    font-style: italic;
+    margin-bottom: 0;
+  }
+
+  .hero-link {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--accent);
+    border-bottom: 1px dashed var(--border-accent);
+    padding-bottom: 1px;
+    transition: border-color 0.2s, color 0.2s;
+  }
+  .hero-link:hover { color: #e8a87c; border-color: #e8a87c; }
+
+  /* --- SECTION SHARED --- */
+  section { padding: 24px 0; }
+
+  .section-label {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+  }
+
+  .section-title {
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 40px;
+  }
+
+  /* --- FEATURES GRID --- */
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .feature-card {
+    background: var(--bg-card);
+    border: 2px solid var(--border-accent);
+    border-radius: var(--radius);
+    padding: 28px 24px;
+    transition: background 0.25s, border-color 0.25s, transform 0.25s;
+    box-shadow: 0 0 40px var(--accent-glow), 0 0 80px rgba(56, 189, 248, 0.05);
+  }
+  .feature-card:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--border-accent);
+    transform: translateY(-2px);
+  }
+
+  .feature-icon {
+    width: 36px;
+    height: 36px;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    background: var(--accent-subtle);
+    border: 1px solid var(--border-accent);
+    color: var(--accent);
+  }
+
+  .feature-card h3 {
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+    letter-spacing: -0.01em;
+  }
+
+  .feature-card p {
+    font-size: 0.88rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  .features-note {
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+
+  /* --- INTRO BOX --- */
+  .intro-box {
+    background: var(--bg-card);
+    border: 2px solid var(--border-accent);
+    border-radius: var(--radius);
+    padding: 32px 28px;
+    box-shadow: 0 0 40px var(--accent-glow), 0 0 80px rgba(224, 120, 64, 0.05);
+    line-height: 1.7;
+  }
+
+  .intro-box p {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+  }
+
+  .intro-box p:last-child { margin-bottom: 0; }
+
+  .intro-box strong {
+    color: var(--text-primary);
+  }
+
+  .intro-box .permission-note {
+    font-weight: 400;
+    color: var(--accent);
+    font-style: italic;
+    margin: 16px auto 0;
+    text-align: center;
+    background: #f0e8de;
+    border: 1px solid var(--border-accent);
+    border-radius: var(--radius-sm);
+    padding: 8px 16px;
+    display: block;
+    width: fit-content;
+    font-size: 0.88rem;
+  }
+
+  /* --- PREREQ GRID --- */
+  .prereq-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+
+  .prereq-card {
+    position: relative;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+  }
+
+  .prereq-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .prereq-badges {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .prereq-header h3 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  .prereq-badge {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 4px;
+  }
+
+  .prereq-badge.required {
+    background: rgba(224, 120, 64, 0.12);
+    color: var(--accent);
+    border: 1px solid rgba(224, 120, 64, 0.25);
+  }
+
+  .prereq-badge.recommended {
+    background: rgba(224, 120, 64, 0.08);
+    color: var(--accent-warm);
+    border: 1px solid rgba(224, 120, 64, 0.2);
+  }
+
+  .prereq-badge.optional {
+    background: rgba(45, 36, 24, 0.05);
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+  }
+
+  .prereq-badge.paid {
+    background: rgba(220, 53, 53, 0.1);
+    color: #c0392b;
+    border: 1px solid rgba(220, 53, 53, 0.25);
+  }
+
+  .prereq-badge.free {
+    background: rgba(39, 174, 96, 0.1);
+    color: #27ae60;
+    border: 1px solid rgba(39, 174, 96, 0.25);
+  }
+
+  .prereq-card p {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+
+  .prereq-link {
+    display: block;
+    margin-top: 10px;
+    margin-left: auto;
+    margin-right: 0;
+    width: fit-content;
+    text-align: right;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--accent);
+    background: var(--accent-subtle);
+    border: 1px solid var(--border-accent);
+    border-radius: 6px;
+    padding: 6px 14px;
+    text-decoration: none;
+    transition: background 0.2s, transform 0.2s;
+  }
+  .prereq-link:hover {
+    background: rgba(224, 120, 64, 0.12);
+    transform: translateY(-1px);
+    color: var(--accent);
+  }
+
+  .prereq-note {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    text-align: center;
+    font-style: italic;
+  }
+
+  /* --- INSTALL --- */
+  .install-box {
+    background: var(--bg-card);
+    border: 2px solid var(--border-accent);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: 0 0 40px var(--accent-glow), 0 0 80px rgba(56, 189, 248, 0.05);
+  }
+
+  .install-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .install-tab {
+    flex: 1;
+    padding: 14px 20px;
+    font-family: var(--font-mono);
+    font-size: 0.95rem;
+    font-weight: 700;
+    text-align: center;
+    color: var(--text-primary);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: color 0.2s, background 0.2s;
+    letter-spacing: 0.04em;
+  }
+  .install-tab:hover { color: var(--text-secondary); }
+  .install-tab.active {
+    color: var(--accent);
+    background: var(--accent-subtle);
+    box-shadow: inset 0 -2px 0 var(--accent);
+  }
+
+  .install-panel {
+    display: none;
+    padding: 24px;
+  }
+  .install-panel.active { display: block; }
+
+  .install-cmd {
+    background: #f0e8de;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 16px 20px 52px;
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    line-height: 1.6;
+    color: var(--text-primary);
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+    position: relative;
+    user-select: none;
+  }
+
+  .install-cmd .prompt { color: var(--accent); }
+
+  .copy-btn {
+    position: absolute;
+    bottom: 10px;
+    right: 12px;
+    background: var(--accent);
+    border: none;
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-family: var(--font-body);
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #fff;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.2s;
+    letter-spacing: 0.02em;
+  }
+  .copy-btn:hover { background: var(--accent-dark, #a0784a); transform: scale(1.05); }
+
+  .install-step {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+    line-height: 1.6;
+  }
+  .install-step strong { color: var(--text-primary); }
+
+  .install-step-label {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+    font-family: var(--font-mono);
+  }
+
+  kbd {
+    display: inline-block;
+    background: var(--bg-deep);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 2px 7px;
+    font-family: var(--font-mono);
+    font-size: 0.8em;
+    color: var(--text-primary);
+    box-shadow: 0 1px 0 var(--border);
+    vertical-align: baseline;
+  }
+
+  /* --- NEXT STEP CARD --- */
+  .next-step-section { padding-top: 0; }
+
+  .next-step-card {
+    background: var(--bg-card);
+    border: 2px solid var(--border-accent);
+    border-radius: var(--radius);
+    padding: 40px 32px;
+    text-align: center;
+    box-shadow: 0 0 40px var(--accent-glow), 0 0 80px rgba(56, 189, 248, 0.05);
+  }
+
+  .next-step-instruction {
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    font-weight: 600;
+    margin-bottom: 16px;
+    line-height: 1.7;
+  }
+  .next-step-instruction kbd { margin: 0 2px; }
+
+  .next-step-cmd {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    background: #f0e8de;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px 28px;
+    margin-bottom: 20px;
+  }
+
+  .prompt-big {
+    font-family: var(--font-mono);
+    font-size: 1.1rem;
+    color: var(--accent);
+    user-select: none;
+  }
+
+  .cmd-text {
+    font-family: var(--font-mono);
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: 0.02em;
+  }
+
+  .claude-prompt {
+    display: inline-flex;
+    margin-bottom: 20px;
+  }
+
+  .prompt-claude {
+    font-family: var(--font-mono);
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: var(--accent);
+    user-select: none;
+    margin-right: 12px;
+  }
+
+  .next-step-sub {
+    font-size: 0.88rem;
+    color: var(--text-primary);
+    font-weight: 600;
+    max-width: 480px;
+    margin: 0 auto 16px;
+    line-height: 1.7;
+  }
+
+  .next-step-reassurance {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    font-weight: 400;
+    max-width: 520px;
+    margin: 16px auto 0;
+    line-height: 1.6;
+    font-style: italic;
+  }
+
+  /* --- WHILE YOU WAIT --- */
+  .while-you-wait {
+    text-align: center;
+    margin-top: 40px;
+  }
+
+  .wait-link {
+    display: inline-block;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--accent);
+    border-bottom: 1px dashed var(--border-accent);
+    padding-bottom: 2px;
+    margin-bottom: 12px;
+    transition: color 0.2s, border-color 0.2s;
+  }
+  .wait-link:hover { color: #e8a87c; border-color: #e8a87c; }
+
+  .wait-sub {
+    font-size: 0.88rem;
+    color: var(--text-dim);
+    line-height: 1.6;
+  }
+  .wait-sub a { color: var(--text-secondary); }
+  .wait-sub a:hover { color: var(--accent); }
+
+  /* --- DOCS GRID --- */
+  .docs-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+
+  .doc-card {
+    display: block;
+    background: var(--bg-card);
+    border: 2px solid var(--border-accent);
+    border-radius: var(--radius);
+    padding: 24px;
+    transition: background 0.25s, border-color 0.25s, transform 0.25s;
+    text-decoration: none;
+    box-shadow: 0 0 40px var(--accent-glow), 0 0 80px rgba(56, 189, 248, 0.05);
+  }
+  .doc-card:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--border-accent);
+    transform: translateY(-2px);
+    color: var(--text-primary);
+  }
+
+  .doc-card h3 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .doc-card h3::after {
+    content: '\2192';
+    font-size: 0.85rem;
+    color: var(--accent);
+    opacity: 0;
+    transform: translateX(-4px);
+    transition: opacity 0.2s, transform 0.2s;
+  }
+  .doc-card:hover h3::after {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  .doc-card p {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+
+  /* --- FOOTER --- */
+  footer {
+    padding: 48px 0;
+    text-align: center;
+    border-top: 1px solid var(--border);
+    margin-top: 32px;
+  }
+
+  .footer-content {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    line-height: 1.8;
+  }
+  .footer-content a { color: var(--text-secondary); }
+  .footer-content a:hover { color: var(--accent); }
+
+  /* --- DIVIDER --- */
+  .divider {
+    width: 48px;
+    height: 1px;
+    background: var(--border);
+    margin: 0 auto;
+  }
+
+  /* --- INTEGRATIONS --- */
+  .integrations-section {
+    margin-top: 28px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+  }
+
+  .integrations-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+    margin-bottom: 6px;
+  }
+
+  .integrations-intro {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-bottom: 14px;
+  }
+
+  .integrations-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .integration-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    padding: 4px 12px;
+  }
+
+  .tag-icon {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    object-fit: contain;
+  }
+
+  .integration-tag.soon {
+    color: var(--text-dim);
+    border-style: dashed;
+  }
+
+  .integration-tag.soon .tag-icon {
+    opacity: 0.5;
+  }
+
+  .integrations-more {
+    font-size: 0.82rem;
+    color: var(--text-dim);
+    font-style: italic;
+    text-align: center;
+    margin-bottom: 6px;
+  }
+
+  .integration-tag[data-desc] {
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+  }
+
+  .integration-tag[data-desc]:hover {
+    border-color: var(--border-accent);
+  }
+
+  .integration-tag.active {
+    background: var(--accent-subtle);
+    border-color: var(--accent);
+  }
+
+  .integration-desc {
+    display: none;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    margin-top: 10px;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  .integration-desc.visible {
+    display: block;
+    animation: fadeUp 0.3s ease;
+  }
+
+  .integration-desc-name {
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  /* --- RESPONSIVE --- */
+  @media (max-width: 768px) {
+    .hero { padding: 48px 0 0; }
+    .features-grid { grid-template-columns: 1fr; }
+    .prereq-grid { grid-template-columns: 1fr; }
+    .docs-grid { grid-template-columns: 1fr; }
+    .hints-row { flex-direction: column; gap: 8px; align-items: flex-start; padding-left: 24px; }
+    section { padding: 20px 0; }
+  }
+
+  /* --- ANIMATIONS --- */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .animate {
+    opacity: 0;
+    animation: fadeUp 0.6s ease forwards;
+  }
+  .animate-d1 { animation-delay: 0.1s; }
+  .animate-d2 { animation-delay: 0.2s; }
+  .animate-d3 { animation-delay: 0.3s; }
+  .animate-d4 { animation-delay: 0.4s; }
+  .animate-d5 { animation-delay: 0.5s; }
+  .animate-d6 { animation-delay: 0.6s; }
+</style>
+</head>
+<body>
+
+  <!-- HERO -->
+  <header class="hero">
+    <div class="container">
+      <div class="title-box animate animate-d1">
+        <h1>Destin<span class="title-accent">Claude</span></h1>
+        <p class="title-sub">For <a href="https://docs.anthropic.com/en/docs/claude-code" style="color: var(--accent); text-decoration: none;">Claude Code</a> by Anthropic</p>
+      </div>
+      <p class="hero-personal animate animate-d2">Trust me, I promise it's actually kinda cool.</p>
+    </div>
+  </header>
+
+  <!-- INTRO -->
+  <section>
+    <div class="container">
+      <p class="section-label">What is this?</p>
+      <h2 class="section-title">A tool to remember everything that matters.</h2>
+      <div class="intro-box">
+        <p>Claude Code is an AI tool developed by Anthropic. However, this AI tool is nothing like the ChatGPT or Gemini you might be familiar with. Claude can <strong>create every type of file</strong>, <strong>search the web</strong>, <strong>open any app</strong>, and <strong>navigate your screen</strong> if you desire. Destin's modifications turn all of that into a personal system that helps you stay on top of the things you care about — without the overhead of actually organizing them yourself.</p>
+        <p>Snap a screenshot of a flyer for an event next month, and it lands on your calendar. Forward yourself a rambling voice memo and the action items get pulled out. Journal about your day to decompress, and DestinClaude quietly picks up on the rest — a goal you mentioned making progress on, a dentist appointment you need to schedule, an overdue assignment worth surfacing before you close the laptop. <strong>You just talk. The structure happens on its own.</strong></p>
+        <p>Over time, it builds a living record of your life — the kind of thing you'd never sit down and write yourself, but wish you had. Who you met at that conference two years ago. What your friend's kid's name is. The argument that changed your mind about something. The details that make you <em>you</em>, preserved so you can actually find them when they matter most.</p>
+        <p class="permission-note">Nothing happens without your permission. DestinClaude will always ask before taking any action.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- BEFORE YOU BEGIN -->
+  <section>
+    <div class="container">
+      <p class="section-label">Before you begin</p>
+      <h2 class="section-title">You'll need a couple of accounts.</h2>
+      <div class="prereq-grid">
+        <div class="prereq-card">
+          <div class="prereq-badges">
+            <span class="prereq-badge required">Required</span>
+            <span class="prereq-badge paid">Paid — $20</span>
+          </div>
+          <div class="prereq-header">
+            <h3>Anthropic</h3>
+          </div>
+          <p>Requires a subscription for Claude Code, which underlies the system.</p>
+          <a href="https://claude.ai/upgrade" target="_blank" class="prereq-link">Subscribe to Claude Pro &rarr;</a>
+        </div>
+        <div class="prereq-card">
+          <div class="prereq-badges">
+            <span class="prereq-badge required">Required</span>
+            <span class="prereq-badge free">Free</span>
+          </div>
+          <div class="prereq-header">
+            <h3>Google or Apple</h3>
+          </div>
+          <p>DestinClaude stores all of your personal information in your own Google Drive or Apple iCloud account.</p>
+          <a href="https://accounts.google.com/signup" target="_blank" class="prereq-link">Create Google Account &rarr;</a>
+        </div>
+        <div class="prereq-card">
+          <div class="prereq-badges">
+            <span class="prereq-badge required">Required</span>
+            <span class="prereq-badge free">Free</span>
+          </div>
+          <div class="prereq-header">
+            <h3>GitHub</h3>
+          </div>
+          <p>Required to receive toolkit updates. Sign up with your Google or Apple account.</p>
+          <a href="https://github.com/signup" target="_blank" class="prereq-link">Create GitHub Account &rarr;</a>
+        </div>
+      </div>
+      <div class="integrations-section">
+        <h3 class="integrations-title">Available Integrations</h3>
+        <p class="integrations-intro">DestinClaude is designed to link with all of the following services:</p>
+        <div class="integrations-tags">
+          <span class="integration-tag" data-desc="DestinClaude can automatically back up your journal entries, Encyclopedia, and system files to Google Drive — keeping everything safe and synced across sessions."><img class="tag-icon" src="https://upload.wikimedia.org/wikipedia/commons/1/12/Google_Drive_icon_%282020%29.svg" alt="">Google Drive</span>
+          <span class="integration-tag" data-desc="DestinClaude can create, read, and edit documents — drafting cover letters, memos, reports, and more directly in Google Docs."><img class="tag-icon" src="https://upload.wikimedia.org/wikipedia/commons/6/66/Google_Docs_2020_Logo.svg" alt="">Google Docs</span>
+          <span class="integration-tag" data-desc="DestinClaude can create and analyze spreadsheets — building trackers, organizing data, and working with structured information in Google Sheets."><img class="tag-icon" src="https://upload.wikimedia.org/wikipedia/commons/a/ae/Google_Sheets_2020_Logo.svg" alt="">Google Sheets</span>
+          <span class="integration-tag" data-desc="DestinClaude can create and edit slide decks and visual presentations in Google Slides."><img class="tag-icon" src="https://upload.wikimedia.org/wikipedia/commons/1/16/Google_Slides_2020_Logo.svg" alt="">Google Slides</span>
+          <span class="integration-tag" data-desc="DestinClaude can read and create events on your Google Calendar. Mention an appointment in conversation or screenshot a flyer, and it can get scheduled automatically."><img class="tag-icon" src="https://upload.wikimedia.org/wikipedia/commons/a/a5/Google_Calendar_icon_%282020%29.svg" alt="">Google Calendar</span>
+          <span class="integration-tag" data-desc="DestinClaude can search your inbox, read threads, and compose replies in Gmail — all without leaving the terminal."><img class="tag-icon" src="https://upload.wikimedia.org/wikipedia/commons/7/7e/Gmail_icon_%282020%29.svg" alt="">Gmail</span>
+          <span class="integration-tag" data-desc="DestinClaude can read your SMS and RCS conversations and send texts on your behalf through Google Messages."><img class="tag-icon" src="https://upload.wikimedia.org/wikipedia/commons/0/05/Google_Messages_logo.svg" alt="">Google Messages</span>
+          <span class="integration-tag" data-desc="DestinClaude can access your Apple Messages conversations and send texts through iMessage."><img class="tag-icon" src="https://cdn.simpleicons.org/imessage" alt="">iMessage</span>
+          <span class="integration-tag" data-desc="DestinClaude can automatically back up your journal entries, Encyclopedia, and system files to iCloud Drive — keeping everything safe and synced across sessions."><img class="tag-icon" src="https://cdn.simpleicons.org/icloud" alt="">iCloud</span>
+          <span class="integration-tag" data-desc="DestinClaude can read your existing Apple Notes and create new ones for quick reference and capture."><img class="tag-icon" src="https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_Notes_icon.svg" alt="">Apple Notes</span>
+          <span class="integration-tag" data-desc="DestinClaude can add items to your Apple Reminders lists and help you keep track of things to do."><img class="tag-icon" src="https://aroundsketch.com/Apple-App-Icons/App-Icon/Apple/Reminders/@SVG.svg" alt="">Apple Reminders</span>
+          <span class="integration-tag" data-desc="DestinClaude can read and create events on your Apple Calendar. Mention an appointment in conversation or screenshot a flyer, and it can get scheduled automatically."><img class="tag-icon" src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Apple_Calendar_%28iOS%29.svg" alt="">Apple Calendar</span>
+          <span class="integration-tag" data-desc="DestinClaude can search your inbox, read threads, and compose replies through Apple Mail."><img class="tag-icon" src="https://upload.wikimedia.org/wikipedia/commons/4/4e/Mail_%28iOS%29.svg" alt="">Apple Mail</span>
+          <span class="integration-tag" data-desc="DestinClaude can manage your task list, process inbox items captured from your phone, create tasks from conversations, and help you stay on top of priorities."><img class="tag-icon" src="https://cdn.simpleicons.org/todoist" alt="">Todoist</span>
+          <span class="integration-tag" data-desc="DestinClaude can receive toolkit updates and sync your configuration through GitHub, keeping your installation current with the latest features and fixes."><img class="tag-icon" src="https://cdn.simpleicons.org/github" alt="">GitHub</span>
+          <span class="integration-tag" data-desc="DestinClaude can navigate websites, fill out forms, take screenshots, and interact with web pages through Chrome."><img class="tag-icon" src="https://upload.wikimedia.org/wikipedia/commons/e/e1/Google_Chrome_icon_%28February_2022%29.svg" alt="">Chrome</span>
+          <span class="integration-tag" data-desc="DestinClaude can navigate websites, fill out forms, take screenshots, and interact with web pages through Safari."><img class="tag-icon" src="https://upload.wikimedia.org/wikipedia/commons/5/52/Safari_browser_logo.svg" alt="">Safari</span>
+          <span class="integration-tag" data-desc="DestinClaude can generate graphics, edit presentations, and work with visual content directly in Canva."><img class="tag-icon" src="https://www.google.com/s2/favicons?domain=canva.com&sz=32" alt="">Canva</span>
+          <span class="integration-tag soon">More coming soon...</span>
+        </div>
+        <div class="integration-desc" id="integration-desc"></div>
+        <p class="prereq-note"><strong>NOTE:</strong> Some integrations require account authorization or additional setup. While you may link any of these services at any time, I strongly encourage registering them during the initial installation with the built-in setup wizard if prompted.</p>
+        <p class="prereq-note"><strong>If you want to know more about how to use integrations, just ask Claude!</strong></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- INSTALL -->
+  <section>
+    <div class="container">
+      <p class="section-label">Get started</p>
+      <h2 class="section-title">Step 1: Run the installer</h2>
+      <div class="install-box">
+        <div class="install-tabs" role="tablist">
+          <button class="install-tab active" role="tab" aria-selected="true" data-tab="mac"><strong>MacOS</strong></button>
+          <button class="install-tab" role="tab" aria-selected="false" data-tab="win"><strong>Windows</strong></button>
+        </div>
+        <div class="install-panel active" id="panel-mac" role="tabpanel">
+          <p class="install-step"><strong>Open Terminal:</strong> Press <kbd>Cmd</kbd> + <kbd>Space</kbd> to open Spotlight, type <strong>Terminal</strong>, and press Enter. A window with a blinking cursor will appear.</p>
+          <p class="install-step-label">Paste this and press Enter:</p>
+          <div class="install-cmd" id="cmd-mac" data-cmd="curl -fsSL https://raw.githubusercontent.com/itsdestin/destinclaude/master/bootstrap/install.sh -o /tmp/install.sh && bash /tmp/install.sh"><span class="prompt">$ </span>curl -fsSL https://raw.githubusercontent.com/itsdestin/destinclaude/master/bootstrap/install.sh -o /tmp/install.sh && bash /tmp/install.sh<button class="copy-btn" onclick="copyCmd('mac')">Copy</button></div>
+        </div>
+        <div class="install-panel" id="panel-win" role="tabpanel">
+          <p class="install-step"><strong>Open Windows Terminal:</strong> Press the <kbd>Windows</kbd> key, type <strong>Terminal</strong>, and press Enter. A window with a blinking cursor will appear.</p>
+          <p class="install-step-label">Paste this and press Enter:</p>
+          <div class="install-cmd" id="cmd-win" data-cmd='powershell -ExecutionPolicy Bypass -c "iwr -useb https://raw.githubusercontent.com/itsdestin/destinclaude/master/bootstrap/install.ps1 -OutFile install.ps1; .\install.ps1"'><span class="prompt">&gt; </span>powershell -ExecutionPolicy Bypass -c "iwr -useb https://raw.githubusercontent.com/itsdestin/destinclaude/master/bootstrap/install.ps1 -OutFile install.ps1; .\install.ps1"<button class="copy-btn" onclick="copyCmd('win')">Copy</button></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- NEXT STEP: OPEN CLAUDE -->
+  <section class="next-step-section">
+    <div class="container">
+      <h2 class="section-title">Step 2: Talk to DestinClaude</h2>
+      <div class="next-step-card">
+        <div class="next-step-inner">
+          <p class="next-step-instruction">In that same terminal window, type:</p>
+          <div class="next-step-cmd">
+            <span class="prompt-big">$</span>
+            <span class="cmd-text">claude</span>
+          </div>
+          <p class="next-step-instruction">Then, press <kbd>Enter</kbd>. DestinClaude will open. Type:</p>
+          <div class="next-step-cmd claude-prompt">
+            <span class="prompt-claude">&gt;</span>
+            <span class="cmd-text">/setup-wizard</span>
+          </div>
+          <p class="next-step-sub">DestinClaude will walk you through the rest — choosing what to install, setting up your preferences, linking your external accounts, and making sure everything works.</p>
+          <p class="next-step-reassurance"><span style="color: var(--accent); font-weight: 700; font-style: normal;">WARNING:</span> You may see lots of red "error" text and be asked for a multitude of confirmations while DestinClaude completes this process. Don't worry; this is to be expected. Trust DestinClaude (he is all-knowing) and approve any prompts.</p>
+        </div>
+      </div>
+      <div class="while-you-wait" id="while-you-wait">
+        <p class="wait-sub">If you'd like to know more, review the <a href="#documentation">additional documentation</a> at the bottom of this page.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="container"><div class="divider"></div></div>
+
+  <!-- FEATURES -->
+  <section>
+    <div class="container">
+      <h2 class="section-title">DestinClaude helps install what you need.</h2>
+      <div class="features-grid">
+        <div class="feature-card">
+          <span class="feature-icon">&#9670;</span>
+          <h3>Core</h3>
+          <p>The foundation. Session hooks, git sync, write guards, a specs system for documenting features, persistent memory, and commands for updates and contributions.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">&#9733;</span>
+          <h3>Life</h3>
+          <p>A personal knowledge system. Conversational journaling, a living encyclopedia that DestinClaude maintains about you, and automatic Google Drive backup.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">&#9889;</span>
+          <h3>Productivity</h3>
+          <p>Task management and communication. Process your Todoist inbox, build custom skills, and read or send text messages through DestinClaude.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">&#10070;</span>
+          <h3>Modules</h3>
+          <p>Optional add-ons for specific domains. Install additional skills tailored to your work or interests.</p>
+        </div>
+      </div>
+      <p class="features-note">Each layer is independent. Life and Productivity both build on Core, but don't depend on each other. <a href="https://github.com/itsdestin/destinclaude/blob/master/docs/system-architecture.md">Want the technical details?</a></p>
+    </div>
+  </section>
+
+  <div class="container"><div class="divider"></div></div>
+
+  <!-- DOCUMENTATION -->
+  <section id="documentation">
+    <div class="container">
+      <p class="section-label">Learn more</p>
+      <h2 class="section-title">Documentation</h2>
+      <div class="docs-grid">
+        <a href="https://github.com/itsdestin/destinclaude/blob/master/docs/quickstart.md" class="doc-card">
+          <h3>Quickstart</h3>
+          <p>Already use Claude Code? Four steps and you're done.</p>
+        </a>
+        <a href="https://github.com/itsdestin/destinclaude/blob/master/docs/for-beginners/00-what-is-claude.md" class="doc-card">
+          <h3>Beginner's Guide</h3>
+          <p>Never used Claude Code? Start from the very beginning.</p>
+        </a>
+        <a href="https://github.com/itsdestin/destinclaude/blob/master/docs/system-architecture.md" class="doc-card">
+          <h3>System Architecture</h3>
+          <p>Technical deep dive into layers, hooks, specs, and data flow.</p>
+        </a>
+        <a href="https://github.com/itsdestin/destinclaude/blob/master/core/specs/INDEX.md" class="doc-card">
+          <h3>Specs Index</h3>
+          <p>Feature documentation and design decisions.</p>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="container">
+      <p class="footer-content">
+        Built by <a href="https://github.com/itsdestin">Destin</a><br>
+        <a href="https://github.com/itsdestin/destinclaude" class="prereq-badge free" style="text-decoration:none; margin: 8px 0; display:inline-block;">Open Source</a><br>
+        MIT License
+      </p>
+    </div>
+  </footer>
+
+  <script>
+    // Tab switching
+    document.querySelectorAll('.install-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.install-tab').forEach(t => {
+          t.classList.remove('active');
+          t.setAttribute('aria-selected', 'false');
+        });
+        document.querySelectorAll('.install-panel').forEach(p => p.classList.remove('active'));
+        tab.classList.add('active');
+        tab.setAttribute('aria-selected', 'true');
+        document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+      });
+    });
+
+    // Expandable hints
+    function toggleHint(btn) {
+      btn.classList.toggle('open');
+      btn.nextElementSibling.classList.toggle('open');
+    }
+
+    // Integration descriptions
+    document.querySelectorAll('.integration-tag[data-desc]').forEach(tag => {
+      tag.addEventListener('click', () => {
+        const desc = document.getElementById('integration-desc');
+        const name = tag.textContent.trim();
+        const text = tag.getAttribute('data-desc');
+        if (tag.classList.contains('active')) {
+          tag.classList.remove('active');
+          desc.classList.remove('visible');
+          return;
+        }
+        document.querySelectorAll('.integration-tag.active').forEach(t => t.classList.remove('active'));
+        tag.classList.add('active');
+        desc.textContent = '';
+        var nameSpan = document.createElement('span');
+        nameSpan.className = 'integration-desc-name';
+        nameSpan.textContent = name + ': ';
+        desc.appendChild(nameSpan);
+        desc.appendChild(document.createTextNode(text));
+        desc.classList.add('visible');
+      });
+    });
+
+    // Copy command
+    function copyCmd(platform) {
+      const el = document.getElementById('cmd-' + platform);
+      const text = el.getAttribute('data-cmd');
+      navigator.clipboard.writeText(text).then(() => {
+        const btn = el.querySelector('.copy-btn');
+        btn.textContent = 'Copied!';
+        setTimeout(() => btn.textContent = 'Copy', 2000);
+      });
+    }
+  </script>
+
+</body>
+</html>
