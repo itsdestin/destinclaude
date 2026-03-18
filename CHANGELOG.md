@@ -20,6 +20,10 @@ All notable changes to DestinClaude will be documented in this file.
 - Synced `plugin.json` version with `VERSION` file
 - Removed stale "ClaudifestDestiny" reference in `template-variables.json`
 - Removed resolved known issues from spec
+- Removed all references to private modules from public repo
+- Removed personal biographical details from encyclopedia skill
+- Restored DestinClaude branding on landing page
+- Updated landing page intro copy and Modules feature card
 
 ## v1.1.0 (2026-03-17)
 
