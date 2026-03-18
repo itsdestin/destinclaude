@@ -64,8 +64,7 @@ powershell -ExecutionPolicy Bypass -c "iwr -useb https://raw.githubusercontent.c
 - **Text messaging** — Read and send SMS/RCS through Claude (via Google Messages)
 
 ### Modules (Optional Add-ons)
-- **Elections notebook** — Arizona legislative candidate and campaign finance tracking
-- **JLBC fiscal note** — Drafts fiscal impact analyses in official format
+Optional domain-specific add-ons. See `/toolkit` for available modules.
 
 ## How It Works
 
