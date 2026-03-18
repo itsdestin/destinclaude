@@ -172,6 +172,24 @@ The toolkit maintains state in `~/.claude/toolkit-state/`:
 | `update-status.json` | Cached version check result (current, latest, update_available) |
 | `contribution-tracker.json` | Tracks suggested/declined/contributed file changes |
 
+## CI/CD
+
+Two GitHub Actions workflows handle versioning and releases:
+
+| Workflow | Trigger | Purpose |
+|----------|---------|---------|
+| `auto-tag.yml` | Push to `master` that changes `plugin.json` | Detects version bump, creates and pushes a `vX.Y.Z` git tag |
+| `release.yml` | Push of a `v*` tag | Extracts the matching section from `CHANGELOG.md` and creates a GitHub Release |
+
+**Release flow:** Bump the `version` field in `plugin.json` → push to master → `auto-tag.yml` creates the tag → tag push triggers `release.yml` → GitHub Release published with changelog notes. No manual tagging needed.
+
+**Versioning policy** (documented in CHANGELOG.md):
+- **Major (X.0.0)** — Breaking changes requiring `/setup-wizard` re-run or manual migration
+- **Minor (1.X.0)** — New features, layers, skills, or significant UX changes
+- **Patch (1.0.X)** — Bug fixes, doc/copy updates, hook corrections
+
+The `VERSION` file and `plugin.json` version field must stay in sync. The `/update` command and statusline both read from `VERSION` to determine the installed version and check for updates via git tags.
+
 ## Building on Top
 
 **Creating a skill:** Add a `SKILL.md` file in a `skills/<name>/` directory within any layer. The file contains Claude's instructions. Add a spec if the skill has non-obvious behavior.

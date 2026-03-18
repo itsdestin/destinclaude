@@ -75,7 +75,7 @@ DestinClaude follows [Semantic Versioning](https://semver.org/):
 - **Minor (1.X.0)** — New features, new layers/skills/MCPs, significant UX changes; backward-compatible
 - **Patch (1.0.X)** — Bug fixes, copy/doc updates, hook/script corrections; no new features
 
-Tags (`vX.Y.Z`) are pushed to master and automatically create a GitHub Release via Actions.
+Version bumps in `plugin.json` on master automatically create git tags via the `auto-tag.yml` workflow, which then trigger `release.yml` to create a GitHub Release with changelog notes. No manual tagging required.
 
 ### Features
 - macOS device control MCPs added to setup wizard: `macos-automator`, `home-mcp`, `apple-events` — all macOS-gated, auto-registered on Mac installs
@@ -83,7 +83,7 @@ Tags (`vX.Y.Z`) are pushed to master and automatically create a GitHub Release v
 - Session name + rate limit display added to statusline
 - `/health` command added
 - Personal data sync hook (memory, CLAUDE.md, config backup)
-- GitHub Actions workflow: pushing a `v*` tag now auto-creates a GitHub Release with changelog notes
+- GitHub Actions workflows: `release.yml` creates GitHub Releases from `v*` tags; `auto-tag.yml` detects version bumps in `plugin.json` and creates tags automatically
 
 ### Fixes & Cleanup
 - Renamed throughout from ClaudifestDestiny → DestinClaude

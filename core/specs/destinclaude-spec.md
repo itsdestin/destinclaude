@@ -1,6 +1,6 @@
 # DestinClaude Toolkit — Spec
 
-**Version:** 2.1
+**Version:** 2.2
 **Last updated:** 2026-03-18
 **Feature location:** `~/.claude/plugins/destinclaude/` (toolkit root)
 
@@ -27,6 +27,7 @@ Individual features (skills, hooks, MCP servers) have their own specs — this s
 | Beginner-friendly auth walkthroughs | Users may be non-technical. Every auth step (gcloud, gh, rclone, Todoist) is written as a click-by-click walkthrough with plain-English explanations of what each tool is and why it's needed | Terse developer-style instructions (rejected: confused non-technical testers), links to external docs (rejected: context-switching loses users) |
 | Bootstrap symlink fallback to copy | Some Mac filesystems or permission configs break symlinks. Windows requires Developer Mode for symlinks. If symlink verification fails, bootstrap copies the files directly so `/setup-wizard` always works | Symlink-only (rejected: silent failure on some Macs and Windows without Developer Mode), copy-only (rejected: doesn't track upstream changes) |
 | Auto-enable Developer Mode on Windows | Windows symlinks require Developer Mode (a registry flag). The PowerShell installer checks this and auto-enables it via UAC elevation before creating symlinks. If the user declines UAC, the existing copy fallback handles it gracefully | Prompt-only without enabling (rejected: adds friction, most users would say yes anyway), skip symlinks on Windows entirely (rejected: loses auto-update benefit), require manual Developer Mode activation (rejected: non-technical users won't know how) |
+| Auto-tag on `plugin.json` version bump | Two-workflow chain: `auto-tag.yml` watches for `plugin.json` version changes on master and creates a git tag; `release.yml` fires on `v*` tag pushes and creates a GitHub Release with changelog notes. Eliminates manual tagging — bumping the version is the only release step | Manual `git tag && git push --tags` (rejected: easy to forget, caused v1.1.2–v1.1.4 to ship without releases), single workflow that both tags and releases (rejected: separating concerns is cleaner and each workflow stays simple), GitHub Release UI (rejected: doesn't create tags for `/update` to discover) |
 
 ## Current Implementation
 
@@ -169,6 +170,7 @@ The messaging setup (iMessage permissions + Google Messages Go compilation) is e
 
 | Date | Version | What changed | Type |
 |------|---------|-------------|------|
+| 2026-03-18 | 2.2 | Added auto-tag workflow Design Decision. Two-workflow release chain: `auto-tag.yml` (version bump → tag) + `release.yml` (tag → GitHub Release). | Update |
 | 2026-03-18 | 2.1 | PowerShell installer auto-enables Developer Mode on Windows for symlink support. Added Design Decision entry. Updated install flow diagram. Bash installer now detects Developer Mode and nudges toward PowerShell when it's off. | Update |
 | 2026-03-18 | 2.0 | Phase 6 connectivity probes: replace registration/existence checks with JSON-RPC initialize handshake tests for all stdio MCP servers and a POST probe for todoist. Windows gmessages now uses pre-built binary (no Go required). Updated mcp-manifest.json setup_note for gmessages. Major bump: behavioral change to verification flow. | Update |
 | 2026-03-18 | 1.9 | Corrected stale Mac desktop control gap — macOS resolved in v1.1.0 via macos-automator/home-mcp/apple-events; Linux still open. Updated Known Issues and Planned Updates accordingly. | Fix |

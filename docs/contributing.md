@@ -80,6 +80,16 @@ The maintainer (currently just one person) reviews pull requests and merges impr
 
 If changes are requested, Claude can help you update your submission — just say so.
 
+## How Releases Work
+
+When a contribution is merged, the maintainer bumps the version in `plugin.json` and pushes to master. From there, everything is automated:
+
+1. `auto-tag.yml` detects the version change and creates a git tag (`v1.2.3`)
+2. The tag push triggers `release.yml`, which extracts the changelog entry and publishes a GitHub Release
+3. Users pick up the new version next time they run `/update`
+
+You don't need to worry about tags, releases, or version numbers — that's handled by the maintainer after merge.
+
 ## Questions?
 
 Ask Claude: "How does the contribution system work?" or "What have I changed in the toolkit?"
