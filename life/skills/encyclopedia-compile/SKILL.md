@@ -225,12 +225,11 @@ The first six sections tell the story of the user's life. They are written in na
 **Purpose:** The full professional timeline told as a story, with the current role receiving the most depth and future direction getting its own subsection.
 
 **Contents:**
-- Career timeline: Senate Page → Kelly Campaign Fellowships → Senior Senate Page → JLBC Intern → Assistant Fiscal Analyst → Fiscal Analyst
+- Career timeline: all roles in chronological order
 - Key details of each role (what he did, what he learned, notable accomplishments)
-- WHIP application and waitlist
-- Current role: depth on the day-to-day, supervisors, how the role feels, notable projects (Fiscal Note 9000)
+- Current role: depth on the day-to-day, supervisors, how the role feels, notable projects
 - Skills and capabilities
-- Where he's going: the $85k offer he turned down, the planned June 2026 departure, campaign/political work aspirations, target roles and levels, active outreach
+- Where he's going: future plans, career aspirations, target roles and levels, active outreach
 
 **Primary sources:** Core Identity (arc), Status Snapshot (current role and plans), Chronicle (career milestones), People Database (colleagues and mentors)
 
@@ -348,7 +347,7 @@ Everything below the line is reference material — structured, scannable, desig
 **Editorial guidance:**
 - One line per event. No multi-sentence descriptions.
 - Group by year with year headers for readability.
-- Include both past events and upcoming known milestones (graduation, planned JLBC departure).
+- Include both past events and upcoming known milestones (graduation, planned career transitions).
 - Chronicle entries with `Arc:` tags can be grouped or annotated to show trajectory when it adds clarity.
 
 ---
