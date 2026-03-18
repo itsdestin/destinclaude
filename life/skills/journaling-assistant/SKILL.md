@@ -96,7 +96,7 @@ Follow the conversation naturally — don't work through domains one by one. Ask
 
 Track mentally which of the following domains have been covered:
 
-1. Work / JLBC
+1. Work
 2. School / MPP / Capstone
 3. Relationship / Brianna
 4. Friends / Social
@@ -376,7 +376,6 @@ For open threads and goals, use the Read tool to read `~/.claude/encyclopedia/Op
 
 Use these as extra prompts within Step 3 domain coverage — bring them up naturally within the relevant domain, not as a standalone checklist. Use 1-2 per session, only when the related domain came up naturally and you sense there may be an unreported update. Don't deploy all of them in one session.
 
-- JLBC legislative session activity (budget cycle, bill hearings)
 - MPP capstone progress / graduation timeline
 - Brianna's DVM program updates
 - EDM festival planning (Decadence, Gold Rush, System Overload, and similar bass/EDM events)
