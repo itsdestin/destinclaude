@@ -185,6 +185,31 @@
   }
   .nav-links a:hover { color: var(--accent); }
 
+  /* Mobile menu button — hidden on desktop */
+  .mobile-menu-btn {
+    display: none;
+    width: 24px;
+    height: 24px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: border-color 0.2s, color 0.2s;
+    flex-shrink: 0;
+    padding: 0;
+  }
+  .mobile-menu-btn:hover { border-color: var(--border-accent); color: var(--accent); }
+
+  /* Mobile-right group — hidden on desktop */
+  .nav-mobile-right {
+    display: none;
+    align-items: center;
+    gap: 10px;
+  }
+
   /* (#2) Dark mode toggle */
   .theme-toggle {
     background: var(--bg-surface);
@@ -254,7 +279,7 @@
     background: rgba(224, 120, 64, 0.07);
     border: 1px solid rgba(224, 120, 64, 0.15);
     border-radius: 16px;
-    margin-bottom: 12px;
+    margin-bottom: 0;
   }
 
   [data-theme="dark"] .title-box {
@@ -274,18 +299,18 @@
 
   /* (#4) Tagline + CTA */
   .hero-tagline {
-    font-size: 1.25rem;
+    font-size: 0.9rem;
     color: var(--text-secondary);
-    max-width: 520px;
-    margin: 20px auto 8px;
-    line-height: 1.6;
+    margin: 6px 0 0;
+    line-height: 1.4;
+    letter-spacing: 0.01em;
   }
 
   .hero-personal {
-    font-size: 1.05rem;
-    color: var(--text-secondary);
+    font-size: 0.78rem;
+    color: var(--text-dim);
     font-style: italic;
-    margin-bottom: 28px;
+    margin: 1px 0 0;
   }
 
   .hero-cta {
@@ -338,6 +363,7 @@
     text-transform: uppercase;
     color: var(--text-dim);
     margin-bottom: 12px;
+    text-align: center;
   }
 
   .section-title {
@@ -345,6 +371,7 @@
     font-weight: 700;
     letter-spacing: -0.02em;
     margin-bottom: 40px;
+    text-align: center;
   }
 
   /* (#3) Scroll-triggered animations */
@@ -493,6 +520,7 @@
     text-align: center;
     color: var(--text-dim);
     font-size: 0.9rem;
+    margin-top: 8px;
   }
 
   /* --- INTRO BOX --- */
@@ -991,10 +1019,8 @@
   }
 
   .faq-list {
-    max-width: 720px;
-    margin: 0 auto;
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
     gap: 8px;
   }
 
@@ -1061,12 +1087,14 @@
     color: var(--text-primary);
     letter-spacing: -0.01em;
     margin-bottom: 6px;
+    text-align: center;
   }
 
   .integrations-intro {
     font-size: 0.85rem;
     color: var(--text-secondary);
     margin-bottom: 14px;
+    text-align: center;
   }
 
   .integrations-tags {
@@ -1074,6 +1102,7 @@
     flex-wrap: wrap;
     gap: 8px;
     margin-bottom: 12px;
+    justify-content: center;
   }
 
   /* (#9) Integration tags: proper button elements */
@@ -1227,6 +1256,37 @@
   }
   .back-to-top:hover { background: #c86830; }
 
+  /* Floating Get Started pill */
+  .floating-cta {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(0);
+    background: var(--accent);
+    color: #fff;
+    font-family: var(--font-display);
+    font-size: 0.9rem;
+    font-weight: 600;
+    padding: 12px 28px;
+    border-radius: 100px;
+    border: none;
+    cursor: pointer;
+    z-index: 50;
+    box-shadow: 0 4px 24px rgba(224, 120, 64, 0.35);
+    transition: opacity 0.3s, transform 0.3s, box-shadow 0.2s;
+    opacity: 0;
+    pointer-events: none;
+    text-decoration: none;
+  }
+  .floating-cta.visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .floating-cta:hover {
+    box-shadow: 0 6px 32px rgba(224, 120, 64, 0.45);
+    color: #fff;
+  }
+
   /* --- DIVIDER --- */
   .divider {
     width: 48px;
@@ -1241,6 +1301,7 @@
     .features-grid { grid-template-columns: 1fr; }
     .prereq-grid { grid-template-columns: 1fr; }
     .docs-grid { grid-template-columns: 1fr; }
+    .faq-list { grid-template-columns: 1fr; }
     section { padding: 20px 0; }
     .steps-flow { gap: 0; }
     .step-item { max-width: none; }
@@ -1249,9 +1310,45 @@
     .step-item h3 { font-size: 0.85rem; }
     .step-item p { font-size: 0.75rem; }
     .step-arrow { font-size: 1rem; padding-top: 14px; }
-    .nav-links { gap: 12px; }
-    .nav-links a { font-size: 0.78rem; }
-    .nav-links .nav-hide-mobile { display: none; }
+
+    /* Hide wordmark text, show only icon */
+    .nav-logo span { display: none; }
+    /* Enlarge nav icon on mobile */
+    .nav-logo .nav-icon { width: 28px; height: 28px; }
+
+    /* Show mobile-right group, hide desktop theme toggle */
+    .nav-mobile-right { display: flex; }
+    .nav-theme-desktop { display: none; }
+
+    /* Enlarge mobile buttons to match icon */
+    .mobile-menu-btn { display: flex; width: 28px; height: 28px; }
+    .nav-mobile-right .theme-toggle { width: 28px; height: 28px; font-size: 0.85rem; }
+
+    /* Collapse nav links into dropdown */
+    .nav-links {
+      display: none;
+      position: absolute;
+      top: var(--nav-height);
+      left: 0;
+      right: 0;
+      flex-direction: column;
+      background: var(--bg-deep);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 24px 16px;
+      gap: 4px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    }
+    .nav-links.open { display: flex; }
+    .nav-links li { list-style: none; }
+    .nav-links a {
+      display: block;
+      padding: 10px 0;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-links li:last-child a { border-bottom: none; }
   }
 </style>
 </head>
@@ -1265,21 +1362,29 @@
         <img src="favicon-dark.svg" alt="DestinClaude" class="nav-icon nav-icon-dark" width="22" height="22">
         <span>Destin<span style="color: var(--accent)">Claude</span></span>
       </a>
-      <ul class="nav-links">
+      <ul class="nav-links" id="nav-links">
         <li><a href="#about">About</a></li>
-        <li><a href="#prerequisites" class="nav-hide-mobile">Prerequisites</a></li>
+        <li><a href="#prerequisites">Prerequisites</a></li>
         <li><a href="#install">Install</a></li>
-        <li><a href="#features" class="nav-hide-mobile">Features</a></li>
+        <li><a href="#features">Features</a></li>
         <li><a href="#documentation">Docs</a></li>
         <li><a href="#faq">FAQ</a></li>
-        <li>
-          <!-- (#2) Theme toggle uses CSS display toggling, no innerHTML -->
+        <li class="nav-theme-desktop">
           <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode" title="Toggle dark mode">
             <span class="icon-moon" aria-hidden="true">&#9790;</span>
             <span class="icon-sun" aria-hidden="true">&#9728;</span>
           </button>
         </li>
       </ul>
+      <div class="nav-mobile-right">
+        <button class="theme-toggle" id="theme-toggle-mobile" aria-label="Toggle dark mode" title="Toggle dark mode">
+          <span class="icon-moon" aria-hidden="true">&#9790;</span>
+          <span class="icon-sun" aria-hidden="true">&#9728;</span>
+        </button>
+        <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Open menu" aria-expanded="false">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect y="2" width="16" height="2" rx="0.5" fill="currentColor"/><rect y="7" width="16" height="2" rx="0.5" fill="currentColor"/><rect y="12" width="16" height="2" rx="0.5" fill="currentColor"/></svg>
+        </button>
+      </div>
     </div>
   </nav>
 
@@ -1291,10 +1396,7 @@
         <p class="title-sub">For <a href="https://docs.anthropic.com/en/docs/claude-code" style="color: var(--accent); text-decoration: none;">Claude Code</a> by Anthropic</p>
       </div>
       <p class="hero-tagline animate animate-d2">Your life, organized by conversation.</p>
-      <p class="hero-personal animate animate-d3">Trust me, I promise it's actually kinda cool.</p>
-      <div class="animate animate-d4">
-        <a href="#install" class="hero-cta">Get Started <span class="hero-cta-arrow">&darr;</span></a>
-      </div>
+      <p class="hero-personal animate animate-d3">I promise it's cool.</p>
     </div>
   </header>
 
@@ -1303,21 +1405,27 @@
     <div class="container">
       <div class="steps-flow reveal">
         <div class="step-item">
-          <div class="step-icon-wrap">&#128187;</div>
+          <div class="step-icon-wrap">
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><line x1="14" y1="4" x2="14" y2="18" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round"/><polyline points="9,14 14,19 19,14" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="6" y1="23" x2="22" y2="23" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round"/></svg>
+          </div>
           <p class="step-num">Step 1</p>
           <h3>Install</h3>
           <p>Run one command in your terminal. The setup wizard handles everything.</p>
         </div>
         <div class="step-arrow">&rarr;</div>
         <div class="step-item">
-          <div class="step-icon-wrap">&#128172;</div>
+          <div class="step-icon-wrap">
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><path d="M6 20 L6 8 Q6 5.5 8.5 5.5 L19.5 5.5 Q22 5.5 22 8 L22 16 Q22 18.5 19.5 18.5 L10 18.5 L6 22 Z" stroke="var(--accent)" stroke-width="1.8" stroke-linejoin="round" fill="none"/><line x1="10" y1="10" x2="18" y2="10" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/><line x1="10" y1="14" x2="15" y2="14" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/></svg>
+          </div>
           <p class="step-num">Step 2</p>
           <h3>Chat</h3>
           <p>Journal, vent, plan, ask questions. Just type naturally.</p>
         </div>
         <div class="step-arrow">&rarr;</div>
         <div class="step-item">
-          <div class="step-icon-wrap">&#10024;</div>
+          <div class="step-icon-wrap">
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><circle cx="14" cy="14" r="9" stroke="var(--accent)" stroke-width="1.8" fill="none"/><polyline points="9.5,14.5 12.5,17.5 18.5,11" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+          </div>
           <p class="step-num">Step 3</p>
           <h3>It just works</h3>
           <p>Calendar events, tasks, a living record of your life — built automatically.</p>
@@ -1363,9 +1471,6 @@
           <div class="demo-line" data-delay="5000"><span class="demo-action">&#10003; Updated Encyclopedia: Sarah &rarr; nonprofit rebrand collaboration</span></div>
           <div class="demo-line" data-delay="5600"><span class="demo-dim">Journal saved &rarr; 2026-03-18.md</span></div>
         </div>
-      </div>
-      <div class="demo-controls reveal">
-        <button class="demo-replay-btn" id="demo-replay" aria-label="Replay demo">&#8635; Replay</button>
       </div>
     </div>
   </section>
@@ -1641,6 +1746,9 @@
     </div>
   </footer>
 
+  <!-- Floating Get Started pill -->
+  <a href="#prerequisites" class="floating-cta" id="floating-cta">Get Started &darr;</a>
+
   <!-- (#6) Back to top button -->
   <button class="back-to-top" id="back-to-top" aria-label="Back to top">&uarr;</button>
 
@@ -1762,19 +1870,16 @@
       });
     }
 
-    // Run demo when it scrolls into view
+    // Run demo when it scrolls into view, replay each time
     var demoObserver = new IntersectionObserver(function(entries) {
       entries.forEach(function(entry) {
         if (entry.isIntersecting) {
           runDemo();
-          demoObserver.unobserve(entry.target);
         }
       });
     }, { threshold: 0.3 });
 
     demoObserver.observe(document.getElementById('demo-terminal'));
-
-    document.getElementById('demo-replay').addEventListener('click', runDemo);
 
     // (#10) FAQ accordion
     document.querySelectorAll('.faq-question').forEach(function(btn) {
@@ -1811,6 +1916,60 @@
     backToTop.addEventListener('click', function() {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
+
+    // Mobile menu toggle
+    var menuBtn = document.getElementById('mobile-menu-btn');
+    var navLinks = document.getElementById('nav-links');
+    menuBtn.addEventListener('click', function() {
+      var isOpen = navLinks.classList.contains('open');
+      navLinks.classList.toggle('open');
+      menuBtn.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
+    });
+    // Close menu when a link is clicked
+    navLinks.querySelectorAll('a').forEach(function(link) {
+      link.addEventListener('click', function() {
+        navLinks.classList.remove('open');
+        menuBtn.setAttribute('aria-expanded', 'false');
+      });
+    });
+
+    // Mobile theme toggle (synced with desktop)
+    var themeToggleMobile = document.getElementById('theme-toggle-mobile');
+    if (themeToggleMobile) {
+      themeToggleMobile.addEventListener('click', function() {
+        var current = htmlEl.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+        var next = current === 'dark' ? 'light' : 'dark';
+        localStorage.setItem('dc-theme', next);
+        applyTheme(next);
+      });
+    }
+
+    // Floating "Get Started" pill — visible until prerequisites section is in view
+    var floatingCta = document.getElementById('floating-cta');
+    var prereqSection = document.getElementById('prerequisites');
+    if (floatingCta && prereqSection) {
+      // Show immediately on load
+      floatingCta.classList.add('visible');
+
+      var ctaObserver = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+          if (entry.isIntersecting) {
+            floatingCta.classList.remove('visible');
+          } else {
+            floatingCta.classList.add('visible');
+          }
+        });
+      }, { threshold: 0.2 });
+      ctaObserver.observe(prereqSection);
+
+      // Also hide once scrolled past prereqs
+      window.addEventListener('scroll', function() {
+        var rect = prereqSection.getBoundingClientRect();
+        if (rect.bottom < 0) {
+          floatingCta.classList.remove('visible');
+        }
+      });
+    }
   </script>
 
 </body>

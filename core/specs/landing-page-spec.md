@@ -41,19 +41,19 @@ Framing: rounded rect with accent-color border + subtle horizontal accent lines 
 
 ### 0. Sticky Navigation
 - Fixed top bar (`56px` height) with blur backdrop
-- Left: brand icon (swaps light/dark per theme) + "DestinClaude" wordmark
-- Right: section links (About, Prerequisites, Install, Features, Docs, FAQ) + dark mode toggle button
-- Mobile: hides Prerequisites and Features links
+- Left: brand icon (swaps light/dark per theme) + "DestinClaude" wordmark (wordmark hidden on mobile)
+- Desktop right: section links (About, Prerequisites, Install, Features, Docs, FAQ) + dark mode toggle button
+- Mobile right: dark mode toggle + hamburger menu button (both 28px, matching icon size). Menu expands to full-width dropdown with all nav links. Auto-closes on link click.
 
 ### 1. Hero
 - Title box with warm orange tint: "Destin**Claude**" (second word in accent color) + "For Claude Code by Anthropic" subtitle
-- Tagline: "Your life, organized by conversation."
-- Personal warmth line: "Trust me, I promise it's actually kinda cool."
-- Prominent "Get Started" CTA button (orange pill, scrolls to install section)
+- Tagline below box: "Your life, organized by conversation." (smaller, tightly spaced)
+- Personal line: "I promise it's cool." (smaller italic, minimal gap from tagline)
+- Floating "Get Started" pill fixed at bottom center of viewport — visible from page load, disappears when prerequisites section enters view, stays hidden once scrolled past
 
 ### 1.5. How It Works
 - Three-step visual flow: **Install** → **Chat** → **It just works**
-- Each step has an icon in a bordered square, step number, title, and one-line description
+- Each step has a custom outlined SVG icon in accent color (download arrow, speech bubble, circled checkmark) in a bordered square, step number, title, and one-line description
 - Connected by arrow characters on desktop; stacks with scaled-down layout on mobile
 
 ### 2. What Is This? (Intro)
@@ -102,7 +102,7 @@ Framing: rounded rect with accent-color border + subtle horizontal accent lines 
 ### 7. Integrations
 - Positioned between prerequisites and the install step
 - Intro text: "DestinClaude integrates with the services you already use."
-- Flexbox row of integration tags (pill-shaped), each with:
+- Center-justified flexbox row of integration tags (pill-shaped), each with:
   - Icon (via Wikimedia Commons SVGs for Google/Apple services, Simple Icons CDN for others, Google Favicons as fallback)
   - Service name
   - `data-desc` attribute with expandable description (click/tap to toggle)
@@ -127,10 +127,11 @@ Framing: rounded rect with accent-color border + subtle horizontal accent lines 
 - Faux terminal window (title bar with red/yellow/green dots) showing an animated journaling session
 - Lines appear sequentially via `data-delay` attributes, triggered by IntersectionObserver on scroll
 - Terminal adapts to light/dark mode via CSS variables
-- "Replay" button below the terminal
+- Auto-replays each time the terminal scrolls back into view (no manual replay button)
 
 ### 10. FAQ
 - Section label: "Common questions"
+- Two-column grid on desktop (full width, matching other card grids), single column on mobile
 - Accordion-style Q&A (one open at a time):
   - Is my data private?
   - What does the $20/month get me?
@@ -167,6 +168,7 @@ Framing: rounded rect with accent-color border + subtle horizontal accent lines 
 - **Card glow:** `0 0 40px rgba(224, 120, 64, 0.12)` on all bordered cards
 - **Animations:** Hero uses staggered fade-up on load; all other sections use IntersectionObserver scroll-triggered reveal (`.reveal` class)
 - **Responsive:** Breakpoint at 768px — all grids collapse to single column
+- **Text alignment:** All section labels, section titles, and non-box text elements are center-justified
 - **Accessibility:** `:focus-visible` outlines (not blanket `outline: none`); integration tags are `<button>` elements with `tabindex`; tab panels have `aria-controls`/`aria-labelledby`
 
 ### OS Detection
