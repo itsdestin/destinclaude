@@ -43,10 +43,20 @@ Natural language responses are accepted (same treatment as Phase 0).
 After the user answers:
 
 1. Store `comfort_level` in working state: `"beginner"` / `"intermediate"` / `"power_user"`
-2. Write output style plugin to `~/.claude/settings.json` immediately:
-   - **Beginner:** enable `explanatory-output-style`, disable `learning-output-style`
-   - **Intermediate:** enable both (current default)
-   - **Power user:** enable both (current default)
+2. Write output style plugins to `~/.claude/settings.json` immediately. The exact JSON for each level:
+   - **Beginner:**
+     ```json
+     { "enabledPlugins": { "explanatory-output-style@claude-plugins-official": true, "learning-output-style@claude-plugins-official": false } }
+     ```
+   - **Intermediate:**
+     ```json
+     { "enabledPlugins": { "explanatory-output-style@claude-plugins-official": true, "learning-output-style@claude-plugins-official": true } }
+     ```
+   - **Power user:**
+     ```json
+     { "enabledPlugins": { "explanatory-output-style@claude-plugins-official": true, "learning-output-style@claude-plugins-official": true } }
+     ```
+   Note: "disable" means setting the key to `false`, not omitting it. The key must always be present so Phase 5f knows it's been handled.
 3. Persist `comfort_level` to `~/.claude/toolkit-state/config.json`
 
 The output style activates immediately, so the rest of setup benefits from it.
@@ -64,6 +74,8 @@ The output style activates immediately, so the rest of setup benefits from it.
 | **Phase 5: Personalization** | Extra framing on each question (keep the "by 'root' I just mean..." style explanations) | No change (current behavior) | Strip all explanatory framing. Ask variables rapid-fire. Skip the GitHub/sync tutorial offers. |
 | **Phase 5f: Plugins** | Output style already set in Phase 0.5 — skip those two entries. Register rest normally. | Same — skip the two output style entries, register rest. | Same. |
 | **Phase 6: Verification** | Celebrate results warmly. Explain what each check means if it fails. | No change | Compact pass/fail table. No narration unless something fails. |
+
+**Phase 6 plugin check note:** The current "all 14 marketplace plugins present" check must become comfort-level-aware. "Present" means the key exists in `enabledPlugins`, regardless of value. All 14 keys should be present for every comfort level — beginners just have one set to `false`. The count check stays at 14; the value check accepts both `true` and `false`.
 
 **Key principle:** Intermediate is the current behavior with zero changes. Beginner adds warmth and explanation. Power user strips narration and defaults aggressively.
 
@@ -87,11 +99,13 @@ Valid values: `"beginner"` | `"intermediate"` | `"power_user"`
 
 ### Re-run Behavior
 
-If the wizard is re-run and `config.json` already has a `comfort_level`, pre-select it but still ask. Frame as: "Last time you chose [X]. Still feel the same, or want to change?"
+Re-runs always start from Phase 0. If the user takes the restore path on re-run (Phase 0A/0B → 0C → 6), their existing `comfort_level` is preserved — Phase 0.5 is skipped.
+
+If the user takes the fresh-install path on re-run (Phase 0 → Phase 0.5), and `config.json` already has a `comfort_level`, pre-select it but still ask. Frame as: "Last time you chose [X]. Still feel the same, or want to change?"
 
 ### Phase 5f Interaction
 
-Phase 5f checks whether output style plugins are already in `enabledPlugins`. Since Phase 0.5 already set them, it skips those entries. No new logic needed — this is already how 5f works ("if already present, skip it").
+Phase 5f checks whether output style plugins are already in `enabledPlugins`. "Already present" means the key exists at all, regardless of whether its value is `true` or `false`. Since Phase 0.5 always writes both keys (one may be `false` for beginners), Phase 5f will skip both entries. No new logic needed — this is already how 5f works ("if already present, skip it"), as long as "present" is interpreted as key-exists, not key-is-true.
 
 ---
 
