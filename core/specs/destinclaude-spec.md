@@ -1,6 +1,6 @@
 # DestinClaude Toolkit — Spec
 
-**Version:** 1.8
+**Version:** 1.9
 **Last updated:** 2026-03-18
 **Feature location:** `~/.claude/plugins/destinclaude/` (toolkit root)
 
@@ -132,12 +132,13 @@ The toolkit ships CLAUDE.md fragment templates in `core/templates/claude-md-frag
 
 MCP server configs have been audited against the author's desktop `~/.claude.json` and ported to the toolkit:
 
-- **windows-control** — Added to setup wizard (Windows only, `uvx windows-mcp`). No Mac/Linux equivalent bundled yet.
+- **windows-control** — Added to setup wizard (Windows only, `uvx windows-mcp`).
+- **macos-automator, home-mcp, apple-events** — Added to setup wizard (macOS only, v1.1.0). Covers macOS desktop control.
 - **todoist** — Config verified: `"type": "http", "url": "https://ai.todoist.net/mcp"`. Works out of the box.
 - **gmessages** — Config verified. Pre-built Windows binary (`gmessages.exe`) included in repo. Setup wizard handles platform-appropriate binary name.
 - **gmail-extended** — Deprecated and removed. Superseded by Claude.ai's native Gmail MCP connector.
 
-Remaining gap: No Mac/Linux desktop control MCP server equivalent to `windows-control`.
+Remaining gap: No Linux desktop control MCP server equivalent to `windows-control` or `macos-automator`.
 
 ### `/contribute` command has no recovery path for non-technical users
 
@@ -153,7 +154,7 @@ The messaging setup (iMessage permissions + Google Messages Go compilation) is e
 
 ## Planned Updates
 
-- Add Mac/Linux desktop control MCP server equivalent
+- Add Linux desktop control MCP server equivalent (Mac resolved via macos-automator/home-mcp/apple-events in v1.1.0)
 - Add MCP connectivity verification to Phase 6
 - Add recovery/bail-out instructions to `/contribute` command for non-technical users
 - Extract messaging setup from the main wizard into a standalone post-setup flow
@@ -167,6 +168,7 @@ The messaging setup (iMessage permissions + Google Messages Go compilation) is e
 
 | Date | Version | What changed | Type |
 |------|---------|-------------|------|
+| 2026-03-18 | 1.9 | Corrected stale Mac desktop control gap — macOS resolved in v1.1.0 via macos-automator/home-mcp/apple-events; Linux still open. Updated Known Issues and Planned Updates accordingly. | Fix |
 | 2026-03-18 | 1.8 | Add marketplace plugin registration to setup wizard (Phase 5 Step 5f + Phase 6 check): 14 plugins via `enabledPlugins`. Document in Component Registration section and Design Decisions. Partially resolve "superpowers in repo" planned item. | Update |
 | 2026-03-17 | 1.7 | Inbox processing: add 5 planned updates (difficulty options, superpowers in repo, restore from Drive, setup wizard tips, iCloud support) | Inbox |
 | 2026-03-17 | 1.6 | Ported MCP server configs from author's desktop: added windows-control (Windows), verified todoist and gmessages configs, included pre-built gmessages.exe binary, removed gmail-extended (deprecated), updated mcp-servers.md template fragment | Update |
