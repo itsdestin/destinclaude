@@ -222,6 +222,32 @@ Proceed to **Phase 0C: Abbreviated Dependency Check**.
 
 ---
 
+## Phase 0C: Abbreviated Dependency Check
+
+*Used only after Phase 0A or 0B. Skip this section for fresh installs — they use Phase 4.*
+
+Tell the user: "Let me make sure all the tools your restored config needs are installed on this machine."
+
+Read `~/.claude/toolkit-state/config.json` to determine which layers were previously installed (`installed_layers`). Run the dependency checks from **Phase 4** for each relevant layer:
+
+- Always run **Core Dependencies** checks (git, gh CLI, gcloud)
+- Run **Life Dependencies** checks (rclone, Google Drive) only if `"life"` is in `installed_layers` — or if Phase 0B just ran (rclone is already configured)
+- Run **Productivity Dependencies** checks (messaging, Go, Todoist) only if `"productivity"` is in `installed_layers`
+
+For each dependency:
+- If already installed: report ✓ and skip
+- If missing: explain what it is and install it using the same steps as Phase 4
+
+If `toolkit-state/config.json` doesn't exist or can't be read, run all Core checks and ask the user which layers they had installed.
+
+After completing all checks:
+
+Tell the user: "Since your config is restored from backup, I'll skip the personalization step — your name, preferences, and settings are already in place. Let me just verify everything works."
+
+**Skip Phase 1 through Phase 5 entirely.** Proceed directly to **Phase 6: Verification**.
+
+---
+
 ## Phase 1: Environment Inventory
 
 Before installing anything, understand what's already on the user's system.
@@ -795,7 +821,7 @@ For each file listed in a variable's `used_in` array (and that belongs to an ins
 
 ### Step 3: Install encyclopedia starter templates (if Life layer selected)
 
-Copy the starter templates from `<toolkit_root>/life/templates/` to the user's local encyclopedia directory (`~/.claude/<ENCYCLOPEDIA_DIR>/`):
+**Skip this step entirely if a restore was performed in Phase 0** — encyclopedia files were pulled from backup and already exist. For fresh installs only: Copy the starter templates from `<toolkit_root>/life/templates/` to the user's local encyclopedia directory (`~/.claude/<ENCYCLOPEDIA_DIR>/`):
 
 1. For each template file (Core Identity.md, Status Snapshot.md, People Database.md, Chronicle.md, Beliefs and Positions.md, Predictions.md, Open Threads and Goals.md, Preferences and Reference Data.md):
    - Replace `{{USER_NAME}}` with the user's name
