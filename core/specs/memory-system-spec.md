@@ -31,13 +31,12 @@ The memory system gives Claude Code persistent context about the user across con
 ## Current Implementation
 
 - **Index:** `MEMORY.md` lists all files grouped under `## User`, `## Feedback`, `## Project`, `## Reference`, and `## Encyclopedia (Google Drive)`.
-- **Files (14 total):**
+- **Files (13 total):**
   - `user_profile.md` — Name, role, education, location, partner, emails.
   - `user_preferences.md` — Interaction preferences and past corrections.
   - `feedback_context_critic_rigor.md` — Meaning-fidelity check for paraphrased quotes.
   - `feedback_plan_location.md` — Save spec/plan docs in the skill's own folder.
   - `feedback_chimes_notification.md` — Play chimes when needing input or done.
-  - `feedback_elections_suspended.md` — Suspended candidates stay with strikethrough.
   - `feedback_pdftotext_bash.md` — pdftotext is in Git bash PATH only.
   - `feedback_librarian_detail_level.md` — Always ask detail level before reports.
   - `feedback_spec_updates_with_implementation.md` — Read specs at start of work.
@@ -52,7 +51,7 @@ The memory system gives Claude Code persistent context about the user across con
 ## Dependencies
 
 - **Depends on:** Claude Code's built-in memory system (reads `MEMORY.md` into context); `git-sync.sh` hook for Git backup, with Drive archive on push.
-- **Depended on by:** All skills and workflows that need persistent user context (journaling, encyclopedia, writing voice, JLBC fiscal notes). The Encyclopedia system on Google Drive is the canonical store for biographical detail — memory just points to it.
+- **Depended on by:** All skills and workflows that need persistent user context (journaling, encyclopedia, writing voice, and optional domain-specific modules). The Encyclopedia system on Google Drive is the canonical store for biographical detail — memory just points to it.
 
 ## Known Bugs / Issues
 
