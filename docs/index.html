@@ -254,13 +254,14 @@
     font-weight: 600;
     color: var(--accent);
     font-style: italic;
-    margin: 16px 0 0;
+    margin: 16px auto 0;
     text-align: center;
     background: #f0e8de;
     border: 1px solid var(--border-accent);
     border-radius: var(--radius-sm);
-    padding: 14px 20px;
+    padding: 10px 20px;
     display: block;
+    width: fit-content;
   }
 
   /* --- PREREQ GRID --- */
@@ -660,12 +661,12 @@
     padding: 4px 12px;
   }
 
-  .integration-tag .tag-dot {
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    background: var(--accent);
+  .tag-icon {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
     flex-shrink: 0;
+    object-fit: contain;
   }
 
   .integration-tag.soon {
@@ -673,8 +674,8 @@
     border-style: dashed;
   }
 
-  .integration-tag.soon .tag-dot {
-    background: var(--text-dim);
+  .integration-tag.soon .tag-icon {
+    opacity: 0.5;
   }
 
   .integrations-more {
@@ -771,21 +772,21 @@
         <h3 class="integrations-title">Available Integrations</h3>
         <p class="integrations-intro">The setup wizard will offer to connect any of the following services:</p>
         <div class="integrations-tags">
-          <span class="integration-tag"><span class="tag-dot"></span>Google Drive</span>
-          <span class="integration-tag"><span class="tag-dot"></span>Google Docs &amp; Sheets</span>
-          <span class="integration-tag"><span class="tag-dot"></span>Google Calendar</span>
-          <span class="integration-tag"><span class="tag-dot"></span>Gmail</span>
-          <span class="integration-tag"><span class="tag-dot"></span>Google Messages</span>
-          <span class="integration-tag"><span class="tag-dot"></span>iMessage</span>
-          <span class="integration-tag soon"><span class="tag-dot"></span>iCloud <em style="font-size:0.72rem; margin-left:2px; font-style:normal;">coming soon</em></span>
-          <span class="integration-tag"><span class="tag-dot"></span>Apple Notes &amp; Reminders</span>
-          <span class="integration-tag"><span class="tag-dot"></span>Apple Calendar</span>
-          <span class="integration-tag"><span class="tag-dot"></span>Apple Mail</span>
-          <span class="integration-tag"><span class="tag-dot"></span>Todoist</span>
-          <span class="integration-tag"><span class="tag-dot"></span>GitHub</span>
-          <span class="integration-tag"><span class="tag-dot"></span>Chrome</span>
-          <span class="integration-tag"><span class="tag-dot"></span>Safari</span>
-          <span class="integration-tag"><span class="tag-dot"></span>Canva</span>
+          <span class="integration-tag"><img class="tag-icon" src="https://www.google.com/s2/favicons?domain=drive.google.com&sz=32" alt="">Google Drive</span>
+          <span class="integration-tag"><img class="tag-icon" src="https://www.google.com/s2/favicons?domain=docs.google.com&sz=32" alt="">Google Docs &amp; Sheets</span>
+          <span class="integration-tag"><img class="tag-icon" src="https://www.google.com/s2/favicons?domain=calendar.google.com&sz=32" alt="">Google Calendar</span>
+          <span class="integration-tag"><img class="tag-icon" src="https://www.google.com/s2/favicons?domain=gmail.com&sz=32" alt="">Gmail</span>
+          <span class="integration-tag"><img class="tag-icon" src="https://www.google.com/s2/favicons?domain=messages.google.com&sz=32" alt="">Google Messages</span>
+          <span class="integration-tag"><img class="tag-icon" src="https://www.google.com/s2/favicons?domain=apple.com&sz=32" alt="">iMessage</span>
+          <span class="integration-tag soon"><img class="tag-icon" src="https://www.google.com/s2/favicons?domain=icloud.com&sz=32" alt="">iCloud <em style="font-size:0.72rem; margin-left:2px; font-style:normal;">coming soon</em></span>
+          <span class="integration-tag"><img class="tag-icon" src="https://www.google.com/s2/favicons?domain=apple.com&sz=32" alt="">Apple Notes &amp; Reminders</span>
+          <span class="integration-tag"><img class="tag-icon" src="https://www.google.com/s2/favicons?domain=apple.com&sz=32" alt="">Apple Calendar</span>
+          <span class="integration-tag"><img class="tag-icon" src="https://www.google.com/s2/favicons?domain=apple.com&sz=32" alt="">Apple Mail</span>
+          <span class="integration-tag"><img class="tag-icon" src="https://www.google.com/s2/favicons?domain=todoist.com&sz=32" alt="">Todoist</span>
+          <span class="integration-tag"><img class="tag-icon" src="https://www.google.com/s2/favicons?domain=github.com&sz=32" alt="">GitHub</span>
+          <span class="integration-tag"><img class="tag-icon" src="https://www.google.com/s2/favicons?domain=google.com/chrome&sz=32" alt="">Chrome</span>
+          <span class="integration-tag"><img class="tag-icon" src="https://www.google.com/s2/favicons?domain=apple.com&sz=32" alt="">Safari</span>
+          <span class="integration-tag"><img class="tag-icon" src="https://www.google.com/s2/favicons?domain=canva.com&sz=32" alt="">Canva</span>
         </div>
         <p class="integrations-more">More integrations are on the way.</p>
       </div>
