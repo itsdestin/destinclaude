@@ -277,12 +277,13 @@
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 20px;
+    position: relative;
   }
 
   .prereq-header {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     margin-bottom: 8px;
   }
 
@@ -339,16 +340,17 @@
   }
 
   .prereq-link {
-    display: inline-block;
-    margin-top: 10px;
+    position: absolute;
+    top: 18px;
+    right: 16px;
     font-family: var(--font-mono);
-    font-size: 0.78rem;
+    font-size: 0.72rem;
     font-weight: 600;
     color: var(--accent);
     background: var(--accent-subtle);
     border: 1px solid var(--border-accent);
     border-radius: 6px;
-    padding: 6px 14px;
+    padding: 5px 12px;
     text-decoration: none;
     transition: background 0.2s, transform 0.2s;
   }
@@ -816,30 +818,30 @@
       <div class="prereq-grid">
         <div class="prereq-card">
           <div class="prereq-header">
-            <span class="prereq-badge required">Required</span>
-            <span class="prereq-badge paid">Paid</span>
             <h3>Anthropic</h3>
+            <span class="prereq-badge required">Required</span>
+            <span class="prereq-badge paid">Paid — $20</span>
           </div>
-          <p>Requires a Claude Pro subscription — 100% worth the $20/month with this setup.</p>
-          <a href="https://claude.ai/upgrade" target="_blank" class="prereq-link">Subscribe to Claude Pro &rarr;</a>
+          <p>Requires a Claude Pro subscription, which underlies the whole system. <strong>Worth it.</strong></p>
+          <a href="https://claude.ai/upgrade" target="_blank" class="prereq-link">Subscribe &rarr;</a>
         </div>
         <div class="prereq-card">
           <div class="prereq-header">
+            <h3>Google or Apple</h3>
             <span class="prereq-badge required">Required</span>
             <span class="prereq-badge free">Free</span>
-            <h3>Google or Apple</h3>
           </div>
           <p>DestinClaude stores all of your personal information in your own Google Drive or Apple iCloud account.</p>
-          <a href="https://accounts.google.com/signup" target="_blank" class="prereq-link">Create Google Account &rarr;</a>
+          <a href="https://accounts.google.com/signup" target="_blank" class="prereq-link">Sign Up &rarr;</a>
         </div>
         <div class="prereq-card">
           <div class="prereq-header">
+            <h3>GitHub</h3>
             <span class="prereq-badge required">Required</span>
             <span class="prereq-badge free">Free</span>
-            <h3>GitHub</h3>
           </div>
           <p>Required to receive toolkit updates. Sign up with your Google or Apple account.</p>
-          <a href="https://github.com/signup" target="_blank" class="prereq-link">Create GitHub Account &rarr;</a>
+          <a href="https://github.com/signup" target="_blank" class="prereq-link">Sign Up &rarr;</a>
         </div>
       </div>
       <div class="integrations-section">
