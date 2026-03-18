@@ -31,7 +31,7 @@ That's it. You don't need to know git, GitHub, or how pull requests work. Claude
 
 **Authentication.** Run `gh auth login` and follow the prompts. Claude will walk you through this if you haven't done it.
 
-> **Note:** If you skipped GitHub setup during `/setup`, that's fine. `/contribute` will walk you through it when you're ready.
+> **Note:** If you skipped GitHub setup during `/setup-wizard`, that's fine. `/contribute` will walk you through it when you're ready.
 
 ## What Makes a Good Contribution
 

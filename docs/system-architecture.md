@@ -37,9 +37,10 @@ Hooks are bash scripts that run automatically in response to Claude Code events.
 | `contribution-detector.sh` | SessionStart | Detects local toolkit improvements, suggests contributing upstream |
 | `title-update.sh` | PostToolUse | Updates conversation title based on context |
 | `todo-capture.sh` | PostToolUse | Captures TODO items from conversation |
-| `checklist-reminder.sh` | PostToolUse | Reminds about incomplete checklist items |
+| `checklist-reminder.sh` | Stop | Reminds about system change checklist if system files were modified |
 | `usage-fetch.js` | PostToolUse | Tracks API usage statistics |
 | `announcement-fetch.js` | SessionStart | Fetches announcements from GitHub, caches to `~/.claude/.announcement-cache.json` |
+| `personal-sync.sh` | PostToolUse | Backs up memory, CLAUDE.md, and config to Drive or private GitHub (15-min debounce) |
 
 **Hook composition:** If a user already has hooks at the same trigger points, the setup wizard offers to merge logic (preserving both) or let the user choose which to keep. The backup system ensures nothing is lost.
 
@@ -140,9 +141,11 @@ Registration happens in Phase 5 (Step 5f) of the setup wizard. The setup wizard 
 | Command | Purpose |
 |---------|---------|
 | `/setup-wizard` | Interactive setup wizard — installs layers, resolves conflicts, personalizes |
-| `/update` | Version management — fetches tags, shows changelog, merges updates |
+| `/update` | Version management — fetches tags, shows changelog, merges updates, auto-registers new marketplace plugins |
 | `/contribute` | Contribution flow — diffs changes, filters private content, creates PR |
 | `/toolkit-uninstall` | Clean removal — restores backups, removes toolkit files |
+| `/toolkit` | Full reference card — all features, trigger phrases, hooks, and commands |
+| `/health` | Quick health check — verifies hooks, symlinks, MCP servers, and marketplace plugins |
 
 Commands are markdown files in `commands/` directories. They contain instructions that Claude follows conversationally — no executable code, just structured prompts.
 

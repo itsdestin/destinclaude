@@ -10,7 +10,7 @@ Backs up personal data (memory files, CLAUDE.md, toolkit config) to the user's c
 
 ## User Mandates
 
-- (2026-03-17) Personal data must NEVER be synced to the public ClaudifestDestiny repo. This hook syncs to a private backend chosen by the user.
+- (2026-03-17) Personal data must NEVER be synced to the public DestinClaude repo. This hook syncs to a private backend chosen by the user.
 - (2026-03-17) The hook must work on Windows (Git Bash/MSYS2), macOS, and Linux without platform-specific branches unless absolutely necessary.
 - (2026-03-17) Sync failures must be logged but must not block the user's session or interfere with other hooks.
 
@@ -154,11 +154,11 @@ New block in `session-start.sh`, after the encyclopedia cache sync:
 
 New question added after layer selection (Phase 3) and before dependency installation (Phase 4):
 
-> "Your toolkit improvements sync to the public ClaudifestDestiny repo — that's just skills, hooks, and commands, nothing personal. But your memory, preferences, and personal config need a private home. Where should Claude back those up?"
+> "Your toolkit improvements sync to the public DestinClaude repo — that's just skills, hooks, and commands, nothing personal. But your memory, preferences, and personal config need a private home. Where should Claude back those up?"
 >
 > 1. **Google Drive** (recommended if you set up Drive earlier)
 > 2. **Private GitHub repo** (creates a new private repo for you)
-> 3. **Skip for now** (you can set this up later with `/setup`)
+> 3. **Skip for now** (you can set this up later with `/setup-wizard`)
 
 If **Drive:** verify rclone is configured, set `PERSONAL_SYNC_BACKEND: "drive"`.
 

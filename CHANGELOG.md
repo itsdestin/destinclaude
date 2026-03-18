@@ -6,6 +6,8 @@ All notable changes to DestinClaude will be documented in this file.
 
 ### Features
 - **Windows Developer Mode auto-enablement** — PowerShell installer now detects whether Developer Mode is enabled and auto-enables it via UAC elevation before creating symlinks. If the user declines the prompt, the existing copy fallback handles it gracefully. Bash installer on Windows now checks Developer Mode status and nudges users toward the PowerShell installer when it's off.
+- **Announcements system** — New `announcement-fetch.js` hook fetches broadcast messages from `announcements.txt` on GitHub at session start, caches them locally, and displays them right-aligned on statusline line 1. Allows the maintainer to communicate updates, tips, or notices to all toolkit users without requiring a version update.
+- **Landing page integrations section** — New section on the landing page showing all supported integrations (Google Drive, Docs, Sheets, Slides, Calendar, Gmail, Google Messages, iMessage, iCloud, Apple Notes, Apple Reminders, Apple Calendar, Apple Mail, Todoist, GitHub, Chrome, Safari, Canva) with icons and expandable descriptions. Prerequisite cards updated with PAID/FREE badges, GitHub changed to Required.
 
 ### Documentation
 - `bootstrap/prerequisites.md` — Added Windows Developer Mode note to "What Does NOT Happen" section
@@ -31,6 +33,7 @@ All notable changes to DestinClaude will be documented in this file.
 
 ### Features
 - **Marketplace plugin registration** — Setup wizard (Phase 5, Step 5f) now registers 14 recommended marketplace plugins via `enabledPlugins` in `settings.json`: superpowers, claude-md-management, code-review, code-simplifier, commit-commands, feature-dev, hookify, skill-creator, explanatory-output-style, learning-output-style, context7, linear, playwright, plugin-dev. Plugins download automatically on first use — no manual install needed.
+- **Auto-register marketplace plugins on /update and /health** — After merging an update or running a health check, the toolkit detects any newly added marketplace plugins from the manifest and auto-registers them in `settings.json`.
 - **Phase 6 verification** — Health check now confirms all 14 marketplace plugins are registered in `settings.json`.
 
 ### Documentation

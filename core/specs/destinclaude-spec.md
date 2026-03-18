@@ -25,7 +25,7 @@ Individual features (skills, hooks, MCP servers) have their own specs — this s
 | Bootstrap script + setup wizard (two-phase install) | Bootstrap handles prerequisites and cloning (can run via `curl \| bash`). Setup wizard handles interactive decisions (layer selection, personalization, conflict resolution) that require Claude | Single script (rejected: can't do interactive Claude conversation), wizard-only (rejected: can't install prerequisites without Claude running) |
 | Root-level `skills/` and `commands/` mirror core | Bootstrap needs to symlink setup-wizard before the full setup runs. Root-level dirs provide a stable reference without depending on layer structure | Symlink directly to `core/` (current approach after fix), hardcoded paths (rejected: fragile) |
 | Beginner-friendly auth walkthroughs | Users may be non-technical. Every auth step (gcloud, gh, rclone, Todoist) is written as a click-by-click walkthrough with plain-English explanations of what each tool is and why it's needed | Terse developer-style instructions (rejected: confused non-technical testers), links to external docs (rejected: context-switching loses users) |
-| Bootstrap symlink fallback to copy | Some Mac filesystems or permission configs break symlinks. Windows requires Developer Mode for symlinks. If symlink verification fails, bootstrap copies the files directly so `/setup` always works | Symlink-only (rejected: silent failure on some Macs and Windows without Developer Mode), copy-only (rejected: doesn't track upstream changes) |
+| Bootstrap symlink fallback to copy | Some Mac filesystems or permission configs break symlinks. Windows requires Developer Mode for symlinks. If symlink verification fails, bootstrap copies the files directly so `/setup-wizard` always works | Symlink-only (rejected: silent failure on some Macs and Windows without Developer Mode), copy-only (rejected: doesn't track upstream changes) |
 | Auto-enable Developer Mode on Windows | Windows symlinks require Developer Mode (a registry flag). The PowerShell installer checks this and auto-enables it via UAC elevation before creating symlinks. If the user declines UAC, the existing copy fallback handles it gracefully | Prompt-only without enabling (rejected: adds friction, most users would say yes anyway), skip symlinks on Windows entirely (rejected: loses auto-update benefit), require manual Developer Mode activation (rejected: non-technical users won't know how) |
 
 ## Current Implementation
@@ -42,11 +42,11 @@ User runs: curl -fsSL .../install.sh | bash
   ├── Install Claude Code (npm install -g)
   ├── Clone toolkit → ~/.claude/plugins/destinclaude/
   ├── Enable Developer Mode (Windows only, via UAC elevation)
-  ├── Symlink /setup command + setup-wizard skill
+  ├── Symlink /setup-wizard command + setup-wizard skill
   ├── Verify symlinks (fallback to copy if broken)
-  └── Print "Run: claude → /setup"
+  └── Print "Run: claude → /setup-wizard"
 
-User runs: claude → /setup
+User runs: claude → /setup-wizard
   │
   ├── Phase 1: Environment inventory
   ├── Phase 2: Conflict resolution (backup + merge/keep/replace)
@@ -84,7 +84,7 @@ Hook trigger-point registration is written to `~/.claude/settings.json` under th
 
 | Layer | Skills | Commands | Hooks | MCP Servers |
 |-------|--------|----------|-------|-------------|
-| Core | setup-wizard | setup, toolkit, contribute, toolkit-uninstall, update, health | checklist-reminder, contribution-detector, git-sync, personal-sync, session-start, title-update, todo-capture, tool-router, write-guard + statusline (separate config) | — |
+| Core | setup-wizard | setup-wizard, toolkit, contribute, toolkit-uninstall, update, health | checklist-reminder, contribution-detector, git-sync, personal-sync, session-start, title-update, todo-capture, tool-router, write-guard + statusline (separate config) | — |
 | Life | encyclopedia-compile, encyclopedia-interviewer, encyclopedia-librarian, encyclopedia-update, google-drive, journaling-assistant | — | sync-encyclopedia | — |
 | Productivity | inbox-processor, skill-creator | — | — | todoist, gmessages, windows-control (Windows) |
 | Modules | (optional domain-specific add-ons) | — | — | — |
@@ -115,7 +115,7 @@ The toolkit ships CLAUDE.md fragment templates in `core/templates/claude-md-frag
 
 ### 6. User Experience Features
 
-**`/toolkit` command** — Full reference card showing all installed features, trigger phrases, hooks, and commands. Always includes an "AVAILABLE (not installed)" section listing layers/modules the user doesn't have, with descriptions. When a user asks about a feature from an uninstalled layer, Claude explains which layer it belongs to and offers `/setup`.
+**`/toolkit` command** — Full reference card showing all installed features, trigger phrases, hooks, and commands. Always includes an "AVAILABLE (not installed)" section listing layers/modules the user doesn't have, with descriptions. When a user asks about a feature from an uninstalled layer, Claude explains which layer it belongs to and offers `/setup-wizard`.
 
 **Periodic `/toolkit` reminder** — The session-start hook counts sessions and shows `Tip: Type /toolkit to see all your features and useful phrases.` every ~20 sessions. Tracked in `~/.claude/toolkit-state/toolkit-reminder.json`.
 
@@ -161,7 +161,7 @@ The messaging setup (iMessage permissions + Google Messages Go compilation) is e
 - Extract messaging setup from the main wizard into a standalone post-setup flow
 - Add difficulty options for install: (1) full beginner — hold my hand, (2) some experience — guidance but not every explanation, (3) expert — let's hurry this up (from inbox 2026-03-17)
 - Add clearer explanations of how to create new skills/workflows and how dynamic Claude is (from inbox 2026-03-17, partial — marketplace plugin registration resolved in v1.8)
-- Add setup feature to restore configuration from Google Drive (from inbox 2026-03-17)
+- ~~Add setup feature to restore configuration from Google Drive~~ (resolved in v1.1.3 — Phase 0 restore flow)
 - Add more tip prompts and hints in the first setup wizard run — mention Google Drive widget or Apple Notes widget on home screen for quick inbox capture, which can be emptied later from laptop, etc. (from inbox 2026-03-17)
 - Add iCloud support via rclone as a Drive alternative — rclone has native iCloud backend (from inbox 2026-03-17)
 

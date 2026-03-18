@@ -1,7 +1,7 @@
 ---
 name: Landing Page
-version: 1.2
-last_updated: 2026-03-17
+version: 1.3
+last_updated: 2026-03-18
 ---
 
 # Landing Page Spec
@@ -18,8 +18,7 @@ Single self-contained `docs/index.html`. CSS inline, fonts loaded from Google Fo
 ## Page Sections
 
 ### 1. Hero
-- Title box with warm orange tint: "Claudifest Destin-y" (second word in accent color) + "For Claude Code" subtitle
-- "or something..." in dim italic below
+- Title box with warm orange tint: "Destin**Claude**" (second word in accent color) + "For Claude Code by Anthropic" subtitle
 - Personal warmth line: "Built for my friends. Shared with everyone."
 
 ### 2. What Is This? (Intro)
@@ -31,12 +30,12 @@ Single self-contained `docs/index.html`. CSS inline, fonts loaded from Google Fo
 ### 3. Before You Begin (Prerequisites)
 - Section label: "Before you begin"
 - Heading: "You'll need a couple of accounts."
-- 2x2 grid of prerequisite cards with color-coded badges:
-  - **Anthropic** (Required) — API key or Claude Max subscription
-  - **Google** (Required) — for Drive backup/sync
-  - **GitHub** (Recommended) — needed for updates, sign up with Google/Apple
-  - **Todoist** (Optional) — task management
-- Reassurance note: Claude handles connecting each service during setup
+- Three prerequisite cards, each with name-first layout, right-aligned account links, and color-coded badges:
+  - **Anthropic** (Required, Paid — $20) — API key or Claude Max subscription
+  - **Google or Apple** (Required, Free) — for Drive/iCloud backup and services
+  - **GitHub** (Required, Free) — required to receive toolkit updates
+- PAID/FREE badges: orange background for paid, green background for free
+- Reassurance note in accent-bordered box: Claude handles connecting each service during setup
 
 ### 4. Install (Step 1)
 - Section label: "Get started"
@@ -65,7 +64,19 @@ Single self-contained `docs/index.html`. CSS inline, fonts loaded from Google Fo
 - Icons are Unicode characters in warm orange badge containers
 - Dependency note with "Want the technical details?" → system architecture
 
-### 7. Documentation
+### 7. Integrations
+- Positioned between prerequisites and the install step
+- Intro text: "DestinClaude integrates with the services you already use."
+- Flexbox row of integration tags (pill-shaped), each with:
+  - Icon (via Wikimedia Commons SVGs for Google/Apple services, Simple Icons CDN for others, Google Favicons as fallback)
+  - Service name
+  - `data-desc` attribute with expandable description (click/tap to toggle)
+  - Descriptions use consistent "DestinClaude can..." phrasing
+- Integrations listed: Google Drive, Google Docs, Google Sheets, Google Slides, Google Calendar, Gmail, Google Messages, iMessage, iCloud, Apple Notes, Apple Reminders, Apple Calendar, Apple Mail, Todoist, GitHub, Chrome, Safari, Canva
+- "More coming soon..." pill in dimmed style (`.soon` class)
+- Active integration shows description below the tag row with subtle animation
+
+### 8. Documentation
 - 2x2 grid of linked cards with hover arrow reveal:
 
 | Card | Links To | Description |
@@ -75,7 +86,7 @@ Single self-contained `docs/index.html`. CSS inline, fonts loaded from Google Fo
 | System Architecture | `docs/system-architecture.md` | Technical deep dive into layers, hooks, specs, and data flow. |
 | Specs Index | `core/specs/INDEX.md` | Feature documentation and design decisions. |
 
-### 8. Footer
+### 9. Footer
 - "Built by Destin" (links to GitHub profile)
 - GitHub repo link + "MIT License"
 
@@ -101,10 +112,11 @@ Single self-contained `docs/index.html`. CSS inline, fonts loaded from Google Fo
 
 ## Planned Updates
 
-- Add "Integrations" section with icons for all supported integrations (Chrome, Safari, Apple Notes, Apple Reminders, iMessage, Google Messages, Apple Calendar, Google Calendar, Todoist, Google Drive, etc.) with note that more integrations are coming. All UI elements should have back glow treatment matching existing card glow style. (from inbox 2026-03-17)
+*None — all previously planned items have been implemented.*
 
 ## Changelog
 
+- **v1.3 (2026-03-18):** Documented implemented Integrations section (18 services with icons, expandable descriptions, "More coming soon" pill). Updated hero title from "Claudifest Destin-y" to "DestinClaude". Updated prerequisites: GitHub changed to Required, Google changed to "Google or Apple", added PAID/FREE badges, name-first card layout with right-aligned links. Added section numbering for Integrations (new section 7), renumbered Documentation to 8 and Footer to 9.
 - **v1.2 (2026-03-17):** Added Planned Updates section with integrations icons feature request (from inbox 2026-03-17).
 - **v1.1 (2026-03-17):** Updated to reflect warm cream/orange color scheme, added sections 2 (What Is This?), 3 (Before You Begin), 5 (Step 2: Talk to Claude). Removed tagline from hero, added title box with subtitle. Updated all color values.
 - **v1.0 (2026-03-16):** Initial spec — dark navy/teal theme.

@@ -50,7 +50,7 @@ But when you close the terminal and start a new conversation later, Claude start
 
 **Slash commands:** Some features are triggered by typing `/` followed by a command name. For example:
 - `/help` — shows available commands
-- `/setup` — runs the toolkit setup wizard (after you install the toolkit)
+- `/setup-wizard` — runs the toolkit setup wizard (after you install the toolkit)
 - `/update` — checks for toolkit updates
 - `/health` — checks that everything is working properly
 

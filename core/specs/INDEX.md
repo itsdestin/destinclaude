@@ -5,7 +5,7 @@ All feature specifications. Skill specs live in their skill folder; system specs
 | Feature | Type | Spec Location | Version |
 |---------|------|--------------|---------|
 | Specs System | system | ~/.claude/specs/specs-system-spec.md | 2.4 |
-| DestinClaude Toolkit | system | core/specs/destinclaude-spec.md | 1.9 |
+| DestinClaude Toolkit | system | core/specs/destinclaude-spec.md | 2.1 |
 | System Architecture | system | ~/.claude/specs/system-architecture-spec.md | 1.0 |
 | Backup & Sync | system | core/specs/backup-system-spec.md | 3.3 |
 | Write Guard | system | ~/.claude/specs/write-guard-spec.md | 1.2 |
@@ -14,7 +14,7 @@ All feature specifications. Skill specs live in their skill folder; system specs
 | Google Messages MCP | system | ~/.claude/specs/gmessages-mcp-spec.md | 1.2 |
 | Personal Data Sync | system | core/specs/personal-sync-spec.md | 1.0 |
 | Statusline | system | core/specs/statusline-spec.md | 1.4 |
-| Landing Page | system | core/specs/landing-page-spec.md | 1.1 |
+| Landing Page | system | core/specs/landing-page-spec.md | 1.3 |
 | Encyclopedia System | system | ~/.claude/specs/encyclopedia-system-spec.md | 1.0 |
 | Journaling Assistant | skill | ~/.claude/skills/journaling-assistant/specs/journaling-assistant-spec.md | 1.4 |
 | Encyclopedia Update | skill | ~/.claude/skills/encyclopedia-update/specs/encyclopedia-update-spec.md | 1.4 |
