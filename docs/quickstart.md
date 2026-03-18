@@ -17,6 +17,8 @@ claude
 
 The setup wizard handles everything: conflict resolution with your existing setup, layer selection, dependency installation, personalization, and verification.
 
+> **Returning from another device?** When the wizard starts, answer "Yes" to the prior-use question and choose your backup source (GitHub or Google Drive). It will restore your config and skip straight to verification.
+
 ## Done
 
 That's it. Your new commands:
