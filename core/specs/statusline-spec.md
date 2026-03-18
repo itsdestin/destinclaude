@@ -1,34 +1,34 @@
 # Statusline & Auto-Title — Spec
 
-**Version:** 1.4
+**Version:** 1.5
 **Last updated:** 2026-03-18
 **Feature location:** `core/hooks/statusline.sh`, `core/hooks/title-update.sh`, `core/hooks/usage-fetch.js`, `core/hooks/announcement-fetch.js`
 (Installed via symlinks to `~/.claude/hooks/` and `~/.claude/statusline.sh`)
 
 ## Purpose
 
-A real-time information display system for Claude Code sessions. Three components work together: (1) **statusline.sh** renders a multi-line status bar showing session name, sync status, model/context info, rate limits, and toolkit version; (2) **title-update.sh** periodically prompts Claude to set a human-readable topic for the session; (3) **usage-fetch.js** retrieves and caches API usage/rate-limit data from the Anthropic OAuth endpoint.
+A real-time information display system for Claude Code sessions. Four components work together: (1) **statusline.sh** renders a multi-line status bar showing session topic, sync status, model/context info, rate limits, announcements, and toolkit version; (2) **title-update.sh** periodically prompts Claude to set a human-readable topic for the session; (3) **usage-fetch.js** retrieves and caches API usage/rate-limit data from the Anthropic OAuth endpoint; (4) **announcement-fetch.js** fetches broadcast announcements from the destinclaude GitHub repo.
 
 ## User Mandates
 
 - All statusline items, chat names, sync statuses, and menu options must use Title Case (2026-03-15)
-- Auto-Title reminders must use Unix paths (`/tmp/...`) for Bash echo commands (2026-03-16, replaces 2026-03-15 Write tool mandate)
+- Auto-Title reminders must use `~/.claude/topics/` paths for Bash echo commands (2026-03-18, updated from `/tmp/` per v1.1.1 security fix)
 - Topic summaries must be 3–5 words in Title Case (2026-03-15)
 
 ## Design Decisions
 
 | Decision | Rationale | Alternatives considered |
 |----------|-----------|----------------------|
-| Per-session topic files in `/tmp/claude-topics/` | Avoids `~/.claude/` permission issues and backup noise; multiple sessions don't clobber each other | `~/.claude/` subfolder (rejected: triggers backup hooks on every topic write, permission issues) |
+| Per-session topic files in `~/.claude/topics/` | Prevents symlink attacks on world-writable `/tmp/` (v1.1.1 security fix). Multiple sessions don't clobber each other. Pruned after 7 days. Directory excluded from git via `.gitignore`. | `~/.claude/topics/` (rejected in v1.1.1: symlink attack vector on multi-user systems), `~/.claude/` root (rejected: triggers backup hooks on every topic write) |
 | Adaptive throttle on Auto-Title reminders | 2-minute interval while topic is still "New Session" (aggressive nag), 10-minute interval once titled (gentle refresh). Solves 37% miss rate from v1.0 where untitled sessions stayed untitled forever. | Fixed 10-minute for all (rejected: too patient with untitled sessions), every tool use (rejected: too noisy once titled), manual only (rejected: topics would never get set) |
-| Bash echo instead of Write tool | Topic files are trivial one-liners in `/tmp/`. Write tool requires a Read-first step that adds friction and errors ("Error writing file" if skipped). Bash echo is atomic, single-step, no preconditions. | Write tool (rejected: requires Read first, causes user-visible errors, adds 2 tool calls for 1 line) |
+| Bash echo instead of Write tool | Topic files are trivial one-liners. Write tool requires a Read-first step that adds friction and errors ("Error writing file" if skipped). Bash echo is atomic, single-step, no preconditions. | Write tool (rejected: requires Read first, causes user-visible errors, adds 2 tool calls for 1 line) |
 | Usage data cached with 5-minute TTL | Keeps statusline snappy while limiting API calls; stale cache served on failure for resilience | No cache (rejected: API call on every statusline render would be slow), longer TTL (rejected: usage data becomes misleading near rate limits) |
 | Node.js for JSON parsing in statusline | Already available in the environment; avoids Python startup overhead for a latency-sensitive path | Python (rejected: slower startup), jq (rejected: not reliably installed on Windows/Git Bash), pure bash (rejected: fragile JSON parsing) |
 | Color thresholds: green/yellow/red at standard breakpoints | Context remaining: <50% yellow, <20% red. Usage: ≥50% yellow, ≥80% red. Intuitive traffic-light pattern. | Single color (rejected: loses at-a-glance urgency signal) |
 | `printf '%b\n'` for all ANSI output | POSIX-portable escape handling. `echo -e` is non-standard and fails in some shells (dash, sh). | `echo -e` (rejected: non-portable), `$'\033[...'` ANSI-C quoting (rejected: less readable) |
 | Cross-platform symlink resolution | Scripts are symlinked from `~/.claude/hooks/` but need to find sibling files at their real location (e.g., `usage-fetch.js`). Uses `readlink -f || realpath || python3` fallback chain. | Bare `BASH_SOURCE[0]` (rejected: returns symlink path, not real path — breaks toolkit-root discovery and sibling file lookup) |
 | macOS Keychain fallback for credentials | Claude Max subscribers on macOS store OAuth tokens in Keychain, not `.credentials.json`. Uses `execFileSync('security', ...)` (safe, no shell injection). | `execSync` with string interpolation (rejected: shell injection surface), file-only (rejected: breaks for all macOS Max subscribers) |
-| Prune topic/marker files older than 7 days, at most once per day | Prevents `/tmp/claude-topics/` from accumulating stale files across sessions without running cleanup on every invocation | No cleanup (rejected: unbounded growth), cleanup on every invocation (rejected: unnecessary filesystem churn) |
+| Prune topic/marker files older than 7 days, at most once per day | Prevents `~/.claude/topics/` from accumulating stale files across sessions without running cleanup on every invocation | No cleanup (rejected: unbounded growth), cleanup on every invocation (rejected: unnecessary filesystem churn) |
 | `hookSpecificOutput` JSON for Auto-Title delivery | Ensures the reminder appears in Claude's context as a system-reminder, not as plain hook output that might be ignored | Plain stdout (rejected: not reliably surfaced to Claude), file-based signaling (rejected: Claude doesn't poll files) |
 | Fetch announcements only on session start (no per-render TTL) | Keeps statusline render latency at zero; announcements are not time-critical enough to justify per-render fetching. Cache age of 7 days used as stale threshold to handle offline users. | Per-render fetch (rejected: adds network latency to every tool use), 30-min TTL (rejected: unnecessary complexity for a broadcast-only system) |
 
@@ -39,12 +39,13 @@ A real-time information display system for Claude Code sessions. Three component
 ```
 [Every tool use] → title-update.sh
   ├─ Reads session_id from stdin JSON
-  ├─ Checks marker file for 10-min throttle
+  ├─ Checks marker file for adaptive throttle (2-min/10-min)
   ├─ If due: emits hookSpecificOutput with [Auto-Title] reminder
-  └─ Claude writes topic to /tmp/claude-topics/topic-{session_id}
+  └─ Claude writes topic to ~/.claude/topics/topic-{session_id}
 
 [Statusline render] → statusline.sh
-  ├─ Parses session JSON (session_name, model, context %)
+  ├─ Parses session JSON (model, context %, session_id)
+  ├─ Reads ~/.claude/topics/topic-{session_id} for topic
   ├─ Reads ~/.claude/.sync-status for sync display
   ├─ Resolves symlinks to find real script location
   ├─ Calls usage-fetch.js (sibling file) for rate-limit data
@@ -84,9 +85,9 @@ A real-time information display system for Claude Code sessions. Three component
 
 | File | Purpose | Lifetime |
 |------|---------|----------|
-| `/tmp/claude-topics/topic-{sid}` | Session topic text | Pruned after 7 days |
-| `/tmp/claude-topics/marker-{sid}` | Throttle timestamp | Pruned after 7 days |
-| `/tmp/claude-topics/.prune-marker` | Last-prune timestamp | Persistent |
+| `~/.claude/topics/topic-{sid}` | Session topic text | Pruned after 7 days |
+| `~/.claude/topics/marker-{sid}` | Throttle timestamp | Pruned after 7 days |
+| `~/.claude/topics/.prune-marker` | Last-prune timestamp | Persistent |
 | `~/.claude/.usage-cache.json` | Cached API usage response | Overwritten every 5 min |
 | `~/.claude/.announcement-cache.json` | Written by announcement-fetch.js; read by statusline.sh on every render | Overwritten on each session start |
 | `~/.claude/.sync-status` | Written by git-sync.sh | Updated on each backup |
@@ -113,6 +114,7 @@ A real-time information display system for Claude Code sessions. Three component
 - (Fixed in v1.3) **Version never displayed:** Symlinked scripts resolved `BASH_SOURCE[0]` to `~/.claude/hooks/`, not the real file location. Upward walk for `VERSION` never reached the toolkit root. Fixed with cross-platform symlink resolution.
 - (Fixed in v1.3) **Colors not rendering on some shells:** `echo -e` is non-portable. Fixed by switching to `printf '%b\n'`.
 - (Fixed in v1.3) **macOS credential failure:** OAuth tokens stored in Keychain were inaccessible. Fixed with `execFileSync('security', ...)` fallback.
+- (Fixed in v1.5) **Spec-code mismatch on topic path:** Spec said `/tmp/claude-topics/` but code used `~/.claude/topics/` since v1.1.1 security fix. Spec now aligned with code.
 
 ## Planned Updates
 
@@ -127,4 +129,5 @@ A real-time information display system for Claude Code sessions. Three component
 | 2026-03-15 | 1.1 | Fixed stale sync-to-drive.sh references to git-sync.sh | Revised | — | |
 | 2026-03-16 | 1.2 | Fixed 37% miss rate and Write tool errors: switched to Bash echo, added adaptive throttle | Update | — | |
 | 2026-03-17 | 1.3 | Session name display, rate limit display, printf %b, symlink resolution, macOS Keychain fallback, sha256sum cross-platform, process.argv for Node paths | Update | — | |
+| 2026-03-18 | 1.5 | Aligned spec with v1.1.1 security fix: all `/tmp/claude-topics/` references updated to `~/.claude/topics/`. Updated mandate, design decision rationale, data flow, and file locations table. Updated component count to four (added announcement-fetch.js). | Update | Destin | |
 | 2026-03-18 | 1.4 | Announcements subsystem: session-start background fetch + statusline right-aligned display | Update | — | |
