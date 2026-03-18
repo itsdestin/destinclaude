@@ -58,6 +58,112 @@ Where did you back up your data?
 
 ---
 
+## Phase 0A: GitHub Restore
+
+### Step 1: Get the repo URL
+
+Ask: "What's the URL of your private config repo? It should look like `https://github.com/yourusername/your-repo-name.git`"
+
+### Step 2: Ensure git is installed
+
+```bash
+git --version
+```
+
+If missing, this is a blocker. Tell the user: "Git isn't installed yet — I need it to clone your backup. Let me install it first." Use the platform-appropriate install command from Phase 4 (Core Dependencies → git), then verify.
+
+### Step 3: Clone or pull
+
+Check whether `~/.claude` is already a git repo:
+
+```bash
+[ -d "$HOME/.claude/.git" ] && echo "exists" || echo "missing"
+```
+
+If **missing** — clone:
+
+```bash
+git clone <repo-url> ~/.claude
+```
+
+If **exists** — pull:
+
+```bash
+cd ~/.claude && git pull --rebase origin main
+```
+
+If either fails, tell the user what went wrong (wrong URL, no access, no internet) and ask them to check the URL and try again.
+
+### Step 4: Rewrite hardcoded paths
+
+The backup may contain paths from the original machine. Detect the current machine's HOME and project slug, then replace any old values found in the cloned files:
+
+```bash
+NORM_HOME="${HOME//\\//}"
+CURRENT_SLUG=$(echo "$NORM_HOME" | sed 's|[/:]|-|g; s|^-||')
+
+# Detect old HOME from cloned files
+OLD_HOME=$(grep -rh "C:/Users/[^/\"' ]*\|/Users/[^/\"' ]*\|/home/[^/\"' ]*" \
+  ~/.claude/CLAUDE.md ~/.claude/settings.json 2>/dev/null \
+  | grep -o "C:/Users/[^/\"' ]*\|/Users/[^/\"' ]*\|/home/[^/\"' ]*" \
+  | head -1)
+OLD_SLUG=$(echo "$OLD_HOME" | sed 's|[/:]|-|g; s|^-||')
+
+if [[ -n "$OLD_HOME" && "$OLD_HOME" != "$NORM_HOME" ]]; then
+    find ~/.claude -type f \( -name "*.md" -o -name "*.sh" -o -name "*.json" \) \
+        -not -path "*/.git/*" -not -path "*/node_modules/*" \
+        -exec grep -l "$OLD_HOME" {} \; | while read -r file; do
+        sed -i "s|$OLD_HOME|$NORM_HOME|g" "$file"
+    done
+    echo "  Updated path references: $OLD_HOME → $NORM_HOME"
+fi
+
+if [[ -n "$OLD_SLUG" && "$OLD_SLUG" != "$CURRENT_SLUG" ]]; then
+    find ~/.claude -type f \( -name "*.md" -o -name "*.sh" -o -name "*.json" \) \
+        -not -path "*/.git/*" -not -path "*/node_modules/*" \
+        -exec grep -l "$OLD_SLUG" {} \; | while read -r file; do
+        sed -i "s|$OLD_SLUG|$CURRENT_SLUG|g" "$file"
+    done
+    echo "  Updated slug references: $OLD_SLUG → $CURRENT_SLUG"
+fi
+```
+
+Tell the user: "I've updated any references to your old device's username."
+
+### Step 5: Apply MCP server config
+
+If `~/.claude/mcp-servers/mcp-config.json` exists and `node` is available, merge it back into `~/.claude.json`:
+
+```bash
+if [[ -f "$HOME/.claude/mcp-servers/mcp-config.json" ]] && command -v node &>/dev/null; then
+    NORM_HOME="${HOME//\\//}"
+    node -e "
+        const fs = require('fs');
+        const mcpConfig = JSON.parse(fs.readFileSync(process.argv[1], 'utf8'));
+        if (Object.keys(mcpConfig).length === 0) { process.exit(0); }
+        const cjPath = process.argv[2];
+        const projectKey = process.argv[3];
+        let cj = {};
+        try { cj = JSON.parse(fs.readFileSync(cjPath, 'utf8')); } catch(e) {}
+        if (!cj.projects) cj.projects = {};
+        if (!cj.projects[projectKey]) cj.projects[projectKey] = {};
+        cj.projects[projectKey].mcpServers = mcpConfig;
+        fs.writeFileSync(cjPath, JSON.stringify(cj, null, 2) + '\n');
+        console.log('  Applied ' + Object.keys(mcpConfig).length + ' MCP server(s).');
+    " "$HOME/.claude/mcp-servers/mcp-config.json" "$HOME/.claude.json" "$NORM_HOME"
+fi
+```
+
+If node isn't available yet, skip this step and tell the user: "I'll re-apply your MCP server config once Node.js is confirmed installed."
+
+### Step 6: Confirm and continue
+
+Tell the user: "Your config is restored from GitHub. Now let me confirm all the tools it needs are installed on this machine."
+
+Proceed to **Phase 0C: Abbreviated Dependency Check**.
+
+---
+
 ## Phase 1: Environment Inventory
 
 Before installing anything, understand what's already on the user's system.
