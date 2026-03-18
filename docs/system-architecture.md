@@ -11,9 +11,7 @@ destinclaude/
 ├── core/           → Foundation (required)
 ├── life/           → Personal knowledge system
 ├── productivity/   → Task management & communication
-└── modules/        → Optional domain-specific tools
-    ├── elections-notebook/
-    └── jlbc-fiscal-note/
+└── modules/        → Optional domain-specific add-ons
 ```
 
 **Dependency rules:**
