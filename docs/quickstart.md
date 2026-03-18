@@ -37,7 +37,7 @@ That's it. Your new commands:
 
 **Productivity** (optional) — Task management and communication. Todoist inbox processor, skill creator, and a Google Messages MCP server for reading/sending texts through Claude.
 
-**Modules** (optional) — Domain-specific tools. Currently includes an Arizona elections notebook and JLBC fiscal note drafter. More will be added over time.
+**Modules** (optional) — Optional domain-specific add-ons available. Run `/toolkit` to see what's available.
 
 ## Architecture
 
