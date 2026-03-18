@@ -18,6 +18,9 @@ Start with the [Beginner's Guide](docs/for-beginners/00-what-is-claude.md) — i
 ### Already Use Claude Code?
 See the [Quickstart](docs/quickstart.md) — four commands and you're done.
 
+### Returning User on a New Device?
+The setup wizard will ask if you have a backup and walk you through restoring it. Just run the installer or `/setup-wizard` and answer the first question.
+
 ### Want the Deep Dive?
 Read the [System Architecture](docs/system-architecture.md) for the full technical breakdown.
 
