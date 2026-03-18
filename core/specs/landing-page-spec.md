@@ -1,6 +1,6 @@
 ---
 name: Landing Page
-version: 1.1
+version: 1.2
 last_updated: 2026-03-17
 ---
 
@@ -99,7 +99,12 @@ Single self-contained `docs/index.html`. CSS inline, fonts loaded from Google Fo
 - `gh-pages` branch exists but is not the active source
 - No custom domain configured (uses `itsdestin.github.io/destinclaude/`)
 
+## Planned Updates
+
+- Add "Integrations" section with icons for all supported integrations (Chrome, Safari, Apple Notes, Apple Reminders, iMessage, Google Messages, Apple Calendar, Google Calendar, Todoist, Google Drive, etc.) with note that more integrations are coming. All UI elements should have back glow treatment matching existing card glow style. (from inbox 2026-03-17)
+
 ## Changelog
 
+- **v1.2 (2026-03-17):** Added Planned Updates section with integrations icons feature request (from inbox 2026-03-17).
 - **v1.1 (2026-03-17):** Updated to reflect warm cream/orange color scheme, added sections 2 (What Is This?), 3 (Before You Begin), 5 (Step 2: Talk to Claude). Removed tagline from hero, added title box with subtitle. Updated all color values.
 - **v1.0 (2026-03-16):** Initial spec — dark navy/teal theme.
