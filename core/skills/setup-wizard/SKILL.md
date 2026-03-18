@@ -13,6 +13,47 @@ You are the setup wizard for the DestinClaude toolkit. Walk the user through a c
 
 ---
 
+## Phase 0: Prior Use Check
+
+Before inventorying the environment, find out if this is a fresh install or a restore.
+
+### Step 1: Ask the prior-use question
+
+Say exactly:
+
+```
+Before we get started — have you used DestinClaude before on another device?
+
+  1. Yes — I have a backup to restore from
+  2. No — this is my first time
+```
+
+If the user answers **2 (no)** or indicates they're new, skip directly to **Phase 1**.
+
+If the user answers **1 (yes)** or indicates prior use, continue to Step 2.
+
+### Step 2: Ask which backup source
+
+Say:
+
+```
+Where did you back up your data?
+
+  1. GitHub (private config repo)
+  2. Google Drive
+  3. iCloud
+  4. Not sure / skip
+```
+
+- **4 (not sure / skip):** Proceed to Phase 1 normally.
+- **3 (iCloud):** Say "iCloud restore support is coming — for now, let's do a fresh install. I'll make sure everything is set up to back up to iCloud going forward." Then proceed to Phase 1 normally.
+- **1 (GitHub):** Proceed to **Phase 0A: GitHub Restore**.
+- **2 (Google Drive):** Proceed to **Phase 0B: Drive Restore**.
+
+**Wait for the user's answer before proceeding.**
+
+---
+
 ## Phase 1: Environment Inventory
 
 Before installing anything, understand what's already on the user's system.
