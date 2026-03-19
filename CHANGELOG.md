@@ -8,8 +8,22 @@ All notable changes to DestinClaude will be documented in this file.
 - **Landing page redesign (mockup)** — Major overhaul prepared in `docs/index-mockup.html`: sticky navigation bar, dark mode toggle with `prefers-color-scheme` and `localStorage` persistence, scroll-triggered animations via IntersectionObserver, "How It Works" 3-step flow, hero tagline + CTA button, animated demo terminal showing a journaling session, FAQ accordion (6 questions), polished footer with back-to-top button, OS auto-detection for install tabs (defaults macOS), accessibility fixes (`:focus-visible`, ARIA attributes, `<button>` integration tags), Open Graph + Twitter Card meta tags, adaptive demo terminal for light/dark mode
 - **Brand icons** — Terminal-inspired design modeled after the Claude Code input box: filled chevron with flat horizontal cuts, "DC" in Cascadia Code, accent cursor block. Light mode uses cream background with dark D; dark mode uses charcoal background with light D. Orange accent throughout. Traced-outline versions (`favicon-light.svg`, `favicon-dark.svg`) with Consolas Bold glyph paths used everywhere (favicon, nav, footer) for font-independent rendering. Text-based originals (`icon-*-reference.svg`) retained as editable design references. Live site favicon updated from inline diamond SVG.
 
+### Fixes
+- **Hook distribution pipeline** — Fixed a critical issue where updated hooks, statusline features, and utility scripts never reached users after `/update`. Root causes: (1) `/update` merged new code into the repo but didn't refresh the active copies in `~/.claude/hooks/`; (2) utility scripts (`announcement-fetch.js`, `usage-fetch.js`) were never installed; (3) sibling script discovery used symlink resolution which broke on copy-based installs (Windows). This caused session naming, announcements, version/update warnings, and rate limit display to silently fail for all copy-based installs.
+  - `statusline.sh` and `session-start.sh` now use config-based `toolkit_root` lookup to find sibling scripts, with symlink resolution as fallback
+  - `/update` command now refreshes all hooks, utility scripts, statusline, and commands after merging (new Step 9)
+  - `/update` now includes post-update verification with visual statusline check and feature-by-feature diagnostic (new Step 15)
+  - `session-start.sh` now auto-refreshes stale hooks on every session start — diffs each hook against the repo and silently copies any that are out of date
+  - Removes known orphan file (`~/.claude/hooks/statusline.sh`) from pre-v1.1.5 installs
+  - Setup wizard Phase 5c now installs `announcement-fetch.js` and `usage-fetch.js` alongside hooks
+  - `/health` command now checks hook freshness and feature pipeline integrity
+
+> **Upgrading from older versions:** If your statusline is missing features (no session name, no version display, no rate limits), tell Claude: *"run the hook refresh script from the toolkit repo"* — it will copy the updated files for you. After that, future updates are automatic.
+
 ### Documentation
 - `core/specs/landing-page-spec.md` — Updated to v1.4: added Brand Icons subsection, new sections 0 (Nav), 1.5 (How It Works), 9 (Demo), 10 (FAQ), 11 (Footer). Visual Design split into Light/Dark/Shared. Added Planned Updates for icon self-hosting and OG image.
+- `core/specs/statusline-spec.md` — Updated to v1.6: documented config-based sibling discovery, copy-install breakage fix
+- `core/specs/destinclaude-spec.md` — Updated to v2.3: documented hook distribution pipeline fix, utility scripts as component type
 
 ## v1.1.4 (2026-03-18)
 

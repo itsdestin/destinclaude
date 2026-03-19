@@ -46,6 +46,60 @@ if git remote get-url origin &>/dev/null; then
     fi
 fi
 
+# --- Auto-refresh stale hooks from toolkit repo ---
+# On copy-based installs (Windows, or when symlinks fail), hooks in ~/.claude/hooks/
+# don't update when the toolkit repo is updated. This block refreshes any stale
+# toolkit-owned copies so new features reach users without manual intervention.
+# SAFETY: Only overwrites files that have a matching source in the toolkit repo.
+# Never touches user-created files. Flags orphans for Claude to ask about — never
+# auto-deletes anything that might contain user data.
+if [[ -f "$CONFIG_FILE" ]] && command -v node &>/dev/null; then
+    _TK_ROOT=$(node -e "try{const c=JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'));if(c.toolkit_root)console.log(c.toolkit_root)}catch{}" "$CONFIG_FILE" 2>/dev/null) || _TK_ROOT=""
+    if [[ -n "$_TK_ROOT" && -d "$_TK_ROOT/core/hooks" ]]; then
+        _REFRESHED=0
+        # Canonical list of toolkit-owned hooks — ONLY these get overwritten
+        for _h in checklist-reminder.sh git-sync.sh session-start.sh title-update.sh todo-capture.sh write-guard.sh; do
+            if [[ -f "$_TK_ROOT/core/hooks/$_h" && -f "$CLAUDE_DIR/hooks/$_h" ]] && ! diff -q "$CLAUDE_DIR/hooks/$_h" "$_TK_ROOT/core/hooks/$_h" >/dev/null 2>&1; then
+                cp -f "$_TK_ROOT/core/hooks/$_h" "$CLAUDE_DIR/hooks/$_h" 2>/dev/null && _REFRESHED=$((_REFRESHED + 1))
+            fi
+        done
+        # Toolkit-owned utility scripts
+        for _u in announcement-fetch.js usage-fetch.js; do
+            if [[ -f "$_TK_ROOT/core/hooks/$_u" ]]; then
+                if [[ ! -f "$CLAUDE_DIR/hooks/$_u" ]] || ! diff -q "$CLAUDE_DIR/hooks/$_u" "$_TK_ROOT/core/hooks/$_u" >/dev/null 2>&1; then
+                    cp -f "$_TK_ROOT/core/hooks/$_u" "$CLAUDE_DIR/hooks/$_u" 2>/dev/null && _REFRESHED=$((_REFRESHED + 1))
+                fi
+            fi
+        done
+        # Statusline (lives at ~/.claude/statusline.sh, not in hooks/)
+        if [[ -f "$_TK_ROOT/core/hooks/statusline.sh" && -f "$HOME/.claude/statusline.sh" ]] && ! diff -q "$HOME/.claude/statusline.sh" "$_TK_ROOT/core/hooks/statusline.sh" >/dev/null 2>&1; then
+            cp -f "$_TK_ROOT/core/hooks/statusline.sh" "$HOME/.claude/statusline.sh" 2>/dev/null && _REFRESHED=$((_REFRESHED + 1))
+        fi
+        # Toolkit-owned commands
+        if [[ -d "$_TK_ROOT/core/commands" ]]; then
+            for _c in setup-wizard.md contribute.md toolkit.md toolkit-uninstall.md update.md health.md; do
+                if [[ -f "$_TK_ROOT/core/commands/$_c" && -f "$CLAUDE_DIR/commands/$_c" ]] && ! diff -q "$CLAUDE_DIR/commands/$_c" "$_TK_ROOT/core/commands/$_c" >/dev/null 2>&1; then
+                    cp -f "$_TK_ROOT/core/commands/$_c" "$CLAUDE_DIR/commands/$_c" 2>/dev/null && _REFRESHED=$((_REFRESHED + 1))
+                fi
+            done
+        fi
+        # Flag known orphan files from pre-v1.1.5 installs (never auto-delete)
+        _ORPHANS=""
+        [[ -f "$CLAUDE_DIR/hooks/statusline.sh" ]] && _ORPHANS="~/.claude/hooks/statusline.sh"
+        _MSG=""
+        if [[ $_REFRESHED -gt 0 ]]; then
+            _MSG="Refreshed $_REFRESHED stale hook(s)/script(s) from toolkit repo."
+        fi
+        if [[ -n "$_ORPHANS" ]]; then
+            _MSG="$_MSG Found orphan file(s) that may be safe to remove: $_ORPHANS — ask the user before deleting."
+        fi
+        if [[ -n "$_MSG" ]]; then
+            _MSG=$(echo "$_MSG" | sed 's/^ //')
+            echo "{\"hookSpecificOutput\": \"$_MSG\"}" >&2
+        fi
+    fi
+fi
+
 # --- Encyclopedia cache sync ---
 mkdir -p "$ENCYCLOPEDIA_DIR"
 if command -v rclone &>/dev/null; then
@@ -109,19 +163,81 @@ if [[ -f "$CONFIG_FILE" ]]; then
     fi
 fi
 
-# --- Toolkit version check ---
-TOOLKIT_ROOT=""
-# Resolve symlinks to find the real script location (not the symlink in ~/.claude/hooks/)
-SCRIPT_REAL="$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}" 2>/dev/null || python3 -c "import os,sys; print(os.path.realpath(sys.argv[1]))" "${BASH_SOURCE[0]}" 2>/dev/null || echo "${BASH_SOURCE[0]}")"
-SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_REAL")" && pwd)"
-SEARCH_DIR="$SCRIPT_DIR"
-for _ in 1 2 3 4 5; do
-    if [[ -f "$SEARCH_DIR/VERSION" ]]; then
-        TOOLKIT_ROOT="$SEARCH_DIR"
-        break
+# --- Sync health check (writes ~/.claude/.sync-warnings for statusline) ---
+# Detects unprotected personal data, unbackedup skills, and stale syncs.
+# Advisory only — warns the user so they never lose information unknowingly.
+WARNINGS_FILE="$CLAUDE_DIR/.sync-warnings"
+> "$WARNINGS_FILE" 2>/dev/null  # reset each session
+
+# 1. Personal data sync status
+_PS_BACKEND=""
+if [[ -f "$CONFIG_FILE" ]] && command -v node &>/dev/null; then
+    _PS_BACKEND=$(node -e "try{const c=JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'));console.log(c.PERSONAL_SYNC_BACKEND||'none')}catch{console.log('none')}" "$CONFIG_FILE" 2>/dev/null) || _PS_BACKEND="none"
+fi
+if [[ -z "$_PS_BACKEND" || "$_PS_BACKEND" == "none" ]]; then
+    echo "PERSONAL:NOT_CONFIGURED" >> "$WARNINGS_FILE"
+else
+    # Check if last sync is stale (>24 hours)
+    _PS_MARKER="$CLAUDE_DIR/toolkit-state/.personal-sync-marker"
+    if [[ -f "$_PS_MARKER" ]]; then
+        _PS_LAST=$(cat "$_PS_MARKER" 2>/dev/null || echo 0)
+        _PS_NOW=$(date +%s)
+        _PS_AGE=$((_PS_NOW - _PS_LAST))
+        if [[ $_PS_AGE -ge 86400 ]]; then
+            echo "PERSONAL:STALE" >> "$WARNINGS_FILE"
+        fi
     fi
-    SEARCH_DIR="$(dirname "$SEARCH_DIR")"
-done
+fi
+
+# 2. Unbackedup user skills (not toolkit symlinks, not in a git-tracked backup)
+_UNBACKEDUP_SKILLS=""
+if [[ -d "$CLAUDE_DIR/skills" ]]; then
+    for _SKILL_DIR in "$CLAUDE_DIR"/skills/*/; do
+        [[ ! -d "$_SKILL_DIR" ]] && continue
+        _SKILL_NAME=$(basename "$_SKILL_DIR")
+        # Skip toolkit-managed skills (symlinks into the plugin directory)
+        if [[ -L "$_SKILL_DIR" ]] || [[ -L "${_SKILL_DIR%/}" ]]; then
+            continue
+        fi
+        # Check if the skill directory is inside the ~/.claude/ git repo (backed up by git-sync)
+        if git -C "$CLAUDE_DIR" ls-files --error-unmatch "$_SKILL_DIR/SKILL.md" &>/dev/null 2>&1; then
+            continue  # tracked by git — will be backed up
+        fi
+        # Not a symlink and not git-tracked — unbackedup
+        _UNBACKEDUP_SKILLS="${_UNBACKEDUP_SKILLS:+$_UNBACKEDUP_SKILLS,}$_SKILL_NAME"
+    done
+fi
+if [[ -n "$_UNBACKEDUP_SKILLS" ]]; then
+    echo "SKILLS:$_UNBACKEDUP_SKILLS" >> "$WARNINGS_FILE"
+fi
+
+# 3. Unsynced projects (just check if the file exists and is non-empty — detection is in git-sync.sh)
+if [[ -s "$CLAUDE_DIR/.unsynced-projects" ]]; then
+    _UP_COUNT=$(sort -u "$CLAUDE_DIR/.unsynced-projects" 2>/dev/null | wc -l | tr -d ' ')
+    echo "PROJECTS:$_UP_COUNT" >> "$WARNINGS_FILE"
+fi
+
+# Remove warnings file if empty (no warnings = no statusline clutter)
+[[ ! -s "$WARNINGS_FILE" ]] && rm -f "$WARNINGS_FILE" 2>/dev/null
+
+# --- Toolkit version check ---
+# Find toolkit root: config-based lookup (works with copies on Windows), symlink fallback
+TOOLKIT_ROOT=""
+if command -v node &>/dev/null && [[ -f "$CLAUDE_DIR/toolkit-state/config.json" ]]; then
+    TOOLKIT_ROOT=$(node -e "try{const c=JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'));if(c.toolkit_root)console.log(c.toolkit_root)}catch{}" "$CLAUDE_DIR/toolkit-state/config.json" 2>/dev/null) || TOOLKIT_ROOT=""
+fi
+if [[ -z "$TOOLKIT_ROOT" || ! -f "$TOOLKIT_ROOT/VERSION" ]]; then
+    TOOLKIT_ROOT=""
+    _REAL="$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}" 2>/dev/null || python3 -c "import os,sys; print(os.path.realpath(sys.argv[1]))" "${BASH_SOURCE[0]}" 2>/dev/null || echo "${BASH_SOURCE[0]}")"
+    SEARCH_DIR="$(cd "$(dirname "$_REAL")" && pwd)"
+    for _ in 1 2 3 4 5; do
+        if [[ -f "$SEARCH_DIR/VERSION" ]]; then
+            TOOLKIT_ROOT="$SEARCH_DIR"
+            break
+        fi
+        SEARCH_DIR="$(dirname "$SEARCH_DIR")"
+    done
+fi
 
 if [[ -n "$TOOLKIT_ROOT" ]]; then
     STATE_DIR="$CLAUDE_DIR/toolkit-state"
@@ -148,7 +264,13 @@ fi
 
 # --- Announcement fetch (background) ---
 if command -v node &>/dev/null; then
-    ANNOUNCEMENT_FETCH="$(dirname "$SCRIPT_REAL")/announcement-fetch.js"
+    # Use toolkit root (already resolved above) to find announcement-fetch.js
+    ANNOUNCEMENT_FETCH=""
+    [[ -n "$TOOLKIT_ROOT" ]] && ANNOUNCEMENT_FETCH="$TOOLKIT_ROOT/core/hooks/announcement-fetch.js"
+    # Fallback: check sibling in same directory as this script
+    if [[ -z "$ANNOUNCEMENT_FETCH" || ! -f "$ANNOUNCEMENT_FETCH" ]]; then
+        ANNOUNCEMENT_FETCH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/announcement-fetch.js"
+    fi
     if [[ -f "$ANNOUNCEMENT_FETCH" ]]; then
         nohup node "$ANNOUNCEMENT_FETCH" >/dev/null 2>&1 &
     fi

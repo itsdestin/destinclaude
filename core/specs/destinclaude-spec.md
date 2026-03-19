@@ -1,6 +1,6 @@
 # DestinClaude Toolkit — Spec
 
-**Version:** 2.2
+**Version:** 2.3
 **Last updated:** 2026-03-18
 **Feature location:** `~/.claude/plugins/destinclaude/` (toolkit root)
 
@@ -67,7 +67,10 @@ User runs: claude → /setup-wizard
 | Skills | `{layer}/skills/{name}/` | `~/.claude/skills/{name}` |
 | Commands | `core/commands/{name}.md` | `~/.claude/commands/{name}.md` |
 | Hooks | `{layer}/hooks/{name}.sh` | `~/.claude/hooks/{name}.sh` |
+| Utility scripts | `core/hooks/{name}.js` | `~/.claude/hooks/{name}.js` |
 | Statusline | `core/hooks/statusline.sh` | `~/.claude/statusline.sh` (NOT in hooks/) |
+
+**Utility scripts** (`announcement-fetch.js`, `usage-fetch.js`) are not hooks themselves but are called by hooks as sibling files. They must be installed alongside hooks so they can be found at runtime. Hook scripts use a two-step discovery: (1) read `toolkit_root` from config, (2) fall back to symlink resolution.
 
 Hook trigger-point registration is written to `~/.claude/settings.json` under the `hooks` key. The statusline is **not** a hook — it requires a separate `statusLine` config entry in `settings.json`:
 
@@ -151,6 +154,10 @@ The `/contribute` flow involves git concepts (forks, branches, remotes, pull req
 
 The messaging setup (iMessage permissions + Google Messages Go compilation) is easily the most intimidating part of the wizard for non-technical users. It involves granting macOS Full Disk Access, installing a compiler, building from source, and deferring phone pairing to a future session. This complexity is embedded in the middle of the setup wizard rather than being a separate, deferrable flow. Users who just want journaling or task management may abandon setup when confronted with "I need to install a programming language to build a text messaging server." Consider: extracting messaging into a standalone post-setup flow (e.g., "say 'set up messaging' anytime") so users can finish core setup quickly and tackle messaging later if they want it.
 
+### Hook distribution pipeline (resolved in v2.3)
+
+The `/update` command merged new code into the repo but did NOT refresh the active hooks in `~/.claude/hooks/` or `~/.claude/statusline.sh`. On copy-based installs (Windows, or when symlinks fail), hooks stayed frozen at whatever version was originally copied during setup. This caused four features to silently fail to reach users: session naming, announcements, version/update warning, and rate limit display. Fixed by: (1) adding a hook refresh step to `/update`, (2) switching sibling discovery from symlink-only to config-based `toolkit_root` lookup, (3) adding utility scripts to the install list, (4) adding post-update verification with visual statusline check.
+
 ### Other gaps
 
 - Linux desktop control MCP server equivalent to `windows-control` / `macos-automator` not yet bundled.
@@ -170,6 +177,7 @@ The messaging setup (iMessage permissions + Google Messages Go compilation) is e
 
 | Date | Version | What changed | Type |
 |------|---------|-------------|------|
+| 2026-03-18 | 2.3 | Fixed hook distribution pipeline: `/update` now refreshes hooks + utility scripts, sibling discovery uses config-based `toolkit_root` with symlink fallback, utility scripts added to install list, post-update verification with visual statusline check added. Documented utility scripts as a component type. | Update |
 | 2026-03-18 | 2.2 | Added auto-tag workflow Design Decision. Two-workflow release chain: `auto-tag.yml` (version bump → tag) + `release.yml` (tag → GitHub Release). | Update |
 | 2026-03-18 | 2.1 | PowerShell installer auto-enables Developer Mode on Windows for symlink support. Added Design Decision entry. Updated install flow diagram. Bash installer now detects Developer Mode and nudges toward PowerShell when it's off. | Update |
 | 2026-03-18 | 2.0 | Phase 6 connectivity probes: replace registration/existence checks with JSON-RPC initialize handshake tests for all stdio MCP servers and a POST probe for todoist. Windows gmessages now uses pre-built binary (no Go required). Updated mcp-manifest.json setup_note for gmessages. Major bump: behavioral change to verification flow. | Update |

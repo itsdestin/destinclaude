@@ -30,6 +30,12 @@ Run a lightweight health check on the installed toolkit. This is the same verifi
    - [ ] Statusline is configured in `~/.claude/settings.json`
    - [ ] `~/.claude/statusline.sh` exists and resolves
    - [ ] All 14 marketplace plugins present in `~/.claude/settings.json` `enabledPlugins`
+   - [ ] **Hook freshness:** For each hook in `~/.claude/hooks/` and `~/.claude/statusline.sh`, compare against the repo version in `<toolkit_root>/core/hooks/`. If any differ (stale copies from a previous version), show WARN with the stale file names and offer to refresh them. Also check that utility scripts (`announcement-fetch.js`, `usage-fetch.js`) are present in `~/.claude/hooks/`.
+   - [ ] **Feature pipeline:** Verify the four statusline features work end-to-end:
+     - Session naming: `title-update.sh` registered at `PostToolUse`, `~/.claude/topics/` directory exists
+     - Announcements: `announcement-fetch.js` is reachable (via `toolkit_root` config or as sibling)
+     - Version display: `~/.claude/toolkit-state/update-status.json` exists with valid JSON
+     - Rate limits: `usage-fetch.js` is reachable from where `statusline.sh` runs
 
    **Life (if installed):**
    - [ ] `rclone lsd gdrive:` succeeds (Google Drive connected)
