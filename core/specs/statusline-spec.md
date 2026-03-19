@@ -1,7 +1,7 @@
 # Statusline & Auto-Title — Spec
 
-**Version:** 1.7
-**Last updated:** 2026-03-18
+**Version:** 1.8
+**Last updated:** 2026-03-19
 **Feature location:** `core/hooks/statusline.sh`, `core/hooks/title-update.sh`, `core/hooks/usage-fetch.js`, `core/hooks/announcement-fetch.js`
 (Installed via symlinks to `~/.claude/hooks/` and `~/.claude/statusline.sh`)
 
@@ -79,7 +79,7 @@ A real-time information display system for Claude Code sessions. Four components
 2. **Sync status + warnings** — sync status colored green/yellow/red based on prefix (OK/WARN/ERR), followed by optional severity-tagged warnings from `~/.claude/.sync-warnings` (written by `session-start.sh`). Red warnings use `DANGER:` prefix, yellow warnings use `WARN:` prefix. A dim `/sync for info` hint is appended when warnings are present. Warning types: `OFFLINE` (red), `PERSONAL:NOT_CONFIGURED` (red), `PERSONAL:STALE` (yellow), `SKILLS:*` (red), `PROJECTS:*` (red).
 3. **Model + Context** — dim model name, colored context remaining percentage
 4. **Rate limits** — 5h and 7d utilization with reset times, each independently colored by its own utilization (green <50%, yellow 50-79%, red ≥80%)
-5. **Toolkit version** — dim when current, yellow when update available
+5. **Toolkit version** — dim when current; yellow with dim `| Run /update` hint when update available
 
 ### File Locations
 
@@ -135,3 +135,4 @@ A real-time information display system for Claude Code sessions. Four components
 | 2026-03-18 | 1.5 | Aligned spec with v1.1.1 security fix: all `/tmp/claude-topics/` references updated to `~/.claude/topics/`. Updated mandate, design decision rationale, data flow, and file locations table. Updated component count to four (added announcement-fetch.js). | Update | Destin | |
 | 2026-03-18 | 1.6 | Fixed copy-based install breakage: replaced symlink-only sibling discovery with config-based `toolkit_root` lookup + symlink fallback. Added utility scripts to setup wizard install list. Added hook refresh step and post-update verification to `/update` command. | Update | Destin | |
 | 2026-03-19 | 1.7 | Documented sync warnings subsystem (`.sync-warnings` file, DANGER/WARN severity prefixes, warning types, `/sync for info` hint). Documented "New Session" default fallback behavior. Documented independent rate limit coloring. Added `.sync-warnings` to file locations table. Fixed changelog version ordering (1.4/1.5 were swapped). | Update | Destin | |
+| 2026-03-19 | 1.8 | Announcement right-alignment: added negative-pad guard for narrow terminals. Update available line now includes dim `\| Run /update` hint. | Update | Destin | |

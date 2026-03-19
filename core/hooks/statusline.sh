@@ -98,6 +98,7 @@ try {
     let msg = cache.message;
     if (msg.length > maxMsgLen) msg = msg.slice(0, maxMsgLen - 1) + '\u2026';
     const pad = available - PREFIX.length - msg.length;
+    if (pad < 0) process.exit(0);
     process.stdout.write(' '.repeat(pad) + '\x1b[1;33m' + PREFIX + msg + '\x1b[0m');
 } catch (_) {}
 " "$CACHE_FILE" "$COLS" "$LEFT_PLAIN" 2>/dev/null) || ANNOUNCEMENT_FRAGMENT=""
@@ -223,7 +224,7 @@ if [[ -f "$UPDATE_FILE" ]] && command -v node &>/dev/null; then
     if [[ -n "$TOOLKIT_INFO" ]]; then
         IFS=$'\t' read -r TK_VER TK_UPD <<< "$TOOLKIT_INFO"
         if [[ "$TK_UPD" == "1" ]]; then
-            printf '%b\n' "${YELLOW}DestinClaude v${TK_VER} (Update Available)${RESET}"
+            printf '%b\n' "${YELLOW}DestinClaude v${TK_VER} (Update Available)${RESET}  ${DIM}| Run /update${RESET}"
         else
             printf '%b\n' "${DIM}DestinClaude v${TK_VER}${RESET}"
         fi
