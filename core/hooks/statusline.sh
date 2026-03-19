@@ -107,20 +107,22 @@ fi
 WARNINGS_FILE="$HOME/.claude/.sync-warnings"
 WARN_PARTS=""
 if [[ -f "$WARNINGS_FILE" ]]; then
-    _WARN_SEP="${RESET}${DIM} | ${RESET}${YELLOW}"
+    _SEP_D="${RESET}${DIM} | ${RESET}${RED}"
+    _SEP_W="${RESET}${DIM} | ${RESET}${YELLOW}"
     while IFS= read -r _LINE; do
         case "$_LINE" in
-            PERSONAL:NOT_CONFIGURED) WARN_PARTS="${WARN_PARTS:+$WARN_PARTS${_WARN_SEP}}Personal Data Not Backed Up" ;;
-            PERSONAL:STALE) WARN_PARTS="${WARN_PARTS:+$WARN_PARTS${_WARN_SEP}}Personal Sync Stale (>24h)" ;;
-            SKILLS:*) _SKILLS="${_LINE#SKILLS:}"; WARN_PARTS="${WARN_PARTS:+$WARN_PARTS${_WARN_SEP}}Skills Not Backed Up: ${_SKILLS}" ;;
-            PROJECTS:*) _PCOUNT="${_LINE#PROJECTS:}"; WARN_PARTS="${WARN_PARTS:+$WARN_PARTS${_WARN_SEP}}${_PCOUNT} Unsynced Project(s)" ;;
+            OFFLINE) WARN_PARTS="${WARN_PARTS:+$WARN_PARTS${_SEP_D}}${RED}No Internet Connection${RESET}" ;;
+            PERSONAL:NOT_CONFIGURED) WARN_PARTS="${WARN_PARTS:+$WARN_PARTS${_SEP_D}}${RED}No Sync Act. for Personal Data${RESET}" ;;
+            PERSONAL:STALE) WARN_PARTS="${WARN_PARTS:+$WARN_PARTS${_SEP_W}}${YELLOW}No Recent Personal Sync (>24h)${RESET}" ;;
+            SKILLS:*) WARN_PARTS="${WARN_PARTS:+$WARN_PARTS${_SEP_D}}${RED}Unsynced Skills${RESET}" ;;
+            PROJECTS:*) WARN_PARTS="${WARN_PARTS:+$WARN_PARTS${_SEP_D}}${RED}Projects Excluded From Sync${RESET}" ;;
         esac
     done < "$WARNINGS_FILE"
 fi
 
-# Append warning suffix to sync display if there are warnings
+# Append warnings + /sync hint to sync display
 if [[ -n "$WARN_PARTS" ]]; then
-    SYNC_DISPLAY="${SYNC_DISPLAY}  ${DIM}|${RESET}  ${YELLOW}⚠ ${WARN_PARTS}${RESET}"
+    SYNC_DISPLAY="${SYNC_DISPLAY}  ${DIM}|${RESET}  ${WARN_PARTS}  ${DIM}/sync for info${RESET}"
 fi
 
 # --- Lines 1-2: Session name / sync status + announcement ---

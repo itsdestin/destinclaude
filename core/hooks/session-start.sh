@@ -205,6 +205,11 @@ fi
 WARNINGS_FILE="$CLAUDE_DIR/.sync-warnings"
 > "$WARNINGS_FILE" 2>/dev/null  # reset each session
 
+# 0. Internet connectivity (DNS lookup via node — fast, no HTTP overhead)
+if ! node -e "require('dns').lookup('github.com',e=>{process.exit(e?1:0)})" 2>/dev/null; then
+    echo "OFFLINE" >> "$WARNINGS_FILE"
+fi
+
 # 1. Personal data sync status
 _PS_BACKEND=""
 if [[ -f "$CONFIG_FILE" ]] && command -v node &>/dev/null; then
