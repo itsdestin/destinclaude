@@ -197,7 +197,7 @@ Check for and install updates to the DestinClaude toolkit.
 
     ### 15b: Settings.json hook registrations
 
-    Read `~/.claude/settings.json` and verify all expected hooks are registered at the correct trigger points:
+    Read `~/.claude/settings.json` and verify all expected hooks are registered at the correct trigger points using the **nested `hooks` array format** (each entry must have a `hooks` array containing `{ "type": "command", "command": "..." }` objects — NOT a flat `command` property):
 
     | Hook | Trigger | Matcher |
     |------|---------|---------|
@@ -208,6 +208,8 @@ Check for and install updates to the DestinClaude toolkit.
     | `todo-capture.sh` | `UserPromptSubmit` | `.*` |
     | `checklist-reminder.sh` | `Stop` | `.*` |
 
+    Each entry must look like: `{ "matcher": "...", "hooks": [{ "type": "command", "command": "bash ~/.claude/hooks/foo.sh" }] }` — NOT `{ "command": "bash ~/.claude/hooks/foo.sh" }`.
+
     Also verify:
     ```json
     "statusLine": {
@@ -216,7 +218,7 @@ Check for and install updates to the DestinClaude toolkit.
     }
     ```
 
-    If any registrations are missing or the statusline isn't configured, offer to fix them by merging the correct entries into `settings.json`.
+    If any registrations are missing, use the wrong schema format, or the statusline isn't configured, offer to fix them by merging the correct entries into `settings.json`.
 
     ### 15c: Feature-by-feature diagnostic
 

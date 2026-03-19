@@ -1032,7 +1032,67 @@ ln -sf "$TOOLKIT_ROOT/life/hooks/sync-encyclopedia.sh" ~/.claude/hooks/sync-ency
 
 Hooks must also be registered in `~/.claude/settings.json` under the `hooks` key so Claude Code invokes them at the right trigger points. Read the existing `settings.json` (create it if missing), then merge the toolkit's hook registrations into the `hooks` object. Preserve any existing hook entries the user chose to keep in Phase 2.
 
-Refer to the hook scripts themselves for the correct trigger point (`SessionStart`, `PreToolUse`, `PostToolUse`, `Stop`, `UserPromptSubmit`) and matcher pattern for each hook.
+**IMPORTANT — Hook schema:** Each hook entry MUST use the nested `hooks` array format. The `command` property goes inside a `hooks` array on each entry, NOT directly on the entry object. Here is the exact schema to generate:
+
+```json
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [{ "type": "command", "command": "bash ~/.claude/hooks/session-start.sh" }]
+      },
+      {
+        "hooks": [{ "type": "command", "command": "bash ~/.claude/hooks/contribution-detector.sh" }]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [{ "type": "command", "command": "bash ~/.claude/hooks/todo-capture.sh" }]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [{ "type": "command", "command": "bash ~/.claude/hooks/write-guard.sh" }]
+      },
+      {
+        "hooks": [{ "type": "command", "command": "bash ~/.claude/hooks/tool-router.sh" }]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [{ "type": "command", "command": "bash ~/.claude/hooks/git-sync.sh" }]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [{ "type": "command", "command": "bash ~/.claude/hooks/personal-sync.sh" }]
+      },
+      {
+        "hooks": [{ "type": "command", "command": "bash ~/.claude/hooks/title-update.sh" }]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [{ "type": "command", "command": "bash ~/.claude/hooks/checklist-reminder.sh" }]
+      },
+      {
+        "hooks": [{ "type": "command", "command": "bash ~/.claude/hooks/done-sound.sh" }]
+      }
+    ]
+  }
+}
+```
+
+**Wrong format (will cause "Expected array, but received undefined" errors):**
+```json
+{ "command": "bash ~/.claude/hooks/foo.sh" }
+```
+
+**Correct format:**
+```json
+{ "hooks": [{ "type": "command", "command": "bash ~/.claude/hooks/foo.sh" }] }
+```
 
 #### 5d-ii: Register the statusline
 
