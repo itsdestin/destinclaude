@@ -215,13 +215,28 @@ _PS_BACKEND=""
 if [[ -f "$CONFIG_FILE" ]] && command -v node &>/dev/null; then
     _PS_BACKEND=$(node -e "try{const c=JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'));console.log(c.PERSONAL_SYNC_BACKEND||'none')}catch{console.log('none')}" "$CONFIG_FILE" 2>/dev/null) || _PS_BACKEND="none"
 fi
-# Auto-detect Drive backend: if flag is unset but rclone+gdrive work, self-heal the config
+# Auto-detect backend: if flag is unset but a known sync provider works, self-heal the config
 if [[ -z "$_PS_BACKEND" || "$_PS_BACKEND" == "none" ]]; then
-    if command -v rclone &>/dev/null && rclone lsd "gdrive:$DRIVE_ROOT/Backup/" &>/dev/null; then
-        _PS_BACKEND="drive"
-        # Self-heal: write the flag so this detection doesn't repeat every session
+    _DETECTED=""
+    # Check Google Drive (rclone + gdrive remote)
+    if [[ -z "$_DETECTED" ]] && command -v rclone &>/dev/null && rclone lsd "gdrive:$DRIVE_ROOT/Backup/" &>/dev/null; then
+        _DETECTED="drive"
+    fi
+    # Check iCloud Drive (macOS: ~/Library/Mobile Documents/com~apple~CloudDocs/)
+    if [[ -z "$_DETECTED" ]]; then
+        _ICLOUD="$HOME/Library/Mobile Documents/com~apple~CloudDocs"
+        if [[ -d "$_ICLOUD" ]]; then
+            # Look for an existing Claude backup folder, or the iCloud root itself
+            if [[ -d "$_ICLOUD/Claude/Backup" ]] || [[ -d "$_ICLOUD/Claude" ]]; then
+                _DETECTED="icloud"
+            fi
+        fi
+    fi
+    # Self-heal: write detected backend so this check doesn't repeat every session
+    if [[ -n "$_DETECTED" ]]; then
+        _PS_BACKEND="$_DETECTED"
         if [[ -f "$CONFIG_FILE" ]] && command -v node &>/dev/null; then
-            node -e "const fs=require('fs');try{const c=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));c.PERSONAL_SYNC_BACKEND='drive';fs.writeFileSync(process.argv[1],JSON.stringify(c,null,2)+'\n')}catch{}" "$CONFIG_FILE" 2>/dev/null
+            node -e "const fs=require('fs');try{const c=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));c.PERSONAL_SYNC_BACKEND=process.argv[2];fs.writeFileSync(process.argv[1],JSON.stringify(c,null,2)+'\n')}catch{}" "$CONFIG_FILE" "$_DETECTED" 2>/dev/null
         fi
     fi
 fi
@@ -246,9 +261,21 @@ if [[ -d "$CLAUDE_DIR/skills" ]]; then
     for _SKILL_DIR in "$CLAUDE_DIR"/skills/*/; do
         [[ ! -d "$_SKILL_DIR" ]] && continue
         _SKILL_NAME=$(basename "$_SKILL_DIR")
-        # Skip toolkit-managed skills (symlinks into the plugin directory)
+        # Skip toolkit-managed skills (symlinks OR copies from the toolkit repo)
         if [[ -L "$_SKILL_DIR" ]] || [[ -L "${_SKILL_DIR%/}" ]]; then
             continue
+        fi
+        if [[ -n "$TOOLKIT_ROOT" && -d "$TOOLKIT_ROOT" ]]; then
+            _IS_TOOLKIT_COPY=false
+            for _LAYER_DIR in "$TOOLKIT_ROOT"/core/skills "$TOOLKIT_ROOT"/productivity/skills "$TOOLKIT_ROOT"/life/skills; do
+                if [[ -d "$_LAYER_DIR/$_SKILL_NAME" ]]; then
+                    _IS_TOOLKIT_COPY=true
+                    break
+                fi
+            done
+            if [[ "$_IS_TOOLKIT_COPY" == "true" ]]; then
+                continue  # copy from toolkit repo — canonical source is the repo itself
+            fi
         fi
         # Check if the skill directory is inside the ~/.claude/ git repo (backed up by git-sync)
         if git -C "$CLAUDE_DIR" ls-files --error-unmatch "$_SKILL_DIR/SKILL.md" &>/dev/null 2>&1; then

@@ -1,7 +1,7 @@
 # Personal Data Sync — Spec
 
-**Version:** 1.0
-**Last updated:** 2026-03-17
+**Version:** 1.1
+**Last updated:** 2026-03-19
 **Feature location:** `core/hooks/personal-sync.sh`, session-start integration in `core/hooks/session-start.sh`
 
 ## Purpose
@@ -55,7 +55,7 @@ Two new keys in `~/.claude/toolkit-state/config.json`:
 }
 ```
 
-- `PERSONAL_SYNC_BACKEND`: `"drive"`, `"github"`, or `"none"` (opt out)
+- `PERSONAL_SYNC_BACKEND`: `"drive"`, `"github"`, `"icloud"`, or `"none"` (opt out). If unset, session-start auto-detects (see below).
 - `PERSONAL_SYNC_REPO`: GitHub repo URL (only used when backend is `"github"`)
 
 ### Google Drive backend
@@ -132,11 +132,20 @@ PostToolUse hook on Write and Edit actions.
 | `~/.claude/toolkit-state/.personal-sync-marker` | Timestamp of last sync (debounce) |
 | `~/.claude/toolkit-state/personal-sync-repo/` | Local checkout of private GitHub repo (GitHub backend only) |
 
+## Auto-Detection (Self-Healing)
+
+If `PERSONAL_SYNC_BACKEND` is unset or `"none"`, session-start auto-detects available backends before reporting the warning. Detection order:
+
+1. **Google Drive** — `rclone lsd "gdrive:$DRIVE_ROOT/Backup/"` succeeds
+2. **iCloud Drive** (macOS only) — `~/Library/Mobile Documents/com~apple~CloudDocs/Claude/` exists
+
+If detected, the backend flag is written to config.json so auto-detection only runs once. This prevents false "Not Configured" warnings when the backup infrastructure is working but the setup wizard didn't set the flag (e.g., manual rclone setup, migrating from another machine).
+
 ## Session-Start Integration
 
 New block in `session-start.sh`, after the encyclopedia cache sync:
 
-1. **Read config** — load `PERSONAL_SYNC_BACKEND` from config.json.
+1. **Read config** — load `PERSONAL_SYNC_BACKEND` from config.json. If unset, run auto-detection (see above).
 2. **Pull** — based on backend:
    - **Drive:** `rclone sync` from `gdrive:{DRIVE_ROOT}/Backup/personal/` to local paths
    - **GitHub:** `cd` to local repo checkout, `git pull personal-sync main`
@@ -180,14 +189,15 @@ If **Skip:** set `PERSONAL_SYNC_BACKEND: "none"`.
 
 ## Known Bugs / Issues
 
-*None — initial release.*
+- (Fixed in v1.1) **False "Not Configured" warning:** `git-sync.sh` archives to Drive on every push, but the health check only looked at `PERSONAL_SYNC_BACKEND` in config.json. If the flag was unset (e.g., manual rclone setup), the statusline showed a false DANGER warning. Fixed by adding auto-detection that probes rclone+gdrive and iCloud, then self-heals the config.
 
 ## Planned Updates
 
-*None — initial release.*
+*None.*
 
 ## Change Log
 
 | Date | Version | What changed | Type | Approved by |
 |------|---------|-------------|------|-------------|
 | 2026-03-17 | 1.0 | Initial spec | New | — |
+| 2026-03-19 | 1.1 | Added auto-detection/self-healing for Drive and iCloud backends; added `"icloud"` as a backend option; documented the false-warning bug fix | Update | Destin |
