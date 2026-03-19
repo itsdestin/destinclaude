@@ -72,7 +72,7 @@ User runs: claude → /setup-wizard
 
 **Utility scripts** (`announcement-fetch.js`, `usage-fetch.js`) are not hooks themselves but are called by hooks as sibling files. They must be installed alongside hooks so they can be found at runtime. Hook scripts use a two-step discovery: (1) read `toolkit_root` from config, (2) fall back to symlink resolution.
 
-Hook trigger-point registration is written to `~/.claude/settings.json` under the `hooks` key. The statusline is **not** a hook — it requires a separate `statusLine` config entry in `settings.json`:
+Hook trigger-point registration is written to `~/.claude/settings.json` under the `hooks` key. Each hook entry uses the nested `hooks` array format: `{ "matcher": "...", "hooks": [{ "type": "command", "command": "bash ~/.claude/hooks/foo.sh" }] }`. The `command` property must NOT be placed directly on the entry object — it must be inside the `hooks` array. The statusline is **not** a hook — it requires a separate `statusLine` config entry in `settings.json`:
 
 ```json
 { "statusLine": { "type": "command", "command": "bash ~/.claude/statusline.sh" } }
