@@ -1,7 +1,14 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, ipcMain } from 'electron';
+import { execFileSync } from 'child_process';
 import path from 'path';
+import { SessionManager } from './session-manager';
+import { HookRelay } from './hook-relay';
+import { registerIpcHandlers } from './ipc-handlers';
+import { IPC } from '../shared/types';
 
 let mainWindow: BrowserWindow | null = null;
+const sessionManager = new SessionManager();
+const hookRelay = new HookRelay();
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -19,7 +26,32 @@ function createWindow() {
   } else {
     mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
   }
+
+  registerIpcHandlers(ipcMain, sessionManager, mainWindow);
+
+  // Forward hook events to renderer
+  hookRelay.on('hook-event', (event) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send(IPC.HOOK_EVENT, event);
+    }
+  });
 }
 
-app.whenReady().then(createWindow);
-app.on('window-all-closed', () => app.quit());
+app.whenReady().then(async () => {
+  // Install hook relay entries in Claude Code settings
+  try {
+    const installScript = path.join(__dirname, '../../scripts/install-hooks.js');
+    execFileSync(process.execPath, [installScript], { stdio: 'pipe' });
+  } catch (e) {
+    console.error('Failed to install hooks:', e);
+  }
+
+  await hookRelay.start();
+  createWindow();
+});
+
+app.on('window-all-closed', () => {
+  sessionManager.destroyAll();
+  hookRelay.stop();
+  app.quit();
+});
