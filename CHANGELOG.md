@@ -2,6 +2,18 @@
 
 All notable changes to DestinClaude will be documented in this file.
 
+## v1.2.1 (2026-03-18)
+
+### Fixes
+- **Self-healing toolkit discovery** — `session-start.sh` now resolves `TOOLKIT_ROOT` once at script start using `config.json` with a fallback path traversal. If `config.json` is missing, it auto-creates it from the discovered toolkit root. Previously, a missing `config.json` silently broke the entire auto-refresh pipeline — commands like `/update` were never installed and hooks were never refreshed.
+- **Semver-aware version check** — Version comparison now uses `sort -V` instead of string inequality. Previously, having a VERSION ahead of the latest tag (e.g., `1.1.4` vs tag `v1.1.1`) falsely flagged "Update Available".
+- **Auto-refresh installs missing files** — Hook, command, and script refresh now installs missing files (not just stale ones). Previously, if a command like `/update` was never installed in the first place, auto-refresh would never install it.
+- **Session name from topic file** — Statusline reads `session_id` from session JSON and falls back to `~/.claude/topics/topic-{session_id}` when `session_name` is empty. Previously, session names only showed when explicitly set in the session JSON.
+- **Independent rate limit colors** — Each rate limit timer (5h, 7d) is now colored by its own utilization percentage (green <50%, yellow 50-79%, red 80%+) instead of both sharing a single color based on the maximum.
+- **Grey dividers throughout statusline** — All `|` dividers (model/context, sync/warnings, between warnings, between rate limit timers) are now consistently DIM grey instead of inheriting the color of surrounding text.
+- **Field delimiter fix** — Switched session JSON parser from tab to unit separator (`0x1f`) to prevent bash `read` from swallowing empty leading fields on some platforms.
+- **Label rename** — "Unbackedup Skills" renamed to "Skills Not Backed Up" for clarity.
+
 ## v1.1.6 (2026-03-18)
 
 ### Features
