@@ -1016,6 +1016,11 @@ for hook in checklist-reminder.sh git-sync.sh session-start.sh title-update.sh t
   ln -sf "$TOOLKIT_ROOT/core/hooks/$hook" ~/.claude/hooks/$hook
 done
 
+# Utility scripts called by hooks (must be findable as siblings)
+for util in announcement-fetch.js usage-fetch.js; do
+  ln -sf "$TOOLKIT_ROOT/core/hooks/$util" ~/.claude/hooks/$util
+done
+
 # Statusline script — symlink to ~/.claude/ (not hooks/)
 ln -sf "$TOOLKIT_ROOT/core/hooks/statusline.sh" ~/.claude/statusline.sh
 

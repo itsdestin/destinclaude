@@ -92,6 +92,25 @@ try {
 " "$CACHE_FILE" "$COLS" "$LEFT_PLAIN" 2>/dev/null) || ANNOUNCEMENT_FRAGMENT=""
 fi
 
+# --- Sync warnings (from session-start health check) ---
+WARNINGS_FILE="$HOME/.claude/.sync-warnings"
+WARN_PARTS=""
+if [[ -f "$WARNINGS_FILE" ]]; then
+    while IFS= read -r _LINE; do
+        case "$_LINE" in
+            PERSONAL:NOT_CONFIGURED) WARN_PARTS="${WARN_PARTS:+$WARN_PARTS | }Personal Data Not Backed Up" ;;
+            PERSONAL:STALE) WARN_PARTS="${WARN_PARTS:+$WARN_PARTS | }Personal Sync Stale (>24h)" ;;
+            SKILLS:*) _SKILLS="${_LINE#SKILLS:}"; WARN_PARTS="${WARN_PARTS:+$WARN_PARTS | }Unbackedup Skills: ${_SKILLS}" ;;
+            PROJECTS:*) _PCOUNT="${_LINE#PROJECTS:}"; WARN_PARTS="${WARN_PARTS:+$WARN_PARTS | }${_PCOUNT} Unsynced Project(s)" ;;
+        esac
+    done < "$WARNINGS_FILE"
+fi
+
+# Append warning suffix to sync display if there are warnings
+if [[ -n "$WARN_PARTS" ]]; then
+    SYNC_DISPLAY="${SYNC_DISPLAY}  ${YELLOW}⚠ ${WARN_PARTS}${RESET}"
+fi
+
 # --- Lines 1-2: Session name / sync status + announcement ---
 printf '%b\n' "${LEFT_ANSI_CONTENT}${ANNOUNCEMENT_FRAGMENT}"
 if [[ -n "$SESSION_NAME" ]]; then
@@ -110,9 +129,17 @@ fi
 printf '%b\n' "${DIM}${MODEL}${RESET}  ${CTX_COLOR}Context Remaining: ${REMAINING}%${RESET}"
 
 # --- Line 4: Rate limit info (via usage-fetch.js) ---
-# Resolve the real script location (follows symlinks) to find sibling usage-fetch.js
-SCRIPT_REAL="$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}" 2>/dev/null || python3 -c "import os,sys; print(os.path.realpath(sys.argv[1]))" "${BASH_SOURCE[0]}" 2>/dev/null || echo "${BASH_SOURCE[0]}")"
-USAGE_FETCH="$(dirname "$SCRIPT_REAL")/usage-fetch.js"
+# Find hooks directory: config-based lookup (works with copies on Windows), symlink fallback
+HOOKS_DIR=""
+if command -v node &>/dev/null && [[ -f "$HOME/.claude/toolkit-state/config.json" ]]; then
+    _TK=$(node -e "try{const c=JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'));if(c.toolkit_root)console.log(c.toolkit_root)}catch{}" "$HOME/.claude/toolkit-state/config.json" 2>/dev/null)
+    [[ -n "$_TK" && -d "$_TK/core/hooks" ]] && HOOKS_DIR="$_TK/core/hooks"
+fi
+if [[ -z "$HOOKS_DIR" ]]; then
+    _REAL="$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}" 2>/dev/null || python3 -c "import os,sys; print(os.path.realpath(sys.argv[1]))" "${BASH_SOURCE[0]}" 2>/dev/null || echo "${BASH_SOURCE[0]}")"
+    HOOKS_DIR="$(dirname "$_REAL")"
+fi
+USAGE_FETCH="$HOOKS_DIR/usage-fetch.js"
 
 if [[ -f "$USAGE_FETCH" ]] && command -v node &>/dev/null; then
     USAGE_JSON=$(node "$USAGE_FETCH" 2>/dev/null) || USAGE_JSON=""

@@ -1,6 +1,6 @@
 # Statusline & Auto-Title — Spec
 
-**Version:** 1.5
+**Version:** 1.6
 **Last updated:** 2026-03-18
 **Feature location:** `core/hooks/statusline.sh`, `core/hooks/title-update.sh`, `core/hooks/usage-fetch.js`, `core/hooks/announcement-fetch.js`
 (Installed via symlinks to `~/.claude/hooks/` and `~/.claude/statusline.sh`)
@@ -26,7 +26,7 @@ A real-time information display system for Claude Code sessions. Four components
 | Node.js for JSON parsing in statusline | Already available in the environment; avoids Python startup overhead for a latency-sensitive path | Python (rejected: slower startup), jq (rejected: not reliably installed on Windows/Git Bash), pure bash (rejected: fragile JSON parsing) |
 | Color thresholds: green/yellow/red at standard breakpoints | Context remaining: <50% yellow, <20% red. Usage: ≥50% yellow, ≥80% red. Intuitive traffic-light pattern. | Single color (rejected: loses at-a-glance urgency signal) |
 | `printf '%b\n'` for all ANSI output | POSIX-portable escape handling. `echo -e` is non-standard and fails in some shells (dash, sh). | `echo -e` (rejected: non-portable), `$'\033[...'` ANSI-C quoting (rejected: less readable) |
-| Cross-platform symlink resolution | Scripts are symlinked from `~/.claude/hooks/` but need to find sibling files at their real location (e.g., `usage-fetch.js`). Uses `readlink -f || realpath || python3` fallback chain. | Bare `BASH_SOURCE[0]` (rejected: returns symlink path, not real path — breaks toolkit-root discovery and sibling file lookup) |
+| Config-based sibling discovery with symlink fallback | Scripts need to find sibling files (e.g., `usage-fetch.js`, `announcement-fetch.js`). Primary: reads `toolkit_root` from `~/.claude/toolkit-state/config.json` and derives `$toolkit_root/core/hooks/`. Fallback: `readlink -f \|\| realpath \|\| python3` chain. Config lookup is essential on Windows where hooks are copies (not symlinks) — symlink resolution returns `~/.claude/hooks/` which may not contain utility scripts. | Symlink-only resolution (rejected in v1.6: broke on Windows copy-based installs — utility scripts not found), bare `BASH_SOURCE[0]` (rejected: returns symlink path, not real path) |
 | macOS Keychain fallback for credentials | Claude Max subscribers on macOS store OAuth tokens in Keychain, not `.credentials.json`. Uses `execFileSync('security', ...)` (safe, no shell injection). | `execSync` with string interpolation (rejected: shell injection surface), file-only (rejected: breaks for all macOS Max subscribers) |
 | Prune topic/marker files older than 7 days, at most once per day | Prevents `~/.claude/topics/` from accumulating stale files across sessions without running cleanup on every invocation | No cleanup (rejected: unbounded growth), cleanup on every invocation (rejected: unnecessary filesystem churn) |
 | `hookSpecificOutput` JSON for Auto-Title delivery | Ensures the reminder appears in Claude's context as a system-reminder, not as plain hook output that might be ignored | Plain stdout (rejected: not reliably surfaced to Claude), file-based signaling (rejected: Claude doesn't poll files) |
@@ -97,7 +97,7 @@ A real-time information display system for Claude Code sessions. Four components
 ### Cross-Platform Notes
 
 - All ANSI output uses `printf '%b\n'` (not `echo -e`)
-- Symlink resolution uses `readlink -f || realpath || python3` chain
+- **Sibling discovery:** Config-based lookup via `toolkit_root` in `~/.claude/toolkit-state/config.json` (primary), then symlink resolution via `readlink -f || realpath || python3` chain (fallback). The config lookup is mandatory for Windows installs where hooks are copies, not symlinks.
 - File paths passed to Node.js via `process.argv`, never string interpolation
 - Hash computation uses `sha256sum || shasum -a 256` for macOS compatibility
 - Credential resolution: file-based primary, macOS Keychain fallback via `execFileSync`
@@ -115,6 +115,7 @@ A real-time information display system for Claude Code sessions. Four components
 - (Fixed in v1.3) **Colors not rendering on some shells:** `echo -e` is non-portable. Fixed by switching to `printf '%b\n'`.
 - (Fixed in v1.3) **macOS credential failure:** OAuth tokens stored in Keychain were inaccessible. Fixed with `execFileSync('security', ...)` fallback.
 - (Fixed in v1.5) **Spec-code mismatch on topic path:** Spec said `/tmp/claude-topics/` but code used `~/.claude/topics/` since v1.1.1 security fix. Spec now aligned with code.
+- (Fixed in v1.6) **Sibling scripts unreachable on copy-based installs:** On Windows (and any install where hooks are copies, not symlinks), `readlink -f` resolved to `~/.claude/hooks/` or `~/.claude/` but `usage-fetch.js` and `announcement-fetch.js` were only in the repo. Added config-based `toolkit_root` lookup as primary discovery path, keeping symlink resolution as fallback. Also added `announcement-fetch.js` and `usage-fetch.js` to the setup wizard's install list.
 
 ## Planned Updates
 
@@ -131,3 +132,4 @@ A real-time information display system for Claude Code sessions. Four components
 | 2026-03-17 | 1.3 | Session name display, rate limit display, printf %b, symlink resolution, macOS Keychain fallback, sha256sum cross-platform, process.argv for Node paths | Update | — | |
 | 2026-03-18 | 1.5 | Aligned spec with v1.1.1 security fix: all `/tmp/claude-topics/` references updated to `~/.claude/topics/`. Updated mandate, design decision rationale, data flow, and file locations table. Updated component count to four (added announcement-fetch.js). | Update | Destin | |
 | 2026-03-18 | 1.4 | Announcements subsystem: session-start background fetch + statusline right-aligned display | Update | — | |
+| 2026-03-18 | 1.6 | Fixed copy-based install breakage: replaced symlink-only sibling discovery with config-based `toolkit_root` lookup + symlink fallback. Added utility scripts to setup wizard install list. Added hook refresh step and post-update verification to `/update` command. | Update | Destin | |
