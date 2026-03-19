@@ -12,20 +12,30 @@ STATUS_FILE="$HOME/.claude/.sync-status"
 SESSION=$(cat)
 
 PARSED=$(echo "$SESSION" | node -e "
+const SEP='\x1f';
 let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{
   try{const j=JSON.parse(d);
     const name=j.session_name||'';
+    const sid=j.session_id||'';
     const m=j.model?.display_name||j.model?.id||'unknown';
     const rem=j.context_window?.remaining_percentage!=null?Math.round(j.context_window.remaining_percentage):100;
-    console.log(name+'\t'+m+'\t'+rem);
-  }catch(e){console.error('statusline parse error: '+e.message);console.log('\tunknown\t100')}
+    console.log(name+SEP+m+SEP+rem+SEP+sid);
+  }catch(e){console.error('statusline parse error: '+e.message);console.log(SEP+'unknown'+SEP+'100'+SEP)}
 })" 2>>"$HOME/.claude/statusline.log")
 
-IFS=$'\t' read -r SESSION_NAME MODEL REMAINING <<< "$PARSED"
+IFS=$'\x1f' read -r SESSION_NAME MODEL REMAINING SESSION_ID <<< "$PARSED"
 
 # Defaults if node failed
 MODEL=${MODEL:-unknown}
 REMAINING=${REMAINING:-100}
+
+# Fall back to topic file if session_name is empty
+if [[ -z "$SESSION_NAME" && -n "$SESSION_ID" ]]; then
+    TOPIC_FILE="$HOME/.claude/topics/topic-${SESSION_ID}"
+    if [[ -f "$TOPIC_FILE" ]]; then
+        SESSION_NAME=$(cat "$TOPIC_FILE" 2>/dev/null | tr -d '\n\r')
+    fi
+fi
 
 # ANSI colors (single-quoted for printf %b compatibility)
 BOLD='\033[1m'
@@ -144,47 +154,52 @@ USAGE_FETCH="$HOOKS_DIR/usage-fetch.js"
 if [[ -f "$USAGE_FETCH" ]] && command -v node &>/dev/null; then
     USAGE_JSON=$(node "$USAGE_FETCH" 2>/dev/null) || USAGE_JSON=""
     if [[ -n "$USAGE_JSON" ]]; then
-        USAGE_RAW=$(node -e "
+        # Each timer gets its own ANSI color based on its own utilization percentage
+        USAGE_LINE=$(node -e "
             const d = JSON.parse(process.argv[1]);
             const fiveH = d.five_hour;
             const sevenD = d.seven_day;
+            const DIM = '\x1b[2m';
+            const YELLOW = '\x1b[33m';
+            const RED = '\x1b[31m';
+            const RESET = '\x1b[0m';
+
+            function colorFor(pct) {
+                if (pct >= 80) return RED;
+                if (pct >= 50) return YELLOW;
+                return DIM;
+            }
+
             const parts = [];
-            let maxPct = 0;
 
             if (fiveH && fiveH.utilization != null) {
                 const pct = fiveH.utilization;
-                if (pct > maxPct) maxPct = pct;
+                const c = colorFor(pct);
                 const resetsAt = new Date(fiveH.resets_at);
                 const timeStr = resetsAt.toLocaleTimeString('en-US', {
                     hour: 'numeric', minute: '2-digit', hour12: true
                 });
-                parts.push('5h (' + pct + '%): Resets at ' + timeStr);
+                parts.push(c + '5h (' + pct + '%): Resets at ' + timeStr + RESET);
             }
 
             if (sevenD && sevenD.utilization != null) {
                 const pct = sevenD.utilization;
-                if (pct > maxPct) maxPct = pct;
+                const c = colorFor(pct);
                 const resetsAt = new Date(sevenD.resets_at);
                 const dayStr = resetsAt.toLocaleDateString('en-US', { weekday: 'long' });
                 const timeStr = resetsAt.toLocaleTimeString('en-US', {
                     hour: 'numeric', minute: '2-digit', hour12: true
                 });
-                parts.push('7d (' + pct + '%): Resets on ' + dayStr + ' at ' + timeStr);
+                parts.push(c + '7d (' + pct + '%): Resets on ' + dayStr + ' at ' + timeStr + RESET);
             }
 
-            process.stdout.write(maxPct + '\t' + parts.join(' | '));
-        " "$USAGE_JSON" 2>/dev/null) || USAGE_RAW=""
+            if (parts.length > 0) {
+                process.stdout.write(parts.join(DIM + ' | ' + RESET));
+            }
+        " "$USAGE_JSON" 2>/dev/null) || USAGE_LINE=""
 
-        if [[ -n "$USAGE_RAW" ]]; then
-            MAX_PCT="${USAGE_RAW%%$'\t'*}"
-            USAGE_LINE="${USAGE_RAW#*$'\t'}"
-            if [[ "$MAX_PCT" -ge 80 ]] 2>/dev/null; then
-                printf '%b\n' "${RED}${USAGE_LINE}${RESET}"
-            elif [[ "$MAX_PCT" -ge 50 ]] 2>/dev/null; then
-                printf '%b\n' "${YELLOW}${USAGE_LINE}${RESET}"
-            else
-                printf '%b\n' "${DIM}${USAGE_LINE}${RESET}"
-            fi
+        if [[ -n "$USAGE_LINE" ]]; then
+            printf '%b\n' "$USAGE_LINE"
         fi
     fi
 fi
