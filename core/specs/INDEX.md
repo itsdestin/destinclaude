@@ -25,6 +25,7 @@ All feature specifications. Skill specs live in their skill folder; system specs
 | Skill Creator | skill | ~/.claude/skills/skill-creator/specs/skill-creator-spec.md | 1.0 |
 | Google Drive | skill | ~/.claude/skills/google-drive/specs/google-drive-spec.md | 1.1 |
 | Inbox Processor | skill | ~/.claude/skills/inbox-processor/specs/inbox-processor-spec.md | 2.3 |
+| Fork File | skill | life/skills/fork-file/specs/fork-file-spec.md | 1.0 |
 
 ## External Admin Tooling
 

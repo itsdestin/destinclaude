@@ -80,6 +80,19 @@ The life layer's encyclopedia system maintains a living biography through 8 modu
 
 **Sync architecture:** Files are stored in Google Drive (`gdrive:Claude/The Journal/System/`) and cached locally at `~/.claude/encyclopedia/`. The `sync-encyclopedia.sh` hook syncs on session start. The encyclopedia-update skill writes changes back to Drive after user approval.
 
+## Fork File
+
+The life layer includes Fork File, a food tracking skill contributed by [@tjmorin03](https://github.com/tjmorin03). It manages two data files:
+
+| File | Purpose |
+|------|---------|
+| `~/.claude/fork-file/pantry.csv` | Grocery inventory with category, location, quantity, price, and freshness |
+| `~/.claude/fork-file/fastfood.csv` | Fast food visits tracked by restaurant, item, size, and price |
+
+Storage locations are user-configured (stored in `locations.txt`), not hardcoded. The skill self-bootstraps on first use — creating its data directory, CSV headers, and prompting for location setup.
+
+Receipt photos can be processed via either the `imessages` (macOS) or `gmessages` (all platforms) MCP server. The skill auto-detects which server is available. Without a messaging server, manual entry and all query operations still work.
+
 ## Setup Wizard
 
 The `/setup-wizard` skill is the primary entry point for both first-time installs and returns from another device. It runs as a guided conversation — no executable code, just structured prompts that Claude follows.

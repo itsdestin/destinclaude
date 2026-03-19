@@ -2,6 +2,16 @@
 
 All notable changes to DestinClaude will be documented in this file.
 
+## v1.1.6 (2026-03-18)
+
+### Features
+- **Fork File skill** — New food tracking skill (`life/skills/fork-file/`) with grocery inventory and fast food spending log. Manages pantry items across user-configured storage locations, processes receipt photos via messaging MCP servers (iMessages or Google Messages), tracks fast food visits by restaurant/item/size, and provides spending summaries. Self-bootstrapping — creates data directory, CSV files, and prompts for location setup on first use. Originally contributed by [@tjmorin03](https://github.com/tjmorin03) in PR #3.
+
+### Documentation
+- `life/skills/fork-file/specs/fork-file-spec.md` — Initial spec (v1.0)
+- `core/specs/INDEX.md` — Added Fork File entry
+- `docs/system-architecture.md` — Added Fork File to Life layer skill table
+
 ## v1.1.5 (2026-03-18)
 
 ### Features
