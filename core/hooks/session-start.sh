@@ -113,6 +113,14 @@ if [[ -n "$TOOLKIT_ROOT" && -d "$TOOLKIT_ROOT/core/hooks" ]]; then
             fi
         done
     fi
+    # Git pre-push hook (prevents VERSION/tag divergence)
+    if [[ -f "$TOOLKIT_ROOT/scripts/pre-push" && -d "$TOOLKIT_ROOT/.git/hooks" ]]; then
+        if [[ ! -f "$TOOLKIT_ROOT/.git/hooks/pre-push" ]] || ! diff -q "$TOOLKIT_ROOT/.git/hooks/pre-push" "$TOOLKIT_ROOT/scripts/pre-push" >/dev/null 2>&1; then
+            cp -f "$TOOLKIT_ROOT/scripts/pre-push" "$TOOLKIT_ROOT/.git/hooks/pre-push" 2>/dev/null
+            chmod +x "$TOOLKIT_ROOT/.git/hooks/pre-push" 2>/dev/null
+            _REFRESHED=$((_REFRESHED + 1))
+        fi
+    fi
     # Flag known orphan files from pre-v1.1.5 installs (never auto-delete)
     _ORPHANS=""
     [[ -f "$CLAUDE_DIR/hooks/statusline.sh" ]] && _ORPHANS="~/.claude/hooks/statusline.sh"
