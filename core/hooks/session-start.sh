@@ -8,6 +8,30 @@ CONFIG_FILE="$CLAUDE_DIR/toolkit-state/config.json"
 MCP_CONFIG="$CLAUDE_DIR/mcp-servers/mcp-config.json"
 CLAUDE_JSON="$HOME/.claude.json"
 
+# --- Resolve TOOLKIT_ROOT once (used by auto-refresh, version check, announcements) ---
+TOOLKIT_ROOT=""
+if command -v node &>/dev/null && [[ -f "$CONFIG_FILE" ]]; then
+    TOOLKIT_ROOT=$(node -e "try{const c=JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'));if(c.toolkit_root)console.log(c.toolkit_root)}catch{}" "$CONFIG_FILE" 2>/dev/null) || TOOLKIT_ROOT=""
+fi
+# Fallback: walk up from this script's real path to find VERSION file
+if [[ -z "$TOOLKIT_ROOT" || ! -f "$TOOLKIT_ROOT/VERSION" ]]; then
+    TOOLKIT_ROOT=""
+    _REAL="$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}" 2>/dev/null || python3 -c "import os,sys; print(os.path.realpath(sys.argv[1]))" "${BASH_SOURCE[0]}" 2>/dev/null || echo "${BASH_SOURCE[0]}")"
+    SEARCH_DIR="$(cd "$(dirname "$_REAL")" && pwd)"
+    for _ in 1 2 3 4 5; do
+        if [[ -f "$SEARCH_DIR/VERSION" ]]; then
+            TOOLKIT_ROOT="$SEARCH_DIR"
+            break
+        fi
+        SEARCH_DIR="$(dirname "$SEARCH_DIR")"
+    done
+fi
+# Auto-create config.json if toolkit was found via fallback (self-healing)
+if [[ -n "$TOOLKIT_ROOT" && -f "$TOOLKIT_ROOT/VERSION" && ! -f "$CONFIG_FILE" ]]; then
+    mkdir -p "$(dirname "$CONFIG_FILE")"
+    echo "{\"toolkit_root\": \"$TOOLKIT_ROOT\"}" > "$CONFIG_FILE"
+fi
+
 # --- Extract MCP server config from .claude.json (before git pull, so local changes get committed) ---
 if [[ -f "$CLAUDE_JSON" ]] && command -v node &>/dev/null; then
     EXTRACTED=$(node -e "
@@ -53,50 +77,55 @@ fi
 # SAFETY: Only overwrites files that have a matching source in the toolkit repo.
 # Never touches user-created files. Flags orphans for Claude to ask about — never
 # auto-deletes anything that might contain user data.
-if [[ -f "$CONFIG_FILE" ]] && command -v node &>/dev/null; then
-    _TK_ROOT=$(node -e "try{const c=JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'));if(c.toolkit_root)console.log(c.toolkit_root)}catch{}" "$CONFIG_FILE" 2>/dev/null) || _TK_ROOT=""
-    if [[ -n "$_TK_ROOT" && -d "$_TK_ROOT/core/hooks" ]]; then
-        _REFRESHED=0
-        # Canonical list of toolkit-owned hooks — ONLY these get overwritten
-        for _h in checklist-reminder.sh git-sync.sh session-start.sh title-update.sh todo-capture.sh write-guard.sh; do
-            if [[ -f "$_TK_ROOT/core/hooks/$_h" && -f "$CLAUDE_DIR/hooks/$_h" ]] && ! diff -q "$CLAUDE_DIR/hooks/$_h" "$_TK_ROOT/core/hooks/$_h" >/dev/null 2>&1; then
-                cp -f "$_TK_ROOT/core/hooks/$_h" "$CLAUDE_DIR/hooks/$_h" 2>/dev/null && _REFRESHED=$((_REFRESHED + 1))
+# Uses TOOLKIT_ROOT resolved at script start (config.json + fallback).
+if [[ -n "$TOOLKIT_ROOT" && -d "$TOOLKIT_ROOT/core/hooks" ]]; then
+    _REFRESHED=0
+    # Canonical list of toolkit-owned hooks — ONLY these get overwritten
+    for _h in checklist-reminder.sh git-sync.sh session-start.sh title-update.sh todo-capture.sh write-guard.sh; do
+        if [[ -f "$TOOLKIT_ROOT/core/hooks/$_h" ]]; then
+            if [[ ! -f "$CLAUDE_DIR/hooks/$_h" ]] || ! diff -q "$CLAUDE_DIR/hooks/$_h" "$TOOLKIT_ROOT/core/hooks/$_h" >/dev/null 2>&1; then
+                cp -f "$TOOLKIT_ROOT/core/hooks/$_h" "$CLAUDE_DIR/hooks/$_h" 2>/dev/null && _REFRESHED=$((_REFRESHED + 1))
             fi
-        done
-        # Toolkit-owned utility scripts
-        for _u in announcement-fetch.js usage-fetch.js; do
-            if [[ -f "$_TK_ROOT/core/hooks/$_u" ]]; then
-                if [[ ! -f "$CLAUDE_DIR/hooks/$_u" ]] || ! diff -q "$CLAUDE_DIR/hooks/$_u" "$_TK_ROOT/core/hooks/$_u" >/dev/null 2>&1; then
-                    cp -f "$_TK_ROOT/core/hooks/$_u" "$CLAUDE_DIR/hooks/$_u" 2>/dev/null && _REFRESHED=$((_REFRESHED + 1))
+        fi
+    done
+    # Toolkit-owned utility scripts
+    for _u in announcement-fetch.js usage-fetch.js; do
+        if [[ -f "$TOOLKIT_ROOT/core/hooks/$_u" ]]; then
+            if [[ ! -f "$CLAUDE_DIR/hooks/$_u" ]] || ! diff -q "$CLAUDE_DIR/hooks/$_u" "$TOOLKIT_ROOT/core/hooks/$_u" >/dev/null 2>&1; then
+                cp -f "$TOOLKIT_ROOT/core/hooks/$_u" "$CLAUDE_DIR/hooks/$_u" 2>/dev/null && _REFRESHED=$((_REFRESHED + 1))
+            fi
+        fi
+    done
+    # Statusline (lives at ~/.claude/statusline.sh, not in hooks/)
+    if [[ -f "$TOOLKIT_ROOT/core/hooks/statusline.sh" ]]; then
+        if [[ ! -f "$HOME/.claude/statusline.sh" ]] || ! diff -q "$HOME/.claude/statusline.sh" "$TOOLKIT_ROOT/core/hooks/statusline.sh" >/dev/null 2>&1; then
+            cp -f "$TOOLKIT_ROOT/core/hooks/statusline.sh" "$HOME/.claude/statusline.sh" 2>/dev/null && _REFRESHED=$((_REFRESHED + 1))
+        fi
+    fi
+    # Toolkit-owned commands (install missing OR refresh stale)
+    if [[ -d "$TOOLKIT_ROOT/core/commands" ]]; then
+        mkdir -p "$CLAUDE_DIR/commands"
+        for _c in setup-wizard.md contribute.md toolkit.md toolkit-uninstall.md update.md health.md; do
+            if [[ -f "$TOOLKIT_ROOT/core/commands/$_c" ]]; then
+                if [[ ! -f "$CLAUDE_DIR/commands/$_c" ]] || ! diff -q "$CLAUDE_DIR/commands/$_c" "$TOOLKIT_ROOT/core/commands/$_c" >/dev/null 2>&1; then
+                    cp -f "$TOOLKIT_ROOT/core/commands/$_c" "$CLAUDE_DIR/commands/$_c" 2>/dev/null && _REFRESHED=$((_REFRESHED + 1))
                 fi
             fi
         done
-        # Statusline (lives at ~/.claude/statusline.sh, not in hooks/)
-        if [[ -f "$_TK_ROOT/core/hooks/statusline.sh" && -f "$HOME/.claude/statusline.sh" ]] && ! diff -q "$HOME/.claude/statusline.sh" "$_TK_ROOT/core/hooks/statusline.sh" >/dev/null 2>&1; then
-            cp -f "$_TK_ROOT/core/hooks/statusline.sh" "$HOME/.claude/statusline.sh" 2>/dev/null && _REFRESHED=$((_REFRESHED + 1))
-        fi
-        # Toolkit-owned commands
-        if [[ -d "$_TK_ROOT/core/commands" ]]; then
-            for _c in setup-wizard.md contribute.md toolkit.md toolkit-uninstall.md update.md health.md; do
-                if [[ -f "$_TK_ROOT/core/commands/$_c" && -f "$CLAUDE_DIR/commands/$_c" ]] && ! diff -q "$CLAUDE_DIR/commands/$_c" "$_TK_ROOT/core/commands/$_c" >/dev/null 2>&1; then
-                    cp -f "$_TK_ROOT/core/commands/$_c" "$CLAUDE_DIR/commands/$_c" 2>/dev/null && _REFRESHED=$((_REFRESHED + 1))
-                fi
-            done
-        fi
-        # Flag known orphan files from pre-v1.1.5 installs (never auto-delete)
-        _ORPHANS=""
-        [[ -f "$CLAUDE_DIR/hooks/statusline.sh" ]] && _ORPHANS="~/.claude/hooks/statusline.sh"
-        _MSG=""
-        if [[ $_REFRESHED -gt 0 ]]; then
-            _MSG="Refreshed $_REFRESHED stale hook(s)/script(s) from toolkit repo."
-        fi
-        if [[ -n "$_ORPHANS" ]]; then
-            _MSG="$_MSG Found orphan file(s) that may be safe to remove: $_ORPHANS — ask the user before deleting."
-        fi
-        if [[ -n "$_MSG" ]]; then
-            _MSG=$(echo "$_MSG" | sed 's/^ //')
-            echo "{\"hookSpecificOutput\": \"$_MSG\"}" >&2
-        fi
+    fi
+    # Flag known orphan files from pre-v1.1.5 installs (never auto-delete)
+    _ORPHANS=""
+    [[ -f "$CLAUDE_DIR/hooks/statusline.sh" ]] && _ORPHANS="~/.claude/hooks/statusline.sh"
+    _MSG=""
+    if [[ $_REFRESHED -gt 0 ]]; then
+        _MSG="Refreshed $_REFRESHED stale hook(s)/script(s) from toolkit repo."
+    fi
+    if [[ -n "$_ORPHANS" ]]; then
+        _MSG="$_MSG Found orphan file(s) that may be safe to remove: $_ORPHANS — ask the user before deleting."
+    fi
+    if [[ -n "$_MSG" ]]; then
+        _MSG=$(echo "$_MSG" | sed 's/^ //')
+        echo "{\"hookSpecificOutput\": \"$_MSG\"}" >&2
     fi
 fi
 
@@ -220,26 +249,8 @@ fi
 # Remove warnings file if empty (no warnings = no statusline clutter)
 [[ ! -s "$WARNINGS_FILE" ]] && rm -f "$WARNINGS_FILE" 2>/dev/null
 
-# --- Toolkit version check ---
-# Find toolkit root: config-based lookup (works with copies on Windows), symlink fallback
-TOOLKIT_ROOT=""
-if command -v node &>/dev/null && [[ -f "$CLAUDE_DIR/toolkit-state/config.json" ]]; then
-    TOOLKIT_ROOT=$(node -e "try{const c=JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'));if(c.toolkit_root)console.log(c.toolkit_root)}catch{}" "$CLAUDE_DIR/toolkit-state/config.json" 2>/dev/null) || TOOLKIT_ROOT=""
-fi
-if [[ -z "$TOOLKIT_ROOT" || ! -f "$TOOLKIT_ROOT/VERSION" ]]; then
-    TOOLKIT_ROOT=""
-    _REAL="$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}" 2>/dev/null || python3 -c "import os,sys; print(os.path.realpath(sys.argv[1]))" "${BASH_SOURCE[0]}" 2>/dev/null || echo "${BASH_SOURCE[0]}")"
-    SEARCH_DIR="$(cd "$(dirname "$_REAL")" && pwd)"
-    for _ in 1 2 3 4 5; do
-        if [[ -f "$SEARCH_DIR/VERSION" ]]; then
-            TOOLKIT_ROOT="$SEARCH_DIR"
-            break
-        fi
-        SEARCH_DIR="$(dirname "$SEARCH_DIR")"
-    done
-fi
-
-if [[ -n "$TOOLKIT_ROOT" ]]; then
+# --- Toolkit version check (uses TOOLKIT_ROOT resolved at script start) ---
+if [[ -n "$TOOLKIT_ROOT" && -f "$TOOLKIT_ROOT/VERSION" ]]; then
     STATE_DIR="$CLAUDE_DIR/toolkit-state"
     mkdir -p "$STATE_DIR"
     CURRENT=$(cat "$TOOLKIT_ROOT/VERSION" 2>/dev/null | tr -d '[:space:]')
@@ -251,10 +262,13 @@ if [[ -n "$TOOLKIT_ROOT" ]]; then
     LATEST_TAG=$(cd "$TOOLKIT_ROOT" && git tag --sort=-v:refname 2>/dev/null | head -1)
     LATEST=${LATEST_TAG#v}
 
+    # Semver-aware comparison: only flag update if LATEST is strictly newer than CURRENT
+    UPDATE_AVAILABLE=false
     if [[ -n "$LATEST" && "$CURRENT" != "$LATEST" ]]; then
-        UPDATE_AVAILABLE=true
-    else
-        UPDATE_AVAILABLE=false
+        _NEWER=$(printf '%s\n' "$CURRENT" "$LATEST" | sort -V | tail -1)
+        if [[ "$_NEWER" == "$LATEST" ]]; then
+            UPDATE_AVAILABLE=true
+        fi
     fi
 
     cat > "$STATE_DIR/update-status.json" << VEREOF
