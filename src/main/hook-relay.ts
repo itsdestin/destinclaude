@@ -24,6 +24,9 @@ export class HookRelay extends EventEmitter {
         let data = '';
         socket.setEncoding('utf8');
 
+        // Ignore socket errors (client may disconnect before we respond)
+        socket.on('error', () => {});
+
         socket.on('data', (chunk) => { data += chunk; });
 
         socket.on('end', () => {

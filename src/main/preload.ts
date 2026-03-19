@@ -1,5 +1,17 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import { IPC } from '../shared/types';
+
+// IPC channel names inlined here because Electron's sandboxed preload
+// cannot resolve relative imports to other modules
+const IPC = {
+  SESSION_CREATE: 'session:create',
+  SESSION_DESTROY: 'session:destroy',
+  SESSION_INPUT: 'session:input',
+  SESSION_LIST: 'session:list',
+  SESSION_CREATED: 'session:created',
+  SESSION_DESTROYED: 'session:destroyed',
+  PTY_OUTPUT: 'pty:output',
+  HOOK_EVENT: 'hook:event',
+} as const;
 
 contextBridge.exposeInMainWorld('claude', {
   session: {

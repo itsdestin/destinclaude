@@ -1,5 +1,4 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
-import { execFileSync } from 'child_process';
 import path from 'path';
 import { SessionManager } from './session-manager';
 import { HookRelay } from './hook-relay';
@@ -41,12 +40,17 @@ app.whenReady().then(async () => {
   // Install hook relay entries in Claude Code settings
   try {
     const installScript = path.join(__dirname, '../../scripts/install-hooks.js');
-    execFileSync(process.execPath, [installScript], { stdio: 'pipe' });
+    require(installScript);
   } catch (e) {
     console.error('Failed to install hooks:', e);
   }
 
-  await hookRelay.start();
+  try {
+    await hookRelay.start();
+  } catch (e) {
+    console.error('Failed to start hook relay:', e);
+  }
+
   createWindow();
 });
 
