@@ -1021,6 +1021,7 @@ ln -sf "$TOOLKIT_ROOT/core/hooks/statusline.sh" ~/.claude/statusline.sh
 
 # Life hooks (if Life layer selected)
 ln -sf "$TOOLKIT_ROOT/life/hooks/sync-encyclopedia.sh" ~/.claude/hooks/sync-encyclopedia.sh
+ln -sf "$TOOLKIT_ROOT/life/hooks/fork-file-inbox.sh" ~/.claude/hooks/fork-file-inbox.sh
 ```
 
 #### 5d: Register hooks in settings.json
