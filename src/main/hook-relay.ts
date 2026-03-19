@@ -8,6 +8,16 @@ export class HookRelay extends EventEmitter {
   private server: net.Server | null = null;
   private running = false;
 
+  private parseHookPayload(data: string): HookEvent {
+    const parsed = JSON.parse(data);
+    return {
+      type: parsed.hook_event_name || 'unknown',
+      sessionId: parsed.session_id || '',
+      payload: parsed,
+      timestamp: Date.now(),
+    };
+  }
+
   async start(): Promise<void> {
     return new Promise((resolve, reject) => {
       this.server = net.createServer((socket) => {
@@ -18,13 +28,7 @@ export class HookRelay extends EventEmitter {
 
         socket.on('end', () => {
           try {
-            const parsed = JSON.parse(data);
-            const event: HookEvent = {
-              type: parsed.hook_event_name || 'unknown',
-              sessionId: parsed.session_id || '',
-              payload: parsed,
-              timestamp: Date.now(),
-            };
+            const event = this.parseHookPayload(data);
 
             this.emit('hook-event', event);
 
@@ -60,13 +64,7 @@ export class HookRelay extends EventEmitter {
 
   // For testing: simulate a hook event without a real pipe connection
   async simulateEvent(jsonPayload: string): Promise<void> {
-    const parsed = JSON.parse(jsonPayload);
-    const event: HookEvent = {
-      type: parsed.hook_event_name || 'unknown',
-      sessionId: parsed.session_id || '',
-      payload: parsed,
-      timestamp: Date.now(),
-    };
+    const event = this.parseHookPayload(jsonPayload);
     this.emit('hook-event', event);
   }
 }

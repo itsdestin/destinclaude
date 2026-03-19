@@ -10,6 +10,11 @@ process.stdin.on('end', () => {
     client.write(input);
   });
 
+  client.setTimeout(5000, () => {
+    client.destroy();
+    process.exit(0);
+  });
+
   let response = '';
   client.on('data', (data) => { response += data.toString(); });
   client.on('end', () => {
