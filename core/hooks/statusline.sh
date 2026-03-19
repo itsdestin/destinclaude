@@ -159,6 +159,7 @@ if [[ -f "$USAGE_FETCH" ]] && command -v node &>/dev/null; then
             const d = JSON.parse(process.argv[1]);
             const fiveH = d.five_hour;
             const sevenD = d.seven_day;
+            const GREEN = '\x1b[32m';
             const DIM = '\x1b[2m';
             const YELLOW = '\x1b[33m';
             const RED = '\x1b[31m';
@@ -167,7 +168,7 @@ if [[ -f "$USAGE_FETCH" ]] && command -v node &>/dev/null; then
             function colorFor(pct) {
                 if (pct >= 80) return RED;
                 if (pct >= 50) return YELLOW;
-                return DIM;
+                return GREEN;
             }
 
             const parts = [];
