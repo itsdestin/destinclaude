@@ -333,6 +333,9 @@ if [[ -f "$CLAUDE_DIR/hooks/check-inbox.sh" ]]; then
     bash "$CLAUDE_DIR/hooks/check-inbox.sh" 2>/dev/null || true
 fi
 
+# Clean up subsumed toolkit-reminder state
+rm -f "$CLAUDE_DIR/toolkit-state/toolkit-reminder.json" 2>/dev/null
+
 # --- DestinTip selection ---
 # Adaptive toolkit hints: select tips based on comfort level, usage history, and rotation
 if command -v node &>/dev/null; then
