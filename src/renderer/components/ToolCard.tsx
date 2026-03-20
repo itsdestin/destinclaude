@@ -40,11 +40,9 @@ function toolSummary(tool: ToolCallState): string {
 
 interface Props {
   tool: ToolCallState;
-  onApprove?: () => void;
-  onReject?: () => void;
 }
 
-export default function ToolCard({ tool, onApprove, onReject }: Props) {
+export default function ToolCard({ tool }: Props) {
   const [expanded, setExpanded] = useState(false);
   const summary = toolSummary(tool);
 
@@ -58,9 +56,6 @@ export default function ToolCard({ tool, onApprove, onReject }: Props) {
         {/* Status indicator */}
         {tool.status === 'running' && (
           <span className="w-4 h-4 shrink-0 rounded-full border-2 border-indigo-400 border-t-transparent animate-spin" />
-        )}
-        {tool.status === 'awaiting-approval' && (
-          <span className="w-4 h-4 shrink-0 rounded-full bg-amber-500" />
         )}
         {tool.status === 'complete' && (
           <svg className="w-4 h-4 shrink-0 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -84,24 +79,6 @@ export default function ToolCard({ tool, onApprove, onReject }: Props) {
           <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
         </svg>
       </button>
-
-      {/* Approval buttons */}
-      {tool.status === 'awaiting-approval' && (
-        <div className="flex gap-2 px-3 pb-2">
-          <button
-            onClick={onApprove}
-            className="px-3 py-1 text-xs font-medium rounded bg-green-600 hover:bg-green-500 text-white transition-colors"
-          >
-            Accept
-          </button>
-          <button
-            onClick={onReject}
-            className="px-3 py-1 text-xs font-medium rounded bg-red-600 hover:bg-red-500 text-white transition-colors"
-          >
-            Reject
-          </button>
-        </div>
-      )}
 
       {/* Expanded details */}
       {expanded && (

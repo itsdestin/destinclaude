@@ -1,6 +1,8 @@
 @import "tailwindcss";
 @import "highlight.js/styles/github-dark.css";
 
+@source "../../";
+
 /* xterm.js needs explicit height to fill its container */
 .xterm {
   height: 100%;

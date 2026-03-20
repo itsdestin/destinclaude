@@ -10,7 +10,6 @@ declare global {
         list: () => Promise<any[]>;
         sendInput: (sessionId: string, text: string) => void;
         resize: (sessionId: string, cols: number, rows: number) => void;
-        approve: (sessionId: string, toolUseId: string, approved: boolean) => Promise<boolean>;
       };
       on: {
         sessionCreated: (cb: (info: any) => void) => (...args: any[]) => void;

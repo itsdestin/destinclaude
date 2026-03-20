@@ -8,7 +8,6 @@ const IPC = {
   SESSION_INPUT: 'session:input',
   SESSION_RESIZE: 'session:resize',
   SESSION_LIST: 'session:list',
-  SESSION_APPROVE: 'session:approve',
   SESSION_CREATED: 'session:created',
   SESSION_DESTROYED: 'session:destroyed',
   PTY_OUTPUT: 'pty:output',
@@ -26,8 +25,6 @@ contextBridge.exposeInMainWorld('claude', {
       ipcRenderer.send(IPC.SESSION_INPUT, sessionId, text),
     resize: (sessionId: string, cols: number, rows: number) =>
       ipcRenderer.send(IPC.SESSION_RESIZE, sessionId, cols, rows),
-    approve: (sessionId: string, toolUseId: string, approved: boolean) =>
-      ipcRenderer.invoke(IPC.SESSION_APPROVE, sessionId, toolUseId, approved),
   },
   on: {
     sessionCreated: (cb: (info: any) => void) => {

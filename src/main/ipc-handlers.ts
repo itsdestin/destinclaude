@@ -1,12 +1,10 @@
 import { IpcMain, BrowserWindow } from 'electron';
 import { SessionManager } from './session-manager';
-import { HookRelay } from './hook-relay';
 import { IPC } from '../shared/types';
 
 export function registerIpcHandlers(
   ipcMain: IpcMain,
   sessionManager: SessionManager,
-  hookRelay: HookRelay,
   mainWindow: BrowserWindow,
 ) {
   const send = (channel: string, ...args: any[]) => {
@@ -32,11 +30,6 @@ export function registerIpcHandlers(
 
   ipcMain.handle(IPC.SESSION_LIST, async () => {
     return sessionManager.listSessions();
-  });
-
-  // Approval flow
-  ipcMain.handle(IPC.SESSION_APPROVE, async (_event, _sessionId: string, toolUseId: string, approved: boolean) => {
-    return hookRelay.resolvePermission(toolUseId, approved);
   });
 
   // PTY input (fire-and-forget, not request-response)

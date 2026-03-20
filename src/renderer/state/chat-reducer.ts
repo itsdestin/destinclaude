@@ -30,18 +30,18 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
       const session = next.get(action.sessionId);
       if (!session) return state;
 
+      const message = {
+        id: nextMessageId(),
+        role: 'user' as const,
+        content: action.content,
+        timestamp: action.timestamp,
+      };
+
       next.set(action.sessionId, {
         ...session,
-        messages: [
-          ...session.messages,
-          {
-            id: nextMessageId(),
-            role: 'user',
-            content: action.content,
-            timestamp: action.timestamp,
-          },
-        ],
+        timeline: [...session.timeline, { kind: 'user', message }],
         isThinking: true,
+        currentGroupId: null, // Reset — next tools start a new group
       });
       return next;
     }
@@ -58,76 +58,28 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
         status: 'running',
       });
 
-      // Add to current tool group, or create a new one
-      const toolGroups = [...session.toolGroups];
-      const lastGroup = toolGroups[toolGroups.length - 1];
-      if (lastGroup) {
-        toolGroups[toolGroups.length - 1] = {
-          ...lastGroup,
-          toolIds: [...lastGroup.toolIds, action.toolUseId],
-        };
+      const toolGroups = new Map(session.toolGroups);
+      let timeline = session.timeline;
+      let currentGroupId = session.currentGroupId;
+
+      if (currentGroupId && toolGroups.has(currentGroupId)) {
+        // Add to existing group
+        const group = toolGroups.get(currentGroupId)!;
+        toolGroups.set(currentGroupId, {
+          ...group,
+          toolIds: [...group.toolIds, action.toolUseId],
+        });
       } else {
-        toolGroups.push({
-          id: nextGroupId(),
+        // Create new group and add to timeline
+        currentGroupId = nextGroupId();
+        toolGroups.set(currentGroupId, {
+          id: currentGroupId,
           toolIds: [action.toolUseId],
         });
+        timeline = [...timeline, { kind: 'tool-group', groupId: currentGroupId }];
       }
 
-      next.set(action.sessionId, { ...session, toolCalls, toolGroups });
-      return next;
-    }
-
-    case 'PERMISSION_REQUEST': {
-      const session = next.get(action.sessionId);
-      if (!session) return state;
-
-      const toolCalls = new Map(session.toolCalls);
-      const existing = toolCalls.get(action.toolUseId);
-
-      if (existing) {
-        // Update existing tool call (PreToolUse arrived first)
-        toolCalls.set(action.toolUseId, {
-          ...existing,
-          status: 'awaiting-approval',
-        });
-      } else {
-        // PermissionRequest arrived without PreToolUse
-        toolCalls.set(action.toolUseId, {
-          toolUseId: action.toolUseId,
-          toolName: action.toolName,
-          input: action.input,
-          status: 'awaiting-approval',
-        });
-
-        // Also add to tool group
-        const toolGroups = [...session.toolGroups];
-        const lastGroup = toolGroups[toolGroups.length - 1];
-        if (lastGroup) {
-          toolGroups[toolGroups.length - 1] = {
-            ...lastGroup,
-            toolIds: [...lastGroup.toolIds, action.toolUseId],
-          };
-        } else {
-          toolGroups.push({
-            id: nextGroupId(),
-            toolIds: [action.toolUseId],
-          });
-        }
-
-        next.set(action.sessionId, {
-          ...session,
-          toolCalls,
-          toolGroups,
-          pendingApproval: action.toolUseId,
-        });
-        return next;
-      }
-
-      next.set(action.sessionId, {
-        ...session,
-        toolCalls,
-        pendingApproval: action.toolUseId,
-      });
+      next.set(action.sessionId, { ...session, toolCalls, toolGroups, timeline, currentGroupId });
       return next;
     }
 
@@ -139,18 +91,11 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
       const existing = toolCalls.get(action.toolUseId);
       if (existing) {
         toolCalls.set(action.toolUseId, {
-          ...existing,
-          status: 'complete',
-          response: action.response,
+          ...existing, status: 'complete', response: action.response,
         });
       }
 
-      const pendingApproval =
-        session.pendingApproval === action.toolUseId
-          ? null
-          : session.pendingApproval;
-
-      next.set(action.sessionId, { ...session, toolCalls, pendingApproval });
+      next.set(action.sessionId, { ...session, toolCalls });
       return next;
     }
 
@@ -162,18 +107,11 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
       const existing = toolCalls.get(action.toolUseId);
       if (existing) {
         toolCalls.set(action.toolUseId, {
-          ...existing,
-          status: 'failed',
-          error: action.error,
+          ...existing, status: 'failed', error: action.error,
         });
       }
 
-      const pendingApproval =
-        session.pendingApproval === action.toolUseId
-          ? null
-          : session.pendingApproval;
-
-      next.set(action.sessionId, { ...session, toolCalls, pendingApproval });
+      next.set(action.sessionId, { ...session, toolCalls });
       return next;
     }
 
@@ -181,21 +119,70 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
       const session = next.get(action.sessionId);
       if (!session) return state;
 
+      const message = {
+        id: nextMessageId(),
+        role: 'assistant' as const,
+        content: action.lastAssistantMessage,
+        timestamp: action.timestamp,
+      };
+
       next.set(action.sessionId, {
         ...session,
-        messages: [
-          ...session.messages,
-          {
-            id: nextMessageId(),
-            role: 'assistant',
-            content: action.lastAssistantMessage,
-            timestamp: action.timestamp,
-          },
-        ],
+        timeline: [...session.timeline, { kind: 'assistant', message }],
         isThinking: false,
-        // Close current tool group — next tools start a new group
-        toolGroups: [...session.toolGroups, { id: nextGroupId(), toolIds: [] }],
+        currentGroupId: null, // Next tools start a fresh group
       });
+      return next;
+    }
+
+    case 'SHOW_PROMPT': {
+      let session = next.get(action.sessionId);
+      if (!session) {
+        session = createSessionChatState();
+        next.set(action.sessionId, session);
+      }
+
+      // Remove existing prompt with same ID to avoid duplicates
+      const timeline = session.timeline.filter(
+        (e) => !(e.kind === 'prompt' && e.prompt.promptId === action.promptId),
+      );
+      timeline.push({
+        kind: 'prompt',
+        prompt: {
+          promptId: action.promptId,
+          title: action.title,
+          buttons: action.buttons,
+        },
+      });
+
+      next.set(action.sessionId, { ...session, timeline });
+      return next;
+    }
+
+    case 'COMPLETE_PROMPT': {
+      const session = next.get(action.sessionId);
+      if (!session) return state;
+
+      const timeline = session.timeline.map((e) => {
+        if (e.kind === 'prompt' && e.prompt.promptId === action.promptId) {
+          return { ...e, prompt: { ...e.prompt, completed: action.selection } };
+        }
+        return e;
+      });
+
+      next.set(action.sessionId, { ...session, timeline });
+      return next;
+    }
+
+    case 'DISMISS_PROMPT': {
+      const session = next.get(action.sessionId);
+      if (!session) return state;
+
+      const timeline = session.timeline.filter(
+        (e) => !(e.kind === 'prompt' && e.prompt.promptId === action.promptId),
+      );
+
+      next.set(action.sessionId, { ...session, timeline });
       return next;
     }
 

@@ -10,13 +10,9 @@ export function hookEventToAction(event: HookEvent): ChatAction | null {
 
   switch (type) {
     case 'UserPromptSubmit': {
-      const content =
-        typeof payload.prompt === 'string'
-          ? payload.prompt
-          : typeof payload.message === 'string'
-            ? payload.message
-            : '';
-      return { type: 'USER_PROMPT', sessionId, content, timestamp };
+      // Skipped — InputBar dispatches USER_PROMPT optimistically on send
+      // so the bubble appears instantly rather than waiting for the hook round-trip
+      return null;
     }
 
     case 'PreToolUse': {
@@ -28,10 +24,8 @@ export function hookEventToAction(event: HookEvent): ChatAction | null {
     }
 
     case 'PermissionRequest': {
-      const toolUseId = (payload._toolUseId as string) || (payload.tool_use_id as string) || `perm-${Date.now()}`;
-      const toolName = (payload.tool_name as string) || 'Unknown';
-      const input = (payload.tool_input as Record<string, unknown>) || {};
-      return { type: 'PERMISSION_REQUEST', sessionId, toolUseId, toolName, input };
+      // Handled by PTY-based prompt detection (InkSelectParser) — not hooks
+      return null;
     }
 
     case 'PostToolUse': {

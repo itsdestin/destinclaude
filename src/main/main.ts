@@ -26,7 +26,7 @@ function createWindow() {
     mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
   }
 
-  registerIpcHandlers(ipcMain, sessionManager, hookRelay, mainWindow);
+  registerIpcHandlers(ipcMain, sessionManager, mainWindow);
 
   // Forward hook events to renderer
   hookRelay.on('hook-event', (event) => {

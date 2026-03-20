@@ -5,6 +5,7 @@ import { Unicode11Addon } from '@xterm/addon-unicode11';
 import { WebglAddon } from '@xterm/addon-webgl';
 import '@xterm/xterm/css/xterm.css';
 import { usePtyOutput } from '../hooks/useIpc';
+import { registerTerminal, unregisterTerminal } from '../hooks/terminal-registry';
 
 interface Props {
   sessionId: string;
@@ -51,6 +52,7 @@ export default function TerminalView({ sessionId, visible }: Props) {
 
     terminalRef.current = terminal;
     fitAddonRef.current = fitAddon;
+    registerTerminal(sessionId, terminal);
 
     // Fit terminal to container and sync dimensions to PTY
     const fitAndSync = () => {
@@ -84,11 +86,12 @@ export default function TerminalView({ sessionId, visible }: Props) {
       clearTimeout(timer);
       window.removeEventListener('resize', fitAndSync);
       resizeObserver.disconnect();
+      unregisterTerminal(sessionId);
       terminal.dispose();
     };
   }, [sessionId]);
 
-  // Re-fit when visibility changes
+  // Re-fit when visible, blur when hidden (prevents xterm stealing keyboard input)
   useEffect(() => {
     if (visible && fitAddonRef.current) {
       const timer = setTimeout(() => {
@@ -98,11 +101,14 @@ export default function TerminalView({ sessionId, visible }: Props) {
           if (dims && dims.cols && dims.rows) {
             window.claude.session.resize(sessionId, dims.cols, dims.rows);
           }
+          terminalRef.current?.focus();
         } catch {
           // Ignore
         }
       }, 50);
       return () => clearTimeout(timer);
+    } else if (!visible && terminalRef.current) {
+      terminalRef.current.blur();
     }
   }, [visible, sessionId]);
 

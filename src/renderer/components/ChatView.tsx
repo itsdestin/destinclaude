@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { useChatState } from '../state/chat-context';
+import { useChatState, useChatDispatch } from '../state/chat-context';
 import UserMessage from './UserMessage';
 import AssistantMessage from './AssistantMessage';
 import ToolGroup from './ToolGroup';
+import PromptCard from './PromptCard';
 import ThinkingIndicator from './ThinkingIndicator';
 
 interface Props {
@@ -12,7 +13,7 @@ interface Props {
 
 export default function ChatView({ sessionId, visible }: Props) {
   const state = useChatState(sessionId);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const dispatch = useChatDispatch();
   const bottomRef = useRef<HTMLDivElement>(null);
   const [atBottom, setAtBottom] = useState(true);
 
@@ -34,74 +35,26 @@ export default function ChatView({ sessionId, visible }: Props) {
     if (atBottom && bottomRef.current) {
       bottomRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [state.messages.length, state.toolGroups.length, state.isThinking, atBottom]);
+  }, [state.timeline.length, state.isThinking, atBottom]);
 
   const jumpToBottom = useCallback(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, []);
 
-  const handleApprove = useCallback(
-    (toolUseId: string) => {
-      window.claude.session.approve(sessionId, toolUseId, true);
+  const handlePromptSelect = useCallback(
+    (promptId: string, input: string, label: string) => {
+      // Send keystrokes to PTY to navigate the Ink menu
+      window.claude.session.sendInput(sessionId, input);
+      // Mark the prompt as completed in the UI
+      dispatch({
+        type: 'COMPLETE_PROMPT',
+        sessionId,
+        promptId,
+        selection: label,
+      });
     },
-    [sessionId],
+    [sessionId, dispatch],
   );
-
-  const handleReject = useCallback(
-    (toolUseId: string) => {
-      window.claude.session.approve(sessionId, toolUseId, false);
-    },
-    [sessionId],
-  );
-
-  // Build timeline: interleave messages with tool groups
-  // Tool groups are placed before the assistant message that follows them
-  const timeline: React.ReactNode[] = [];
-  let groupCursor = 0;
-
-  for (const msg of state.messages) {
-    if (msg.role === 'assistant') {
-      // Render any tool groups that accumulated before this assistant message
-      while (groupCursor < state.toolGroups.length) {
-        const group = state.toolGroups[groupCursor];
-        if (group.toolIds.length === 0) {
-          groupCursor++;
-          continue;
-        }
-        // Stop if we've reached the sentinel group that was created when STOP fired
-        // (it will have an empty toolIds and was already skipped above)
-        groupCursor++;
-        timeline.push(
-          <ToolGroup
-            key={group.id}
-            group={group}
-            toolCalls={state.toolCalls}
-            onApprove={handleApprove}
-            onReject={handleReject}
-          />,
-        );
-      }
-      timeline.push(<AssistantMessage key={msg.id} message={msg} />);
-    } else {
-      timeline.push(<UserMessage key={msg.id} message={msg} />);
-    }
-  }
-
-  // Render remaining tool groups (ones after the last assistant message, still in progress)
-  while (groupCursor < state.toolGroups.length) {
-    const group = state.toolGroups[groupCursor];
-    groupCursor++;
-    if (group.toolIds.length === 0) continue;
-    timeline.push(
-      <ToolGroup
-        key={group.id}
-        group={group}
-        toolCalls={state.toolCalls}
-        onApprove={handleApprove}
-        onReject={handleReject}
-      />,
-    );
-  }
 
   return (
     <div
@@ -115,14 +68,41 @@ export default function ChatView({ sessionId, visible }: Props) {
         flexDirection: 'column',
       }}
     >
-      <div ref={scrollRef} className="flex-1 overflow-y-auto py-4">
-        {state.messages.length === 0 && !state.isThinking ? (
+      <div className="flex-1 overflow-y-auto py-4">
+        {state.timeline.length === 0 && !state.isThinking ? (
           <div className="flex items-center justify-center h-full text-gray-500 text-sm">
             Start a conversation with Claude
           </div>
         ) : (
           <>
-            {timeline}
+            {state.timeline.map((entry, i) => {
+              switch (entry.kind) {
+                case 'user':
+                  return <UserMessage key={entry.message.id} message={entry.message} />;
+                case 'assistant':
+                  return <AssistantMessage key={entry.message.id} message={entry.message} />;
+                case 'tool-group': {
+                  const group = state.toolGroups.get(entry.groupId);
+                  if (!group || group.toolIds.length === 0) return null;
+                  return (
+                    <ToolGroup
+                      key={entry.groupId}
+                      group={group}
+                      toolCalls={state.toolCalls}
+                    />
+                  );
+                }
+                case 'prompt':
+                  return (
+                    <PromptCard
+                      key={entry.prompt.promptId}
+                      prompt={entry.prompt}
+                      sessionId={sessionId}
+                      onSelect={(input, label) => handlePromptSelect(entry.prompt.promptId, input, label)}
+                    />
+                  );
+              }
+            })}
             {state.isThinking && <ThinkingIndicator />}
           </>
         )}

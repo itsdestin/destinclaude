@@ -17,7 +17,7 @@ export interface HookEvent {
 
 // --- Chat view types ---
 
-export type ToolCallStatus = 'running' | 'awaiting-approval' | 'complete' | 'failed';
+export type ToolCallStatus = 'running' | 'complete' | 'failed';
 
 export interface ToolCallState {
   toolUseId: string;
@@ -48,7 +48,6 @@ export const IPC = {
   SESSION_INPUT: 'session:input',
   SESSION_RESIZE: 'session:resize',
   SESSION_LIST: 'session:list',
-  SESSION_APPROVE: 'session:approve',
   // Main -> Renderer
   SESSION_CREATED: 'session:created',
   SESSION_DESTROYED: 'session:destroyed',

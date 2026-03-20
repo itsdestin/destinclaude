@@ -1,4 +1,5 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { useChatDispatch } from '../state/chat-context';
 
 interface Props {
   sessionId: string;
@@ -7,49 +8,51 @@ interface Props {
 
 export default function InputBar({ sessionId, disabled }: Props) {
   const [text, setText] = useState('');
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const dispatch = useChatDispatch();
+
+  // Auto-focus input when mounted
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, [sessionId]);
 
   const send = useCallback(() => {
     const trimmed = text.trim();
     if (!trimmed || disabled) return;
-    window.claude.session.sendInput(sessionId, trimmed + '\n');
+
+    // Optimistic: show user bubble immediately (don't wait for hook)
+    dispatch({
+      type: 'USER_PROMPT',
+      sessionId,
+      content: trimmed,
+      timestamp: Date.now(),
+    });
+
+    // Send to PTY
+    window.claude.session.sendInput(sessionId, trimmed + '\r');
     setText('');
-    // Reset textarea height
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-    }
-  }, [text, sessionId, disabled]);
+  }, [text, sessionId, disabled, dispatch]);
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      send();
-    }
-  };
-
-  const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setText(e.target.value);
-    // Auto-expand up to ~6 lines
-    const el = e.target;
-    el.style.height = 'auto';
-    el.style.height = Math.min(el.scrollHeight, 144) + 'px';
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    send();
   };
 
   return (
     <div className="border-t border-gray-800 p-3 shrink-0">
-      <div className="flex items-end gap-2 bg-gray-800 rounded-xl px-3 py-2">
-        <textarea
-          ref={textareaRef}
+      <form onSubmit={handleSubmit} className="flex items-center gap-2 bg-gray-800 rounded-xl px-3 py-2">
+        <input
+          ref={inputRef}
+          type="text"
           value={text}
-          onChange={handleInput}
-          onKeyDown={handleKeyDown}
+          onChange={(e) => setText(e.target.value)}
           placeholder={disabled ? 'Waiting for approval...' : 'Message Claude...'}
           disabled={disabled}
-          rows={1}
-          className="flex-1 bg-transparent text-sm text-gray-200 placeholder-gray-500 resize-none outline-none min-h-[24px] max-h-[144px] disabled:opacity-50"
+          autoFocus
+          className="flex-1 bg-transparent text-sm text-gray-200 placeholder-gray-500 outline-none disabled:opacity-50"
         />
         <button
-          onClick={send}
+          type="submit"
           disabled={disabled || !text.trim()}
           className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-30 disabled:hover:bg-indigo-600 transition-colors"
         >
@@ -57,7 +60,7 @@ export default function InputBar({ sessionId, disabled }: Props) {
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M12 5l7 7-7 7" />
           </svg>
         </button>
-      </div>
+      </form>
     </div>
   );
 }

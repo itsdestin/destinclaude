@@ -5,6 +5,7 @@ import HeaderBar from './components/HeaderBar';
 import InputBar from './components/InputBar';
 import { ChatProvider, useChatDispatch, useChatState } from './state/chat-context';
 import { hookEventToAction } from './state/hook-dispatcher';
+import { usePromptDetector } from './hooks/usePromptDetector';
 
 type ViewMode = 'chat' | 'terminal';
 
@@ -13,6 +14,9 @@ function AppInner() {
   const [sessions, setSessions] = useState<any[]>([]);
   const [viewModes, setViewModes] = useState<Map<string, ViewMode>>(new Map());
   const sessionCounter = useRef(0);
+
+  // Monitor PTY output for Ink select menus (folder trust, permissions, etc.)
+  usePromptDetector();
   const dispatch = useChatDispatch();
 
   useEffect(() => {
@@ -134,10 +138,8 @@ function AppInner() {
   );
 }
 
-/** Wrapper that reads chat state to determine if input should be disabled */
 function ChatInputBar({ sessionId }: { sessionId: string }) {
-  const state = useChatState(sessionId);
-  return <InputBar sessionId={sessionId} disabled={state.pendingApproval !== null} />;
+  return <InputBar sessionId={sessionId} />;
 }
 
 export default function App() {

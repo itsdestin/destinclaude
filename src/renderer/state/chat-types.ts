@@ -1,20 +1,34 @@
 import { ChatMessage, ToolCallState, ToolGroupState } from '../../shared/types';
 
+export interface InteractivePrompt {
+  promptId: string;
+  title: string;
+  buttons: { label: string; input: string }[];
+  completed?: string; // label of the selected option, if completed
+}
+
+export type TimelineEntry =
+  | { kind: 'user'; message: ChatMessage }
+  | { kind: 'assistant'; message: ChatMessage }
+  | { kind: 'tool-group'; groupId: string }
+  | { kind: 'prompt'; prompt: InteractivePrompt };
+
 export interface SessionChatState {
-  messages: ChatMessage[];
+  timeline: TimelineEntry[];
   toolCalls: Map<string, ToolCallState>;
-  toolGroups: ToolGroupState[];
+  toolGroups: Map<string, ToolGroupState>;
   isThinking: boolean;
-  pendingApproval: string | null; // toolUseId awaiting approval
+  /** ID of the current tool group (tools are appended here until next message) */
+  currentGroupId: string | null;
 }
 
 export function createSessionChatState(): SessionChatState {
   return {
-    messages: [],
+    timeline: [],
     toolCalls: new Map(),
-    toolGroups: [],
+    toolGroups: new Map(),
     isThinking: false,
-    pendingApproval: null,
+    currentGroupId: null,
   };
 }
 
@@ -29,13 +43,6 @@ export type ChatAction =
     }
   | {
       type: 'PRE_TOOL_USE';
-      sessionId: string;
-      toolUseId: string;
-      toolName: string;
-      input: Record<string, unknown>;
-    }
-  | {
-      type: 'PERMISSION_REQUEST';
       sessionId: string;
       toolUseId: string;
       toolName: string;
@@ -58,7 +65,24 @@ export type ChatAction =
       sessionId: string;
       lastAssistantMessage: string;
       timestamp: number;
+    }
+  | {
+      type: 'SHOW_PROMPT';
+      sessionId: string;
+      promptId: string;
+      title: string;
+      buttons: { label: string; input: string }[];
+    }
+  | {
+      type: 'COMPLETE_PROMPT';
+      sessionId: string;
+      promptId: string;
+      selection: string;
+    }
+  | {
+      type: 'DISMISS_PROMPT';
+      sessionId: string;
+      promptId: string;
     };
 
-// Global state: one SessionChatState per session
 export type ChatState = Map<string, SessionChatState>;

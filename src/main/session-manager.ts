@@ -72,7 +72,8 @@ export class SessionManager extends EventEmitter {
       this.sessions.delete(id);
     });
 
-    // Tell the worker to spawn claude
+    // Tell the worker to spawn claude, passing our session ID
+    // so hook events can be correlated back to this session
     worker.send({
       type: 'spawn',
       command: 'claude',
@@ -80,6 +81,7 @@ export class SessionManager extends EventEmitter {
       cwd: opts.cwd,
       cols: opts.cols || 80,
       rows: opts.rows || 24,
+      sessionId: id,
     });
 
     return info;

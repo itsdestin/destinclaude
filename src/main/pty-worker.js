@@ -24,7 +24,11 @@ process.on('message', (msg) => {
         cols: msg.cols || 120,
         rows: msg.rows || 30,
         cwd: msg.cwd || process.env.HOME || process.env.USERPROFILE,
-        env: { ...process.env },
+        env: {
+          ...process.env,
+          // Pass our session ID so hook scripts can include it in payloads
+          CLAUDE_DESKTOP_SESSION_ID: msg.sessionId || '',
+        },
       });
 
       ptyProcess.onData((data) => {

@@ -6,26 +6,29 @@ let input = '';
 process.stdin.setEncoding('utf8');
 process.stdin.on('data', (chunk) => { input += chunk; });
 process.stdin.on('end', () => {
+  // Inject our desktop session ID into the payload
+  const desktopSessionId = process.env.CLAUDE_DESKTOP_SESSION_ID;
+  if (desktopSessionId) {
+    try {
+      const parsed = JSON.parse(input);
+      parsed._desktop_session_id = desktopSessionId;
+      input = JSON.stringify(parsed);
+    } catch {}
+  }
+
+  // Fire-and-forget: write payload + newline, then close
   const client = net.createConnection(PIPE_NAME, () => {
-    client.write(input);
+    client.end(input + '\n', () => {
+      process.exit(0);
+    });
   });
 
-  client.setTimeout(120000, () => {
+  client.setTimeout(5000, () => {
     client.destroy();
     process.exit(0);
   });
 
-  let response = '';
-  client.on('data', (data) => { response += data.toString(); });
-  client.on('end', () => {
-    if (response) {
-      process.stdout.write(response);
-    }
-    process.exit(0);
-  });
-
   client.on('error', () => {
-    // If pipe not available, proceed silently (exit 0 = allow)
     process.exit(0);
   });
 });

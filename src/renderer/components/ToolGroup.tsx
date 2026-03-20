@@ -1,38 +1,26 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { ToolCallState, ToolGroupState } from '../../shared/types';
 import ToolCard from './ToolCard';
 
 interface Props {
   group: ToolGroupState;
   toolCalls: Map<string, ToolCallState>;
-  onApprove: (toolUseId: string) => void;
-  onReject: (toolUseId: string) => void;
 }
 
-export default function ToolGroup({ group, toolCalls, onApprove, onReject }: Props) {
+export default function ToolGroup({ group, toolCalls }: Props) {
   const tools = group.toolIds
     .map((id) => toolCalls.get(id))
     .filter((t): t is ToolCallState => t !== undefined);
 
-  const needsApproval = tools.some((t) => t.status === 'awaiting-approval');
-  const [expanded, setExpanded] = useState(needsApproval);
-
-  // Auto-expand when approval is needed
-  useEffect(() => {
-    if (needsApproval) setExpanded(true);
-  }, [needsApproval]);
+  const [expanded, setExpanded] = useState(false);
 
   if (tools.length === 0) return null;
 
-  // Single tool with no approval: render compact
-  if (tools.length === 1 && !needsApproval) {
+  // Single tool: render compact
+  if (tools.length === 1) {
     return (
       <div className="px-4 py-1">
-        <ToolCard
-          tool={tools[0]}
-          onApprove={() => onApprove(tools[0].toolUseId)}
-          onReject={() => onReject(tools[0].toolUseId)}
-        />
+        <ToolCard tool={tools[0]} />
       </div>
     );
   }
@@ -56,8 +44,6 @@ export default function ToolGroup({ group, toolCalls, onApprove, onReject }: Pro
         >
           {runningCount > 0 ? (
             <span className="w-4 h-4 shrink-0 rounded-full border-2 border-indigo-400 border-t-transparent animate-spin" />
-          ) : needsApproval ? (
-            <span className="w-4 h-4 shrink-0 rounded-full bg-amber-500" />
           ) : (
             <svg className="w-4 h-4 shrink-0 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -74,12 +60,7 @@ export default function ToolGroup({ group, toolCalls, onApprove, onReject }: Pro
         {expanded && (
           <div className="px-2 pb-2 space-y-1">
             {tools.map((tool) => (
-              <ToolCard
-                key={tool.toolUseId}
-                tool={tool}
-                onApprove={() => onApprove(tool.toolUseId)}
-                onReject={() => onReject(tool.toolUseId)}
-              />
+              <ToolCard key={tool.toolUseId} tool={tool} />
             ))}
           </div>
         )}
