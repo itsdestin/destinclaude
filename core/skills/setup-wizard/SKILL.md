@@ -3,6 +3,8 @@ name: setup-wizard
 description: Interactive toolkit installer — inventories the user's environment, resolves conflicts, installs dependencies, personalizes templates, and verifies everything works. Invoked via /setup-wizard or when user says "set me up."
 ---
 
+<!-- SPEC: Read specs/setup-wizard-spec.md before modifying this file -->
+
 # DestinClaude Setup Wizard
 
 You are the setup wizard for the DestinClaude toolkit. Walk the user through a complete installation conversationally — explaining each step in plain language. The user may be non-technical; never assume familiarity with developer tools.
@@ -15,246 +17,16 @@ You are the setup wizard for the DestinClaude toolkit. Walk the user through a c
 
 ## Phase 0: Prior Use Check
 
-Before inventorying the environment, find out if this is a fresh install or a restore.
+Ask the user: "Have you used DestinClaude before on another device?"
 
-### Step 1: Ask the prior-use question
+- **Yes:** Store `returning_user: true` in memory. Continue to Phase 1 (full install).
+- **No:** Continue to Phase 1 (full install).
 
-Say exactly:
-
-```
-Before we get started — have you used DestinClaude before on another device?
-
-  1. Yes — I have a backup to restore from
-  2. No — this is my first time
-```
-
-If the user answers **2 (no)** or indicates they're new, proceed to **Phase 0.5**.
-
-If the user answers **1 (yes)** or indicates prior use, continue to Step 2.
-
-(The user may answer in plain language — treat any affirmative as option 1, any negative as option 2.)
-
-**Wait for the user's answer before proceeding.**
-
-### Step 2: Ask which backup source
-
-Say exactly:
-
-```
-Where did you back up your data?
-
-  1. GitHub (private config repo)
-  2. Google Drive
-  3. iCloud
-  4. Not sure / skip
-```
-
-- **1 (GitHub):** Proceed to **Phase 0A: GitHub Restore**.
-- **2 (Google Drive):** Proceed to **Phase 0B: Drive Restore**.
-- **3 (iCloud):** Say "iCloud restore support is coming — for now, let's do a fresh install. I'll make sure everything is set up to back up to iCloud going forward." Then proceed to Phase 1 normally.
-- **4 (not sure / skip):** Proceed to Phase 1 normally.
-
-**Wait for the user's answer before proceeding.**
-
----
-
-## Phase 0A: GitHub Restore
-
-### Step 1: Get the repo URL
-
-Ask: "What's the URL of your private config repo? It should look like `https://github.com/yourusername/your-repo-name.git`"
-
-### Step 2: Ensure git is installed
-
-```bash
-git --version
-```
-
-If missing, this is a blocker. Tell the user: "Git isn't installed yet — I need it to clone your backup. Let me install it first." Use the platform-appropriate install command from Phase 4 (Core Dependencies → git), then verify.
-
-### Step 3: Clone or pull
-
-Check whether `~/.claude` is already a git repo:
-
-```bash
-[ -d "$HOME/.claude/.git" ] && echo "exists" || echo "missing"
-```
-
-If **missing** — clone:
-
-```bash
-git clone <repo-url> ~/.claude
-```
-
-If **exists** — pull:
-
-```bash
-cd ~/.claude && git pull --rebase origin main
-```
-
-If either fails, tell the user what went wrong (wrong URL, no access, no internet) and ask them to check the URL and try again.
-
-### Step 4: Rewrite hardcoded paths
-
-The backup may contain paths from the original machine. Detect the current machine's HOME and project slug, then replace any old values found in the cloned files:
-
-```bash
-NORM_HOME="${HOME//\\//}"
-CURRENT_SLUG=$(echo "$NORM_HOME" | sed 's|[/:]|-|g; s|^-||')
-
-# Detect old HOME from cloned files
-OLD_HOME=$(grep -rh "C:/Users/[^/\"' ]*\|/Users/[^/\"' ]*\|/home/[^/\"' ]*" \
-  ~/.claude/CLAUDE.md ~/.claude/settings.json 2>/dev/null \
-  | grep -o "C:/Users/[^/\"' ]*\|/Users/[^/\"' ]*\|/home/[^/\"' ]*" \
-  | head -1)
-OLD_SLUG=$(echo "$OLD_HOME" | sed 's|[/:]|-|g; s|^-||')
-
-if [[ -n "$OLD_HOME" && "$OLD_HOME" != "$NORM_HOME" ]]; then
-    find ~/.claude -type f \( -name "*.md" -o -name "*.sh" -o -name "*.json" \) \
-        -not -path "*/.git/*" -not -path "*/node_modules/*" \
-        -exec grep -l "$OLD_HOME" {} \; | while read -r file; do
-        sed "s|$OLD_HOME|$NORM_HOME|g" "$file" > "$file.tmp" && mv "$file.tmp" "$file"
-    done
-    echo "  Updated path references: $OLD_HOME → $NORM_HOME"
-fi
-
-if [[ -n "$OLD_SLUG" && "$OLD_SLUG" != "$CURRENT_SLUG" ]]; then
-    find ~/.claude -type f \( -name "*.md" -o -name "*.sh" -o -name "*.json" \) \
-        -not -path "*/.git/*" -not -path "*/node_modules/*" \
-        -exec grep -l "$OLD_SLUG" {} \; | while read -r file; do
-        sed "s|$OLD_SLUG|$CURRENT_SLUG|g" "$file" > "$file.tmp" && mv "$file.tmp" "$file"
-    done
-    echo "  Updated slug references: $OLD_SLUG → $CURRENT_SLUG"
-fi
-```
-
-Tell the user: "I've updated any references to your old device's username."
-
-### Step 5: Apply MCP server config
-
-If `~/.claude/mcp-servers/mcp-config.json` exists and `node` is available, merge it back into `~/.claude.json`:
-
-```bash
-if [[ -f "$HOME/.claude/mcp-servers/mcp-config.json" ]] && command -v node &>/dev/null; then
-    NORM_HOME="${HOME//\\//}"
-    node -e "
-        const fs = require('fs');
-        const mcpConfig = JSON.parse(fs.readFileSync(process.argv[1], 'utf8'));
-        if (Object.keys(mcpConfig).length === 0) { process.exit(0); }
-        const cjPath = process.argv[2];
-        const projectKey = process.argv[3];
-        let cj = {};
-        try { cj = JSON.parse(fs.readFileSync(cjPath, 'utf8')); } catch(e) {}
-        if (!cj.projects) cj.projects = {};
-        if (!cj.projects[projectKey]) cj.projects[projectKey] = {};
-        cj.projects[projectKey].mcpServers = mcpConfig;
-        fs.writeFileSync(cjPath, JSON.stringify(cj, null, 2) + '\n');
-        console.log('  Applied ' + Object.keys(mcpConfig).length + ' MCP server(s).');
-    " "$HOME/.claude/mcp-servers/mcp-config.json" "$HOME/.claude.json" "$NORM_HOME"
-fi
-```
-
-If node isn't available yet, skip this step and tell the user: "I'll re-apply your MCP server config once Node.js is confirmed installed."
-
-### Step 6: Confirm and continue
-
-Tell the user: "Your config is restored from GitHub. Now let me confirm all the tools it needs are installed on this machine."
-
-Proceed to **Phase 0C: Abbreviated Dependency Check**.
-
----
-
-## Phase 0B: Drive Restore
-
-### Step 1: Install rclone if missing
-
-Follow the exact same rclone installation steps as **Phase 4 → Life Dependencies → rclone** — same explanation, same platform commands, same verification (`rclone --version`).
-
-### Step 2: Configure Google Drive
-
-Follow the exact same Google Drive authentication steps as **Phase 4 → Life Dependencies → Google Drive authentication** — same walkthrough, same `rclone config create gdrive drive` command, same verification (`rclone lsd gdrive:`).
-
-If `gdrive:` is already listed in `rclone listremotes`, skip setup and go straight to Step 3.
-
-### Step 3: Ask for Drive root
-
-Ask: "Where does DestinClaude store files on your Google Drive? This is the top-level folder name. (default: Claude)"
-
-Store the answer as `DRIVE_ROOT`. Use `Claude` if the user presses Enter without answering.
-
-### Step 4: Pull data from Drive
-
-Pull in this order. Tell the user what's happening at each step.
-
-**Encyclopedia files:**
-
-```bash
-mkdir -p ~/.claude/encyclopedia
-rclone sync "gdrive:$DRIVE_ROOT/The Journal/System/" ~/.claude/encyclopedia/ 2>/dev/null \
-  && echo "  Encyclopedia synced." \
-  || echo "  WARNING: Encyclopedia sync failed. Run manually: rclone sync 'gdrive:$DRIVE_ROOT/The Journal/System/' ~/.claude/encyclopedia/"
-```
-
-**Personal data** (memory, CLAUDE.md, toolkit config):
-
-```bash
-rclone sync "gdrive:$DRIVE_ROOT/Backup/personal/" ~/.claude/ --update 2>/dev/null \
-  && echo "  Personal data synced." \
-  || echo "  WARNING: Personal data sync failed. Run manually: rclone sync 'gdrive:$DRIVE_ROOT/Backup/personal/' ~/.claude/ --update"
-```
-
-**Conversation transcripts:**
-
-```bash
-mkdir -p ~/.claude/projects
-rclone copy "gdrive:$DRIVE_ROOT/Backup/conversations/" ~/.claude/projects/ --size-only 2>/dev/null \
-  && echo "  Transcripts synced." \
-  || echo "  WARNING: Transcript sync failed. Run manually: rclone copy 'gdrive:$DRIVE_ROOT/Backup/conversations/' ~/.claude/projects/ --size-only"
-```
-
-If any step fails and the user wants to skip it, that's fine — tell them the manual command to run later.
-
-### Step 5: Confirm and continue
-
-Tell the user: "Your data is restored from Google Drive. Now let me confirm all the tools it needs are installed on this machine."
-
-Proceed to **Phase 0C: Abbreviated Dependency Check**.
-
----
-
-## Phase 0C: Abbreviated Dependency Check
-
-*Used only after Phase 0A or 0B. Skip this section for fresh installs — they use Phase 4.*
-
-Tell the user: "Let me make sure all the tools your restored config needs are installed on this machine."
-
-Read `~/.claude/toolkit-state/config.json` to determine which layers were previously installed (`installed_layers`).
-
-If `config.json` exists but does not contain a `comfort_level` key (backups from before this feature), default to `"intermediate"` and store it in working state. Do not ask the user — this preserves the pre-comfort-gate behavior. The user can change it on a future re-run of `/setup-wizard`.
-
-Run the dependency checks from **Phase 4** for each relevant layer:
-
-- Always run **Core Dependencies** checks (git, gh CLI, gcloud)
-- Run **Life Dependencies** checks (rclone, Google Drive) only if `"life"` is in `installed_layers` — or if Phase 0B just ran (rclone is already configured)
-- Run **Productivity Dependencies** checks (messaging, Go, Todoist) only if `"productivity"` is in `installed_layers`
-
-For each dependency:
-- If already installed: report ✓ and skip
-- If missing: explain what it is and install it using the same steps as Phase 4
-
-If `toolkit-state/config.json` doesn't exist or can't be read, run all Core checks and ask the user which layers they had installed.
-
-After completing all checks:
-
-Tell the user: "Since your config is restored from backup, I'll skip the personalization step — your name, preferences, and settings are already in place. Let me just verify everything works."
-
-**Skip Phase 1 through Phase 5 entirely.** Proceed directly to **Phase 6: Verification**.
+**Important:** Returning users go through the FULL install (Phases 1-6), not an abbreviated path. Personal data restoration happens in Phase 5R, AFTER the toolkit is fully installed and configured. This ensures the toolkit is in a known-good state before layering personal data on top.
 
 ---
 
 ## Phase 0.5: Comfort Level
-
-*Only for fresh installs. If the user restored from backup (Phase 0A/0B → 0C), this phase was skipped — proceed to Phase 6 as directed by Phase 0C.*
 
 *If this is a re-run and `~/.claude/toolkit-state/config.json` already has a `comfort_level`, pre-select it:* "Last time you chose [beginner/intermediate/power user]. Still feel the same, or want to change?"
 
@@ -1256,6 +1028,87 @@ MCP servers configured:
 Only show the messaging servers the user actually selected. For example, if they chose iMessage only, don't show gmessages.
 
 Summarize: "Everything is personalized for you — your name, preferences, and services are all configured."
+
+---
+
+## Phase 5R: Restore Personal Data (returning users only)
+
+**Skip this phase if the user said "No" in Phase 0.**
+
+This phase runs AFTER Phase 5 has fully installed the toolkit. The system is in a clean, working state. Now we layer personal data on top.
+
+#### Step 1: Ask about backup location
+
+> "Now let's restore your personal data from your previous setup. Where is your backup stored?"
+> 1. **Google Drive** (uses rclone)
+> 2. **Private GitHub repo**
+> 3. **iCloud** (macOS only)
+> 4. **I don't have a backup** (skip)
+
+If they choose option 4, skip to Phase 6.
+
+Set `primary_backend` in config.json based on their choice. For GitHub, ask for the repo URL and set `primary_backend_repo`.
+
+#### Step 2: Connect and inventory
+
+Run the backup engine in restore mode:
+```bash
+bash "$TOOLKIT_ROOT/core/hooks/backup-engine.sh" --restore
+```
+
+Parse the JSON output. If status is not "ok", explain the issue clearly and offer to retry or skip.
+
+#### Step 3: Restore data categories
+
+For each available category:
+
+- **Memory files**: Restore automatically, no prompt needed.
+  ```bash
+  # Copy from temp_dir/memory/{project}/ to ~/.claude/projects/{project}/memory/
+  ```
+
+- **Conversation history**: Restore automatically.
+  ```bash
+  # Copy from temp_dir/conversations/{project}/ to ~/.claude/projects/{project}/
+  ```
+
+- **Keybindings**: Restore automatically.
+  ```bash
+  # Copy from temp_dir/config/keybindings.json to ~/.claude/keybindings.json
+  ```
+
+- **CLAUDE.md**: Present the three-option merge prompt:
+  > "I found your previous personal instructions from your backup. I also just generated fresh instructions based on your current toolkit setup. Would you like me to:
+  > 1. **Merge them** — Keep your personal notes and preferences, but update the toolkit sections to match what's installed now *(recommended)*
+  > 2. **Use your backup** — Restore exactly what you had before, as-is
+  > 3. **Start fresh** — Keep only the new version the setup wizard just created"
+
+  For **Merge**: Read both files. Content between `<!-- BEGIN:fragment-name -->` and `<!-- END:fragment-name -->` markers comes from the current (wizard-generated) CLAUDE.md. Everything outside markers comes from the backup CLAUDE.md. Write the merged result.
+
+  For **Use backup**: Copy the backup CLAUDE.md over the current one.
+
+  For **Start fresh**: Do nothing (keep the wizard-generated version).
+
+- **Encyclopedia**: Copy to `~/.claude/encyclopedia/`. If backup has document types that don't exist in the current toolkit's expected set, note this for the user.
+
+- **User-choice config**: Merge from `user-choices.json` — only apply keys not already set during this setup session.
+
+- **Custom skills**: For each skill in the backup's extensions:
+  > "I found a custom skill called '{name}' in your backup. This isn't part of the DestinClaude toolkit. Would you like to restore it?"
+  If yes, copy the skill directory to `~/.claude/skills/{name}/` and add to `user_extensions.skills` in config.json.
+
+- **External projects**: If the backup contains a `backup_registry`, offer to re-register:
+  > "Your previous setup had these external projects backed up: {list}. Would you like to set those up again?"
+
+#### Step 4: Verify toolkit integrity
+
+After all restores, verify that no toolkit-owned files were overwritten by checking `plugin-manifest.json` against the installed files. If anything was overwritten, re-copy from the toolkit repo.
+
+#### Step 5: Clean up
+
+Remove the temp directory created by the engine's restore mode.
+
+Report what was restored and what was skipped.
 
 ---
 
