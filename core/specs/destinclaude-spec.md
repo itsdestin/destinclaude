@@ -1,7 +1,7 @@
 # DestinClaude Toolkit — Spec
 
-**Version:** 2.3
-**Last updated:** 2026-03-18
+**Version:** 2.4
+**Last updated:** 2026-03-20
 **Feature location:** `~/.claude/plugins/destinclaude/` (toolkit root)
 
 ## Purpose
@@ -88,7 +88,7 @@ Hook trigger-point registration is written to `~/.claude/settings.json` under th
 
 | Layer | Skills | Commands | Hooks | MCP Servers |
 |-------|--------|----------|-------|-------------|
-| Core | setup-wizard | setup-wizard, toolkit, contribute, toolkit-uninstall, update, health | checklist-reminder, contribution-detector, git-sync, personal-sync, session-start, title-update, todo-capture, tool-router, write-guard + statusline (separate config) | — |
+| Core | setup-wizard | setup-wizard, toolkit, contribute, toolkit-uninstall, update, health, restore | checklist-reminder, contribution-detector, done-sound, backup-engine + backends/ (drive, github, icloud), session-start, title-update, todo-capture, tool-router, write-guard + statusline (separate config) | — |
 | Life | encyclopedia-compile, encyclopedia-interviewer, encyclopedia-librarian, encyclopedia-update, google-drive, journaling-assistant | — | sync-encyclopedia | — |
 | Productivity | inbox-processor, skill-creator | — | — | todoist, gmessages, windows-control (Windows) |
 | Modules | (optional domain-specific add-ons) | — | — | — |
@@ -165,18 +165,19 @@ The `/update` command merged new code into the repo but did NOT refresh the acti
 ## Planned Updates
 
 - Add Linux desktop control MCP server equivalent (Mac resolved via macos-automator/home-mcp/apple-events in v1.1.0)
-- Add recovery/bail-out instructions to `/contribute` command for non-technical users
+- ~~Add recovery/bail-out instructions to `/contribute` command~~ (resolved — added bail-out section, pre-flight clean-state check)
 - Extract messaging setup from the main wizard into a standalone post-setup flow
-- Add difficulty options for install: (1) full beginner — hold my hand, (2) some experience — guidance but not every explanation, (3) expert — let's hurry this up (from inbox 2026-03-17)
+- ~~Add difficulty options for install~~ (resolved in v1.1.5 — Comfort Gate phase added to setup wizard)
 - Add clearer explanations of how to create new skills/workflows and how dynamic Claude is (from inbox 2026-03-17, partial — marketplace plugin registration resolved in v1.8)
 - ~~Add setup feature to restore configuration from Google Drive~~ (resolved in v1.1.3 — Phase 0 restore flow)
 - Add more tip prompts and hints in the first setup wizard run — mention Google Drive widget or Apple Notes widget on home screen for quick inbox capture, which can be emptied later from laptop, etc. (from inbox 2026-03-17)
-- Add iCloud support via rclone as a Drive alternative — rclone has native iCloud backend (from inbox 2026-03-17)
+- ~~Add iCloud support via rclone as a Drive alternative~~ (resolved in v1.3.0 — auto-detect personal sync backend with iCloud support)
 
 ## Change Log
 
 | Date | Version | What changed | Type |
 |------|---------|-------------|------|
+| 2026-03-20 | 2.4 | Updated Layers and Components table: Core hooks now list `backup-engine + backends/ (drive, github, icloud)` replacing `git-sync` and `personal-sync`. Added `restore` to Core commands. Reflects backup system refactor (see backup-system-spec.md v4.0). | Update |
 | 2026-03-18 | 2.3 | Fixed hook distribution pipeline: `/update` now refreshes hooks + utility scripts, sibling discovery uses config-based `toolkit_root` with symlink fallback, utility scripts added to install list, post-update verification with visual statusline check added. Documented utility scripts as a component type. | Update |
 | 2026-03-18 | 2.2 | Added auto-tag workflow Design Decision. Two-workflow release chain: `auto-tag.yml` (version bump → tag) + `release.yml` (tag → GitHub Release). | Update |
 | 2026-03-18 | 2.1 | PowerShell installer auto-enables Developer Mode on Windows for symlink support. Added Design Decision entry. Updated install flow diagram. Bash installer now detects Developer Mode and nudges toward PowerShell when it's off. | Update |

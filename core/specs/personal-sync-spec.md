@@ -1,3 +1,9 @@
+> **DEPRECATED (v4.0):** This spec has been superseded by the Backup & Sync spec v4.0.
+> The `personal-sync.sh` hook has been replaced by `backup-engine.sh`.
+> See `backup-system-spec.md` for the current architecture.
+
+---
+
 # Personal Data Sync — Spec
 
 **Version:** 1.1
@@ -69,7 +75,7 @@ Two new keys in `~/.claude/toolkit-state/config.json`:
   │   │   ├── MEMORY.md
   │   │   ├── user_profile.md
   │   │   └── ...
-  │   └── C--Users-desti-claude-mobile/
+  │   └── C--Users-desti-destincode/
   │       └── ...
   ├── CLAUDE.md
   └── toolkit-state/

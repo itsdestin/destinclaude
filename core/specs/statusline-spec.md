@@ -120,8 +120,7 @@ A real-time information display system for Claude Code sessions. Four components
 
 ## Planned Updates
 
-- **Session cost display:** The session JSON may contain cost data — could be added as a 6th statusline row if available
-- **Configurable throttle interval:** Currently hardcoded to 10 minutes; could be made configurable if sessions vary in pace
+*(None currently)*
 
 ## Change Log
 

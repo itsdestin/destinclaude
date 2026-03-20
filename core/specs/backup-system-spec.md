@@ -1,132 +1,186 @@
-# Backup & Sync -- Spec
+# Backup & Sync — Spec
 
-**Version:** 3.3
-**Last updated:** 2026-03-18
-**Feature location:** `~/.claude/hooks/git-sync.sh`, `~/.claude/hooks/drive-archive.sh`
+**Version:** 4.0
+**Last updated:** 2026-03-20
+**Feature location:** `core/hooks/backup-engine.sh`, `core/hooks/backends/`
 
 ## Purpose
 
-The Backup & Sync system keeps Claude Code's configuration, memory, skills, and supporting files continuously replicated via a Git + GitHub repository as the primary sync mechanism, with a secondary write-only Drive archive for selected high-value files. It operates through two scripts: `git-sync.sh` (a PostToolUse hook that commits changes immediately and pushes on a debounced 15-minute interval) and `drive-archive.sh` (archives specs, skills, CLAUDE.md, and transcripts to Google Drive). Together they provide automatic, conflict-aware, cross-device backup with no user intervention required during normal operation.
+The Backup & Sync system keeps Claude Code's personal data (memory, CLAUDE.md, conversation history, encyclopedia, journal, custom extensions) continuously replicated to the user's chosen storage backend. It operates through a single `backup-engine.sh` PostToolUse hook that delegates storage operations to pluggable backend drivers (`backend-drive.sh`, `backend-github.sh`, `backend-icloud.sh`). Toolkit-owned files (skills, hooks, commands, specs) are explicitly excluded — they are always re-installed from the public GitHub repo. The system supports push, pull, and restore modes with a primary + secondary backend model, per-backend debounce markers, and a canonical versioned backup schema for structure-independent restore across toolkit versions.
+
+For full architecture detail, see `core/plans/backup-system-refactor-design (03-20-2026).md`.
 
 ## User Mandates
 
-- (2026-03-13) Failures MUST be logged to `~/.claude/backup.log` AND produce an explicit error message visible in the Claude session -- silent failures are not acceptable.
+- (2026-03-13) Failures MUST be logged to `~/.claude/backup.log` AND produce an explicit error message visible in the Claude session — silent failures are not acceptable.
 - (2026-03-13) `RESTORE.md` MUST be kept in the Git repository root and MUST be updated whenever the backup structure changes.
 - (2026-03-13) Specs are NEVER modified without the user's explicit approval of the specific changes.
 - (2026-03-13) User Mandates in a spec are inviolable. If a proposed change conflicts with a mandate, stop and ask the user for approval to revise the mandate before proceeding.
-- (2026-03-13) Credential/secret files (`credentials.json`, `token.json`, `.env`) MUST be excluded from backups -- enforced via `.gitignore`.
-- (2026-03-13) `node_modules/` and `__pycache__/` MUST be excluded from all backups -- enforced via `.gitignore`.
+- (2026-03-13) Credential/secret files (`credentials.json`, `token.json`, `.env`) MUST be excluded from backups.
+- (2026-03-13) `node_modules/` and `__pycache__/` MUST be excluded from all backups.
 - (2026-03-13) Manual backup commands MUST be supported via the trigger phrases listed in CLAUDE.md ("backup now", "force a full backup", "run a backup", "manual backup", "sync to Drive").
-- (2026-03-16) All Claude projects MUST be backed up to a private GitHub repo by default. When a new project is created, it should be added to git-sync.sh's project routing.
+- (2026-03-16) All Claude projects MUST be backed up to a private backend by default. When a new project is created, it should be added to the `backup_registry` in config.json.
+- (2026-03-20) Toolkit-owned files (listed in `plugin-manifest.json`) MUST NOT be included in backups. They are always re-installed from the GitHub repo.
 
 ## Design Decisions
 
-| Decision | Rationale | Alternatives considered |
-|----------|-----------|----------------------|
-| Immediate commit, debounced 15-minute push | Every tracked file change is committed to the local Git repo immediately (preserving full history). Pushes to GitHub are debounced to a 15-minute interval to avoid excessive API calls during active editing sessions. | Commit + push on every save (too many pushes), batch commit at push time (loses granular history), longer debounce (stale remote). |
-| `.gitignore` strategy for exclusions | Credentials, `node_modules/`, `__pycache__/`, `.claude.json`, and other machine-specific files are excluded via `.gitignore`. Simpler and more robust than per-command exclude flags. | Per-command `--exclude` flags (error-prone, must be maintained in multiple places), separate tracked-files whitelist (adds indirection). |
-| Drive archive scope: specs, skills, CLAUDE.md, transcripts | These are the highest-value files for disaster recovery beyond Git. Specs and skills represent significant investment; CLAUDE.md is the system's operating manual; transcripts are append-only historical records. Other files are adequately protected by Git alone. | Archive everything (slow, redundant with Git), archive nothing (loses Drive as DR layer), archive only transcripts (under-protects specs/skills). |
-| Drive archive is best-effort | Drive archive failures are logged but do not block the Git commit/push workflow. Git is the primary sync mechanism; Drive is a secondary safety net. | Hard failure on Drive errors (blocks primary workflow for secondary concern), silent failure (violates logging mandate). |
-| Mutex lock via `mkdir` | Both git-sync and drive-archive acquire `~/.claude/.backup-lock/` directory as a mutex. `mkdir` is atomic on all platforms. Stale locks (>2 minutes) are auto-broken. 30-second retry with 1-second polling. | File-based lock with `flock` (not portable to Git Bash on Windows), no locking (race conditions between concurrent hooks). |
-| Skills: full directory add on commit | When a skill file changes, the entire skill directory is staged (not just the changed file). Skills are coherent units; partial commits could leave broken state. | Single-file skill commit (risk of inconsistency), tarball (adds compression overhead). |
-| Log rotation at 1000 lines | `backup.log` is trimmed to the last 500 lines when it exceeds 1000. Keeps logs useful without unbounded growth. | Fixed file size limit (harder to implement in bash), external log rotation (added dependency). |
-| `rclone copyto` with `--checksum` for Drive archive | Uses checksum comparison rather than modification time to decide whether to upload to Drive. More reliable across platforms where mtime may not be preserved. | `--update` flag (mtime-based, unreliable cross-platform), no flag (always copies, wasteful). |
-| `.claude.json` excluded from backups | Machine-specific file (`numStartups`, feature flags, usage stats) that always diverges between machines. Regenerates automatically. | Keep in backups (guaranteed cross-machine conflict noise, minimal disaster recovery value). |
-| Hook output via `hookSpecificOutput` JSON | `git-sync.sh` emits structured JSON so Claude Code surfaces the message in the conversation, not just in verbose mode. | Plain stdout (only visible in verbose mode), stderr (same issue). |
-| Write guard via centralized registry | Same-machine concurrency protection using a PreToolUse hook that checks `~/.claude/.write-registry.json` before Write/Edit. Blocks if a different, still-running PID last wrote the file. Registry updated in `git-sync.sh` PostToolUse, shared mutex serializes access. | Per-session tracking (catches manual edits but adds cleanup burden), file-system watcher (robust but adds daemon), no protection (silent overwrites). |
-| Multi-project support via path-based routing | A single `git-sync.sh` hook routes files to the correct Git repo based on path prefix. Each project gets independent push markers and rebase-fail counters. Branch detection is automatic via `git symbolic-ref`. | Separate hook scripts per project (duplicated logic, harder to maintain), monorepo (loses independent history and permissions). |
+The full rationale for each decision is in `core/plans/backup-system-refactor-design (03-20-2026).md`. Key decisions:
+
+| Decision | Summary | Design doc ref |
+|----------|---------|---------------|
+| Single backup engine with pluggable backends | Replaces `git-sync.sh`, `personal-sync.sh`, `drive-archive.sh` with one engine that delegates to drivers. Eliminates overlapping responsibility. | D1 |
+| Plugin manifest for ownership classification | `plugin-manifest.json` is the authoritative list of toolkit-owned files. Engine consults it before every backup and restore operation. Works on symlink and copy-based installs. | D2 |
+| Primary + secondary backend model | Users choose one primary backend (full backup + restore). Optional secondary receives write-only copies of high-value files (memory, CLAUDE.md, custom skills) as a DR mirror. | D3 |
+| Toolkit integrity check with auto-recovery | `session-start.sh` verifies toolkit directory on every session; auto-clones from GitHub if anything is missing. | D4 |
+| Installer-first restore ordering | Setup wizard installs fully first, then restores personal data on top. Backup files never overwrite the fresh install. | D5 |
+| CLAUDE.md merge with user choice | On restore, user chooses: Merge (recommended) / Use backup / Start fresh. Merge is mechanical using HTML-comment markers. | D6 |
+| Ask before backing up user-created extensions | Unrecognized skills/hooks trigger a one-time prompt; answer stored in config.json `user_extensions`. | D7 |
+| Canonical backup schema with versioned migrations | Backup written to a versioned canonical structure (`backup-schema.json`). Migration scripts transform old backups forward on restore. | D8 |
+| External projects via explicit registry | External repos tracked in `backup_registry` in config.json. Engine does not manage their git workflow — only the registry metadata and unregistered-project warnings. | D9 |
+| Config key migration from current system | Old config keys (`PERSONAL_SYNC_BACKEND`, etc.) auto-migrated to new keys on first run. | D10 |
+| Safe migration via temp directory | Schema migrations operate on a temp copy, never in-place. Remote backup is never modified during migration. | D11 |
+| User-choice config keys backed up and merged | Selected config.json keys (comfort_level, installed_layers, backends, backup_registry) backed up and merged on restore. Structural keys (toolkit_root, platform) always regenerated. | D12 |
 
 ## Current Implementation
 
-### Tracked Projects
+### Architecture Overview
 
-The hook supports multiple independent Git repositories. File path routing determines which repo to commit to:
+```
+core/hooks/
+├── backup-engine.sh          # Single PostToolUse hook (push) + session-start (pull)
+└── backends/
+    ├── backend-drive.sh      # Google Drive via rclone copyto/sync
+    ├── backend-github.sh     # Private GitHub repo via git add/commit/push
+    └── backend-icloud.sh     # iCloud Drive via cp
 
-| Project | Local path | GitHub repo | Branch |
-|---------|-----------|-------------|--------|
-| Claude Config | `~/.claude/` | `{github-user}/claude-config` (private) | `main` |
-| Claude Mobile | `~/claude-mobile/` | `{github-user}/claude-mobile` (private) | `master` |
+plugin-manifest.json          # Toolkit-owned file list (auto-generated at release)
+backup-schema.json             # Canonical schema version + category-to-path map
 
-Each project has independent push markers and rebase-fail counters. Drive archive only runs for the Claude Config repo.
+core/commands/restore.md      # /restore ad-hoc command
+core/migrations/
+└── v1-to-v2.sh               # Schema migration script(s)
+```
 
-### Interactive Restore (Setup Wizard)
+### Backend Driver Interface
 
-The setup wizard (`core/skills/setup-wizard/SKILL.md`) provides an interactive restore path for returning users on new devices. When the user identifies prior use, the wizard:
+Each driver implements three functions:
 
-- **GitHub backend:** Clones or pulls the private config repo, rewrites hardcoded paths, and merges `mcp-servers/mcp-config.json` back into `~/.claude.json`
-- **Drive backend:** Configures rclone, then pulls encyclopedia files, personal data, and transcripts using the same rclone paths as the session-start hook
+```bash
+backup_push <local_path> <remote_path>    # Upload file/directory
+backup_pull <remote_path> <local_path>    # Download file/directory
+backup_check                               # Return 0 if backend is reachable/configured
+```
 
-After restore, the wizard runs an abbreviated dependency check and skips personalization (Phase 5). The session-start hook then handles all subsequent downsyncing automatically on every session start.
+| Driver | Push | Pull | Conflict strategy |
+|--------|------|------|-------------------|
+| `backend-drive.sh` | `rclone copyto --checksum` | `rclone sync --update` | mtime-based |
+| `backend-github.sh` | `git add/commit/push` | `git pull` | git merge |
+| `backend-icloud.sh` | `cp` to iCloud path | `cp` from iCloud path | last-write-wins |
 
-The manual `restore.sh` script (in the private config repo) remains available as a power-user alternative.
+### Data Classification
 
-### Tracked Files (Claude Config)
+| Category | Examples | Backed up? | Restore behavior |
+|----------|----------|-----------|-----------------|
+| Toolkit-owned | Skills, hooks, commands, specs in manifest | Never | Re-cloned from GitHub |
+| Personal data | Memory, CLAUDE.md, keybindings, conversations | Always | Direct restore (CLAUDE.md gets merge prompt) |
+| User-created extensions | Custom skills/hooks not in manifest | Ask user, remember | Restore after toolkit install, ask per item |
+| Generated config | settings.json, .claude.json | Never | Regenerated by installer/wizard |
+| User-choice config | config.json (partial) | Yes (primary only) | Merged — user-choice keys from backup, structural keys from wizard |
+| External projects | ~/destincode/, etc. | Per registry | Independent git repos |
+| Ephemeral | Sessions, tasks, locks | Never | Regenerated at runtime |
+| Secrets | Credentials, tokens, .env | Never | User re-authenticates |
 
-The hook fires on every PostToolUse for Write/Edit but immediately exits if the changed file does not match a tracked project path. For the Claude Config repo, `.gitignore` controls which files within `~/.claude/` are tracked. Currently tracked categories:
+For the full data classification table and backup scope (primary vs. secondary), see the design doc.
 
-| Category | Pattern(s) |
-|----------|-----------|
-| Memory files | `*/memory/*` |
-| CLAUDE.md | `*CLAUDE.md` |
-| Settings | `*settings.json`, `*settings.local.json`, `*keybindings.json` |
-| MCP config | `*mcp.json` |
-| Hook scripts | `*git-sync.sh`, `*drive-archive.sh`, `*write-guard.sh`, `*check-inbox.sh`, `*statusline.sh`, `*usage-fetch.js`, `*prune-backups.sh` |
-| OAuth | `*gws/client_secret.json` |
-| Plugins | `*installed_plugins.json`, `*blocklist.json` |
-| Skills | `*/skills/*` |
-| MCP servers | `*/mcp-servers/*` (includes `mcp-config.json` — extracted mcpServers block from `.claude.json`) |
-| Plans | `*/plans/*` |
-| Specs | `*/specs/*` |
-| History | `*history.jsonl` |
-| Restore guides | `*RESTORE.md`, `*README.md` |
-| Conversations | `~/.claude/projects/*/*.jsonl` |
+### Tracked Personal Data
 
-### Git Sync Flow (`git-sync.sh`)
+| Content | Local path |
+|---------|-----------|
+| Memory files | `~/.claude/projects/*/memory/**` |
+| CLAUDE.md | `~/.claude/CLAUDE.md` |
+| User-choice config | `~/.claude/toolkit-state/config.json` (partial — user-choice keys only) |
+| Keybindings | `~/.claude/settings.local.json` (keybindings only) |
+| Conversation history | `~/.claude/projects/*/*.jsonl` |
+| Encyclopedia | `~/.claude/encyclopedia/*.md` |
+| Journal entries | Per journaling skill paths |
+| Custom extensions | Skills/hooks not in plugin-manifest.json (after user consent) |
 
-1. **Parse stdin JSON** -- extracts `tool_input.file_path`, normalizes backslashes to forward slashes.
-2. **Project routing** -- matches file path to a tracked project (`~/.claude/` or `~/claude-mobile/`). Exits silently if no match.
-3. **Branch detection** -- reads the repo's default branch via `git symbolic-ref refs/remotes/origin/HEAD`.
-4. **gitignore check** -- exits silently if the file is ignored by the project's `.gitignore`.
-5. **Update write registry** -- records `{pid, timestamp, content_hash}` for the written file in `~/.claude/.write-registry.json` so the PreToolUse write guard (`write-guard.sh`) can detect concurrent same-machine edits.
-6. **Git commit** -- stages the changed file and commits immediately with an auto-generated message (`auto: <filename>`).
-7. **Debounced push** -- checks the project-specific push marker for the last push timestamp. If 15+ minutes have elapsed (or no marker exists), pushes to GitHub and updates the marker.
-8. **Drive archive** -- (Claude Config repo only) archives specs, skills, CLAUDE.md, and transcripts to Google Drive on successful push.
-9. **Report** -- emits success/failure JSON via `hookSpecificOutput` and writes status to `~/.claude/.sync-status`.
+### Canonical Backup Structure
 
-### Drive Archive Flow (`drive-archive.sh`)
+```
+{backup_root}/
+├── backup-schema.json
+├── memory/{project-key}/*.md
+├── claude-md/CLAUDE.md
+├── config/keybindings.json + user-choices.json
+├── conversations/{project-key}/*.jsonl
+├── encyclopedia/*.md
+├── journal/entries/*.md
+└── extensions/skills/{name}/ + hooks/
+```
 
-1. **Trigger** -- called from `git-sync.sh` after a successful push, or manually.
-2. **Scope** -- archives only: specs (`~/.claude/specs/`), skills (`~/.claude/skills/`), CLAUDE.md files, and conversation transcripts.
-3. **Upload** -- uses `rclone copyto --checksum` to `gdrive:Claude/Backup/` for the scoped files.
-4. **Best-effort** -- failures are logged to `~/.claude/backup.log` but do not block the primary Git workflow.
+### Push Flow (PostToolUse on Write/Edit)
 
-### Key State Files
+1. Parse stdin JSON, extract `file_path`
+2. Classify file: manifest check → exclusion check → personal data list → user extension list
+3. If not backupable, exit silently
+4. Map local path to canonical backup path
+5. Push to primary backend (debounced 15 min per backend via `.push-marker-{backend}`)
+6. If secondary configured AND file is high-value (memory, CLAUDE.md, custom skills): push to secondary (best-effort, non-blocking)
+7. Log result to `~/.claude/backup.log`, emit status to `~/.claude/.sync-status`
+
+### Pull Flow (Session-Start)
+
+1. Pull from primary backend only
+2. Read `backup-schema.json` from backend
+3. Run migrations if schema version < current (via temp directory — D11)
+4. Classify each pulled file before writing locally
+5. Never overwrite toolkit-owned files (manifest check)
+6. Write personal data to correct local paths via path map
+
+### Restore Flow (Setup Wizard Phase 5R or `/restore`)
+
+1. Connect to backend, verify reachable
+2. Read `backup-schema.json`, run migrations if needed (temp directory)
+3. Restore memory, conversations, keybindings → direct write
+4. CLAUDE.md → three-option merge prompt (Merge / Use backup / Start fresh)
+5. Encyclopedia → migrate to current doc types
+6. Journal entries → migrate to current format
+7. Custom skills → ask per skill
+8. External projects → offer to re-register from backup registry
+9. Verify toolkit files still intact (manifest check)
+
+### State Files
 
 | File | Purpose | Written by |
 |------|---------|-----------|
-| `~/.claude/.push-marker` | Last push timestamp for Claude Config (15-min debounce) | git-sync |
-| `~/.claude/.push-marker-claude-mobile` | Last push timestamp for Claude Mobile (15-min debounce) | git-sync |
-| `~/.claude/.sync-status` | Human-readable status for statusline display | git-sync |
-| `~/.claude/.backup-lock/` | Mutex directory | git-sync, drive-archive (created/removed) |
-| `~/.claude/backup.log` | Persistent log of all backup operations | both scripts |
-| `~/.claude/.write-registry.json` | Write guard: last-writer PID + hash per tracked file | git-sync (via `update_registry`) |
-| `~/.claude/.rebase-fail-count-claude-mobile` | Consecutive rebase failure counter for Claude Mobile | git-sync |
+| `~/.claude/.push-marker-{backend}` | Per-backend debounce timer (e.g., `.push-marker-drive`, `.push-marker-github`) | backup-engine |
+| `~/.claude/.push-marker-{project}` | External project debounce (unchanged from old system) | backup-engine |
+| `~/.claude/.sync-status` | Human-readable status for statusline display | backup-engine |
+| `~/.claude/.sync-warnings` | Warning flags for statusline | backup-engine |
+| `~/.claude/.backup-lock/` | Mutex directory (created/removed) | backup-engine |
+| `~/.claude/backup.log` | Persistent log of all backup operations | backup-engine |
+| `~/.claude/.write-registry.json` | Write guard: last-writer PID + hash per tracked file | backup-engine |
+| `~/.claude/.unsynced-projects` | Unregistered project detection | backup-engine |
 
 ## Dependencies
 
 - **Depends on:**
-  - `git` -- all version control operations (add, commit, push, pull). Must be installed and configured with GitHub remote.
-  - `rclone` -- Drive archive operations only. Must be installed and configured with a `gdrive:` remote.
-  - `node` (Node.js) -- used to parse stdin JSON in `git-sync.sh` (extracts `tool_input.file_path`).
-  - `date`, `find`, `mkdir`, `sed`, `wc`, `head`, `tail`, `basename`, `hostname` -- standard Unix utilities (available in Git Bash on Windows).
-  - Claude Code hook system -- `git-sync.sh` relies on PostToolUse hook invocation with JSON on stdin.
-  - `~/.claude/RESTORE.md` -- included in the Git repository (must exist locally).
+  - `node` (Node.js) — JSON parsing of stdin and config in backup-engine.sh
+  - `rclone` — Drive backend (backend-drive.sh); must be installed and configured with a `gdrive:` remote
+  - `git` — GitHub backend (backend-github.sh); must be installed and authenticated
+  - `cp` — iCloud backend (backend-icloud.sh); standard Unix utility
+  - `date`, `find`, `mkdir`, `sed`, `wc`, `head`, `tail`, `basename` — standard Unix utilities (available in Git Bash on Windows)
+  - Claude Code hook system — `backup-engine.sh` relies on PostToolUse hook invocation with JSON on stdin
+  - `plugin-manifest.json` — toolkit-owned file list; must be present at toolkit root
+  - `backup-schema.json` — canonical schema definition; must be present at toolkit root
 
 - **Depended on by:**
-  - **Statusline** (`~/.claude/statusline.sh`) -- reads `~/.claude/.sync-status` to display backup state in the Claude Code status bar.
-  - **All tracked files** -- any file matching the tracked-files filter implicitly depends on this system for cross-device persistence.
-  - **CLAUDE.md manual backup instructions** -- references the hook scripts directly and documents trigger phrases.
-  - **Specs INDEX** (`~/.claude/specs/INDEX.md`) -- lists this spec.
+  - **Statusline** (`~/.claude/statusline.sh`) — reads `~/.claude/.sync-status` to display backup state
+  - **Session-start hook** — calls backup-engine pull logic on every session start
+  - **Setup wizard** — Phase 5R restore flow invokes backup-engine in restore mode
+  - **All tracked personal data files** — any file matching the personal data filter implicitly depends on this system for cross-device persistence
+  - **CLAUDE.md manual backup instructions** — references trigger phrases
 
 ## Known Bugs / Issues
 
@@ -134,20 +188,21 @@ The hook fires on every PostToolUse for Write/Edit but immediately exits if the 
 
 ## Planned Updates
 
-- **Full snapshot time estimate:** Track how long full snapshots take (start/end timestamps) and include an estimated duration in the pre-snapshot notification (e.g., "[Backup] Full snapshot starting — usually takes ~15s"). Could use a rolling average stored in a stats file.
+*None currently tracked.*
 
 ## Change Log
 
 | Date | Version | What changed | Type | Approved by |
 |------|---------|-------------|------|-------------|
+| 2026-03-20 | 4.0 | Major architecture rewrite: replaced three-script system (git-sync, personal-sync, drive-archive) with single backup-engine.sh and pluggable backend drivers (drive, github, icloud). Added plugin-manifest.json for toolkit file exclusion. Added canonical backup-schema.json with versioned migrations. Primary + secondary backend model. Per-backend debounce markers. New mandate: toolkit-owned files must never be backed up. New /restore command. Installer-first restore ordering in setup wizard. | Architecture | Destin |
 | 2026-03-18 | 3.3 | Added Interactive Restore section: setup wizard now handles restore for returning users via GitHub or Drive, complementing the existing manual restore.sh path. | Update | — |
-| 2026-03-16 | 3.2 | Multi-project backup support: git-sync.sh now routes files to the correct Git repo based on path prefix (`~/.claude/` → claude-config, `~/claude-mobile/` → claude-mobile). Each project gets independent push markers and rebase-fail counters. Branch detection is automatic. New mandate: all Claude projects must be backed up to private GitHub repos by default. | Update | — |
-| 2026-03-16 | 3.1 | Added `mcp-config.json`: session-start hook extracts mcpServers from `.claude.json` into a Git-tracked file (`mcp-servers/mcp-config.json`); restore.sh merges it back on restore. Solves the problem where `.claude.json` is excluded from Git but MCP server definitions don't regenerate automatically. | Update | — |
-| 2026-03-15 | 3.0 | Git + Drive hybrid migration: primary sync moved from rclone/Drive snapshots to Git + GitHub (immediate commit, debounced 15-min push). Drive archive retained as secondary write-only layer for specs, skills, CLAUDE.md, transcripts. Removed obsolete design decisions (dedup window, pull-before-push, stage-then-swap, session heartbeat, device tagging, history merge). Added new design decisions (immediate commit / debounced push, .gitignore strategy, Drive archive scope, Drive archive is best-effort). Updated mandates for Git context (credential exclusion via .gitignore, RESTORE.md in Git repo). | Architecture | — |
-| 2026-03-15 | 2.3 | Added pre-snapshot notification announce so full snapshots are visibly flagged before they start (not just after completion) | Update | — |
-| 2026-03-13 | 1.0 | Initial spec | New | — |
-| 2026-03-14 | 1.1 | CLAUDE.md moved to global (`~/.claude/CLAUDE.md`), `README.md` added to full snapshots alongside `RESTORE.md`, `usage-fetch.js` moved to `~/.claude/hooks/` | Update | — |
-| 2026-03-14 | 1.2 | OAuth tracking switched from `google-calendar-oauth.json` (gcal MCP, removed) to `gws/client_secret.json` (gws CLI) | Update | — |
-| 2026-03-14 | 2.0 | Four architectural changes: (1) `.claude.json` removed from backups — machine-specific, always conflicts; (2) `safe_copy()` uses `cmp -s` content check to eliminate timestamp false-positive conflicts; (3) `history.jsonl` merged across machines instead of conflict-keep-local; (4) conversation transcripts (`~/.claude/projects/*/*.jsonl`) backed up via `rclone copy --size-only` to `gdrive:Claude/Backup/conversations/` | Architecture | — |
-| 2026-03-14 | 2.1 | Added write guard: PreToolUse hook (`write-guard.sh`) blocks same-machine concurrent writes to tracked files via centralized registry (`~/.claude/.write-registry.json`). Registry update added to `sync-to-drive.sh`. New tracked file: `write-guard.sh`. | Update | — |
-| 2026-03-14 | 2.2 | Added `check-inbox.sh` to tracked hook scripts (filter, incremental case, full snapshot, pull-before-push, sync-from-drive pull) | Update | — |
+| 2026-03-16 | 3.2 | Multi-project backup support: git-sync.sh now routes files to the correct Git repo based on path prefix. Each project gets independent push markers and rebase-fail counters. Branch detection is automatic. New mandate: all Claude projects must be backed up to private GitHub repos by default. | Update | — |
+| 2026-03-16 | 3.1 | Added `mcp-config.json`: session-start hook extracts mcpServers from `.claude.json` into a Git-tracked file. | Update | — |
+| 2026-03-15 | 3.0 | Git + Drive hybrid migration: primary sync moved to Git + GitHub, Drive archive retained as secondary. | Architecture | — |
+| 2026-03-15 | 2.3 | Added pre-snapshot notification announce. | Update | — |
+| 2026-03-13 | 1.0 | Initial spec. | New | — |
+| 2026-03-14 | 1.1 | CLAUDE.md moved to global, README.md added to full snapshots. | Update | — |
+| 2026-03-14 | 1.2 | OAuth tracking switched to `gws/client_secret.json`. | Update | — |
+| 2026-03-14 | 2.0 | Four architectural changes: .claude.json removed from backups, safe_copy() content check, history.jsonl merged across machines, conversation transcript backup. | Architecture | — |
+| 2026-03-14 | 2.1 | Added write guard (write-guard.sh PreToolUse hook). | Update | — |
+| 2026-03-14 | 2.2 | Added check-inbox.sh to tracked hook scripts. | Update | — |
