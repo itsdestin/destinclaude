@@ -97,14 +97,14 @@ Follow the conversation naturally — don't work through domains one by one. Ask
 Track mentally which of the following domains have been covered:
 
 1. Work
-2. School / MPP / Capstone
-3. Relationship / Brianna
+2. School / Education
+3. Relationship / Partner
 4. Friends / Social
-5. Family (include extended — grandmother, Jordis, Marshall, etc.)
-6. Finances / Investing (Robinhood, options, crypto)
+5. Family
+6. Finances / Investing
 7. Health / Physical (sleep, energy)
 8. Mental / Emotional State
-9. Interests / Personal Projects (3D printing, gaming, mycology, music, Cosmere, festivals)
+9. Interests / Personal Projects
 10. Political / Beliefs *(see special handling below)*
 11. Spontaneous / Other
 
@@ -159,7 +159,7 @@ Since sessions are often transcribed from speech, some words or sentences may be
 **What "near-verbatim" means in practice:**
 - Keep slang, profanity, and colloquial phrasing as-is ("kind of fuck with me" stays)
 - Remove pure filler ("um", "uh") but keep conversational markers ("like", "I mean")
-- Don't expand nicknames ("Bri" stays, not "Brianna")
+- Don't expand nicknames (keep them as the user said them)
 - Fix obvious typos/grammar but preserve voice ("dicked around" stays)
 - Flag passages where meaning is unclear with [UNCLEAR: original text] and ask the user to clarify before saving
 
@@ -376,11 +376,11 @@ For open threads and goals, use the Read tool to read `~/.claude/encyclopedia/Op
 
 Use these as extra prompts within Step 3 domain coverage — bring them up naturally within the relevant domain, not as a standalone checklist. Use 1-2 per session, only when the related domain came up naturally and you sense there may be an unreported update. Don't deploy all of them in one session.
 
-- MPP capstone progress / graduation timeline
-- Brianna's DVM program updates
-- EDM festival planning (Decadence, Gold Rush, System Overload, and similar bass/EDM events)
-- Robinhood positions (CMPS, ATAI, options activity)
-- Cats (Sake and Soju)
+- Academic progress / graduation timeline
+- Partner's career or academic updates
+- Upcoming events or trips the user has mentioned
+- Investment or financial position updates
+- Pets and their wellbeing
 - Any upcoming social events or travel
 - Political developments the user has been tracking (probe for position evolution or new predictions)
 

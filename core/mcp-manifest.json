@@ -80,6 +80,6 @@
     "type": "http",
     "url": "https://ai.todoist.net/mcp",
     "auto": false,
-    "setup_note": "Requires Todoist API token from todoist.com \u2192 Settings \u2192 Integrations \u2192 Developer"
+    "setup_note": "Authenticates via OAuth when Claude first connects — no manual API token needed"
   }
 ]

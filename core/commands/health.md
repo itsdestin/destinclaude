@@ -43,7 +43,7 @@ Run a lightweight health check on the installed toolkit. This is the same verifi
    - [ ] Journal directory exists or can be created
 
    **Productivity (if installed):**
-   - [ ] Todoist API responds (if token configured)
+   - [ ] Todoist MCP responds (if configured)
    - [ ] gmessages binary exists (if Google Messages was set up)
    - [ ] imessages server responds (if iMessage was set up, macOS only)
 

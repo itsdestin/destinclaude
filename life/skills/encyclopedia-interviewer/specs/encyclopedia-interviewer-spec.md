@@ -34,7 +34,7 @@ The Encyclopedia Interviewer is a standalone skill that proactively identifies g
 | Interview Metadata section in entry | Provides structured routing context for encyclopedia-update without cluttering the narrative. Confirmed vs. Leads separation ensures the update skill knows what's validated and what needs further scrutiny. | Separate metadata file; inline annotations; no metadata |
 | Monthly audit hook in journaling assistant | Natural touchpoint — the user is already in a journaling session. Lightweight (top 5 findings, brief list). Suggestion-only ensures it's not intrusive. | Separate scheduled reminder; notification-based; no proactive suggestion |
 | Deep Search requires approval | Primary source mining is time-consuming and reads potentially sensitive content. Gate ensures the user is aware and consenting. Same pattern as encyclopedia-librarian. | Auto-run Deep Search; never allow Deep Search |
-| Adaptive depth in deep-dive phase | Follows the user's energy. Pushing for detail when they're giving short answers is counterproductive. Exploring further when he's engaged yields richer content. | Fixed number of follow-ups per topic; always push for maximum depth |
+| Adaptive depth in deep-dive phase | Follows the user's energy. Pushing for detail when they're giving short answers is counterproductive. Exploring further when they're engaged yields richer content. | Fixed number of follow-ups per topic; always push for maximum depth |
 
 ## Current Implementation
 

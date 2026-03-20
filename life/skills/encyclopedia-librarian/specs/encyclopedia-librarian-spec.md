@@ -15,7 +15,7 @@ The Encyclopedia Librarian is a read-only reporting and briefing skill that prod
 - **(2026-03-13)** Every report must have a detail level (Full, Personal, Professional, Public) established before generation. Ask the user which level to use unless they specify upfront or the template has a strong default.
 - **(2026-03-13)** Detail-level filtering is an editorial decision, not mechanical redaction — content must read naturally at every level, not like something was visibly removed.
 - **(2026-03-13)** The detail-level filter applies to all content in the report, including narrative sections, Deep Search results, and direct quotes.
-- **(2026-03-13)** When producing voice-matched output (cover letters, political statements, emails the user would send under their own name), invoke the `destins-writing-voice` skill. Use third person for reference/briefing documents.
+- **(2026-03-13)** When producing voice-matched output (cover letters, political statements, emails the user would send under their own name), invoke the `users-writing-voice` skill. Use third person for reference/briefing documents.
 - **(2026-03-13)** Don't over-read files — start with the sources specified by the template. Only read additional files if the initial sources are insufficient.
 - **(2026-03-13)** If the user's request is essentially the full Encyclopedia, suggest the Compilation Skill instead.
 - **(2026-03-13)** After producing any output, offer to save it to an appropriate location under `gdrive:Claude/The Journal/Librarian Reports/`.
@@ -52,7 +52,7 @@ The skill operates in three modes:
 - **Parameters:** Target role/org, audience, backstory depth, detail level (default: Professional).
 - **Sources:** Core Identity, Status Snapshot, Beliefs & Positions (if political role), People Database (professional connections), Chronicle (career milestones).
 - **Output:** Origin story (variable depth), professional arc as narrative, target-role fit, relevant skills mapped to role, forward-looking close.
-- **Voice:** If output is something the user would send directly (cover letter, intro email), invoke `destins-writing-voice`. Otherwise third person.
+- **Voice:** If output is something the user would send directly (cover letter, intro email), invoke `users-writing-voice`. Otherwise third person.
 
 #### 2. Person Briefing
 - **Purpose:** Everything known about a specific person or group, organized for quick reading.
@@ -63,11 +63,11 @@ The skill operates in three modes:
 - **Group handling:** If about a group, structure around group dynamics first, then individual summaries of core members.
 
 #### 3. Relationship Briefing
-- **Purpose:** Context about Bri and the relationship, structured around a particular situation.
-- **Trigger phrases:** "visiting Bri, catch me up", "what should I know before [Bri situation]", "brief me on Bri's friends".
+- **Purpose:** Context about the user's partner and the relationship, structured around a particular situation.
+- **Trigger phrases:** "visiting my partner, catch me up", "what should I know before [partner situation]", "brief me on my partner's friends".
 - **Parameters:** Context/purpose, detail level (default: Full).
-- **Sources:** People Database (Bri + Bri's Circle + groups), Status Snapshot, Chronicle, Open Threads & Goals, Preferences & Reference Data.
-- **Output:** Varies by context — visit prep (relationship state, her situation, friend dynamics, practical info), difficult conversation prep (issue history, her perspective, patterns, what's worked), gift shopping (favorites, sizes, mentioned wants, upcoming dates).
+- **Sources:** People Database (partner + partner's circle + groups), Status Snapshot, Chronicle, Open Threads & Goals, Preferences & Reference Data.
+- **Output:** Varies by context — visit prep (relationship state, their situation, friend dynamics, practical info), difficult conversation prep (issue history, their perspective, patterns, what's worked), gift shopping (favorites, sizes, mentioned wants, upcoming dates).
 
 #### 4. Period Review
 - **Purpose:** Retrospective narrative covering a specific time period.
@@ -84,7 +84,7 @@ The skill operates in three modes:
 - **Parameters:** Audience, depth (overview vs. comprehensive), whether to include predictions, detail level (default: Professional).
 - **Sources:** Beliefs & Positions (primary), Predictions (if requested), Core Identity (values context).
 - **Output:** Core diagnosis, political identity, worldview (economics, government, theory of change), specific positions by domain, admired figures, theory of change (state-level strategy, anti-partisan slate, ranked choice), prediction track record (optional).
-- **Voice:** For political audiences, invoke `destins-writing-voice` with analytical-formal tone.
+- **Voice:** For political audiences, invoke `users-writing-voice` with analytical-formal tone.
 
 #### 6. Topic Synthesis
 - **Purpose:** Everything known about a specific topic, synthesized across all sources.
@@ -119,7 +119,7 @@ The skill operates in three modes:
 | Text message analyses | `.../Text Messages (03-08-2026)/Misc/messages analyses/` | Pre-built thematic analyses — read before raw JSONL when they cover the topic |
 | Categorized messages | `.../Text Messages (03-08-2026)/Misc/messages sorted by category/` | Pre-sorted by topic (career, interests, political, predictions, values) — check first for topic-specific searches |
 | Daily journal entries | `gdrive:Claude/The Journal/Daily Entries/YYYY-MM-DD.md` | Use Entry Index to identify relevant dates, then read specific entries |
-| Misc entries & documents | `gdrive:Claude/The Journal/Misc. Entries and Information/` | Includes BRI.md, political philosophy notes, informational entries. List directory to find relevant files |
+| Misc entries & documents | `gdrive:Claude/The Journal/Misc. Entries and Information/` | Includes political philosophy notes, relationship documents, informational entries. List directory to find relevant files |
 
 **Search strategy:** Start narrow (use Entry Index, `_index.json`, pre-built analyses), go wide only if needed. Prefer pre-synthesized over raw. **Person searches: check the `Appears In` field in the People Database first — it lists every journal entry with context snippets, enabling targeted reads instead of scanning. For text messages, read the contact's JSONL file.** Topic searches start with categorized messages. Time-period searches filter by dates. The Entry Index People column provides the reverse lookup ("who was in this entry?"). Always summarize what was found and which sources were read.
 
@@ -155,7 +155,7 @@ Reports can optionally be saved to `gdrive:Claude/The Journal/Librarian Reports/
   - 8 modular source files maintained by the `encyclopedia-update` skill
   - Entry Index (`gdrive:Claude/The Journal/Entry Index.md`) — for locating relevant journal entries
   - Text message archive at `gdrive:Claude/The Journal/Misc. Entries and Information/Text Messages (03-08-2026)/` — for Deep Search
-  - `destins-writing-voice` skill — invoked when producing voice-matched output (cover letters, political statements)
+  - `users-writing-voice` skill — invoked when producing voice-matched output (cover letters, political statements)
 - **Depended on by:**
   - CLAUDE.md mandates this skill as the entry point for all journal/encyclopedia/text-history searches
   - Any workflow or conversation where the user asks "what did I say about X", "search my journal", "brief me on [person]", etc.

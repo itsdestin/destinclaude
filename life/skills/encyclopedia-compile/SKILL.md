@@ -43,9 +43,9 @@ Third person, honest narrator who finds the user genuinely interesting. Not a hy
 
 ### Editorializing
 
-Subtle and rare. The narrator can gently frame significance — a raised eyebrow, not a verdict — but never inflates the user in a way that would appear egotistical, and never gives strong opinions. The user's own self-assessments can be reported freely ("He thinks he was foolish for this," "He considers this his best decision"). When the narrator editorializes, the weight should come from simplicity, not declaration.
+Subtle and rare. The narrator can gently frame significance — a raised eyebrow, not a verdict — but never inflates the user in a way that would appear egotistical, and never gives strong opinions. The user's own self-assessments can be reported freely ("They think they were foolish for this," "They consider this their best decision"). When the narrator editorializes, the weight should come from simplicity, not declaration.
 
-**Good:** *"He turned it down. He agreed to stay through June, then he's gone."*
+**Good:** *"They turned it down. They agreed to stay through June, then they're gone."*
 **Bad:** *"This is the kind of decision that defines someone."*
 
 ### Quotes
@@ -106,7 +106,7 @@ Before compilation, ask the user which detail level to use. Present all four opt
 - Financial figures are replaced with ranges or relative terms (e.g., "low five figures in investments" instead of exact numbers)
 
 **Professional:**
-- Section V (Relationships) is reduced to surface context: "is in a long-distance relationship with Brianna Chen, a Cornell graduate student" — no relationship dynamics, conflicts, or intimacy
+- Section V (Relationships) is reduced to surface context: partner name and basic situation — no relationship dynamics, conflicts, or intimacy
 - Section VI (Lifestyle) omits health/substance/financial subsections entirely, or reduces each to a single neutral sentence. Interests and hobbies are kept at surface level
 - Appendix A (People Index) includes people but strips sensitive relationship notes and personal dynamics
 - Appendix D (Quick Reference) omits personal data (clothing sizes, personal favorites, contact details)
@@ -114,9 +114,9 @@ Before compilation, ask the user which detail level to use. Present all four opt
 **Public:**
 - Section V becomes a brief paragraph acknowledging key relationships exist, no detail
 - Section VI becomes interests-only (EDM/festivals, reading, hiking, technology — no health, substance, or financial content)
-- Appendix A omits Bri's Circle and strips all entries to name + how-known only
+- Appendix A omits partner's social circle and strips all entries to name + how-known only
 - Appendix D is omitted entirely
-- Biographical details are softened (e.g., "was raised by his grandmother in Glendale" — no foster care specifics or biological parent details unless the user has shared them publicly)
+- Biographical details are softened (e.g., general upbringing context without specific family circumstances unless the user has shared them publicly)
 
 ### Document Header
 
@@ -188,34 +188,34 @@ The first six sections tell the story of the user's life. They are written in na
 **Purpose:** Who the user is, where they came from, and what made them who they are. This is the biographical opening — the section that gives a reader the foundational context to understand everything that follows.
 
 **Contents:**
-- Origin story: biological parents, foster care, adoption by Grandma K
-- Childhood in Glendale, the Pines
-- Family structure (Grandma K, great-grandmother, the household)
-- Values and what drives him — traced to their origins in lived experience
+- Origin story: family background, upbringing, early environment
+- Childhood and the places that shaped the user
+- Family structure and the household
+- Values and what drives them — traced to their origins in lived experience
 - Significant formative life events woven into the narrative where they're essential to understanding who the user is
 
 **Primary sources:** Core Identity, Chronicle (formative events), People Database (family entries)
 
 **Editorial guidance:**
 - This section should read like the opening chapter of a biography. Set the scene, introduce the person, build to the values that drive everything else.
-- Significant life events belong here when they *shaped who the user is*, not merely because they happened. A career milestone goes in Career. A relationship milestone goes in Relationships. An event that changed how he sees the world or what he cares about goes here.
+- Significant life events belong here when they *shaped who the user is*, not merely because they happened. A career milestone goes in Career. A relationship milestone goes in Relationships. An event that changed how they see the world or what they care about goes here.
 - Direct quotes are appropriate when they capture the user's voice on identity and values.
 
 ---
 
 #### II. Education
 
-**Purpose:** The academic arc from North Pointe Preparatory through the MPP.
+**Purpose:** The academic arc from early schooling through the user's most recent or current program.
 
 **Contents:**
-- North Pointe Prep: AP Scholar with Distinction, 99th percentile SAT
-- ASU Tempe: BS Economics, BA Political Science, Presidential Merit Scholarship, early graduation
-- MPP at ASU School of Public Affairs: current status, capstone, graduation timeline
+- Pre-college education: notable achievements, academic distinctions
+- Undergraduate: degree(s), major(s), scholarships, timeline
+- Graduate/professional programs: current status, capstone/thesis, graduation timeline
 
 **Primary sources:** Core Identity
 
 **Editorial guidance:**
-- Tell this as a narrative arc, not a resume. The throughline is intellectual development — from a strong student in a charter school to a dual-degree graduate to a policy master's candidate.
+- Tell this as a narrative arc, not a resume. The throughline is intellectual development — trace the progression from early education through current studies.
 - Keep it concise. Education supports the broader story but doesn't need to be the longest section.
 
 ---
@@ -226,17 +226,17 @@ The first six sections tell the story of the user's life. They are written in na
 
 **Contents:**
 - Career timeline: all roles in chronological order
-- Key details of each role (what he did, what he learned, notable accomplishments)
+- Key details of each role (what they did, what they learned, notable accomplishments)
 - Current role: depth on the day-to-day, supervisors, how the role feels, notable projects
 - Skills and capabilities
-- Where he's going: future plans, career aspirations, target roles and levels, active outreach
+- Where they're going: future plans, career aspirations, target roles and levels, active outreach
 
 **Primary sources:** Core Identity (arc), Status Snapshot (current role and plans), Chronicle (career milestones), People Database (colleagues and mentors)
 
 **Editorial guidance:**
 - The career section should make clear that the user's professional path has been driven by intentional choices, with key decisions and pivots highlighted as narrative turning points.
 - Current role gets the most space because it's what a reader needs to understand about where the user is right now.
-- The "where he's going" subsection should feel forward-looking and honest about uncertainty.
+- The "where they're going" subsection should feel forward-looking and honest about uncertainty.
 
 ---
 
@@ -256,7 +256,7 @@ The first six sections tell the story of the user's life. They are written in na
 
 **Editorial guidance:**
 - This section should make a reader understand how the user thinks about politics, not just what they think. The diagnosis comes before the positions.
-- Position evolution should be woven into the narrative naturally — "His view on rent control has evolved: initially sympathetic to the policy, he now considers it well-intentioned but counterproductive, a shift that emerged during his MPP coursework."
+- Position evolution should be woven into the narrative naturally — "Their view on rent control has evolved: initially sympathetic to the policy, they now consider it well-intentioned but counterproductive, a shift that emerged during graduate coursework."
 - The prediction track record is a synthesis, not a ledger. The Predictions modular file holds the detailed entries; the compiled Encyclopedia presents the patterns.
 - Use direct quotes when the user's exact words capture their political voice in a way paraphrase would flatten.
 
@@ -267,15 +267,15 @@ The first six sections tell the story of the user's life. They are written in na
 **Purpose:** The people in the user's life and what those relationships look like — partner, friend groups, family.
 
 **Contents:**
-- **Brianna Chen:** Full relationship narrative — how they met, the arc, becoming official, long distance, dynamics, recurring tensions, resolution patterns, her background and goals, future plans. This is the most detailed individual relationship in the document.
+- **Partner (if applicable):** Full relationship narrative — how they met, the arc, dynamics, recurring tensions, resolution patterns, their background and goals, future plans. This is the most detailed individual relationship in the document.
 - **Friend groups:** Each group described as a group — how it formed, what it does, what role it plays in the user's life, current dynamics. Each distinct social orbit gets its own treatment.
-- **Family:** Grandma K as the entirety of family, the household with great-grandmother, extended family connections (Tiffany, Jordis, Brooke), biological family context.
+- **Family:** Primary family members, the household, extended family connections, biological family context as applicable.
 - **Other notable relationships:** People who don't fit neatly into a group but are individually significant.
 
 **Primary sources:** People Database (individuals and groups), Core Identity (social structure), Status Snapshot (current dynamics), Chronicle (relationship milestones)
 
 **Editorial guidance:**
-- Bri's section should read like a relationship portrait — not just facts about her, but the texture of how the relationship works, what's hard, what's good, and where it's going.
+- The partner's section should read like a relationship portrait — not just facts about them, but the texture of how the relationship works, what's hard, what's good, and where it's going.
 - Friend groups should be described as social units first, with key individuals named and characterized within the group context. The detailed individual profiles live in the People Index appendix.
 - This section and the People Index serve different purposes. This section tells the story of the user's social life. The People Index is a reference lookup. Duplication between them is acceptable when framed differently — narrative context here, individual profile data there.
 - **Detail level filtering:** At **Personal**, soften specific conflicts to general patterns ("navigated tensions") and omit episode-level detail. At **Professional**, reduce this entire section to surface context (partner's name, that friend groups exist). At **Public**, compress to a single brief paragraph.
@@ -288,16 +288,16 @@ The first six sections tell the story of the user's life. They are written in na
 
 **Contents:**
 - **Finances:** Investment philosophy, current financial picture, strategic motivation (minimizing debt before leaving stable salary)
-- **Health:** Physical health patterns (undereating, exercise), mental and emotional state (the isolation arc, festival crew as counterforce, therapy reluctance), substance use (cannabis, psilocybin, MDMA, alcohol — framed honestly with context), daily habits (sleep patterns, wind-down routines)
-- **Interests & hobbies:** EDM/festivals and what they do for him, reading and the Cosmere, mushroom cultivation, technology/AI projects, gaming, hiking, 3D printing — with enough depth to understand what each interest means, not just that it exists
+- **Health:** Physical health patterns, mental and emotional state, substance use if applicable (framed honestly with context), daily habits (sleep patterns, wind-down routines)
+- **Interests & hobbies:** Each interest with enough depth to understand what it means to the user, not just that it exists
 - **What's currently active:** Which interests are getting time right now, which are on hold
 
 **Primary sources:** Status Snapshot (current state), Core Identity (durable patterns and meaning), Chronicle (lifestyle milestones)
 
 **Editorial guidance:**
 - This section carries the most sensitive content (substance use, mental health, financial details). Write it with the same honest, non-judgmental tone the journal entries use.
-- The distinction between this section and the Tastes & Preferences appendix: if information helps you understand how the user lives and why, it belongs here. If it's lookup data (specific orders, specific restaurants, what shows he's watched), it belongs in the appendix.
-- Active interests should reflect the Status Snapshot's "right now" framing. Durable interest descriptions should reflect Core Identity's "who he is" framing.
+- The distinction between this section and the Tastes & Preferences appendix: if information helps you understand how the user lives and why, it belongs here. If it's lookup data (specific orders, specific restaurants, what shows they've watched), it belongs in the appendix.
+- Active interests should reflect the Status Snapshot's "right now" framing. Durable interest descriptions should reflect Core Identity's "who they are" framing.
 - **Detail level filtering:** At **Personal**, acknowledge health/substance/financial patterns without episode-level detail or specific numbers. At **Professional**, omit health/substance/financial subsections entirely or reduce to a single neutral sentence each; keep interests at surface level. At **Public**, this section becomes interests-only — no health, substance, or financial content.
 
 ---
@@ -319,7 +319,7 @@ Everything below the line is reference material — structured, scannable, desig
 - Family
 - Friends (organized by Tier — Tier 1 first, then Tier 2, Tier 3, Tier 4)
 - Colleagues (current and former)
-- Bri's Circle
+- Partner's Circle
 
 **Entry format:** Reproduce the People Database entry format, minus the Tier field (which is a processing signal, not reader-facing) and the Last Updated field (which is system metadata). Instead, use the Tier to determine placement within the Friends grouping, and translate it into a reader-friendly closeness label if helpful.
 
@@ -327,7 +327,7 @@ Everything below the line is reference material — structured, scannable, desig
 - Do not add narrative context that doesn't exist in the People Database. If an entry is sparse, it's sparse.
 - Do not omit entries. Every person in the People Database appears in the People Index.
 - Group entries (Festival/Rave Crew, Page Program Friends, etc.) should appear at the top of the Friends section as group descriptions before individual entries.
-- **Detail level filtering:** At **Professional**, include people but strip sensitive relationship notes and personal dynamics. At **Public**, omit Bri's Circle entirely and reduce all entries to name + how-known only.
+- **Detail level filtering:** At **Professional**, include people but strip sensitive relationship notes and personal dynamics. At **Public**, omit Partner's Circle entirely and reduce all entries to name + how-known only.
 
 ---
 
@@ -378,11 +378,10 @@ Everything below the line is reference material — structured, scannable, desig
 
 **Contents:**
 - Contact info (phone, address, emails)
-- Bri's clothing sizes
-- Bri's favorites (restaurants, treats, drinks, candy, flowers, skincare)
-- Proposal & wedding notes
+- Partner's preferences and sizes (if applicable)
+- Gift ideas and favorites
 - Date & activity ideas
-- Membership numbers (AAdvantage, REI, etc.)
+- Membership numbers and loyalty programs
 
 **Format:** Tables and concise lists.
 

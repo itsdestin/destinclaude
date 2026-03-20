@@ -68,7 +68,7 @@ The skill is invoked in three ways:
 - **6e. Beliefs & Positions** — Preserve and append evolution. Worldview section almost never updated. Position changes: update current position, add previous stance to evolution changelog with date and reasoning. Admired figures added with reasoning. Never silently overwrite.
 - **6f. Predictions** — Lifecycle tracking. New predictions added to Active with original call, confidence, and what would change the user's mind. Revisions logged with date and reasoning (original preserved). Resolved predictions moved with outcome, verdict (correct/partially correct/wrong/superseded), and takeaway.
 - **6g. Open Threads & Goals** — Threads: resolve, update, add (with Source column), or migrate to goals. Goals: complete, update, add (near-term or long-term), promote, or drop. Recently Resolved: clean out items older than 30 days. Defined table schemas and status values.
-- **6h. Preferences & Reference Data** — Additive, rarely removed. Organized by category (Food & Drink, Restaurants, Media, Tech Setup, Social Spots, Anti-Preferences, Bri's Sizes & Favorites, Proposal & Wedding Notes, Date & Activity Ideas, Contact Info, Memberships, Other). Pure reference, no narrative.
+- **6h. Preferences & Reference Data** — Additive, rarely removed. Organized by category (Food & Drink, Restaurants, Media, Tech Setup, Social Spots, Anti-Preferences, Partner's Sizes & Favorites, Proposal & Wedding Notes, Date & Activity Ideas, Contact Info, Memberships, Other). Pure reference, no narrative.
 
 **Step 7 — Present changes for approval:** Display all proposed changes grouped by file. Each file section shows specific additions, modifications, and removals. Ask "Do you approve these updates?" Wait for explicit approval. Handle partial approval (apply only approved changes), full rejection (skip saving), and ambiguous responses (ask for clarification).
 
@@ -122,7 +122,7 @@ When the skill needs prior context (contradiction verification, arc tracing), it
   - `rclone` with configured `gdrive:` remote (Google Drive access for journal entry reads, Drive archive writes, and encyclopedia cache push)
   - Local encyclopedia cache at `~/.claude/encyclopedia/` — modular source files read from and written to local cache
   - Google Drive folder structure: `Claude/The Journal/Daily Entries/`, `Claude/The Journal/Misc. Entries and Information/`, `Claude/The Journal/System/`, `Claude/The Journal/System Archive/`, `Claude/The Journal/Entry Index.md`
-  - Todoist API (Step 10, non-blocking — API token stored at known location)
+  - Todoist MCP tools (Step 10, non-blocking — for creating tasks from new goals)
   - `journaling-assistant` skill (primary invoker at end of journaling sessions)
 - **Depended on by:**
   - `encyclopedia-compile` skill (compiles the 8 modular files into the single Encyclopedia document)

@@ -23,7 +23,7 @@ This skill processes notes from Claude's Inbox in Todoist and actively resolves 
 - **Todoist MCP tools:** `find-projects`, `find-tasks`, `find-comments`, `add-tasks`, `complete-tasks`, `add-comments`, `delete-object`, `add-sections`, `find-sections`
 - **`gws` CLI** for Google Calendar operations (design decision: NOT Google Calendar MCP — `gws` is proven and provides more control over calendar selection and event formatting)
 - **`rclone`** with `gdrive:` remote for encyclopedia files and Google Drive Inbox (`gdrive:Claude/Inbox`)
-- **Note:** `$TODOIST_TOKEN` is still needed for the `check-inbox.sh` SessionStart hook but is NOT used by this skill
+- **Note:** All Todoist access is via MCP tools — no API tokens or direct REST calls
 
 ---
 
@@ -66,7 +66,7 @@ This skill processes notes from Claude's Inbox in Todoist and actively resolves 
    - `[presented: YYYY-MM-DD]` where the date is today — skip this task (already shown today, the user didn't act on it)
    - `[queued-for-journal: YYYY-MM-DD]` — skip this task (already queued for journaling)
 
-6. **Ignore Todoist attachments.** Todoist file URLs require web session cookies and cannot be downloaded via the API or Bearer token. If a task comment has an `attachment` field, note it in the summary as "has Todoist attachment (not accessible)" — the actual file content should be in the Drive Inbox instead.
+6. **Ignore Todoist attachments.** Todoist file URLs require web session cookies and cannot be downloaded programmatically. If a task comment has an `attachment` field, note it in the summary as "has Todoist attachment (not accessible)" — the actual file content should be in the Drive Inbox instead.
 
 7. **Check Google Drive Inbox.** List files in `gdrive:Claude/Inbox` via `rclone lsf "gdrive:Claude/Inbox"`. For each file found:
    - Download to `/tmp/` via `rclone copy "gdrive:Claude/Inbox/<filename>" /tmp/`

@@ -857,10 +857,8 @@ If they do use Todoist:
    - "Click **Integrations** in the left sidebar"
    - "Scroll down to **Developer** and click it"
    - "You'll see an **API token** — it's a long string of letters and numbers. Copy it and paste it here."
-3. Store the token in `~/.claude/toolkit-state/config.json` under `todoist_api_token`.
-4. Verify by making a test API call: `curl -s -H "Authorization: Bearer <token>" https://api.todoist.com/rest/v2/projects | head -c 100`
-5. If it returns JSON data, confirm: "Todoist is connected! You can say things like 'what's on my todo list?' or 'add a task to buy groceries.'"
-6. If it fails: "That token didn't work. Double-check that you copied the whole thing — it should be about 40 characters long. Try again?"
+3. The Todoist MCP server handles authentication through its own OAuth flow when Claude first connects — no API token is needed.
+4. Confirm: "Todoist will be connected via MCP! You can say things like 'what's on my todo list?' or 'add a task to buy groceries.'"
 
 ### Summary
 
@@ -1199,7 +1197,7 @@ The Todoist MCP server is a cloud-hosted service — no local binary needed. Add
 }
 ```
 
-Note: The Todoist MCP server handles authentication through its own OAuth flow when Claude first connects — the API token collected earlier is a fallback for direct API calls, not for MCP.
+Note: The Todoist MCP server handles authentication through its own OAuth flow when Claude first connects.
 
 **imessages** (if Productivity selected, macOS, and `messaging_choice` is `"imessages"` or `"both"`):
 

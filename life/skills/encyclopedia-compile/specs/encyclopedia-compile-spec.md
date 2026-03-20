@@ -79,17 +79,17 @@ The compilation is an editorial act. The eight source files are internalized as 
 **Narrative Body (Sections I–VI):**
 
 - **I. Identity & Background** — Origin story, childhood, family, values, formative events. Draws from Core Identity, Chronicle, People Database.
-- **II. Education** — Academic arc from North Pointe Prep through MPP. Draws from Core Identity.
+- **II. Education** — Academic arc from early schooling through current/most recent program. Draws from Core Identity.
 - **III. Career** — Full professional timeline as narrative, current role in depth, future direction. Draws from Core Identity, Status Snapshot, Chronicle, People Database.
 - **IV. Political Philosophy** — Worldview, theory of change, policy positions with evolution, prediction track record synthesized as judgment patterns. Draws from Beliefs & Positions, Predictions.
-- **V. Relationships & Social Life** — Bri (full relationship portrait), friend groups as social units, family, other notable relationships. Draws from People Database, Core Identity, Status Snapshot, Chronicle.
+- **V. Relationships & Social Life** — Partner (full relationship portrait), friend groups as social units, family, other notable relationships. Draws from People Database, Core Identity, Status Snapshot, Chronicle.
 - **VI. Lifestyle** — Finances, health, interests, habits, what's currently active. Draws from Status Snapshot, Core Identity, Chronicle.
 
 Each section draws from multiple source files. No section maps one-to-one to a single file. The test: if a reader could identify which modular file supplied a paragraph, the compilation failed.
 
 **Appendices:**
 
-- **A. People Index** — Structured reference for every person, organized by relationship category (Partner, Family, Friends by tier, Colleagues, Bri's Circle). Every People Database entry included; sparse entries stay sparse.
+- **A. People Index** — Structured reference for every person, organized by relationship category (Partner, Family, Friends by tier, Colleagues, Partner's Circle). Every People Database entry included; sparse entries stay sparse.
 - **B. Timeline** — Chronological list of major/notable Chronicle events. One line per event, grouped by year. Includes upcoming known milestones.
 - **C. Tastes & Preferences** — Lookup data organized by category (Food & Drink, Restaurants, Media, Tech, Social Spots, Anti-Preferences). Tables and lists, no narrative.
 - **D. Quick Reference** — Practical utility data (contact info, clothing sizes, membership numbers, date ideas). Tables and concise lists.

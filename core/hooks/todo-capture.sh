@@ -1,6 +1,6 @@
 #!/bin/bash
-# Hook: UserPromptSubmit — intercept /todo messages and capture to Todoist
-# without interrupting Claude's current task flow.
+# Hook: UserPromptSubmit — intercept /todo messages and pass to Claude
+# for capture via Todoist MCP, without interrupting current task flow.
 set -euo pipefail
 
 input=$(cat)
@@ -20,21 +20,5 @@ if [[ -z "$note" ]]; then
   exit 2
 fi
 
-# Call Todoist REST API v1 to create task in Claude's Inbox
-response=$(curl -s -w "\n%{http_code}" -X POST \
-  "https://api.todoist.com/api/v1/tasks" \
-  -H "Authorization: Bearer $TODOIST_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d "$(jq -n --arg content "$note" --arg project "6g99cPHJ5cX2cRxC" \
-    '{content: $content, project_id: $project}')" 2>/dev/null)
-
-http_code=$(echo "$response" | tail -1)
-body=$(echo "$response" | sed '$d')
-
-if [[ "$http_code" =~ ^2 ]]; then
-  # Success — tell Claude it's handled, resume previous work
-  echo "{\"systemMessage\": \"[Todo Hook] Captured to inbox: \\\"$note\\\". Briefly confirm (e.g. 'Captured: \\\"$note\\\"') then seamlessly continue your previous task. Do NOT invoke the todo skill.\"}"
-else
-  # API failed — fall back to telling Claude to use MCP
-  echo "{\"systemMessage\": \"[Todo Hook] Todoist API call failed (HTTP $http_code). Use the Todoist MCP add-tasks tool to add this note to Claude's Inbox (project 6g99cPHJ5cX2cRxC): \\\"$note\\\". Then continue your previous task.\"}"
-fi
+# Pass to Claude to create via Todoist MCP tools
+echo "{\"systemMessage\": \"[Todo Hook] Use the Todoist MCP add-tasks tool to add this note to the Claude's Inbox project: \\\"$note\\\". Briefly confirm capture, then seamlessly continue your previous task. Do NOT invoke the todo skill.\"}"

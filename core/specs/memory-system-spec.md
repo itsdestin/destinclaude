@@ -15,7 +15,7 @@ The memory system gives Claude Code persistent context about the user across con
 - (2026-03-13) Files are grouped into four categories: **User** (identity/preferences), **Feedback** (corrections to Claude's behavior), **Project** (project-specific config/context), **Reference** (API keys, tool usage, external service details).
 - (2026-03-13) File naming follows the pattern `{type}_{slug}.md` (e.g., `feedback_plan_location.md`, `reference_todoist.md`).
 - (2026-03-13) Biographical, relationship, political, and life-history detail belongs in the Encyclopedia system files on Google Drive — NOT in local memory. Memory is for operational context only.
-- (2026-03-13) Do not store secrets (API tokens, passwords) directly in memory files. Store the *location* of the secret (e.g., "token is in `$TODOIST_TOKEN` env var").
+- (2026-03-13) Do not store secrets (API tokens, passwords) directly in memory files. Store the *location* of the secret (e.g., "token is managed by MCP server config").
 - (2026-03-13) Each memory file should be small and single-purpose — one topic per file, not a catch-all dump.
 
 ## Design Decisions
@@ -43,7 +43,7 @@ The memory system gives Claude Code persistent context about the user across con
   - `feedback_title_case_ui.md` — All UI text must use Title Case.
   - `feedback_research_before_building.md` — Research existing solutions first.
   - `project_gmail_mcp.md` — Gmail-extended MCP server (DEPRECATED; removed from toolkit).
-  - `reference_todoist.md` — Todoist API token location and base URL.
+  - `reference_todoist.md` — Todoist configuration and MCP setup.
   - `reference_gemini_cli.md` — How to launch Gemini CLI.
 - **Read/write mechanism:** Claude Code's built-in auto-memory. Claude reads `MEMORY.md` at session start (via system prompt injection) and can create/edit memory files with standard Write/Edit tools.
 - **Backup:** Memory files are tracked by Git and backed up via `git-sync.sh`. Drive archive copies are created on each push.

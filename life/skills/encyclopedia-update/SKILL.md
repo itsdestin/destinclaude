@@ -251,7 +251,7 @@ This is the most frequently updated file. Most journal entries will produce at l
 - Write entries to stand alone decades later without requiring surrounding context.
 - Tag with one or more domains: `career`, `relationship`, `family`, `health`, `financial`, `political`, `social`, `personal`.
 - Grade significance: `major` (life-defining milestones, turning points), `notable` (meaningful events worth tracking), `minor` (arc updates, small but relevant developments).
-- Optionally tag with `Arc:` when the entry is part of a continuing trajectory. Use consistent arc names across entries so they can be traced (e.g., "financial recovery", "career transition", "emotional health", "Bri long-distance").
+- Optionally tag with `Arc:` when the entry is part of a continuing trajectory. Use consistent arc names across entries so they can be traced (e.g., "financial recovery", "career transition", "emotional health", "partner long-distance").
 
 **Entry format:**
 
@@ -359,7 +359,7 @@ For each new journal entry:
 - Add new preferences, orders, favorites, sizes, memberships, and reference data as they surface in journal entries.
 - Update existing items when preferences change (e.g., new regular drink order replaces old one at the same place).
 - Only remove items when the journal explicitly says a preference has ended or changed.
-- Organize by category: Food & Drink, Restaurants, Media, Tech Setup, Social Spots, Anti-Preferences, Bri's Sizes & Favorites, Proposal & Wedding Notes, Date & Activity Ideas, Contact Info, Memberships, Other.
+- Organize by category: Food & Drink, Restaurants, Media, Tech Setup, Social Spots, Anti-Preferences, Partner's Sizes & Favorites, Proposal & Wedding Notes, Date & Activity Ideas, Contact Info, Memberships, Other.
 
 **Style:** Organized by category. Tables and lists where appropriate. Pure reference — no narrative needed.
 
@@ -379,23 +379,23 @@ Proposed updates (N changes across M files):
     [✓] Update Active interests
 
   People Database (2):
-    [✓] Connor Sweet: update Last Known Contact, add TSMC note
-    [✓] NEW: Alex (Tier 3, Friend) — met through festival crew
+    [✓] [Person A]: update Last Known Contact, add job change note
+    [✓] NEW: [Person B] (Tier 3, Friend) — met through social group
 
   Chronicle (1):
-    [✓] NEW: 2026-03-10 — Cleared credit card balances (Tags: financial)
+    [✓] NEW: 2026-03-10 — Paid off credit card balance (Tags: financial)
 
   Open Threads & Goals (2):
-    [✓] Update: Campaign job search — new context added
-    [✓] NEW GOAL (Near-Term): Pay off Robinhood card before June
+    [✓] Update: Job search — new context added
+    [✓] NEW GOAL (Near-Term): Pay off remaining balance before June
 
   Preferences & Reference Data (1):
-    [✓] Add: Black Rock Coffee — Blue Lagoon order
+    [✓] Add: [Coffee shop] — regular order
 
 Reply "approve" to accept all, or list items to remove.
 ```
 
-**Item removal:** Natural language — the user says "remove the Alex entry" or "drop the Chronicle one". Match by description. If ambiguous, ask for clarification.
+**Item removal:** Natural language — the user says "remove the [Person B] entry" or "drop the Chronicle one". Match by description. If ambiguous, ask for clarification.
 
 - If the user approves all → proceed to save.
 - If the user removes specific items → apply only the remaining approved changes.
@@ -454,12 +454,7 @@ After updating goals, check if any **new** Near-Term goals were added that have 
 - The user confirms they want it added
 
 **How to create:**
-```bash
-curl -s -X POST "https://api.todoist.com/api/v1/tasks" \
-  -H "Authorization: Bearer a1ae8e06485b7c08a3c3d24aec624debf8286be5" \
-  -H "Content-Type: application/json" \
-  -d '{"content": "[goal description]", "due_string": "[target date]"}'
-```
+Use the Todoist MCP `add-tasks` tool to create the task with the goal description and target date. If the MCP is unavailable, skip silently.
 
 If the response contains an error or non-2xx status, report it and skip. Do not let a Todoist failure block the update.
 

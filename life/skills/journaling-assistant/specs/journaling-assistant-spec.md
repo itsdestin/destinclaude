@@ -54,7 +54,7 @@ The skill activates on phrases like: "let's journal", "journal entry", "I want t
 
 **Step 2 — Day Overview:** High-level day description with 1-2 targeted follow-ups.
 
-**Step 3 — Domain Coverage:** Follow conversation naturally across 11 tracked domains (Work, School/MPP, Relationship/Brianna, Friends/Social, Family, Finances/Investing, Health/Physical, Mental/Emotional, Interests/Projects, Political/Beliefs, Spontaneous/Other). Political domain gets special handling: position evolution probes and prediction probes (confidence level, conditions, resolution tracking). At wind-down, a single collective sweep covers any untouched domains. Proactive topic suggestions (1-2 per session) are woven in when relevant domains arise.
+**Step 3 — Domain Coverage:** Follow conversation naturally across 11 tracked domains (Work, School/Education, Relationship/Partner, Friends/Social, Family, Finances/Investing, Health/Physical, Mental/Emotional, Interests/Projects, Political/Beliefs, Spontaneous/Other). Political domain gets special handling: position evolution probes and prediction probes (confidence level, conditions, resolution tracking). At wind-down, a single collective sweep covers any untouched domains. Proactive topic suggestions (1-2 per session) are woven in when relevant domains arise.
 
 **Step 4 — Threads and Goals Check-In:** Surface any unaddressed threads from Step 1b. Lightweight goals check-in focused on near-term in-progress/not-started goals. Stale items (>14 days) get specific attention. Conversational, not scripted.
 
@@ -101,7 +101,7 @@ Direct, neutral affect, short non-compound questions. Forbidden patterns: "That 
 
 ### Proactive Topic Suggestions
 
-Used 1-2 per session within relevant domains during Step 3. Topics include: MPP capstone/graduation, Brianna's DVM program, EDM festival planning (Decadence, Gold Rush, System Overload), Robinhood positions (CMPS, ATAI, options), cats (Sake and Soju), upcoming social events/travel, political developments being tracked.
+Used 1-2 per session within relevant domains during Step 3. Topics include: academic progress/graduation, partner's career or academic updates, upcoming events or trips, investment/financial updates, pets, upcoming social events/travel, political developments being tracked.
 
 ## Dependencies
 

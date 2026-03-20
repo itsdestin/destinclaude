@@ -121,7 +121,7 @@ Deep Search **requires the user's explicit approval before execution**. The Libr
 
 2. **The Librarian suggests it.** While preparing a report from modular files, the Librarian may recognize that primary sources would meaningfully improve the output. In that case:
    - Finish the modular-file-based report first (or present a draft/summary).
-   - Then suggest a deep search, briefly explaining *what* it would search and *why* it would add value. For example: *"The People Database entry for Connor is pretty thin. A deep search could pull from your text history with him and any journal entries that mention him — want me to go deeper?"*
+   - Then suggest a deep search, briefly explaining *what* it would search and *why* it would add value. For example: *"The People Database entry for [person] is pretty thin. A deep search could pull from your text history with them and any journal entries that mention them — want me to go deeper?"*
    - Wait for the user's approval before proceeding.
 
 ### What Deep Search Reads
@@ -132,7 +132,7 @@ Deep Search **requires the user's explicit approval before execution**. The Libr
 | **Text message analyses** | `gdrive:Claude/The Journal/Misc. Entries and Information/Text Messages (03-08-2026)/Misc/messages analyses/` | Pre-built thematic analyses (personality, interests, political). Read these before raw JSONL when they cover the topic — they're faster and already synthesized. |
 | **Categorized messages** | `gdrive:Claude/The Journal/Misc. Entries and Information/Text Messages (03-08-2026)/Misc/messages sorted by category/` | Pre-sorted messages by topic (career, interests, political, predictions, values). Check here first for topic-specific deep searches. |
 | **Daily journal entries** | `gdrive:Claude/The Journal/Daily Entries/YYYY-MM-DD.md` | Use the Entry Index (`gdrive:Claude/The Journal/Entry Index.md`) to identify relevant dates, then read specific entries. |
-| **Misc entries & documents** | `gdrive:Claude/The Journal/Misc. Entries and Information/` | Includes BRI.md, political philosophy notes, informational entries, and other reference documents. List the directory to find relevant files. |
+| **Misc entries & documents** | `gdrive:Claude/The Journal/Misc. Entries and Information/` | Includes political philosophy notes, informational entries, relationship documents, and other reference documents. List the directory to find relevant files. |
 
 ### Search Strategy
 
@@ -146,7 +146,7 @@ Deep Search **requires the user's explicit approval before execution**. The Libr
 ### Output Integration
 
 Deep search findings get woven into the report structure of whichever template is being used — they don't create a separate section. The Librarian should:
-- Use direct quotes from texts or journal entries where they add color or evidence (attribute them: *"from your March 4 journal entry"* or *"from a text to Connor on 2024-11-15"*).
+- Use direct quotes from texts or journal entries where they add color or evidence (attribute them: *"from your March 4 journal entry"* or *"from a text to [contact] on 2024-11-15"*).
 - Flag when a finding contradicts or nuances something in the modular files.
 - Note gaps — if the deep search was expected to find something but didn't.
 
@@ -180,7 +180,7 @@ Deep search findings get woven into the report structure of whichever template i
 4. Relevant skills and experience mapped to the target role
 5. Forward-looking close
 
-**Tone:** Should align with the user's writing voice. If the output is something the user would send directly (a cover letter, an introductory email), invoke the `destins-writing-voice` skill and write in their voice. If it's a reference document for their own use, write in third person.
+**Tone:** Should align with the user's writing voice. If the output is something the user would send directly (a cover letter, an introductory email), write in their voice. If it's a reference document for their own use, write in third person.
 
 ---
 
@@ -214,40 +214,40 @@ Deep search findings get woven into the report structure of whichever template i
 
 ### 3. Relationship Briefing
 
-**Purpose:** Context about Bri and the relationship, structured around a particular situation.
+**Purpose:** Context about the user's partner and the relationship, structured around a particular situation.
 
 **When to use:** The user says "I'm visiting my partner, catch me up", "what should I know before [partner situation]", "brief me on my partner's friends", or similar.
 
 **Parameters to collect:**
-- Context/purpose (visiting Ithaca, meeting her friends, preparing for a conversation, gift shopping, etc.)
+- Context/purpose (visiting partner, meeting their friends, preparing for a conversation, gift shopping, etc.)
 - Detail level (suggest **Full** — this template is inherently intimate)
 
 **Sources to read:**
-- People Database (Bri's entry + Bri's Circle entries + relevant group entries)
+- People Database (partner's entry + partner's social circle entries + relevant group entries)
 - Status Snapshot (current relationship dynamics)
 - Chronicle (recent relationship events)
 - Open Threads & Goals (any active relationship threads)
-- Preferences & Reference Data (Bri's favorites, sizes, gift ideas — if the context warrants it)
+- Preferences & Reference Data (partner's favorites, sizes, gift ideas — if the context warrants it)
 
 **Output structure varies by context:**
 
 *Before a visit:*
 1. Current relationship state — how things are between them right now
 2. Recent events/dynamics to be aware of
-3. Her current situation at Cornell (academics, social, emotional)
-4. Her friend group dynamics — who she's close with, any tension
+3. Their current situation (academics, work, social, emotional)
+4. Their friend group dynamics — who they're close with, any tension
 5. Practical info (favorites, activity ideas for the area)
 
 *Before a difficult conversation:*
 1. The issue and its history
-2. Bri's perspective as best understood from journal entries
+2. The partner's perspective as best understood from journal entries
 3. Recurring patterns relevant to this conversation
 4. What has worked and not worked in past similar situations
 
 *Gift shopping:*
-1. Bri's favorites (restaurants, treats, flowers, skincare)
+1. Their favorites (restaurants, treats, flowers, skincare)
 2. Clothing sizes
-3. Things she's mentioned wanting
+3. Things they've mentioned wanting
 4. Relevant upcoming dates
 
 ---
@@ -259,7 +259,7 @@ Deep search findings get woven into the report structure of whichever template i
 **When to use:** The user says "review the last six months", "what happened this year", "walk me through the fall semester", "summarize everything since [date]", or similar.
 
 **Parameters to collect:**
-- Time period (specific dates, a named period like "fall 2025", "since Gold Rush", "the last six months", "2025", etc.)
+- Time period (specific dates, a named period like "fall 2025", "the last six months", "2025", etc.)
 - Domains to emphasize (optional — if not specified, cover everything proportionally)
 - Detail level (suggest **Full** — this is a personal reflection tool)
 
@@ -277,7 +277,7 @@ Deep search findings get woven into the report structure of whichever template i
 2. Major events and milestones (drawn from Chronicle, chronological)
 3. Arcs — how key areas of life evolved over the period:
    - Career trajectory
-   - Relationship with Bri
+   - Relationship with partner
    - Social life and friendships
    - Academic progress
    - Financial position
@@ -318,7 +318,7 @@ Deep search findings get woven into the report structure of whichever template i
 6. Theory of change — the state-level strategy, anti-partisan slate, ranked choice vision
 7. Prediction track record (if included) — synthesized as a judgment profile
 
-**Tone:** If the audience is political (a collaborator, a campaign), align with the user's political writing voice — direct, systemic, appeals to fairness over grievance. Invoke the `destins-writing-voice` skill with analytical-formal tone.
+**Tone:** If the audience is political (a collaborator, a campaign), align with the user's political writing voice — direct, systemic, appeals to fairness over grievance. Invoke the `users-writing-voice` skill with analytical-formal tone.
 
 ---
 
@@ -370,7 +370,7 @@ Deep search findings get woven into the report structure of whichever template i
 
 ## General Guidelines
 
-**Use the writing voice skill when producing voice-matched output.** If the Librarian is producing something the user would send or publish under their own name (a cover letter, a political statement, an email), invoke the `destins-writing-voice` skill and write in their voice. If the output is for the user's own reference (a briefing, a review), third person is fine.
+**Use the writing voice skill when producing voice-matched output.** If the Librarian is producing something the user would send or publish under their own name (a cover letter, a political statement, an email), invoke the `users-writing-voice` skill and write in their voice. If the output is for the user's own reference (a briefing, a review), third person is fine.
 
 **Don't over-read files.** If a template specifies which sources to read, start with those. Only read additional files if the initial sources are insufficient. Don't read all eight files for a simple Person Briefing.
 
