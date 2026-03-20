@@ -24,7 +24,7 @@ if node -e "
   const found = Object.entries(reg).some(([path, entry]) => entry.pid === pid && pat.test(path));
   process.exit(found ? 0 : 1);
 " "$REGISTRY" "$SYSTEM_PATTERNS" "$PPID" 2>/dev/null; then
-  echo '{"stopReason": "REMINDER: You modified system files this session. Before finishing, verify you have followed every item in the System Change Checklist (~/.claude/docs/system.md). This is mandatory per CLAUDE.md System Change Protocol.", "continue": true}'
+  echo '{"stopReason": "REMINDER: You modified system files this session. Before finishing, verify you have followed every item in the System Change Checklist (docs/system-architecture.md in the toolkit repo). This is mandatory per CLAUDE.md System Change Protocol.", "continue": true}'
 fi
 
 exit 0

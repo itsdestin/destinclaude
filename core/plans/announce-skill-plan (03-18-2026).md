@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+**Status:** Implemented
+
 **Goal:** Create a private GitHub repo (`itsdestin/destinclaude-admin`) with a single `announce` skill for creating, clearing, and viewing the DestinClaude announcement broadcast.
 
 **Architecture:** A new private repo holds one skill file (`skills/announce/announce.md`) that is symlinked into `~/.claude/skills/announce`. The skill detects intent from natural language, gathers missing inputs conversationally, then writes `announcements.txt` in the DestinClaude repo and pushes to `master`. The DestinClaude `core/specs/INDEX.md` gets a new External Admin Tooling section pointing to the private repo.

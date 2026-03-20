@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED: Use superpowers:subagent-driven-development (if subagents available) or superpowers:executing-plans to implement this plan. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+**Status:** Superseded by inbox-processor-v2-plan (03-15-2026).md
+
 **Goal:** Build a Todoist-based inbox processor skill that checks for unprocessed notes each session, routes them to the appropriate system (calendar, encyclopedia, Todoist, Open Threads), and deprecates the Mid-Day Notes system.
 
 **Architecture:** A SKILL.md file defines the inbox-processor skill with instructions for checking a "Claude's Inbox" Todoist project, classifying notes, routing them, and completing tasks. A SessionStart hook triggers the skill each session. Existing journaling-assistant and encyclopedia-update skills are modified to remove Mid-Day Notes references.

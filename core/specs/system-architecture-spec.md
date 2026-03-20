@@ -1,24 +1,24 @@
 # System Design — Spec
 
-**Version:** 1.0
-**Last updated:** 2026-03-15
+**Version:** 1.1
+**Last updated:** 2026-03-20
 **Feature location:** `~/.claude/` (entire system)
 
 ## Purpose
 
-Canonical architecture reference for the user's Claude Code automation system. Documents how all components relate, how data flows between local/Git/Drive, what happens during a session lifecycle, and how enforcement mechanisms ensure consistency. Individual feature specs remain authoritative for their own domains — this spec covers the system-level view and cross-cutting conventions.
+Canonical architecture reference for the user's Claude Code automation system. For the public-facing developer guide (component listings, CI/CD, how to build on top), see `docs/system-architecture.md`. Documents how all components relate, how data flows between local/Git/Drive, what happens during a session lifecycle, and how enforcement mechanisms ensure consistency. Individual feature specs remain authoritative for their own domains — this spec covers the system-level view and cross-cutting conventions.
 
 ## User Mandates
 
-- (2026-03-15) System Change Protocol is mandatory — the checklist in `docs/system.md` must be followed whenever a system feature is added, removed, or significantly changed.
+- (2026-03-15) System Change Protocol is mandatory — the checklist in `docs/system-architecture.md` must be followed whenever a system feature is added, removed, or significantly changed.
 - (2026-03-15) Spec-creation threshold: any feature with behavior or workflow logic that a future session would need to understand to modify correctly must have a spec. A "feature" is a logical unit that may span multiple files.
-- (2026-03-15) All four enforcement layers (CLAUDE.md hard gate, system.md checklist, skill SKILL.md footers, Stop hook) must remain active.
+- (2026-03-15) All three enforcement layers (CLAUDE.md hard gate, skill SKILL.md spec-reminder comments, Stop hook) must remain active.
 
 ## Design Decisions
 
 | Decision | Rationale | Alternatives considered |
 |----------|-----------|----------------------|
-| Four-layer enforcement (prompt gate → checklist doc → skill footers → Stop hook) | Defense in depth — each layer catches what the others miss. CLAUDE.md is always in context; system.md has the details; footers remind at skill-load time; hook catches forgotten checks at session end | Hook-only (rejected: latency on all sessions), prompt-only (rejected: no safety net), checklist in CLAUDE.md (rejected: user prefers separate doc) |
+| Three-layer enforcement (CLAUDE.md gate → SKILL.md spec-reminder comments → Stop hook) | Defense in depth — each layer catches what the others miss. CLAUDE.md is always in context with the System Change Protocol; spec-reminder comments in SKILL.md files remind at point of action; hook catches forgotten checks at session end. The System Change Checklist lives in `docs/system-architecture.md` and is referenced by the CLAUDE.md protocol. | Hook-only (rejected: latency on all sessions), prompt-only (rejected: no safety net), four layers with separate system-architecture.md (rejected: extra file became a dead link; three layers provide sufficient coverage) |
 | specs/ for living specs, plans/ for design docs and implementation plans | Prevents confusion about which file is authoritative. Living specs are maintained; plans are historical artifacts | Everything in specs/ (rejected: muddies living specs with dated artifacts) |
 | Git primary + Drive secondary for backup | Git provides native version control; Drive provides human-browsable archive of high-value files | rclone-only (rejected: reimplements Git), Git-only (rejected: loses browsable archive) |
 | Local encyclopedia cache at `~/.claude/encyclopedia/` | Eliminates rclone round-trips during sessions; synced at session start | No cache (rejected: slow), cache in Git (rejected: commit churn from frequent syncs) |
@@ -31,22 +31,22 @@ Canonical architecture reference for the user's Claude Code automation system. D
 
 | Component | Location | Authoritative Spec |
 |-----------|----------|-------------------|
-| 11 custom skills | `~/.claude/skills/{name}/` | Each skill's `specs/{name}-spec.md` |
-| 5 hooks | `~/.claude/hooks/` | `backup-system-spec.md` (git-sync, session-start), `write-guard-spec.md`, `statusline-spec.md` (title-update), this spec (checklist-reminder) |
-| 2 MCP servers (todoist, gmessages) | Configured in `~/.claude.json`, code at `~/.claude/mcp-servers/` | `gmessages-mcp-spec.md`; todoist documented in CLAUDE.md. See `destinclaude-spec.md` Known Issues for gaps. |
+| 10 skills (3 layers) | `~/.claude/skills/{name}/` (symlinked from toolkit) | Each skill's `specs/{name}-spec.md` |
+| 13 hooks | `~/.claude/hooks/` (symlinked from toolkit) | `backup-system-spec.md` (git-sync, session-start, personal-sync), `write-guard-spec.md`, `statusline-spec.md` (title-update), this spec (checklist-reminder, done-sound) |
+| 7 MCP servers | Configured in `~/.claude.json`, definitions in `core/mcp-manifest.json` | `destinclaude-spec.md` (registration); individual servers documented in CLAUDE.md |
 | Statusline | `~/.claude/statusline.sh` + hooks | `statusline-spec.md` |
 | Encyclopedia system | `~/.claude/encyclopedia/` (cache), `gdrive:Claude/The Journal/System/` (source of truth) | `encyclopedia-system-spec.md` |
-| Backup/sync | `~/.claude/hooks/git-sync.sh` + `session-start.sh` | `backup-system-spec.md` |
-| Write guard | `~/.claude/hooks/write-guard.sh` | `write-guard-spec.md` |
+| Backup/sync | `core/hooks/git-sync.sh` + `session-start.sh` + `personal-sync.sh` | `backup-system-spec.md` |
+| Write guard | `core/hooks/write-guard.sh` | `write-guard-spec.md` |
 | Memory system | `~/.claude/projects/{project-key}/memory/` | `memory-system-spec.md` |
-| Specs system | `~/.claude/specs/` (system), `~/.claude/skills/{name}/specs/` (skill) | `specs-system-spec.md` |
+| Specs system | `core/specs/` (system), `{layer}/skills/{name}/specs/` (skill) | `specs-system-spec.md` |
 
 **Dependency relationships:**
 - `git-sync.sh` → writes `.write-registry.json` (consumed by `write-guard.sh` and `checklist-reminder.sh`)
 - `session-start.sh` → runs `git pull`, `rclone sync` (encyclopedia), and `check-inbox.sh`
 - Encyclopedia skills → read from `~/.claude/encyclopedia/` (cache), write to Drive (source of truth)
 - `checklist-reminder.sh` → reads `.write-registry.json` (written by `git-sync.sh`)
-- All skills → governed by CLAUDE.md rules, skill-specific specs, and system.md checklist
+- All skills → governed by CLAUDE.md rules, skill-specific specs, and system-architecture.md checklist
 
 ### 2. Data Flow
 
@@ -101,7 +101,7 @@ Local (~/.claude/)
 - Claude.ai Gmail/Calendar MCP calls → `tool-router.sh` (PreToolUse) blocks and redirects to GWS CLI
 - Every tool use → `title-update.sh` (PostToolUse) throttled topic reminder
 - Skills load their SKILL.md (includes system rules footer)
-- On-demand docs (system.md, skills.md, work.md) read when relevant
+- On-demand docs (system-architecture.md, skills.md, work.md) read when relevant
 
 **End:**
 - `checklist-reminder.sh` (Stop) checks write registry for system file modifications
@@ -111,15 +111,13 @@ Local (~/.claude/)
 
 | Layer | Trigger | Coverage | Strength |
 |-------|---------|----------|----------|
-| CLAUDE.md System Change Protocol | Always in context | Every session | Strong — hard gate language with STOP/MUST |
-| docs/system.md checklist | Read on demand (referenced by CLAUDE.md) | When Claude follows the protocol | Strong — detailed, mandatory items |
-| Skill SKILL.md footers | Loaded when skill is invoked | Skill modification sessions | Medium — reinforcement at point of action |
+| CLAUDE.md System Change Protocol | Always in context | Every session | Strong — hard gate language with STOP/MUST, references checklist in `docs/system-architecture.md` |
+| SKILL.md spec-reminder comments | Loaded when skill file is opened for editing | Skill modification sessions | Medium — point-of-action reinforcement (`<!-- SPEC: Read specs/... -->`) |
 | Stop hook (checklist-reminder.sh) | Session end, if system files were modified | Advisory catch-all | Best-effort — cannot block, only remind |
 
 **What each layer catches:**
-- CLAUDE.md: Claude forgets system.md exists → protocol tells it to read it
-- system.md: Claude reads but skips items → mandatory language prevents this
-- Skill footers: Claude modifies a skill without reading CLAUDE.md's protocol → footer reminds
+- CLAUDE.md: Claude starts modifying a system feature → protocol tells it to read the spec and follow the checklist
+- SKILL.md comments: Claude opens a skill file to edit → sees the spec reminder before making changes
 - Stop hook: Claude does all the work but forgets the checklist → hook reminds before session ends
 
 ### 6. Spec Governance
@@ -136,7 +134,7 @@ Local (~/.claude/)
 |-----------|---------|-------------|
 | `specs/` | Living specifications — versioned, updated when architecture changes | Yes — actively maintained |
 | `plans/` | Design docs and implementation plans — historical artifacts, dated | No — written once, read for context |
-| `docs/` | Operational guides — system.md, skills.md, work.md | Yes — updated when systems change |
+| `docs/` | Operational guides — system-architecture.md, skills.md, work.md | Yes — updated when systems change |
 | `skills/` | Skill directories (SKILL.md + specs/ + references/) | Yes — per skill lifecycle |
 | `hooks/` | Shell scripts fired by Claude Code events | Yes — per hook lifecycle |
 | `mcp-servers/` | MCP server source code and data | Yes — per server lifecycle |
@@ -177,3 +175,4 @@ These rules are enforced globally. Each has an authoritative spec — do NOT dup
 | Date | Version | What changed | Type | Approved by | Session |
 |------|---------|-------------|------|-------------|---------|
 | 2026-03-15 | 1.0 | Initial spec — consolidates system architecture from overhaul design into living spec | New | — | |
+| 2026-03-20 | 1.1 | Reduced enforcement from 4 layers to 3 (removed ghost system.md reference), updated component counts, fixed stale paths, added cross-reference to docs/system-architecture.md | Revised | — | |

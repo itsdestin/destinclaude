@@ -2,7 +2,7 @@
 
 **Version:** 1.1
 **Date:** 2026-03-14
-**Status:** Draft — pending review
+**Status:** Superseded by inbox-processor-v2-design (03-15-2026).md
 
 ## Problem
 

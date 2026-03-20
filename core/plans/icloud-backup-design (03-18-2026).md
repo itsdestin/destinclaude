@@ -1,7 +1,7 @@
 # iCloud Backup Support — Design
 
 **Date:** 2026-03-18
-**Status:** Approved
+**Status:** Pending
 **Scope:** Add iCloud as a third personal-sync backend in the DestinClaude toolkit, alongside Google Drive and private GitHub. Clean up drive-archive.sh references from the published backup-system spec.
 
 ---

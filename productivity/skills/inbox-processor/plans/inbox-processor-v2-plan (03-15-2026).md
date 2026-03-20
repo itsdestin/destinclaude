@@ -1,6 +1,6 @@
 # Inbox Processor v2 Implementation Plan
 
-> **For agentic workers:** REQUIRED: Use superpowers:subagent-driven-development (if subagents available) or superpowers:executing-plans to implement this plan. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **Status: COMPLETE** — All tasks implemented. SKILL.md rewritten with 7-phase resolve model, spec updated to v2.4, cross-skill journaling contract added, Drive Inbox integration added.
 
 **Goal:** Rewrite the inbox processor skill from a classify-and-route model to an active resolver that uses Todoist MCP tools instead of curl.
 

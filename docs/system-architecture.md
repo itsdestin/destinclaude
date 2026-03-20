@@ -1,6 +1,6 @@
 # System Architecture
 
-This document covers the technical architecture of DestinClaude for power users and developers who want to understand, extend, or contribute to the system.
+This document covers the technical architecture of DestinClaude for power users and developers who want to understand, extend, or contribute to the system. For the governance spec (mandates, design decisions, enforcement mechanisms), see `core/specs/system-architecture-spec.md`.
 
 ## Layer System
 
@@ -41,6 +41,7 @@ Hooks are bash scripts that run automatically in response to Claude Code events.
 | `usage-fetch.js` | PostToolUse | Tracks API usage statistics |
 | `announcement-fetch.js` | SessionStart | Fetches announcements from GitHub, caches to `~/.claude/.announcement-cache.json` |
 | `personal-sync.sh` | PostToolUse | Backs up memory, CLAUDE.md, and config to Drive or private GitHub (15-min debounce) |
+| `done-sound.sh` | Stop | Plays audio notification when Claude finishes a task (cross-platform) |
 
 **Hook composition:** If a user already has hooks at the same trigger points, the setup wizard offers to merge logic (preserving both) or let the user choose which to keep. The backup system ensures nothing is lost.
 
@@ -214,3 +215,18 @@ The `VERSION` file and `plugin.json` version field must stay in sync. The `/upda
 **Creating a command:** Add a `.md` file in `commands/`. The filename becomes the slash command name. Use YAML frontmatter for the description.
 
 For detailed guidance on each component type, ask Claude: "How do I create a new skill for the toolkit?"
+
+## System Change Checklist
+
+**Mandatory** — applies whenever you create, modify, or remove a skill, hook, spec, MCP server, or other system feature. Every item is non-negotiable. Do not skip items because they "probably don't apply."
+
+1. **Read the relevant spec(s)** before making any changes. If the feature has a spec, confirm you understand its mandates and design decisions.
+2. **Update CLAUDE.md fragments** (`core/templates/claude-md-fragments/`) if the change affects user-facing instructions, skill tables, or MCP server tables.
+3. **Update `.gitignore`** if new files or directories need to be tracked or excluded from version control.
+4. **Update `git-sync.sh`** if new paths need to be included in or excluded from automatic backup.
+5. **Bump the spec version** if you changed a user mandate, reversed a design decision, or made an architectural shift. Batch multiple changes in one session into a single bump.
+6. **Update `README.md`** if the change is user-facing (new feature, changed command, removed capability).
+7. **Update `core/specs/INDEX.md`** if a spec was added, removed, or had its version bumped.
+8. **Grep for stale references** to anything you renamed or removed — check specs, SKILL.md files, hooks, commands, and docs for outdated paths, function names, or feature references.
+9. **Update `docs/system-architecture.md`** if the change affects the architecture (new hook, new layer component, changed data flow).
+10. **Offer to create a spec** if you created a new feature with behavior or workflow logic that a future session would need to understand to modify correctly.
