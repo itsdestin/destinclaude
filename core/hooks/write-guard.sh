@@ -19,7 +19,7 @@ if [ -z "$FILE_PATH" ]; then
     exit 0
 fi
 
-# Tracked files filter — same whitelist as git-sync.sh
+# Tracked files filter — same whitelist as backup-engine.sh (was: git-sync.sh)
 if [[ "$FILE_PATH" != *"/memory/"* ]] && \
    [[ "$FILE_PATH" != *"\\memory\\"* ]] && \
    [[ "$FILE_PATH" != *"CLAUDE.md"* ]] && \
