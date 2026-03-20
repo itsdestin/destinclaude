@@ -99,7 +99,7 @@ The DestinClaude backup system has four structural problems:
 
 **Mapping:**
 - `PERSONAL_SYNC_BACKEND` → `primary_backend`
-- `PERSONAL_SYNC_REPO` → `secondary_backend_repo` (if backend was github)
+- `PERSONAL_SYNC_REPO` → `primary_backend_repo` (if `PERSONAL_SYNC_BACKEND` was `"github"`, this is the primary repo URL)
 - `GIT_REMOTE` → preserved (used for the claude-config repo, separate from backup backends)
 
 ### D11: Safe migration via temp directory
@@ -280,6 +280,7 @@ backup_check                               # Return 0 if backend is reachable/co
   "comfort_level": "beginner",
   "DRIVE_ROOT": "Claude",
   "primary_backend": "drive",
+  "primary_backend_repo": "",
   "secondary_backend": "github",
   "secondary_backend_repo": "https://github.com/user/claude-backup.git",
   "backup_registry": [
@@ -340,7 +341,7 @@ Phase 6: Verification (unchanged, plus verify restore succeeded)
 
 | File | Purpose | Changed? |
 |------|---------|----------|
-| `~/.claude/.push-marker-{backend}` | Per-backend debounce timer (e.g., `.push-marker-drive`, `.push-marker-github`) | Changed — was per-project, now per-backend |
+| `~/.claude/.push-marker-{backend}` | Per-backend debounce timer (e.g., `.push-marker-drive`, `.push-marker-github`). All personal data categories sharing a backend share one debounce window. External projects retain their own independent debounce markers (`.push-marker-{project}`) since they use direct git push, not the backend driver. | Changed — personal data debounce is now per-backend; external project debounce is unchanged |
 | `~/.claude/.sync-status` | Human-readable status for statusline | Unchanged |
 | `~/.claude/.sync-warnings` | Warning flags for statusline | Unchanged |
 | `~/.claude/.backup-lock/` | Mutex directory | Unchanged |
