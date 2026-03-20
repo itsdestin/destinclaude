@@ -1,0 +1,157 @@
+{
+  "tips": [
+    {
+      "id": "journal-basics",
+      "feature": "journaling-assistant",
+      "category": "life",
+      "comfort_levels": ["beginner", "intermediate", "power_user"],
+      "requires_discovered": [],
+      "text": "You have a built-in journaling system. Say \"let's journal\" or use /journaling-assistant to start a conversational daily entry that gets saved as a dated Markdown file.",
+      "context_hint": "Suggest when the user is reflecting on their day, venting, describing events, or seems to want to record something."
+    },
+    {
+      "id": "toolkit-overview",
+      "feature": "toolkit",
+      "category": "core",
+      "comfort_levels": ["beginner"],
+      "requires_discovered": [],
+      "text": "Type /toolkit to see all your installed features and useful phrases at a glance.",
+      "context_hint": "Suggest when the user seems unsure what the toolkit can do or asks about available features."
+    },
+    {
+      "id": "google-drive-basics",
+      "feature": "google-drive",
+      "category": "life",
+      "comfort_levels": ["beginner", "intermediate", "power_user"],
+      "requires_discovered": [],
+      "text": "Your toolkit can read and write files on Google Drive. Say \"upload this to Drive\" or use /google-drive for file operations.",
+      "context_hint": "Suggest when the user mentions files, documents, backups, or cloud storage."
+    },
+    {
+      "id": "health-check",
+      "feature": "health",
+      "category": "core",
+      "comfort_levels": ["beginner", "intermediate"],
+      "requires_discovered": [],
+      "text": "If something feels off, type /health to run a quick diagnostic that checks all your toolkit components.",
+      "context_hint": "Suggest when the user encounters errors, missing features, or something not working as expected."
+    },
+    {
+      "id": "inbox-basics",
+      "feature": "inbox-processor",
+      "category": "productivity",
+      "comfort_levels": ["beginner", "intermediate", "power_user"],
+      "requires_discovered": [],
+      "text": "You can capture quick notes from your phone to a Todoist inbox. Claude will process them at the start of each session — answering questions, creating tasks, or filing information.",
+      "context_hint": "Suggest when the user mentions notes, quick capture, phone notes, or wants to remember something for later."
+    },
+    {
+      "id": "fork-file-basics",
+      "feature": "fork-file",
+      "category": "life",
+      "comfort_levels": ["beginner", "intermediate", "power_user"],
+      "requires_discovered": [],
+      "text": "Fork File tracks your groceries, pantry inventory, and fast food spending. Say \"I bought groceries\" or \"log my fast food\" to get started.",
+      "context_hint": "Suggest when the user mentions food, groceries, cooking, pantry, fridge, restaurants, or food spending."
+    },
+    {
+      "id": "update-toolkit",
+      "feature": "update",
+      "category": "core",
+      "comfort_levels": ["beginner", "intermediate"],
+      "requires_discovered": [],
+      "text": "Type /update to check for and install the latest toolkit version. New features and fixes are released regularly.",
+      "context_hint": "Suggest when the user asks about new features, or if the statusline shows an update is available."
+    },
+    {
+      "id": "encyclopedia-intro",
+      "feature": "encyclopedia-update",
+      "category": "life",
+      "comfort_levels": ["intermediate", "power_user"],
+      "requires_discovered": ["journaling-assistant"],
+      "text": "Your journal entries feed into the Encyclopedia system — a set of modular files that build up a comprehensive record of your life, beliefs, goals, and relationships over time.",
+      "context_hint": "Suggest when the user has been journaling and mentions wanting to organize or look back at their life information."
+    },
+    {
+      "id": "encyclopedia-compile",
+      "feature": "encyclopedia-compile",
+      "category": "life",
+      "comfort_levels": ["intermediate", "power_user"],
+      "requires_discovered": ["encyclopedia-update"],
+      "text": "Use /encyclopedia-compile to generate a full biography document from your Encyclopedia source files. It weaves everything into a single readable narrative.",
+      "context_hint": "Suggest when the user wants a comprehensive view of their life record or mentions compiling their information."
+    },
+    {
+      "id": "encyclopedia-search",
+      "feature": "encyclopedia-librarian",
+      "category": "life",
+      "comfort_levels": ["intermediate", "power_user"],
+      "requires_discovered": ["encyclopedia-update"],
+      "text": "Need to look something up from your journal or Encyclopedia? The Librarian can search your entire life record — say \"search my encyclopedia for...\" or \"brief me on [person].\"",
+      "context_hint": "Suggest when the user is trying to recall information about people, events, or past decisions they may have recorded."
+    },
+    {
+      "id": "encyclopedia-interview",
+      "feature": "encyclopedia-interviewer",
+      "category": "life",
+      "comfort_levels": ["power_user"],
+      "requires_discovered": ["encyclopedia-update"],
+      "text": "The Encyclopedia Interviewer proactively identifies gaps in your life record and runs focused interview sessions to fill them. Say \"interview me\" to start.",
+      "context_hint": "Suggest when the user has a mature Encyclopedia and mentions wanting to flesh out their record or fill gaps."
+    },
+    {
+      "id": "skill-creator-basics",
+      "feature": "skill-creator",
+      "category": "productivity",
+      "comfort_levels": ["intermediate", "power_user"],
+      "requires_discovered": [],
+      "text": "Want to teach Claude a new trick? The Skill Creator helps you build custom skills — reusable capabilities that Claude can invoke. Say \"create a skill\" to get started.",
+      "context_hint": "Suggest when the user has a repetitive workflow they want to automate or mentions wanting Claude to do something it doesn't currently do."
+    },
+    {
+      "id": "personal-sync",
+      "feature": "personal-sync",
+      "category": "core",
+      "comfort_levels": ["intermediate", "power_user"],
+      "requires_discovered": [],
+      "text": "Your toolkit can sync memory, config, and CLAUDE.md across devices via Google Drive or GitHub. Check /health to see your sync status.",
+      "context_hint": "Suggest when the user mentions multiple devices, syncing, or backing up their Claude configuration."
+    },
+    {
+      "id": "journal-to-encyclopedia",
+      "feature": "encyclopedia-update",
+      "category": "life",
+      "comfort_levels": ["intermediate", "power_user"],
+      "requires_discovered": ["journaling-assistant"],
+      "text": "At the end of each journaling session, your entries are automatically routed to the right Encyclopedia source files — people go to People Database, events to Chronicle, goals to Open Threads.",
+      "context_hint": "Suggest after a journaling session or when the user asks how journal entries are organized long-term."
+    },
+    {
+      "id": "contribute-upstream",
+      "feature": "contribute",
+      "category": "core",
+      "comfort_levels": ["power_user"],
+      "requires_discovered": ["skill-creator"],
+      "text": "Built something cool with the toolkit? Type /contribute to package your improvements and share them back with other DestinClaude users.",
+      "context_hint": "Suggest when the user has created custom skills or made modifications they're proud of."
+    },
+    {
+      "id": "memory-system",
+      "feature": "memory",
+      "category": "core",
+      "comfort_levels": ["beginner", "intermediate"],
+      "requires_discovered": [],
+      "text": "Claude remembers things across conversations using a file-based memory system. Say \"remember that I prefer...\" to save preferences, or \"what do you remember about...\" to recall.",
+      "context_hint": "Suggest when the user corrects Claude's behavior, states a preference, or asks if Claude remembers something."
+    },
+    {
+      "id": "setup-wizard-rerun",
+      "feature": "setup-wizard",
+      "category": "core",
+      "comfort_levels": ["intermediate", "power_user"],
+      "requires_discovered": [],
+      "text": "You can re-run /setup-wizard at any time to change your comfort level, reconfigure integrations, or set up features you skipped the first time.",
+      "context_hint": "Suggest when the user wants to change settings, add an integration they skipped, or adjust their comfort level."
+    }
+  ]
+}
