@@ -145,7 +145,7 @@ fi
 if [[ -n "$TOOLKIT_ROOT" && -d "$TOOLKIT_ROOT/core/hooks" ]]; then
     _REFRESHED=0
     # Canonical list of toolkit-owned hooks — ONLY these get overwritten
-    for _h in checklist-reminder.sh contribution-detector.sh done-sound.sh git-sync.sh personal-sync.sh session-start.sh title-update.sh todo-capture.sh tool-router.sh write-guard.sh; do
+    for _h in backup-engine.sh checklist-reminder.sh contribution-detector.sh done-sound.sh session-start.sh title-update.sh todo-capture.sh tool-router.sh write-guard.sh; do
         if [[ -f "$TOOLKIT_ROOT/core/hooks/$_h" ]]; then
             if [[ ! -f "$CLAUDE_DIR/hooks/$_h" ]] || ! diff -q "$CLAUDE_DIR/hooks/$_h" "$TOOLKIT_ROOT/core/hooks/$_h" >/dev/null 2>&1; then
                 cp -f "$TOOLKIT_ROOT/core/hooks/$_h" "$CLAUDE_DIR/hooks/$_h" 2>/dev/null && _REFRESHED=$((_REFRESHED + 1))
@@ -160,6 +160,11 @@ if [[ -n "$TOOLKIT_ROOT" && -d "$TOOLKIT_ROOT/core/hooks" ]]; then
             fi
         fi
     done
+    # Backend drivers for backup-engine (backends/ subdirectory)
+    if [[ -d "$TOOLKIT_ROOT/core/hooks/backends" ]]; then
+        mkdir -p "$CLAUDE_DIR/hooks/backends"
+        cp "$TOOLKIT_ROOT"/core/hooks/backends/*.sh "$CLAUDE_DIR/hooks/backends/" 2>/dev/null
+    fi
     # Statusline (lives at ~/.claude/statusline.sh, not in hooks/)
     if [[ -f "$TOOLKIT_ROOT/core/hooks/statusline.sh" ]]; then
         if [[ ! -f "$HOME/.claude/statusline.sh" ]] || ! diff -q "$HOME/.claude/statusline.sh" "$TOOLKIT_ROOT/core/hooks/statusline.sh" >/dev/null 2>&1; then
@@ -200,60 +205,18 @@ if command -v rclone &>/dev/null; then
         echo '{"hookSpecificOutput": "Warning: Encyclopedia cache sync failed. Skills will use stale cache."}' >&2
 fi
 
-# --- Personal data pull (cross-device sync for memory, CLAUDE.md, config) ---
-if [[ -f "$CONFIG_FILE" ]]; then
-    PS_BACKEND=""
-    PS_DRIVE_ROOT="Claude"
-    PS_REPO=""
+# --- Personal data pull (via backup engine) ---
+BACKUP_ENGINE=""
+if [[ -n "$TOOLKIT_ROOT" && -f "$TOOLKIT_ROOT/core/hooks/backup-engine.sh" ]]; then
+    BACKUP_ENGINE="$TOOLKIT_ROOT/core/hooks/backup-engine.sh"
+elif [[ -f "$CLAUDE_DIR/hooks/backup-engine.sh" ]]; then
+    BACKUP_ENGINE="$CLAUDE_DIR/hooks/backup-engine.sh"
+fi
 
-    if command -v node &>/dev/null; then
-        read -r PS_BACKEND PS_DRIVE_ROOT PS_REPO < <(node -e "
-            const fs = require('fs');
-            try {
-                const c = JSON.parse(fs.readFileSync(process.argv[1], 'utf8'));
-                const b = c.PERSONAL_SYNC_BACKEND || 'none';
-                const d = c.DRIVE_ROOT || 'Claude';
-                const r = c.PERSONAL_SYNC_REPO || '';
-                process.stdout.write(b + ' ' + d + ' ' + r);
-            } catch { process.stdout.write('none Claude '); }
-        " "$CONFIG_FILE" 2>/dev/null) || true
-    else
-        PS_BACKEND=$(grep -o '"PERSONAL_SYNC_BACKEND"[[:space:]]*:[[:space:]]*"[^"]*"' "$CONFIG_FILE" 2>/dev/null | head -1 | sed 's/.*"PERSONAL_SYNC_BACKEND"[[:space:]]*:[[:space:]]*"//' | sed 's/"$//' || echo "none")
-        PS_DRIVE_ROOT=$(grep -o '"DRIVE_ROOT"[[:space:]]*:[[:space:]]*"[^"]*"' "$CONFIG_FILE" 2>/dev/null | head -1 | sed 's/.*"DRIVE_ROOT"[[:space:]]*:[[:space:]]*"//' | sed 's/"$//' || echo "Claude")
-    fi
-
-    if [[ "$PS_BACKEND" == "drive" ]] && command -v rclone &>/dev/null; then
-        REMOTE_BASE="gdrive:$PS_DRIVE_ROOT/Backup/personal"
-        # Pull memory files
-        if rclone lsd "$REMOTE_BASE/memory/" 2>/dev/null | grep -q .; then
-            for REMOTE_PROJECT in $(rclone lsd "$REMOTE_BASE/memory/" 2>/dev/null | awk '{print $NF}'); do
-                LOCAL_MEMORY="$CLAUDE_DIR/projects/$REMOTE_PROJECT/memory"
-                mkdir -p "$LOCAL_MEMORY"
-                rclone sync "$REMOTE_BASE/memory/$REMOTE_PROJECT/" "$LOCAL_MEMORY/" --update 2>/dev/null || true
-            done
-        fi
-        # Pull CLAUDE.md
-        rclone copyto "$REMOTE_BASE/CLAUDE.md" "$CLAUDE_DIR/CLAUDE.md" --update 2>/dev/null || true
-        # Pull config (careful: don't overwrite if local is newer)
-        rclone copyto "$REMOTE_BASE/toolkit-state/config.json" "$CONFIG_FILE" --update 2>/dev/null || true
-    elif [[ "$PS_BACKEND" == "github" ]] && command -v git &>/dev/null; then
-        REPO_DIR="$CLAUDE_DIR/toolkit-state/personal-sync-repo"
-        if [[ -d "$REPO_DIR/.git" ]]; then
-            (cd "$REPO_DIR" && git pull personal-sync main 2>/dev/null) || true
-            # Copy pulled data to local paths
-            if [[ -d "$REPO_DIR/memory" ]]; then
-                for PROJECT_DIR in "$REPO_DIR"/memory/*/; do
-                    [[ ! -d "$PROJECT_DIR" ]] && continue
-                    PROJECT_KEY=$(basename "$PROJECT_DIR")
-                    LOCAL_MEMORY="$CLAUDE_DIR/projects/$PROJECT_KEY/memory"
-                    mkdir -p "$LOCAL_MEMORY"
-                    cp -r "$PROJECT_DIR"* "$LOCAL_MEMORY/" 2>/dev/null || true
-                done
-            fi
-            [[ -f "$REPO_DIR/CLAUDE.md" ]] && cp "$REPO_DIR/CLAUDE.md" "$CLAUDE_DIR/CLAUDE.md" 2>/dev/null || true
-            [[ -f "$REPO_DIR/toolkit-state/config.json" ]] && cp "$REPO_DIR/toolkit-state/config.json" "$CONFIG_FILE" 2>/dev/null || true
-        fi
-    fi
+if [[ -n "$BACKUP_ENGINE" ]]; then
+    bash "$BACKUP_ENGINE" --pull 2>/dev/null || {
+        _log_backup "WARN: Personal data pull failed"
+    }
 fi
 
 # --- Sync health check (writes ~/.claude/.sync-warnings for statusline) ---
@@ -270,7 +233,7 @@ fi
 # 1. Personal data sync status
 _PS_BACKEND=""
 if [[ -f "$CONFIG_FILE" ]] && command -v node &>/dev/null; then
-    _PS_BACKEND=$(node -e "try{const c=JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'));console.log(c.PERSONAL_SYNC_BACKEND||'none')}catch{console.log('none')}" "$CONFIG_FILE" 2>/dev/null) || _PS_BACKEND="none"
+    _PS_BACKEND=$(node -e "try{const c=JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'));console.log(c.primary_backend||c.PERSONAL_SYNC_BACKEND||'none')}catch{console.log('none')}" "$CONFIG_FILE" 2>/dev/null) || _PS_BACKEND="none"
 fi
 # Auto-detect backend: if flag is unset but a known sync provider works, self-heal the config
 if [[ -z "$_PS_BACKEND" || "$_PS_BACKEND" == "none" ]]; then
@@ -301,7 +264,7 @@ if [[ -z "$_PS_BACKEND" || "$_PS_BACKEND" == "none" ]]; then
     echo "PERSONAL:NOT_CONFIGURED" >> "$WARNINGS_FILE"
 else
     # Check if last sync is stale (>24 hours)
-    _PS_MARKER="$CLAUDE_DIR/toolkit-state/.personal-sync-marker"
+    _PS_MARKER="$CLAUDE_DIR/.push-marker-${_PS_BACKEND}"
     if [[ -f "$_PS_MARKER" ]]; then
         _PS_LAST=$(cat "$_PS_MARKER" 2>/dev/null || echo 0)
         _PS_NOW=$(date +%s)
