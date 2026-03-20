@@ -1,7 +1,7 @@
 # Statusline & Auto-Title — Spec
 
-**Version:** 1.8
-**Last updated:** 2026-03-19
+**Version:** 1.9
+**Last updated:** 2026-03-20
 **Feature location:** `core/hooks/statusline.sh`, `core/hooks/title-update.sh`, `core/hooks/usage-fetch.js`, `core/hooks/announcement-fetch.js`
 (Installed via symlinks to `~/.claude/hooks/` and `~/.claude/statusline.sh`)
 
@@ -26,6 +26,7 @@ A real-time information display system for Claude Code sessions. Four components
 | Node.js for JSON parsing in statusline | Already available in the environment; avoids Python startup overhead for a latency-sensitive path | Python (rejected: slower startup), jq (rejected: not reliably installed on Windows/Git Bash), pure bash (rejected: fragile JSON parsing) |
 | Color thresholds: green/yellow/red at standard breakpoints | Context remaining: <50% yellow, <20% red. Usage: ≥50% yellow, ≥80% red. Intuitive traffic-light pattern. | Single color (rejected: loses at-a-glance urgency signal) |
 | `printf '%b\n'` for all ANSI output | POSIX-portable escape handling. `echo -e` is non-standard and fails in some shells (dash, sh). | `echo -e` (rejected: non-portable), `$'\033[...'` ANSI-C quoting (rejected: less readable) |
+| Basic 16-color ANSI only (no 256-color or truecolor) | Claude Code's statusline renderer (Ink-based) does not support 256-color (`38;5;NNNm`) or truecolor (`38;2;R;G;Bm`) sequences — they silently render as default text. All statusline ANSI must use basic SGR codes (30–37, 90–97, bold, dim, reset). Announcement text uses `printf '%s\n'` (not `%b`) to pass raw ANSI bytes from node without reinterpretation. | 256-color (rejected: silently dropped by renderer), truecolor (rejected: same), combined SGR params with 256-color (rejected: some parsers can't handle `ESC[1;38;5;NNNm`) |
 | Config-based sibling discovery with symlink fallback | Scripts need to find sibling files (e.g., `usage-fetch.js`, `announcement-fetch.js`). Primary: reads `toolkit_root` from `~/.claude/toolkit-state/config.json` and derives `$toolkit_root/core/hooks/`. Fallback: `readlink -f \|\| realpath \|\| python3` chain. Config lookup is essential on Windows where hooks are copies (not symlinks) — symlink resolution returns `~/.claude/hooks/` which may not contain utility scripts. | Symlink-only resolution (rejected in v1.6: broke on Windows copy-based installs — utility scripts not found), bare `BASH_SOURCE[0]` (rejected: returns symlink path, not real path) |
 | macOS Keychain fallback for credentials | Claude Max subscribers on macOS store OAuth tokens in Keychain, not `.credentials.json`. Uses `execFileSync('security', ...)` (safe, no shell injection). | `execSync` with string interpolation (rejected: shell injection surface), file-only (rejected: breaks for all macOS Max subscribers) |
 | Prune topic/marker files older than 7 days, at most once per day | Prevents `~/.claude/topics/` from accumulating stale files across sessions without running cleanup on every invocation | No cleanup (rejected: unbounded growth), cleanup on every invocation (rejected: unnecessary filesystem churn) |
@@ -97,7 +98,8 @@ A real-time information display system for Claude Code sessions. Four components
 
 ### Cross-Platform Notes
 
-- All ANSI output uses `printf '%b\n'` (not `echo -e`)
+- All ANSI output uses `printf '%b\n'` (not `echo -e`). Exception: announcement fragment uses `printf '%s\n'` to pass raw ANSI bytes from node stdout without `%b` reinterpretation.
+- **ANSI color restriction:** Only basic 16-color SGR codes (30–37, 90–97, bold, dim, reset). Claude Code's Ink-based statusline renderer silently drops 256-color and truecolor sequences.
 - **Sibling discovery:** Config-based lookup via `toolkit_root` in `~/.claude/toolkit-state/config.json` (primary), then symlink resolution via `readlink -f || realpath || python3` chain (fallback). The config lookup is mandatory for Windows installs where hooks are copies, not symlinks.
 - File paths passed to Node.js via `process.argv`, never string interpolation
 - Hash computation uses `sha256sum || shasum -a 256` for macOS compatibility
@@ -136,3 +138,4 @@ A real-time information display system for Claude Code sessions. Four components
 | 2026-03-18 | 1.6 | Fixed copy-based install breakage: replaced symlink-only sibling discovery with config-based `toolkit_root` lookup + symlink fallback. Added utility scripts to setup wizard install list. Added hook refresh step and post-update verification to `/update` command. | Update | Destin | |
 | 2026-03-19 | 1.7 | Documented sync warnings subsystem (`.sync-warnings` file, DANGER/WARN severity prefixes, warning types, `/sync for info` hint). Documented "New Session" default fallback behavior. Documented independent rate limit coloring. Added `.sync-warnings` to file locations table. Fixed changelog version ordering (1.4/1.5 were swapped). | Update | Destin | |
 | 2026-03-19 | 1.8 | Moved announcement from right-aligned line 1 fragment to inline on toolkit version line (line 5). Removed terminal width detection code (unreliable in hook subprocess — `tput cols` returns default 80, `$COLUMNS` unset, `stty` fails). Update available line now includes dim `\| Run /update` hint. | Update | Destin | |
+| 2026-03-20 | 1.9 | Added ANSI color restriction: basic 16-color only (Claude Code's Ink-based statusline renderer silently drops 256-color and truecolor). Announcement fragment now output via `printf '%s\n'` to avoid `%b` reinterpretation of raw ANSI bytes from node. Removed dim separator before announcement. Stopped tracking hooks in `destin-claude-config` repo (root cause of stale hook restoration on every session start). Cleaned up orphan files. | Update | Destin | |
