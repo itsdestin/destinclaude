@@ -333,29 +333,122 @@ if [[ -f "$CLAUDE_DIR/hooks/check-inbox.sh" ]]; then
     bash "$CLAUDE_DIR/hooks/check-inbox.sh" 2>/dev/null || true
 fi
 
-# --- Periodic /toolkit reminder ---
-# Remind user about /toolkit every ~20 sessions so they discover features they may have forgotten
-STATE_DIR="$CLAUDE_DIR/toolkit-state"
-REMINDER_FILE="$STATE_DIR/toolkit-reminder.json"
-if [[ -f "$REMINDER_FILE" ]] && command -v node &>/dev/null; then
-    SESSIONS_SINCE=$(node -e "
-        const fs = require('fs');
-        try {
-            const s = JSON.parse(fs.readFileSync(process.argv[1], 'utf8'));
-            console.log(s.sessions_since_reminder || 0);
-        } catch { console.log(0); }
-    " "$REMINDER_FILE" 2>/dev/null) || SESSIONS_SINCE=0
-    SESSIONS_SINCE=$((SESSIONS_SINCE + 1))
-    if [[ "$SESSIONS_SINCE" -ge 20 ]]; then
-        echo '{"hookSpecificOutput": "Tip: Type /toolkit to see all your features and useful phrases."}' >&2
-        SESSIONS_SINCE=0
+# --- DestinTip selection ---
+# Adaptive toolkit hints: select tips based on comfort level, usage history, and rotation
+if command -v node &>/dev/null; then
+    _DESTINTIP_CATALOG=""
+    [[ -n "$TOOLKIT_ROOT" ]] && _DESTINTIP_CATALOG="$TOOLKIT_ROOT/core/data/destintip-catalog.json"
+    if [[ -z "$_DESTINTIP_CATALOG" || ! -f "$_DESTINTIP_CATALOG" ]]; then
+        # Fallback: check relative to this script
+        _DESTINTIP_CATALOG="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/data/destintip-catalog.json"
     fi
-    cat > "$REMINDER_FILE" << REMEOF
-{"sessions_since_reminder": ${SESSIONS_SINCE}}
-REMEOF
-else
-    mkdir -p "$STATE_DIR"
-    echo '{"sessions_since_reminder": 1}' > "$REMINDER_FILE"
+    if [[ -f "$_DESTINTIP_CATALOG" ]]; then
+        node -e '
+const fs = require("fs");
+const configPath = process.argv[1];
+const catalogPath = process.argv[2];
+const statePath = process.argv[3];
+
+// Read config
+let comfortLevel = "intermediate";
+try {
+    const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+    if (config.comfort_level) comfortLevel = config.comfort_level;
+} catch {}
+
+// Read catalog
+let tips;
+try {
+    tips = JSON.parse(fs.readFileSync(catalogPath, "utf8")).tips;
+} catch { process.exit(0); }
+if (!tips || tips.length === 0) process.exit(0);
+
+// Read or create state
+let state = { session_count: 0, discovered_features: [], shown_tips: {} };
+try {
+    state = JSON.parse(fs.readFileSync(statePath, "utf8"));
+} catch {}
+state.session_count = (state.session_count || 0) + 1;
+if (!state.discovered_features) state.discovered_features = [];
+if (!state.shown_tips) state.shown_tips = {};
+const sc = state.session_count;
+const disc = new Set(state.discovered_features);
+
+// Filter
+const filtered = tips.filter(t => {
+    if (!t.comfort_levels.includes(comfortLevel)) return false;
+    if (t.requires_discovered.some(r => !disc.has(r))) return false;
+    const shown = state.shown_tips[t.id];
+    if (shown && (sc - shown.last_shown_session) <= 5) return false;
+    return true;
+});
+
+if (filtered.length === 0) {
+    // Still write state (session_count increment) even with no tips
+    fs.writeFileSync(statePath, JSON.stringify(state, null, 2) + "\n");
+    process.exit(0);
+}
+
+// Score (stable: array order preserved for ties)
+const scored = filtered.map(t => {
+    let score = 0;
+    if (!disc.has(t.feature)) score += 10;
+    const shown = state.shown_tips[t.id];
+    if (!shown) score += 5;
+    score += shown ? (sc - shown.last_shown_session) : sc;
+    return { tip: t, score };
+});
+scored.sort((a, b) => b.score - a.score);
+
+// Select top 4
+const selected = scored.slice(0, 4).map(s => s.tip);
+
+// Update state
+for (const t of selected) {
+    if (!state.shown_tips[t.id]) state.shown_tips[t.id] = { times_shown: 0, last_shown_session: 0 };
+    state.shown_tips[t.id].times_shown++;
+    state.shown_tips[t.id].last_shown_session = sc;
+}
+// Mark features as discovered if shown 3+ times
+for (const [id, info] of Object.entries(state.shown_tips)) {
+    if (info.times_shown >= 3) {
+        const tip = tips.find(t => t.id === id);
+        if (tip && !disc.has(tip.feature)) {
+            state.discovered_features.push(tip.feature);
+            disc.add(tip.feature);
+        }
+    }
+}
+fs.writeFileSync(statePath, JSON.stringify(state, null, 2) + "\n");
+
+// Build prompt
+// NOTE: The '\''  sequences below are bash single-quote escapes (end quote, literal quote,
+// resume quote). They MUST be preserved exactly — the entire node -e block is single-quoted in bash.
+let prompt = "You have the DestinTip system active. Throughout this session, naturally weave toolkit hints into your responses when relevant. Use this exact format (with backticks and yellow ANSI color \\033[33m):\n\n";
+prompt += "\"`\\033[33m★ DestinTip ────────────────────────────────────\\033[0m`\n[tip content here]\n`\\033[33m──────────────────────────────────────────────────\\033[0m`\"\n\n";
+prompt += "Rules:\n";
+prompt += "- Maximum 1 tip per response — do not overwhelm the user\n";
+prompt += "- Only surface a tip when it is genuinely relevant to what the user is doing\n";
+prompt += "- If nothing is relevant, do not force a tip — silence is fine\n";
+prompt += "- Keep tips conversational and brief (1-2 sentences)\n";
+prompt += "- Frame tips as helpful discovery, never prescriptive\n\n";
+prompt += "The user'\''s comfort level is: " + comfortLevel + "\n";
+prompt += "- beginner: Focus on basic features, explain what things do\n";
+prompt += "- intermediate: Assume familiarity with basics, highlight deeper features\n";
+prompt += "- power_user: Power-user tips, feature combinations, advanced workflows\n\n";
+prompt += "Tips available this session:\n\n";
+selected.forEach((t, i) => {
+    prompt += (i + 1) + ". " + t.text + "\n";
+    prompt += "   When to suggest: " + t.context_hint + "\n\n";
+});
+
+// Output
+const output = { hookSpecificOutput: { hookEventName: "SessionStart", additionalContext: prompt } };
+console.log(JSON.stringify(output));
+        ' "$CONFIG_FILE" "$_DESTINTIP_CATALOG" "$CLAUDE_DIR/toolkit-state/destintip-state.json" 2>/dev/null || true
+    else
+        echo '{"hookSpecificOutput": "Warning: DestinTip catalog not found."}' >&2
+    fi
 fi
 
 exit 0
