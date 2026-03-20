@@ -10,7 +10,7 @@ process.stdin.on('end', () => {
     client.write(input);
   });
 
-  client.setTimeout(5000, () => {
+  client.setTimeout(120000, () => {
     client.destroy();
     process.exit(0);
   });

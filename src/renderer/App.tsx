@@ -1,24 +1,44 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import TerminalView from './components/TerminalView';
+import ChatView from './components/ChatView';
+import HeaderBar from './components/HeaderBar';
+import InputBar from './components/InputBar';
+import { ChatProvider, useChatDispatch, useChatState } from './state/chat-context';
+import { hookEventToAction } from './state/hook-dispatcher';
 
-export default function App() {
+type ViewMode = 'chat' | 'terminal';
+
+function AppInner() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [sessions, setSessions] = useState<any[]>([]);
+  const [viewModes, setViewModes] = useState<Map<string, ViewMode>>(new Map());
   const sessionCounter = useRef(0);
+  const dispatch = useChatDispatch();
 
   useEffect(() => {
     const createdHandler = window.claude.on.sessionCreated((info) => {
       setSessions((prev) => [...prev, info]);
       setSessionId(info.id);
+      setViewModes((prev) => new Map(prev).set(info.id, 'chat'));
+      dispatch({ type: 'SESSION_INIT', sessionId: info.id });
     });
 
     const destroyedHandler = window.claude.on.sessionDestroyed((id) => {
       setSessions((prev) => prev.filter((s) => s.id !== id));
       setSessionId((curr) => (curr === id ? null : curr));
+      setViewModes((prev) => {
+        const next = new Map(prev);
+        next.delete(id);
+        return next;
+      });
+      dispatch({ type: 'SESSION_REMOVE', sessionId: id });
     });
 
     const hookHandler = window.claude.on.hookEvent((event) => {
-      console.log('[Hook Event]', event.type, event);
+      const action = hookEventToAction(event);
+      if (action) {
+        dispatch(action);
+      }
     });
 
     return () => {
@@ -26,7 +46,7 @@ export default function App() {
       window.claude.off('session:destroyed', destroyedHandler);
       window.claude.off('hook:event', hookHandler);
     };
-  }, []);
+  }, [dispatch]);
 
   const createSession = async () => {
     sessionCounter.current += 1;
@@ -37,20 +57,31 @@ export default function App() {
     });
   };
 
+  const currentViewMode = sessionId ? (viewModes.get(sessionId) || 'chat') : 'chat';
+
+  const handleToggleView = useCallback(
+    (mode: ViewMode) => {
+      if (!sessionId) return;
+      setViewModes((prev) => new Map(prev).set(sessionId, mode));
+    },
+    [sessionId],
+  );
+
+  const currentSession = sessions.find((s) => s.id === sessionId);
+
   return (
-    <div style={{ display: 'flex', width: '100vw', height: '100vh', background: '#030712', color: '#e5e7eb' }}>
+    <div className="flex w-screen h-screen bg-gray-950 text-gray-200">
       {/* Sidebar */}
-      <div style={{ width: 56, background: '#111827', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '12px 0', gap: 12, borderRight: '1px solid #1f2937', flexShrink: 0 }}>
+      <div className="w-14 bg-gray-900 flex flex-col items-center py-3 gap-3 border-r border-gray-800 shrink-0">
         {sessions.map((s) => (
           <button
             key={s.id}
             onClick={() => setSessionId(s.id)}
-            style={{
-              width: 40, height: 40, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 12, fontWeight: 'bold', border: 'none', cursor: 'pointer',
-              background: sessionId === s.id ? '#4f46e5' : '#1f2937',
-              color: sessionId === s.id ? '#fff' : '#9ca3af',
-            }}
+            className={`w-10 h-10 rounded-lg flex items-center justify-center text-xs font-bold border-none cursor-pointer transition-colors ${
+              sessionId === s.id
+                ? 'bg-indigo-600 text-white'
+                : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+            }`}
             title={s.name}
           >
             {s.name.charAt(0).toUpperCase()}
@@ -58,10 +89,7 @@ export default function App() {
         ))}
         <button
           onClick={createSession}
-          style={{
-            width: 40, height: 40, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 20, border: 'none', cursor: 'pointer', background: '#1f2937', color: '#9ca3af',
-          }}
+          className="w-10 h-10 rounded-lg flex items-center justify-center text-xl border-none cursor-pointer bg-gray-800 text-gray-400 hover:bg-gray-700 transition-colors"
           title="New Session"
         >
           +
@@ -69,28 +97,53 @@ export default function App() {
       </div>
 
       {/* Main area */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        {sessions.length > 0 && sessionId ? (
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {sessions.length > 0 && sessionId && currentSession ? (
           <>
-            <div style={{ height: 40, display: 'flex', alignItems: 'center', padding: '0 12px', fontSize: 14, color: '#9ca3af', borderBottom: '1px solid #1f2937', flexShrink: 0 }}>
-              {sessions.find((s) => s.id === sessionId)?.name || 'Session'}
-            </div>
-            <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
+            <HeaderBar
+              sessionName={currentSession.name}
+              cwd={currentSession.cwd}
+              viewMode={currentViewMode}
+              onToggleView={handleToggleView}
+            />
+            <div className="flex-1 overflow-hidden relative">
               {sessions.map((s) => (
-                <TerminalView
-                  key={s.id}
-                  sessionId={s.id}
-                  visible={s.id === sessionId}
-                />
+                <React.Fragment key={s.id}>
+                  <ChatView
+                    sessionId={s.id}
+                    visible={s.id === sessionId && (viewModes.get(s.id) || 'chat') === 'chat'}
+                  />
+                  <TerminalView
+                    sessionId={s.id}
+                    visible={s.id === sessionId && (viewModes.get(s.id) || 'chat') === 'terminal'}
+                  />
+                </React.Fragment>
               ))}
             </div>
+            {currentViewMode === 'chat' && (
+              <ChatInputBar sessionId={sessionId} />
+            )}
           </>
         ) : (
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6b7280' }}>
+          <div className="flex-1 flex items-center justify-center text-gray-500">
             Click + to start a new Claude session
           </div>
         )}
       </div>
     </div>
+  );
+}
+
+/** Wrapper that reads chat state to determine if input should be disabled */
+function ChatInputBar({ sessionId }: { sessionId: string }) {
+  const state = useChatState(sessionId);
+  return <InputBar sessionId={sessionId} disabled={state.pendingApproval !== null} />;
+}
+
+export default function App() {
+  return (
+    <ChatProvider>
+      <AppInner />
+    </ChatProvider>
   );
 }
