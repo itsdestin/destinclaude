@@ -1,7 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { useGameDispatch } from '../state/game-context';
-
-const RELAY_URL = 'ws://localhost:3002'; // TODO: make configurable
+import { RELAY_URL, LEADERBOARD_URL } from '../game/config';
 
 export function useGameConnection() {
   const dispatch = useGameDispatch();
@@ -26,7 +25,13 @@ export function useGameConnection() {
     };
 
     ws.onmessage = (event) => {
-      const msg = JSON.parse(event.data);
+      let msg;
+      try {
+        msg = JSON.parse(event.data);
+      } catch {
+        console.warn('Invalid JSON from relay:', event.data);
+        return;
+      }
 
       switch (msg.type) {
         case 'authenticated':
@@ -94,7 +99,7 @@ export function useGameConnection() {
   }, [sendMessage]);
 
   const register = useCallback(async (username: string, password: string): Promise<boolean> => {
-    const res = await fetch('http://localhost:3001/players', {
+    const res = await fetch(`${LEADERBOARD_URL}/players`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password }),

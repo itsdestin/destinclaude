@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useGameState, useGameDispatch } from '../../state/game-context';
+import { LEADERBOARD_URL } from '../../game/config';
 
 interface LeaderboardEntry {
   username: string;
@@ -106,7 +107,7 @@ function LobbyScreen({ connection }: Props) {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
 
   useEffect(() => {
-    fetch('http://localhost:3001/leaderboard?limit=5')
+    fetch(`${LEADERBOARD_URL}/leaderboard?limit=5`)
       .then((r) => r.json())
       .then((data) => setLeaderboard(Array.isArray(data) ? data : []))
       .catch(() => {});
