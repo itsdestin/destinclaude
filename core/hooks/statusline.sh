@@ -41,10 +41,10 @@ fi
 # ANSI colors (single-quoted for printf %b compatibility)
 BOLD='\033[1m'
 WHITE='\033[97m'
-GREEN='\033[32m'
+GREEN='\033[92m'
 YELLOW='\033[33m'
 RED='\033[31m'
-DIM='\033[2m'
+DIM='\033[90m'
 RESET='\033[0m'
 
 # --- Git repo/branch detection ---
@@ -81,8 +81,8 @@ fi
 WARNINGS_FILE="$HOME/.claude/.sync-warnings"
 WARN_PARTS=""
 if [[ -f "$WARNINGS_FILE" ]]; then
-    _SEP_D="${RESET}${DIM} | ${RESET}${RED}"
-    _SEP_W="${RESET}${DIM} | ${RESET}${YELLOW}"
+    _SEP_D="${RESET} | ${RED}"
+    _SEP_W="${RESET} | ${YELLOW}"
     while IFS= read -r _LINE; do
         case "$_LINE" in
             OFFLINE) WARN_PARTS="${WARN_PARTS:+$WARN_PARTS${_SEP_D}}${RED}DANGER: No Internet Connection${RESET}" ;;
@@ -96,7 +96,7 @@ fi
 
 # Append warnings + /sync hint to sync display
 if [[ -n "$WARN_PARTS" ]]; then
-    SYNC_DISPLAY="${SYNC_DISPLAY}  ${DIM}|${RESET}  ${WARN_PARTS}  ${DIM}/sync for info${RESET}"
+    SYNC_DISPLAY="${SYNC_DISPLAY}  |  ${WARN_PARTS}  ${DIM}/sync for info${RESET}"
 fi
 
 # --- Lines 1-2: Session name / sync status ---
@@ -143,8 +143,8 @@ if [[ -f "$USAGE_FETCH" ]] && command -v node &>/dev/null; then
             const d = JSON.parse(process.argv[1]);
             const fiveH = d.five_hour;
             const sevenD = d.seven_day;
-            const GREEN = '\x1b[32m';
-            const DIM = '\x1b[2m';
+            const GREEN = '\x1b[92m';
+            const DIM = '\x1b[90m';
             const YELLOW = '\x1b[33m';
             const RED = '\x1b[31m';
             const RESET = '\x1b[0m';
@@ -179,7 +179,7 @@ if [[ -f "$USAGE_FETCH" ]] && command -v node &>/dev/null; then
             }
 
             if (parts.length > 0) {
-                process.stdout.write(parts.join(DIM + ' | ' + RESET));
+                process.stdout.write(parts.join(RESET + ' | ' + RESET));
             }
         " "$USAGE_JSON" 2>/dev/null) || USAGE_LINE=""
 
@@ -221,7 +221,7 @@ if [[ -f "$UPDATE_FILE" ]] && command -v node &>/dev/null; then
     if [[ -n "$TOOLKIT_INFO" ]]; then
         IFS=$'\t' read -r TK_VER TK_UPD <<< "$TOOLKIT_INFO"
         if [[ "$TK_UPD" == "1" ]]; then
-            printf '%b' "${YELLOW}DestinClaude v${TK_VER} (Update Available)${RESET}  ${DIM}| Run /update${RESET}  "
+            printf '%b' "${YELLOW}DestinClaude v${TK_VER} (Update Available)${RESET}  | ${DIM}Run /update${RESET}  "
         else
             printf '%b' "${DIM}DestinClaude v${TK_VER}${RESET}  "
         fi
