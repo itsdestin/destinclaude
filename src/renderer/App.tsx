@@ -8,7 +8,8 @@ import { ChatProvider, useChatDispatch, useChatState } from './state/chat-contex
 import { GameProvider, useGameState, useGameDispatch } from './state/game-context';
 import { hookEventToAction } from './state/hook-dispatcher';
 import { usePromptDetector } from './hooks/usePromptDetector';
-import { useGameConnection } from './hooks/useGameConnection';
+import { useGitHubGame } from './hooks/useGitHubGame';
+import { AppIcon } from './components/Icons';
 
 type ViewMode = 'chat' | 'terminal';
 
@@ -16,14 +17,12 @@ function AppInner() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [sessions, setSessions] = useState<any[]>([]);
   const [viewModes, setViewModes] = useState<Map<string, ViewMode>>(new Map());
-  const sessionCounter = useRef(0);
 
-  // Monitor PTY output for Ink select menus (folder trust, permissions, etc.)
   usePromptDetector();
   const dispatch = useChatDispatch();
   const gameState = useGameState();
   const gameDispatch = useGameDispatch();
-  const gameConnection = useGameConnection();
+  const gameConnection = useGitHubGame();
 
   useEffect(() => {
     const createdHandler = window.claude.on.sessionCreated((info) => {
@@ -51,21 +50,27 @@ function AppInner() {
       }
     });
 
+    const renamedHandler = window.claude.on.sessionRenamed((sid, name) => {
+      setSessions((prev) =>
+        prev.map((s) => (s.id === sid ? { ...s, name } : s)),
+      );
+    });
+
     return () => {
       window.claude.off('session:created', createdHandler);
       window.claude.off('session:destroyed', destroyedHandler);
       window.claude.off('hook:event', hookHandler);
+      window.claude.off('session:renamed', renamedHandler);
     };
   }, [dispatch]);
 
-  const createSession = async () => {
-    sessionCounter.current += 1;
+  const createSession = useCallback(async (cwd: string, dangerous: boolean) => {
     await window.claude.session.create({
-      name: 'session-' + sessionCounter.current,
-      cwd: 'C:\\Users\\desti',
-      skipPermissions: false,
+      name: 'New Session',
+      cwd,
+      skipPermissions: dangerous,
     });
-  };
+  }, []);
 
   const currentViewMode = sessionId ? (viewModes.get(sessionId) || 'chat') : 'chat';
 
@@ -81,43 +86,21 @@ function AppInner() {
 
   return (
     <div className="flex w-screen h-screen bg-gray-950 text-gray-200">
-      {/* Sidebar */}
-      <div className="w-14 bg-gray-900 flex flex-col items-center py-3 gap-3 border-r border-gray-800 shrink-0">
-        {sessions.map((s) => (
-          <button
-            key={s.id}
-            onClick={() => setSessionId(s.id)}
-            className={`w-10 h-10 rounded-lg flex items-center justify-center text-xs font-bold border-none cursor-pointer transition-colors ${
-              sessionId === s.id
-                ? 'bg-indigo-600 text-white'
-                : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
-            }`}
-            title={s.name}
-          >
-            {s.name.charAt(0).toUpperCase()}
-          </button>
-        ))}
-        <button
-          onClick={createSession}
-          className="w-10 h-10 rounded-lg flex items-center justify-center text-xl border-none cursor-pointer bg-gray-800 text-gray-400 hover:bg-gray-700 transition-colors"
-          title="New Session"
-        >
-          +
-        </button>
-      </div>
-
-      {/* Main area */}
+      {/* Main area — no sidebar */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {sessions.length > 0 && sessionId && currentSession ? (
           <>
             <HeaderBar
-              sessionName={currentSession.name}
-              cwd={currentSession.cwd}
+              sessions={sessions}
+              activeSessionId={sessionId}
+              onSelectSession={setSessionId}
+              onCreateSession={createSession}
               viewMode={currentViewMode}
               onToggleView={handleToggleView}
               gamePanelOpen={gameState.panelOpen}
               onToggleGamePanel={() => gameDispatch({ type: 'TOGGLE_PANEL' })}
               gameConnected={gameState.connected}
+              permissionMode={currentSession.permissionMode || 'default'}
             />
             <div className="flex-1 overflow-hidden relative">
               {sessions.map((s) => (
@@ -138,8 +121,15 @@ function AppInner() {
             )}
           </>
         ) : (
-          <div className="flex-1 flex items-center justify-center text-gray-500">
-            Click + to start a new Claude session
+          <div className="flex-1 flex flex-col items-center justify-center gap-4">
+            <p className="text-sm text-gray-500">No active session</p>
+            <AppIcon className="w-16 h-16 text-gray-400" />
+            <button
+              onClick={() => createSession('C:\\Users\\desti', false)}
+              className="px-4 py-1.5 text-sm font-medium rounded-md bg-gray-300 text-gray-950 hover:bg-gray-200 transition-colors"
+            >
+              Click here to create one
+            </button>
           </div>
         )}
       </div>

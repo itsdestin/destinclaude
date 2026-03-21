@@ -307,7 +307,7 @@ export class GameOps {
     }
   }
 
-  async getOnlineUsers(): Promise<{ username: string; status: string }[]> {
+  async getOnlineUsers(): Promise<{ username: string; status: 'idle' | 'in-game' }[]> {
     const result = await this.api.readFile('presence.json');
     if (!result) return [];
     const presenceMap: Record<string, PresenceEntry> = result.data;
