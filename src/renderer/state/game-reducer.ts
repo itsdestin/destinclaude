@@ -2,19 +2,14 @@ import { GameState, GameAction, createInitialGameState } from './game-types';
 
 export function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
-    case 'SET_USERNAME':
-      return { ...state, username: action.username, authError: false };
+    case 'GITHUB_READY':
+      return { ...state, connected: true, username: action.username, screen: 'lobby', githubError: null };
+
+    case 'GITHUB_ERROR':
+      return { ...state, connected: false, githubError: action.message };
 
     case 'CONNECTION_STATUS':
       return { ...state, connected: action.connected };
-
-    case 'AUTHENTICATED':
-      return {
-        ...state,
-        authenticated: action.success,
-        screen: action.success ? 'lobby' : 'setup',
-        authError: !action.success,
-      };
 
     case 'PRESENCE_UPDATE':
       return { ...state, onlineUsers: action.online };

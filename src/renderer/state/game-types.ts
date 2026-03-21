@@ -14,8 +14,7 @@ export interface ChatMessage {
 
 export interface GameState {
   connected: boolean;
-  authenticated: boolean;
-  authError: boolean;
+  githubError: string | null;
   username: string | null;
   onlineUsers: OnlineUser[];
   screen: GameScreen;
@@ -36,9 +35,9 @@ export interface GameState {
 }
 
 export type GameAction =
-  | { type: 'SET_USERNAME'; username: string }
+  | { type: 'GITHUB_READY'; username: string }
+  | { type: 'GITHUB_ERROR'; message: string }
   | { type: 'CONNECTION_STATUS'; connected: boolean }
-  | { type: 'AUTHENTICATED'; success: boolean }
   | { type: 'PRESENCE_UPDATE'; online: OnlineUser[] }
   | { type: 'ROOM_CREATED'; code: string; color: PlayerColor }
   | { type: 'GAME_START'; board: number[][]; you: PlayerColor; opponent: string }
@@ -56,8 +55,7 @@ export type GameAction =
 export function createInitialGameState(): GameState {
   return {
     connected: false,
-    authenticated: false,
-    authError: false,
+    githubError: null,
     username: null,
     onlineUsers: [],
     screen: 'setup',
