@@ -62,7 +62,12 @@ export function createApp(db: Database.Database, sharedSecret: string) {
       res.status(400).json({ error: 'winner and loser required' });
       return;
     }
-    recordResult(db, winner, loser, !!draw);
+    try {
+      recordResult(db, winner, loser, !!draw);
+    } catch (err: any) {
+      res.status(422).json({ error: err.message ?? 'player not found' });
+      return;
+    }
     res.json({ ok: true });
   });
 

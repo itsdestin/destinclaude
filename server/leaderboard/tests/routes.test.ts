@@ -217,6 +217,11 @@ describe('POST /results', () => {
     expect(bob.losses).toBe(1);
   });
 
+  it('returns 422 when players do not exist', async () => {
+    const res = await request('POST', '/results', { winner: 'ghost', loser: 'nobody' }, { Authorization: 'Bearer test-secret' });
+    expect(res.status).toBe(422);
+  });
+
   it('records a draw with draw:true', async () => {
     await request('POST', '/players', { username: 'alice', password: 'p1' });
     await request('POST', '/players', { username: 'bob', password: 'p2' });
