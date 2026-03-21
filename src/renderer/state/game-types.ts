@@ -15,6 +15,7 @@ export interface ChatMessage {
 export interface GameState {
   connected: boolean;
   authenticated: boolean;
+  authError: boolean;
   username: string | null;
   onlineUsers: OnlineUser[];
   screen: GameScreen;
@@ -49,6 +50,7 @@ export function createInitialGameState(): GameState {
   return {
     connected: false,
     authenticated: false,
+    authError: false,
     username: null,
     onlineUsers: [],
     screen: 'setup',

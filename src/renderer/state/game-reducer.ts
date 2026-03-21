@@ -3,7 +3,7 @@ import { GameState, GameAction, createInitialGameState } from './game-types';
 export function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
     case 'SET_USERNAME':
-      return { ...state, username: action.username };
+      return { ...state, username: action.username, authError: false };
 
     case 'CONNECTION_STATUS':
       return { ...state, connected: action.connected };
@@ -13,6 +13,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         ...state,
         authenticated: action.success,
         screen: action.success ? 'lobby' : 'setup',
+        authError: !action.success,
       };
 
     case 'PRESENCE_UPDATE':

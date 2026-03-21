@@ -21,21 +21,30 @@ interface Props {
 }
 
 function SetupScreen({ connection }: Props) {
+  const state = useGameState();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [isLogin, setIsLogin] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!username.trim() || !password.trim()) return;
-    setLoading(true);
     setError(null);
-    const ok = await connection.register(username.trim(), password.trim());
-    if (!ok) {
-      setError('Username already taken. Try a different one.');
+
+    if (isLogin) {
+      connection.authenticate(username.trim(), password.trim());
+      // AUTHENTICATED action will transition to lobby on success,
+      // or set authError on failure (handled via state.authError below)
+    } else {
+      setLoading(true);
+      const ok = await connection.register(username.trim(), password.trim());
+      if (!ok) {
+        setError('Username already taken. Try a different one.');
+      }
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -55,7 +64,7 @@ function SetupScreen({ connection }: Props) {
           type="text"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
-          placeholder="Pick a username"
+          placeholder={isLogin ? 'Username' : 'Pick a username'}
           maxLength={20}
           className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-500 outline-none focus:border-indigo-500 transition-colors"
         />
@@ -63,18 +72,28 @@ function SetupScreen({ connection }: Props) {
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder="Choose a password"
+          placeholder={isLogin ? 'Password' : 'Choose a password'}
           className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-500 outline-none focus:border-indigo-500 transition-colors"
         />
         {error && (
           <p className="text-xs text-red-400">{error}</p>
+        )}
+        {state.authError && isLogin && (
+          <p className="text-xs text-red-400">Invalid username or password</p>
         )}
         <button
           type="submit"
           disabled={loading || !username.trim() || !password.trim()}
           className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg py-2 transition-colors"
         >
-          {loading ? 'Getting started...' : 'Get Started'}
+          {loading ? 'Getting started...' : isLogin ? 'Log In' : 'Get Started'}
+        </button>
+        <button
+          type="button"
+          onClick={() => { setIsLogin(!isLogin); setError(null); }}
+          className="text-xs text-gray-500 hover:text-gray-300 transition-colors mt-1"
+        >
+          {isLogin ? 'Need an account? Register' : 'Already have an account? Log in'}
         </button>
       </form>
     </div>
