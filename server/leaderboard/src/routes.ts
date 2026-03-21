@@ -14,6 +14,18 @@ export function createApp(db: Database.Database, sharedSecret: string) {
       res.status(400).json({ error: 'username and password required' });
       return;
     }
+    if (typeof username !== 'string' || typeof password !== 'string') {
+      res.status(400).json({ error: 'username and password must be strings' });
+      return;
+    }
+    if (username.length < 1 || username.length > 20 || !/^[A-Za-z0-9_-]+$/.test(username)) {
+      res.status(400).json({ error: 'username must be 1-20 characters (letters, numbers, underscore, hyphen)' });
+      return;
+    }
+    if (password.length < 1 || password.length > 64) {
+      res.status(400).json({ error: 'password must be 1-64 characters' });
+      return;
+    }
     try {
       const player = await registerPlayer(db, username, password);
       res.status(201).json(player);

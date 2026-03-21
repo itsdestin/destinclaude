@@ -208,6 +208,23 @@ function handleMove(ws: WebSocket, msg: Extract<ClientMessage, { type: 'move' }>
     if (red) presence.setStatus(red, 'idle');
     if (yellow) presence.setStatus(yellow, 'idle');
     broadcastPresence();
+
+    // Idle cleanup: destroy room after 5 minutes if no rematch
+    const foundRoom = room;
+    setTimeout(() => {
+      const currentRoom = rooms.getRoom(foundRoom.code);
+      if (currentRoom && currentRoom.status === 'finished') {
+        // Room still exists and still finished — no rematch happened
+        if (currentRoom.players.red) {
+          presence.setStatus(currentRoom.players.red, 'idle');
+        }
+        if (currentRoom.players.yellow) {
+          presence.setStatus(currentRoom.players.yellow, 'idle');
+        }
+        rooms.destroyRoom(foundRoom.code);
+        broadcastPresence();
+      }
+    }, 5 * 60 * 1000);
   }
 }
 
@@ -224,7 +241,17 @@ function handleChat(ws: WebSocket, msg: Extract<ClientMessage, { type: 'chat' }>
     return;
   }
 
-  const chatMsg: ServerMessage = { type: 'chat:message', from: username, text: msg.text };
+  if (typeof msg.text !== 'string') {
+    send(ws, { type: 'error', message: 'chat text must be a string' });
+    return;
+  }
+  const trimmed = msg.text.trim();
+  if (trimmed.length < 1 || trimmed.length > 200) {
+    send(ws, { type: 'error', message: 'chat message must be 1-200 characters' });
+    return;
+  }
+
+  const chatMsg: ServerMessage = { type: 'chat:message', from: username, text: trimmed };
   if (room.players.red) sendToUser(room.players.red, chatMsg);
   if (room.players.yellow) sendToUser(room.players.yellow, chatMsg);
 }
