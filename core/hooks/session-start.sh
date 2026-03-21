@@ -427,8 +427,8 @@ fs.writeFileSync(statePath, JSON.stringify(state, null, 2) + "\n");
 // Build prompt
 // NOTE: The '\''  sequences below are bash single-quote escapes (end quote, literal quote,
 // resume quote). They MUST be preserved exactly — the entire node -e block is single-quoted in bash.
-let prompt = "You have the DestinTip system active. Throughout this session, naturally weave toolkit hints into your responses when relevant. Use this exact format (NO backticks — use raw ANSI yellow):\n\n";
-prompt += "\"\\033[33m★ DestinTip ────────────────────────────────────\\033[0m\n[tip content here]\n\\033[33m──────────────────────────────────────────────────\\033[0m\"\n\n";
+let prompt = "You have the DestinTip system active. Throughout this session, naturally weave toolkit hints into your responses when relevant. Use this exact format (with backticks):\n\n";
+prompt += "\"`★ DestinTip ────────────────────────────────────`\n[tip content here]\n`──────────────────────────────────────────────────`\"\n\n";
 prompt += "Rules:\n";
 prompt += "- Maximum 1 tip per response — do not overwhelm the user\n";
 prompt += "- Only surface a tip when it is genuinely relevant to what the user is doing\n";
