@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+**Status:** Implemented
+
 **Goal:** Add a comfort-level question (Phase 0.5) to the setup wizard that adapts output style and wizard verbosity.
 
 **Architecture:** Single file edit to `SKILL.md` — insert Phase 0.5 section, add comfort-level conditionals to Phases 1–6, update Phase 5f and Phase 6 to be comfort-aware.
