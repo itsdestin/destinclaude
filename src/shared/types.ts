@@ -1,8 +1,10 @@
+export type PermissionMode = 'normal' | 'auto-accept' | 'plan' | 'bypass';
+
 export interface SessionInfo {
   id: string;
   name: string;
   cwd: string;
-  permissionMode: string;
+  permissionMode: PermissionMode;
   skipPermissions: boolean;
   status: 'active' | 'idle' | 'destroyed';
   createdAt: number;
@@ -13,11 +15,13 @@ export interface HookEvent {
   sessionId: string;
   payload: Record<string, unknown>;
   timestamp: number;
+  /** Present when this is a blocking hook event awaiting approval. */
+  requestId?: string;
 }
 
 // --- Chat view types ---
 
-export type ToolCallStatus = 'running' | 'complete' | 'failed';
+export type ToolCallStatus = 'running' | 'complete' | 'failed' | 'awaiting-approval' | 'denied';
 
 export interface ToolCallState {
   toolUseId: string;
@@ -26,6 +30,8 @@ export interface ToolCallState {
   status: ToolCallStatus;
   response?: string;
   error?: string;
+  /** Set when this tool call is awaiting approval via the blocking relay. */
+  requestId?: string;
 }
 
 export interface ToolGroupState {
@@ -61,6 +67,7 @@ export const IPC = {
   SESSION_RESIZE: 'session:resize',
   SESSION_LIST: 'session:list',
   SKILLS_LIST: 'skills:list',
+  HOOK_RESPOND: 'hook:respond',
   // Main -> Renderer
   SESSION_CREATED: 'session:created',
   SESSION_DESTROYED: 'session:destroyed',
@@ -72,4 +79,5 @@ export const IPC = {
   CLIPBOARD_SAVE_IMAGE: 'clipboard:save-image',
   STATUS_DATA: 'status:data',
   READ_TRANSCRIPT_META: 'transcript:read-meta',
+  OPEN_CHANGELOG: 'shell:open-changelog',
 } as const;

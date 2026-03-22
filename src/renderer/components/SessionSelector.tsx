@@ -98,7 +98,7 @@ export default function SessionSelector({ sessions, activeSessionId, onSelectSes
                     className="flex-1 text-left px-3 py-2 flex items-center gap-2 min-w-0"
                   >
                     <span className="text-sm truncate flex-1">{s.name}</span>
-                    {s.permissionMode === 'bypassPermissions' && (
+                    {s.permissionMode === 'bypass' && (
                       <span className="text-[9px] font-medium px-1 py-0.5 rounded bg-[#DD4444]/20 text-[#DD4444]">
                         DANGER
                       </span>

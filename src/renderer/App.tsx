@@ -13,7 +13,7 @@ import { useGitHubGame } from './hooks/useGitHubGame';
 import { AppIcon } from './components/Icons';
 import CommandDrawer from './components/CommandDrawer';
 import TrustGate, { useTrustGateActive } from './components/TrustGate';
-import type { SkillEntry } from '../shared/types';
+import type { SkillEntry, PermissionMode } from '../shared/types';
 
 type ViewMode = 'chat' | 'terminal';
 
@@ -37,6 +37,7 @@ function AppInner() {
     syncStatus: null, syncWarnings: null,
   });
 
+  const [permissionModes, setPermissionModes] = useState<Map<string, PermissionMode>>(new Map());
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerSearchMode, setDrawerSearchMode] = useState(false);
   const [skills, setSkills] = useState<SkillEntry[]>([]);
@@ -52,6 +53,7 @@ function AppInner() {
       setSessions((prev) => [...prev, info]);
       setSessionId(info.id);
       setViewModes((prev) => new Map(prev).set(info.id, 'chat'));
+      setPermissionModes((prev) => new Map(prev).set(info.id, info.permissionMode || 'normal'));
       dispatch({ type: 'SESSION_INIT', sessionId: info.id });
     });
 
@@ -59,6 +61,11 @@ function AppInner() {
       setSessions((prev) => prev.filter((s) => s.id !== id));
       setSessionId((curr) => (curr === id ? null : curr));
       setViewModes((prev) => {
+        const next = new Map(prev);
+        next.delete(id);
+        return next;
+      });
+      setPermissionModes((prev) => {
         const next = new Map(prev);
         next.delete(id);
         return next;
@@ -143,6 +150,21 @@ function AppInner() {
   );
 
   const currentSession = sessions.find((s) => s.id === sessionId);
+  const canBypass = currentSession?.skipPermissions ?? false;
+  const currentPermissionMode = sessionId ? (permissionModes.get(sessionId) || 'normal') : 'normal';
+
+  const cyclePermission = useCallback(() => {
+    if (!sessionId) return;
+    const cycle: PermissionMode[] = canBypass
+      ? ['normal', 'auto-accept', 'plan', 'bypass']
+      : ['normal', 'auto-accept', 'plan'];
+    const idx = cycle.indexOf(currentPermissionMode);
+    const next = cycle[(idx + 1) % cycle.length];
+    setPermissionModes((prev) => new Map(prev).set(sessionId, next));
+    // Send Shift+Tab to the PTY to cycle Claude Code's permission mode
+    window.claude.session.sendInput(sessionId, '\x1b[Z');
+  }, [sessionId, canBypass, currentPermissionMode]);
+
   const trustGateActive = useTrustGateActive(sessionId);
 
   // Parse announcement
@@ -165,7 +187,8 @@ function AppInner() {
               gamePanelOpen={gameState.panelOpen}
               onToggleGamePanel={() => gameDispatch({ type: 'TOGGLE_PANEL' })}
               gameConnected={gameState.connected}
-              permissionMode={currentSession.permissionMode || 'default'}
+              permissionMode={currentPermissionMode}
+              onCyclePermission={cyclePermission}
               model={statusData.model}
               announcement={announcementText}
             />
@@ -194,13 +217,19 @@ function AppInner() {
                   onSelect={handleSelectSkill}
                   onClose={() => setDrawerOpen(false)}
                 />
-                <StatusBar statusData={{
-                  usage: statusData.usage,
-                  updateStatus: statusData.updateStatus,
-                  contextPercent: statusData.contextPercent,
-                  syncStatus: statusData.syncStatus,
-                  syncWarnings: statusData.syncWarnings,
-                }} />
+                <StatusBar
+                  statusData={{
+                    usage: statusData.usage,
+                    updateStatus: statusData.updateStatus,
+                    contextPercent: statusData.contextPercent,
+                    syncStatus: statusData.syncStatus,
+                    syncWarnings: statusData.syncWarnings,
+                  }}
+                  onRunSync={!trustGateActive && sessionId ? () => {
+                    dispatch({ type: 'USER_PROMPT', sessionId, content: '/sync', timestamp: Date.now() });
+                    window.claude.session.sendInput(sessionId, '/sync\r');
+                  } : undefined}
+                />
               </>
             )}
           </>

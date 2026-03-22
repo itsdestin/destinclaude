@@ -45,7 +45,7 @@ export class SessionManager extends EventEmitter {
       id,
       name: opts.name,
       cwd: opts.cwd,
-      permissionMode: opts.skipPermissions ? 'bypassPermissions' : 'default',
+      permissionMode: opts.skipPermissions ? 'bypass' : 'normal',
       skipPermissions: opts.skipPermissions,
       status: 'active',
       createdAt: Date.now(),

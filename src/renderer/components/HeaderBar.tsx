@@ -1,13 +1,21 @@
 import React from 'react';
 import { ChatIcon, TerminalIcon, GamepadIcon } from './Icons';
 import SessionSelector from './SessionSelector';
+import type { PermissionMode } from '../../shared/types';
 
 interface SessionEntry {
   id: string;
   name: string;
   cwd: string;
-  permissionMode: string;
+  permissionMode: PermissionMode;
 }
+
+const MODE_CONFIG: Record<PermissionMode, { label: string; color: string; bg: string; border: string }> = {
+  normal:        { label: 'NORMAL',         color: '#9CA3AF', bg: 'rgba(156,163,175,0.15)', border: 'rgba(156,163,175,0.25)' },
+  'auto-accept': { label: 'ACCEPT CHANGES', color: '#A78BFA', bg: 'rgba(167,139,250,0.15)', border: 'rgba(167,139,250,0.25)' },
+  plan:          { label: 'PLAN MODE',      color: '#2DD4BF', bg: 'rgba(45,212,191,0.15)',  border: 'rgba(45,212,191,0.25)' },
+  bypass:        { label: 'BYPASS PERMISSIONS', color: '#FA8072', bg: 'rgba(250,128,114,0.15)', border: 'rgba(250,128,114,0.25)' },
+};
 
 interface Props {
   sessions: SessionEntry[];
@@ -20,7 +28,8 @@ interface Props {
   gamePanelOpen: boolean;
   onToggleGamePanel: () => void;
   gameConnected: boolean;
-  permissionMode: string;
+  permissionMode: PermissionMode;
+  onCyclePermission: () => void;
   model: string | null;
   announcement: string | null;
 }
@@ -29,9 +38,9 @@ export default function HeaderBar({
   sessions, activeSessionId, onSelectSession, onCreateSession, onCloseSession,
   viewMode, onToggleView,
   gamePanelOpen, onToggleGamePanel, gameConnected,
-  permissionMode, model, announcement,
+  permissionMode, onCyclePermission, model, announcement,
 }: Props) {
-  const isDangerous = permissionMode === 'bypassPermissions';
+  const cfg = MODE_CONFIG[permissionMode];
 
   return (
     <div className="flex items-center h-10 px-3 border-b border-gray-800 shrink-0">
@@ -42,15 +51,18 @@ export default function HeaderBar({
             {model}
           </span>
         )}
-        {isDangerous ? (
-          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-[#DD4444]/20 text-[#DD4444] border border-[#DD4444]/30">
-            DANGEROUS
-          </span>
-        ) : (
-          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-[#4CAF50]/15 text-[#4CAF50] border border-[#4CAF50]/25">
-            SAFE
-          </span>
-        )}
+        <button
+          onClick={onCyclePermission}
+          className="text-[10px] font-medium px-1.5 py-0.5 rounded border transition-colors cursor-pointer hover:brightness-125"
+          style={{
+            backgroundColor: cfg.bg,
+            color: cfg.color,
+            borderColor: cfg.border,
+          }}
+          title="Click to cycle permission mode (Shift+Tab)"
+        >
+          {cfg.label}
+        </button>
         {announcement && (
           <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-[#FF9800]/15 text-[#FF9800] border border-[#FF9800]/25 truncate max-w-[200px]" title={announcement}>
             ★ {announcement}
