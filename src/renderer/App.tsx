@@ -3,6 +3,7 @@ import TerminalView from './components/TerminalView';
 import ChatView from './components/ChatView';
 import HeaderBar from './components/HeaderBar';
 import InputBar from './components/InputBar';
+import StatusBar from './components/StatusBar';
 import GamePanel from './components/game/GamePanel';
 import { ChatProvider, useChatDispatch, useChatState } from './state/chat-context';
 import { GameProvider, useGameState, useGameDispatch } from './state/game-context';
@@ -13,10 +14,25 @@ import { AppIcon } from './components/Icons';
 
 type ViewMode = 'chat' | 'terminal';
 
+interface StatusDataState {
+  usage: any;
+  announcement: any;
+  updateStatus: any;
+  model: string | null;
+  contextPercent: number | null;
+  syncStatus: string | null;
+  syncWarnings: string | null;
+}
+
 function AppInner() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [sessions, setSessions] = useState<any[]>([]);
   const [viewModes, setViewModes] = useState<Map<string, ViewMode>>(new Map());
+  const [statusData, setStatusData] = useState<StatusDataState>({
+    usage: null, announcement: null, updateStatus: null,
+    model: null, contextPercent: null,
+    syncStatus: null, syncWarnings: null,
+  });
 
   usePromptDetector();
   const dispatch = useChatDispatch();
@@ -56,11 +72,23 @@ function AppInner() {
       );
     });
 
+    const statusHandler = window.claude.on.statusData((data) => {
+      setStatusData((prev) => ({
+        ...prev,
+        usage: data.usage,
+        announcement: data.announcement,
+        updateStatus: data.updateStatus,
+        syncStatus: data.syncStatus,
+        syncWarnings: data.syncWarnings,
+      }));
+    });
+
     return () => {
       window.claude.off('session:created', createdHandler);
       window.claude.off('session:destroyed', destroyedHandler);
       window.claude.off('hook:event', hookHandler);
       window.claude.off('session:renamed', renamedHandler);
+      window.claude.off('status:data', statusHandler);
     };
   }, [dispatch]);
 
@@ -84,9 +112,12 @@ function AppInner() {
 
   const currentSession = sessions.find((s) => s.id === sessionId);
 
+  // Parse announcement
+  const announcementText = statusData.announcement?.message || null;
+
   return (
     <div className="flex w-screen h-screen bg-gray-950 text-gray-200">
-      {/* Main area — no sidebar */}
+      {/* Main area */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {sessions.length > 0 && sessionId && currentSession ? (
           <>
@@ -95,12 +126,15 @@ function AppInner() {
               activeSessionId={sessionId}
               onSelectSession={setSessionId}
               onCreateSession={createSession}
+              onCloseSession={(id) => window.claude.session.destroy(id)}
               viewMode={currentViewMode}
               onToggleView={handleToggleView}
               gamePanelOpen={gameState.panelOpen}
               onToggleGamePanel={() => gameDispatch({ type: 'TOGGLE_PANEL' })}
               gameConnected={gameState.connected}
               permissionMode={currentSession.permissionMode || 'default'}
+              model={statusData.model}
+              announcement={announcementText}
             />
             <div className="flex-1 overflow-hidden relative">
               {sessions.map((s) => (
@@ -117,7 +151,16 @@ function AppInner() {
               ))}
             </div>
             {currentViewMode === 'chat' && (
-              <ChatInputBar sessionId={sessionId} />
+              <>
+                <ChatInputBar sessionId={sessionId} />
+                <StatusBar statusData={{
+                  usage: statusData.usage,
+                  updateStatus: statusData.updateStatus,
+                  contextPercent: statusData.contextPercent,
+                  syncStatus: statusData.syncStatus,
+                  syncWarnings: statusData.syncWarnings,
+                }} />
+              </>
             )}
           </>
         ) : (

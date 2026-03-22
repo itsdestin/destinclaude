@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChatIcon, TerminalIcon } from './Icons';
+import { ChatIcon, TerminalIcon, GamepadIcon } from './Icons';
 import SessionSelector from './SessionSelector';
 
 interface SessionEntry {
@@ -21,20 +21,27 @@ interface Props {
   onToggleGamePanel: () => void;
   gameConnected: boolean;
   permissionMode: string;
+  model: string | null;
+  announcement: string | null;
 }
 
 export default function HeaderBar({
-  sessions, activeSessionId, onSelectSession, onCreateSession,
+  sessions, activeSessionId, onSelectSession, onCreateSession, onCloseSession,
   viewMode, onToggleView,
   gamePanelOpen, onToggleGamePanel, gameConnected,
-  permissionMode,
+  permissionMode, model, announcement,
 }: Props) {
   const isDangerous = permissionMode === 'bypassPermissions';
 
   return (
     <div className="flex items-center h-10 px-3 border-b border-gray-800 shrink-0">
-      {/* Left — permission badge */}
-      <div className="flex-1 flex items-center">
+      {/* Left — model + permission badge + announcement */}
+      <div className="flex-1 flex items-center gap-2">
+        {model && (
+          <span className="text-[10px] text-gray-500 truncate max-w-[120px]">
+            {model}
+          </span>
+        )}
         {isDangerous ? (
           <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-[#DD4444]/20 text-[#DD4444] border border-[#DD4444]/30">
             DANGEROUS
@@ -42,6 +49,11 @@ export default function HeaderBar({
         ) : (
           <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-[#4CAF50]/15 text-[#4CAF50] border border-[#4CAF50]/25">
             SAFE
+          </span>
+        )}
+        {announcement && (
+          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-[#FF9800]/15 text-[#FF9800] border border-[#FF9800]/25 truncate max-w-[200px]" title={announcement}>
+            ★ {announcement}
           </span>
         )}
       </div>
@@ -52,10 +64,11 @@ export default function HeaderBar({
         activeSessionId={activeSessionId}
         onSelectSession={onSelectSession}
         onCreateSession={onCreateSession}
+        onCloseSession={onCloseSession}
       />
 
       {/* Right — view toggles */}
-      <div className="flex-1 flex items-center justify-end gap-1">
+      <div className="flex-1 flex items-center justify-end gap-2">
         <div className="flex bg-gray-800 rounded-md p-0.5 gap-0.5">
           <button
             onClick={() => onToggleView('chat')}
@@ -82,20 +95,22 @@ export default function HeaderBar({
             <span className="text-xs font-medium">Terminal</span>
           </button>
         </div>
-        <button
-          onClick={onToggleGamePanel}
-          className={`px-2 py-1 text-xs rounded font-medium transition-colors flex items-center gap-1 ${
-            gamePanelOpen
-              ? 'bg-gray-300 text-gray-950'
-              : 'text-gray-400 hover:text-gray-300'
-          }`}
-          title="Connect 4"
-        >
-          <span className="text-sm">🎮</span>
+        <div className="bg-gray-800 rounded-md p-0.5">
+          <button
+            onClick={onToggleGamePanel}
+            className={`px-2 py-1 rounded transition-colors flex items-center gap-1 ${
+              gamePanelOpen
+                ? 'bg-gray-300 text-gray-950'
+                : 'text-gray-400 hover:text-gray-300'
+            }`}
+            title="Connect 4"
+          >
+            <GamepadIcon className="w-4 h-4" />
           {gameConnected && (
             <span className="w-1.5 h-1.5 rounded-full bg-green-400" />
           )}
-        </button>
+          </button>
+        </div>
       </div>
     </div>
   );

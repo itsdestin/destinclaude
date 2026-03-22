@@ -69,6 +69,34 @@ export function registerIpcHandlers(
     return filePath;
   });
 
+  // Read model + context from a transcript JSONL file
+  ipcMain.handle(IPC.READ_TRANSCRIPT_META, async (_event, transcriptPath: string) => {
+    try {
+      const content = fs.readFileSync(transcriptPath, 'utf8');
+      const lines = content.trim().split('\n');
+      let model = 'unknown';
+      let contextPercent = 100;
+      // Scan lines for model info — typically in the first few entries
+      for (const line of lines) {
+        try {
+          const obj = JSON.parse(line);
+          if (obj.model) {
+            model = obj.model.display_name || obj.model.id || obj.model;
+          }
+          if (obj.costInfo?.contextRemaining != null) {
+            contextPercent = Math.round(obj.costInfo.contextRemaining * 100);
+          }
+          if (obj.context_window?.remaining_percentage != null) {
+            contextPercent = Math.round(obj.context_window.remaining_percentage);
+          }
+        } catch {}
+      }
+      return { model, contextPercent };
+    } catch {
+      return null;
+    }
+  });
+
   // PTY input (fire-and-forget, not request-response)
   ipcMain.on(IPC.SESSION_INPUT, (_event, sessionId: string, text: string) => {
     sessionManager.sendInput(sessionId, text);
@@ -88,6 +116,56 @@ export function registerIpcHandlers(
   sessionManager.on('session-exit', (sessionId: string) => {
     send(IPC.SESSION_DESTROYED, sessionId);
   });
+
+  // --- Status data poller ---
+  // Reads DestinClaude cache files and pushes status updates to the renderer
+  const usageCachePath = path.join(os.homedir(), '.claude', '.usage-cache.json');
+  const announcementCachePath = path.join(os.homedir(), '.claude', '.announcement-cache.json');
+  const updateStatusPath = path.join(os.homedir(), '.claude', 'toolkit-state', 'update-status.json');
+
+  function readJsonFile(filePath: string): any {
+    try {
+      return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    } catch {
+      return null;
+    }
+  }
+
+  const syncStatusPath = path.join(os.homedir(), '.claude', '.sync-status');
+  const syncWarningsPath = path.join(os.homedir(), '.claude', '.sync-warnings');
+
+  function readTextFile(filePath: string): string | null {
+    try {
+      return fs.readFileSync(filePath, 'utf8').trim() || null;
+    } catch {
+      return null;
+    }
+  }
+
+  function buildStatusData() {
+    const usage = readJsonFile(usageCachePath);
+    const announcement = readJsonFile(announcementCachePath);
+    const updateStatus = readJsonFile(updateStatusPath);
+    const syncStatus = readTextFile(syncStatusPath);
+    const syncWarnings = readTextFile(syncWarningsPath);
+    return { usage, announcement, updateStatus, syncStatus, syncWarnings };
+  }
+
+  // Push status data every 10s
+  setInterval(() => {
+    send(IPC.STATUS_DATA, buildStatusData());
+  }, 10000);
+
+  // Also push immediately on first hook event (session is active)
+  let sentInitialStatus = false;
+  if (hookRelay) {
+    hookRelay.on('hook-event', () => {
+      if (!sentInitialStatus) {
+        sentInitialStatus = true;
+        send(IPC.STATUS_DATA, buildStatusData());
+      }
+    });
+  }
 
   // --- Topic file watcher (auto-title) ---
   // The auto-title hook writes topics to ~/.claude/topics/topic-{CLAUDE_CODE_SESSION_ID}.

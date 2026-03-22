@@ -1,0 +1,139 @@
+import React from 'react';
+
+interface StatusData {
+  usage: {
+    five_hour?: { utilization: number; resets_at: string };
+    seven_day?: { utilization: number; resets_at: string };
+  } | null;
+  updateStatus: {
+    current: string;
+    latest: string;
+    update_available: boolean;
+  } | null;
+  contextPercent: number | null;
+  syncStatus: string | null;
+  syncWarnings: string | null;
+}
+
+function utilizationColor(pct: number): string {
+  if (pct >= 80) return 'text-[#DD4444]';
+  if (pct >= 50) return 'text-[#FF9800]';
+  return 'text-[#4CAF50]';
+}
+
+function contextColor(pct: number): string {
+  if (pct < 20) return 'text-[#DD4444]';
+  if (pct < 50) return 'text-[#FF9800]';
+  return 'text-[#4CAF50]';
+}
+
+const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+function formatTime12(d: Date): string {
+  let h = d.getHours();
+  const m = d.getMinutes();
+  const ampm = h >= 12 ? 'pm' : 'am';
+  h = h % 12 || 12;
+  return `${h}:${m.toString().padStart(2, '0')}${ampm}`;
+}
+
+function format5hReset(iso: string): string {
+  try {
+    const d = new Date(iso);
+    return `Resets @ ${formatTime12(d)}`;
+  } catch {
+    return '';
+  }
+}
+
+function format7dReset(iso: string): string {
+  try {
+    const d = new Date(iso);
+    return `Resets ${DAYS[d.getDay()]} @ ${formatTime12(d)}`;
+  } catch {
+    return '';
+  }
+}
+
+interface Props {
+  statusData: StatusData;
+}
+
+function parseSyncWarnings(raw: string | null): { text: string; level: 'danger' | 'warn' }[] {
+  if (!raw) return [];
+  return raw.split('\n').filter(Boolean).map((line) => {
+    if (line.startsWith('DANGER:') || line.startsWith('OFFLINE')) {
+      return { text: line, level: 'danger' as const };
+    }
+    return { text: line, level: 'warn' as const };
+  });
+}
+
+const warnStyles = {
+  danger: 'bg-[#DD4444]/15 text-[#DD4444] border-[#DD4444]/25',
+  warn: 'bg-[#FF9800]/15 text-[#FF9800] border-[#FF9800]/25',
+};
+
+export default function StatusBar({ statusData }: Props) {
+  const { usage, updateStatus, contextPercent, syncStatus, syncWarnings } = statusData;
+  const warnings = parseSyncWarnings(syncWarnings);
+
+  return (
+    <div className="flex items-center justify-between px-3 py-1 text-[10px] text-gray-500 border-t border-gray-800/50">
+      {/* Left — rate limits */}
+      <div className="flex items-center gap-2">
+        {usage?.five_hour != null && (
+          <span className="flex items-center gap-1.5 px-1.5 py-0.5 rounded bg-gray-900 border border-gray-700/50">
+            <span>5h:</span>
+            <span className={utilizationColor(usage.five_hour.utilization)}>
+              {usage.five_hour.utilization}%
+            </span>
+            <span className="text-gray-600">{format5hReset(usage.five_hour.resets_at)}</span>
+          </span>
+        )}
+        {usage?.seven_day != null && (
+          <span className="flex items-center gap-1.5 px-1.5 py-0.5 rounded bg-gray-900 border border-gray-700/50">
+            <span>7d:</span>
+            <span className={utilizationColor(usage.seven_day.utilization)}>
+              {usage.seven_day.utilization}%
+            </span>
+            <span className="text-gray-600">{format7dReset(usage.seven_day.resets_at)}</span>
+          </span>
+        )}
+      </div>
+
+      {/* Center — sync warnings + context */}
+      <div className="flex items-center gap-2">
+        {warnings.map((w, i) => (
+          <span
+            key={i}
+            className={`px-1.5 py-0.5 rounded border ${warnStyles[w.level]}`}
+          >
+            {w.text}
+          </span>
+        ))}
+        {contextPercent != null && (
+          <span>
+            Context:{' '}
+            <span className={contextColor(contextPercent)}>
+              {contextPercent}%
+            </span>
+          </span>
+        )}
+      </div>
+
+      {/* Right — version */}
+      {updateStatus && (
+        <span className="px-1.5 py-0.5 rounded bg-gray-900 border border-gray-700/50">
+          {updateStatus.update_available ? (
+            <span className="text-[#FF9800]">
+              DestinClaude v{updateStatus.current} → v{updateStatus.latest}
+            </span>
+          ) : (
+            <span>DestinClaude v{updateStatus.current}</span>
+          )}
+        </span>
+      )}
+    </div>
+  );
+}

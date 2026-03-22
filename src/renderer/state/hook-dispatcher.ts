@@ -10,9 +10,12 @@ export function hookEventToAction(event: HookEvent): ChatAction | null {
 
   switch (type) {
     case 'UserPromptSubmit': {
-      // Skipped — InputBar dispatches USER_PROMPT optimistically on send
-      // so the bubble appears instantly rather than waiting for the hook round-trip
-      return null;
+      // InputBar dispatches USER_PROMPT optimistically for chat-originated messages.
+      // But terminal-originated messages bypass InputBar, so we use this hook as a
+      // fallback. The reducer deduplicates by checking for recent identical content.
+      const prompt = (payload.prompt as string) || '';
+      if (!prompt) return null;
+      return { type: 'USER_PROMPT', sessionId, content: prompt, timestamp };
     }
 
     case 'PreToolUse': {

@@ -11,7 +11,10 @@ const execFileAsync = promisify(execFile);
 
 let mainWindow: BrowserWindow | null = null;
 const sessionManager = new SessionManager();
-const hookRelay = new HookRelay();
+// Unique pipe name per launch — avoids EADDRINUSE from stale Electron processes
+const pipeName = `\\\\.\\pipe\\claude-desktop-hooks-${process.pid}`;
+sessionManager.setPipeName(pipeName);
+const hookRelay = new HookRelay(pipeName);
 
 function createWindow() {
   const iconPath = path.join(__dirname, '../../assets/icon.png');

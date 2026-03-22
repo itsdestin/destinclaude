@@ -56,6 +56,24 @@ export function AttachIcon({ className = 'w-4 h-4' }: IconProps) {
   );
 }
 
+/** Game controller icon — handheld style */
+export function GamepadIcon({ className = 'w-4 h-4' }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+      {/* Body */}
+      <rect x="5" y="3" width="14" height="18" rx="2.5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      {/* Screen */}
+      <rect x="8" y="6" width="8" height="5" rx="1" strokeWidth="1.4" />
+      {/* D-pad */}
+      <path d="M9 15.5 L11 15.5" strokeWidth="2" strokeLinecap="round" />
+      <path d="M10 14.5 L10 16.5" strokeWidth="2" strokeLinecap="round" />
+      {/* Buttons */}
+      <path d="M14.5 15 L14.5 15.01" strokeWidth="2.8" strokeLinecap="round" />
+      <path d="M16.5 16.5 L16.5 16.51" strokeWidth="2.8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 /** App mascot — squat character with >< eyes, nub arms, stubby legs */
 export function AppIcon({ className = 'w-6 h-6' }: IconProps) {
   return (

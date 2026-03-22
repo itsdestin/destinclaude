@@ -28,6 +28,8 @@ process.on('message', (msg) => {
           ...process.env,
           // Pass our session ID so hook scripts can include it in payloads
           CLAUDE_DESKTOP_SESSION_ID: msg.sessionId || '',
+          // Pass the unique pipe name so relay.js connects to the right instance
+          CLAUDE_DESKTOP_PIPE: msg.pipeName || '',
         },
       });
 

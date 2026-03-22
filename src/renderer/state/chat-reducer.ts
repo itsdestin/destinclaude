@@ -30,6 +30,22 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
       const session = next.get(action.sessionId);
       if (!session) return state;
 
+      // Deduplicate — if the last timeline entry is a user message with the
+      // same content (InputBar optimistic + hook event arriving later), skip
+      const lastEntry = session.timeline[session.timeline.length - 1];
+      if (
+        lastEntry &&
+        lastEntry.kind === 'user' &&
+        lastEntry.message.content === action.content
+      ) {
+        // Already showing this message — just ensure isThinking is set
+        if (!session.isThinking) {
+          next.set(action.sessionId, { ...session, isThinking: true, currentGroupId: null });
+          return next;
+        }
+        return state;
+      }
+
       const message = {
         id: nextMessageId(),
         role: 'user' as const,
@@ -41,7 +57,7 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
         ...session,
         timeline: [...session.timeline, { kind: 'user', message }],
         isThinking: true,
-        currentGroupId: null, // Reset — next tools start a new group
+        currentGroupId: null,
       });
       return next;
     }
@@ -193,6 +209,27 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
       );
 
       next.set(action.sessionId, { ...session, timeline });
+      return next;
+    }
+
+    case 'THINKING_TIMEOUT': {
+      const session = next.get(action.sessionId);
+      if (!session || !session.isThinking) return state;
+
+      const message = {
+        id: nextMessageId(),
+        role: 'assistant' as const,
+        content: '_Response may have arrived — check the Terminal view._',
+        timestamp: Date.now(),
+      };
+
+      next.set(action.sessionId, {
+        ...session,
+        timeline: [...session.timeline, { kind: 'assistant', message }],
+        isThinking: false,
+        streamingText: '',
+        currentGroupId: null,
+      });
       return next;
     }
 

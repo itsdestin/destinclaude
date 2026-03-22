@@ -57,4 +57,6 @@ export const IPC = {
   DIALOG_OPEN_FILE: 'dialog:open-file',
   DIALOG_OPEN_FOLDER: 'dialog:open-folder',
   CLIPBOARD_SAVE_IMAGE: 'clipboard:save-image',
+  STATUS_DATA: 'status:data',
+  READ_TRANSCRIPT_META: 'transcript:read-meta',
 } as const;

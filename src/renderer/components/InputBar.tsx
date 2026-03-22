@@ -87,12 +87,7 @@ export default function InputBar({ sessionId, disabled }: Props) {
 
   const handleChip = useCallback(
     (chip: QuickChip) => {
-      if (chip.needsCompletion) {
-        setText(chip.prompt);
-        inputRef.current?.focus();
-      } else {
-        sendMessage(chip.prompt);
-      }
+      sendMessage(chip.prompt);
     },
     [sendMessage],
   );

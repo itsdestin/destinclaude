@@ -19,6 +19,11 @@ interface ManagedSession {
 
 export class SessionManager extends EventEmitter {
   private sessions = new Map<string, ManagedSession>();
+  private pipeName: string = '';
+
+  setPipeName(name: string) {
+    this.pipeName = name;
+  }
 
   createSession(opts: CreateSessionOpts): SessionInfo {
     const id = randomUUID();
@@ -82,6 +87,7 @@ export class SessionManager extends EventEmitter {
       cols: opts.cols || 80,
       rows: opts.rows || 24,
       sessionId: id,
+      pipeName: this.pipeName,
     });
 
     return info;

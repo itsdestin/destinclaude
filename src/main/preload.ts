@@ -16,6 +16,8 @@ const IPC = {
   DIALOG_OPEN_FILE: 'dialog:open-file',
   DIALOG_OPEN_FOLDER: 'dialog:open-folder',
   CLIPBOARD_SAVE_IMAGE: 'clipboard:save-image',
+  STATUS_DATA: 'status:data',
+  READ_TRANSCRIPT_META: 'transcript:read-meta',
 } as const;
 
 contextBridge.exposeInMainWorld('claude', {
@@ -51,6 +53,11 @@ contextBridge.exposeInMainWorld('claude', {
       ipcRenderer.on(IPC.HOOK_EVENT, handler);
       return handler;
     },
+    statusData: (cb: (data: any) => void) => {
+      const handler = (_e: IpcRendererEvent, data: any) => cb(data);
+      ipcRenderer.on(IPC.STATUS_DATA, handler);
+      return handler;
+    },
     sessionRenamed: (cb: (sessionId: string, name: string) => void) => {
       const handler = (_e: IpcRendererEvent, sid: string, name: string) => cb(sid, name);
       ipcRenderer.on(IPC.SESSION_RENAMED, handler);
@@ -62,6 +69,8 @@ contextBridge.exposeInMainWorld('claude', {
       ipcRenderer.invoke(IPC.DIALOG_OPEN_FILE),
     openFolder: (): Promise<string | null> =>
       ipcRenderer.invoke(IPC.DIALOG_OPEN_FOLDER),
+    readTranscriptMeta: (transcriptPath: string): Promise<{ model: string; contextPercent: number } | null> =>
+      ipcRenderer.invoke(IPC.READ_TRANSCRIPT_META, transcriptPath),
     saveClipboardImage: (): Promise<string | null> =>
       ipcRenderer.invoke(IPC.CLIPBOARD_SAVE_IMAGE),
   },

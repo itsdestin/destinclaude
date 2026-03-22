@@ -90,6 +90,10 @@ export type ChatAction =
       type: 'DISMISS_PROMPT';
       sessionId: string;
       promptId: string;
+    }
+  | {
+      type: 'THINKING_TIMEOUT';
+      sessionId: string;
     };
 
 export type ChatState = Map<string, SessionChatState>;

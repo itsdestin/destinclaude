@@ -16,6 +16,24 @@ export default function ChatView({ sessionId, visible }: Props) {
   const dispatch = useChatDispatch();
   const bottomRef = useRef<HTMLDivElement>(null);
   const [atBottom, setAtBottom] = useState(true);
+  const thinkingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Thinking timeout — if isThinking stays true for 60s, auto-clear
+  useEffect(() => {
+    if (state.isThinking) {
+      thinkingTimerRef.current = setTimeout(() => {
+        dispatch({ type: 'THINKING_TIMEOUT', sessionId });
+      }, 60000);
+    } else {
+      if (thinkingTimerRef.current) {
+        clearTimeout(thinkingTimerRef.current);
+        thinkingTimerRef.current = null;
+      }
+    }
+    return () => {
+      if (thinkingTimerRef.current) clearTimeout(thinkingTimerRef.current);
+    };
+  }, [state.isThinking, sessionId, dispatch]);
 
   // Track whether user is scrolled to bottom
   useEffect(() => {

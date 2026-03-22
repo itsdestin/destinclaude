@@ -16,11 +16,13 @@ declare global {
         sessionDestroyed: (cb: (id: string) => void) => (...args: any[]) => void;
         ptyOutput: (cb: (sessionId: string, data: string) => void) => (...args: any[]) => void;
         hookEvent: (cb: (event: any) => void) => (...args: any[]) => void;
+        statusData: (cb: (data: any) => void) => (...args: any[]) => void;
         sessionRenamed: (cb: (sessionId: string, name: string) => void) => (...args: any[]) => void;
       };
       dialog: {
         openFile: () => Promise<string[]>;
         openFolder: () => Promise<string | null>;
+        readTranscriptMeta: (path: string) => Promise<{ model: string; contextPercent: number } | null>;
         saveClipboardImage: () => Promise<string | null>;
       };
       off: (channel: string, handler: (...args: any[]) => void) => void;
