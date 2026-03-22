@@ -1,0 +1,24 @@
+# Files and directories excluded from the public repo
+# These contain personal content, runtime state, or user-specific data.
+# Used by the repo scaffolding phase to filter what gets copied.
+
+# Personal content (user-specific data, not shareable)
+encyclopedia/
+memory/
+
+# Runtime state (generated during sessions, not part of the toolkit)
+sessions/
+shell-snapshots/
+tasks/
+backups/
+
+# Conversation transcripts
+*.jsonl
+
+# Local config and credentials (never committed)
+.claude.json
+toolkit-state/
+
+# Build artifacts and OS files
+.DS_Store
+Thumbs.db

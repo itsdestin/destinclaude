@@ -1,0 +1,14 @@
+# Personal identifiers (ask Destin to review and add any missing names)
+Destin
+DeMenna
+destin@
+# Hardcoded paths
+C:\\Users\\desti
+C:/Users/desti
+/home/desti
+# Secret patterns
+sk-ant-
+TODOIST_API_TOKEN
+token\s*[:=]\s*["'][^"']+["']
+api[_-]?key\s*[:=]\s*["'][^"']+["']
+client_secret

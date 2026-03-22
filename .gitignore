@@ -4,3 +4,40 @@ dist/
 release/
 *.tsbuildinfo
 src/renderer/dist/
+.firecrawl/
+
+# Runtime state (generated during Claude sessions)
+sessions/
+shell-snapshots/
+tasks/
+backups/
+
+# Personal content (user-specific, never committed)
+encyclopedia/
+memory/
+journals/
+
+# Environment and credentials
+.env
+*token*
+*secret*
+*credential*
+*.jsonl
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Go
+*.exe
+# Exception: pre-built gmessages binary for Windows
+!productivity/mcp-servers/gmessages/gmessages.exe
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/

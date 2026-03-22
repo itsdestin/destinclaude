@@ -1,0 +1,12 @@
+{
+  "name": "destinclaude-productivity",
+  "description": "Task management and communication — inbox processor, skill creator, messaging",
+  "version": "0.1.0",
+  "author": {
+    "name": "itsdestin"
+  },
+  "homepage": "https://github.com/itsdestin/destinclaude",
+  "repository": "https://github.com/itsdestin/destinclaude",
+  "license": "MIT",
+  "keywords": ["claude-code", "todoist", "inbox", "productivity", "messaging"]
+}

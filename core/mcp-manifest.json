@@ -1,0 +1,85 @@
+[
+  {
+    "name": "macos-automator",
+    "description": "AppleScript + JXA automation for any Mac app",
+    "platform": "macos",
+    "type": "stdio",
+    "command": "npx",
+    "args": [
+      "-y",
+      "@steipete/macos-automator-mcp@latest"
+    ],
+    "auto": true
+  },
+  {
+    "name": "home-mcp",
+    "description": "HomeKit device, scene, and automation control",
+    "platform": "macos",
+    "type": "stdio",
+    "command": "npx",
+    "args": [
+      "-y",
+      "home-mcp@latest"
+    ],
+    "auto": true
+  },
+  {
+    "name": "apple-events",
+    "description": "Native Reminders and Calendar via EventKit",
+    "platform": "macos",
+    "type": "stdio",
+    "command": "npx",
+    "args": [
+      "-y",
+      "@modelcontextprotocol/server-apple-events@latest"
+    ],
+    "auto": true
+  },
+  {
+    "name": "windows-control",
+    "description": "Windows desktop interaction \u2014 click, type, screenshot, manage windows",
+    "platform": "windows",
+    "type": "stdio",
+    "command": "uvx",
+    "args": [
+      "windows-mcp"
+    ],
+    "env": {},
+    "auto": true,
+    "requires_deps": [
+      "uv"
+    ]
+  },
+  {
+    "name": "imessages",
+    "description": "Read and send iMessages via the macOS Messages app",
+    "platform": "macos",
+    "type": "stdio",
+    "command": "node",
+    "args": [
+      "{{toolkit_root}}/productivity/mcp-servers/imessages/index.js"
+    ],
+    "auto": false,
+    "setup_note": "Requires Full Disk Access for your terminal in System Settings \u2192 Privacy & Security"
+  },
+  {
+    "name": "gmessages",
+    "description": "Google Messages SMS/RCS read/write via Android phone pairing",
+    "platform": "all",
+    "type": "stdio",
+    "command": "{{toolkit_root}}/productivity/mcp-servers/gmessages/gmessages",
+    "command_windows": "{{toolkit_root}}/productivity/mcp-servers/gmessages/gmessages.exe",
+    "args": [],
+    "auto": false,
+    "setup_note": "Windows: pre-built binary included (no Go needed). macOS/Linux: requires Go compiler to build from source. All platforms require phone pairing after install."
+  },
+  {
+    "name": "todoist",
+    "description": "Todoist task management",
+    "platform": "all",
+    "type": "http",
+    "url": "https://ai.todoist.net/mcp",
+    "auto": false,
+    "setup_note": "Authenticates via OAuth when Claude first connects — no manual API token needed"
+  }
+]

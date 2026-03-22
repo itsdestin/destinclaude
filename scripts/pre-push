@@ -1,0 +1,23 @@
+#!/bin/bash
+# Pre-push hook: blocks pushing tags that don't match VERSION file.
+# Install: cp scripts/pre-push .git/hooks/pre-push && chmod +x .git/hooks/pre-push
+# (auto-installed by session-start.sh)
+
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
+[[ -z "$REPO_ROOT" || ! -f "$REPO_ROOT/VERSION" ]] && exit 0
+
+CURRENT=$(cat "$REPO_ROOT/VERSION" | tr -d '[:space:]')
+
+while read local_ref local_sha remote_ref remote_sha; do
+    # Only check tag pushes
+    if [[ "$local_ref" == refs/tags/v* ]]; then
+        TAG_VER="${local_ref#refs/tags/v}"
+        if [[ "$TAG_VER" != "$CURRENT" ]]; then
+            echo "ERROR: Tag v$TAG_VER does not match VERSION file ($CURRENT)."
+            echo "Use ./scripts/release.sh $TAG_VER to release properly."
+            exit 1
+        fi
+    fi
+done
+
+exit 0

@@ -1,0 +1,3 @@
+# Force LF line endings for shell scripts (required for bash execution)
+*.sh text eol=lf
+*.js text eol=lf

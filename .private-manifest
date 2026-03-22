@@ -1,0 +1,9 @@
+# Files and patterns that should never be committed to the public repo.
+# Used by security sweep and CI checks to catch accidental commits.
+**/encyclopedia/**
+**/journal/**
+**/memory/**
+**/.env
+**/*token*
+**/*secret*
+**/*credential*

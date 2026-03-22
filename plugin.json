@@ -1,0 +1,12 @@
+{
+  "name": "destinclaude",
+  "description": "A modular toolkit that transforms Claude Code into a personal knowledge system, journal, task manager, and more",
+  "version": "1.3.0",
+  "author": {
+    "name": "itsdestin"
+  },
+  "homepage": "https://github.com/itsdestin/destinclaude",
+  "repository": "https://github.com/itsdestin/destinclaude",
+  "license": "MIT",
+  "keywords": ["claude-code", "toolkit", "journal", "encyclopedia", "productivity"]
+}
