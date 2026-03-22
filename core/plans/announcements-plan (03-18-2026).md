@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+**Status:** Implemented
+
 **Goal:** Add a remote announcements system that displays a repo-owner-controlled message right-aligned on statusline line 1 for all DestinClaude users.
 
 **Architecture:** A new `announcement-fetch.js` script fetches `announcements.txt` from the GitHub repo on session start (background, non-blocking) and caches the result to `~/.claude/.announcement-cache.json`. On every tool use, `statusline.sh` reads this cache and right-aligns a bold yellow announcement fragment on line 1 alongside the existing left-side content.

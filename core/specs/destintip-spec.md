@@ -1,6 +1,6 @@
 # DestinTip — Spec
 
-**Version:** 1.1
+**Version:** 1.2
 **Last updated:** 2026-03-20
 **Feature location:** `core/hooks/session-start.sh` (injection logic), `core/data/destintip-catalog.json` (tip catalog), `~/.claude/toolkit-state/destintip-state.json` (per-user state)
 
@@ -12,7 +12,7 @@ Inspired by the `★ Insight` output style plugins (Anthropic's `explanatory-out
 
 ## User Mandates
 
-- Tips must use the `★ DestinTip` branding with yellow color (`\033[33m`) matching the statusline palette
+- Tips must use the `★ DestinTip` branding with backtick inline-code formatting (renders as purple in Claude Code's terminal)
 - Maximum 1 tip per Claude response — never overwhelm the user
 - Tips must feel like helpful discovery, never prescriptive ("you should be doing this")
 - The system must adapt: new users get onboarding-level hints, experienced users get deeper feature discovery
@@ -29,7 +29,7 @@ Inspired by the `★ Insight` output style plugins (Anthropic's `explanatory-out
 | Subsumes the existing `/toolkit` reminder (lines 337-359 of session-start.sh) | DestinTip provides strictly more value — curated, relevant tips every session vs. a blunt "Type /toolkit" every 20 sessions. Removes `toolkit-reminder.json` state file. | Keep both (rejected: redundant, two systems nudging about features) |
 | 5-session cooldown before re-showing a tip | Prevents the same tip from appearing in consecutive sessions. Long enough to feel fresh, short enough that important undiscovered features resurface. | No cooldown (rejected: repetitive), per-tip "never show again" (rejected: user might need a reminder after forgetting) |
 | Node.js for selection logic inside session-start.sh | Consistent with existing session-start.sh patterns which already use `node -e` extensively for JSON parsing. Keeps the selection algorithm in one inline script. | External Node script (rejected: one more file for a ~30-line algorithm), pure bash (rejected: JSON manipulation in bash is fragile) |
-| Basic 16-color ANSI yellow (`\033[33m`) in tip format | Matches statusline palette. Claude Code's renderer supports basic SGR codes only (see statusline-spec.md). | 256-color (rejected: silently dropped by renderer), no color (rejected: loses visual identity) |
+| Backtick inline-code formatting (no ANSI color) | LLM text output cannot emit raw ANSI escape bytes — Claude outputs literal characters like `\033`, not the ESC byte (0x1B). Backtick inline code is the only reliable formatting available via `additionalContext` prompt injection. Renders as purple in Claude Code's Ink-based terminal. | ANSI yellow `\033[33m` (rejected: LLM cannot emit escape bytes, literal `\033` appears as text), no formatting (rejected: tips blend into response text) |
 | Output via stdout JSON with nested `hookSpecificOutput` format | Matches the exact pattern used by Anthropic's Insight plugins: `{"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":"..."}}`. Output to stdout, not stderr (stderr is for plain `hookSpecificOutput` string messages). | Plain `hookSpecificOutput` string on stderr (rejected: doesn't support `additionalContext` injection into system prompt) |
 | Comfort level values match config.json exactly: `beginner`, `intermediate`, `power_user` | The setup wizard stores these values in `config.json`. Using the same strings avoids a mapping layer and prevents silent mismatches. | Custom labels like `balanced`/`full` (rejected: requires mapping, risks silent filtering failures when values don't match) |
 | Tie-breaking by catalog order | When multiple tips share the same score, tips appearing earlier in the catalog are selected first. This gives catalog authors implicit priority control — place more important tips higher. | Random (rejected: non-deterministic, harder to debug), alphabetical by ID (rejected: arbitrary, no semantic meaning) |
@@ -139,9 +139,9 @@ The `additionalContext` string assembled by the selection algorithm:
 You have the DestinTip system active. Throughout this session, naturally weave
 toolkit hints into your responses when relevant. Use this exact format (with backticks):
 
-"`\033[33m★ DestinTip ────────────────────────────────────\033[0m`
+"`★ DestinTip ────────────────────────────────────`
 [tip content here]
-`\033[33m──────────────────────────────────────────────────\033[0m`"
+`──────────────────────────────────────────────────`"
 
 Rules:
 - Maximum 1 tip per response — don't overwhelm the user
@@ -196,4 +196,5 @@ Tips available this session:
 | Version | Date | Changes |
 |---------|------|---------|
 | 1.0 | 2026-03-20 | Initial spec |
+| 1.2 | 2026-03-21 | Removed ANSI color — LLM text output cannot emit escape bytes. Updated to backtick inline-code formatting (purple in Claude Code). Updated User Mandate, Design Decision, and prompt template to match implementation. |
 | 1.1 | 2026-03-20 | Fixed comfort level values to match config.json (`intermediate`/`power_user` not `balanced`/`full`). Documented exact JSON output format for `additionalContext` injection. Added `comfort_level` fallback to `"intermediate"`. Clarified state file path as `~/.claude/toolkit-state/`. Added edge cases table. Defined tie-breaking (catalog order). Made `session_count` increment explicit. Added `core/data/` directory creation note. Added escaping note for JSON string assembly. |

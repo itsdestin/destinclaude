@@ -1,7 +1,7 @@
 # Inbox Processor v2 Design
 
 **Date:** 2026-03-15
-**Status:** Approved
+**Status:** Implemented
 **Skill:** `~/.claude/skills/inbox-processor/SKILL.md`
 **Spec:** `~/.claude/skills/inbox-processor/specs/spec.md`
 

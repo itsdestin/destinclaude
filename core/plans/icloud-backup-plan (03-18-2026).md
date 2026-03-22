@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+**Status:** Pending
+
 **Goal:** Add iCloud as a third personal-sync backend and clean up drive-archive.sh references from the published backup-system spec.
 
 **Architecture:** Extend `personal-sync.sh` with a `sync_icloud()` function using rclone local-to-local sync, convert single-backend dispatch to a multi-backend loop over comma-separated `PERSONAL_SYNC_BACKEND` values, and add matching iCloud pull logic to `session-start.sh`. Update the setup wizard with a real iCloud restore flow and iCloud as a backup destination choice.

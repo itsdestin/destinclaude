@@ -1,7 +1,7 @@
 # Announcements Feature — Design
 
 **Date:** 2026-03-18
-**Status:** Approved
+**Status:** Implemented
 **Feature:** Remote announcements broadcast from GitHub to all DestinClaude users' statuslines
 
 ---

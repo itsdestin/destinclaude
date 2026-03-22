@@ -1,7 +1,7 @@
 # Announce Skill — Design
 
 **Date:** 2026-03-18
-**Status:** Approved
+**Status:** Implemented
 **Feature:** Owner-only skill for managing DestinClaude announcements from a private GitHub repo
 
 ---

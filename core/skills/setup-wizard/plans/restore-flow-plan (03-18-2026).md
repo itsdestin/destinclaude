@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+**Status:** Implemented
+
 **Goal:** Add a Phase 0 "prior use" gate to the setup wizard so returning users on a new device can restore from a GitHub or Google Drive backup instead of starting fresh.
 
 **Architecture:** Insert Phase 0 before Phase 1 in `SKILL.md`. Phase 0 asks one question, branches to restore sub-flows (0A for GitHub, 0B for Drive, 0C for iCloud placeholder), then routes to an abbreviated dependency check (Phase 0C) that skips Phase 5. Update six supporting docs to reflect the new restore path.
