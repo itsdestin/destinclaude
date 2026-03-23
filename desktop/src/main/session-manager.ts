@@ -2,6 +2,7 @@ import { spawn, ChildProcess } from 'child_process';
 import { randomUUID } from 'crypto';
 import path from 'path';
 import { app } from 'electron';
+import which from 'which';
 import { SessionInfo } from '../shared/types';
 import { EventEmitter } from 'events';
 
@@ -44,7 +45,8 @@ export class SessionManager extends EventEmitter {
       workerPath = workerPath.replace('app.asar', 'app.asar.unpacked');
     }
     // Always use system Node.js — Electron's binary can't load node-pty.
-    const nodePath = 'node';
+    // Resolve via which() for Windows where Electron's PATH may differ.
+    const nodePath = which.sync('node', { nothrow: true }) || 'node';
     const worker = spawn(nodePath, [workerPath], {
       stdio: ['pipe', 'pipe', 'pipe', 'ipc'],
       windowsHide: true,

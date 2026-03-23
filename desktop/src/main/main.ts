@@ -3,12 +3,15 @@ import path from 'path';
 import os from 'os';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
+import which from 'which';
 import { SessionManager } from './session-manager';
 import { HookRelay } from './hook-relay';
 import { registerIpcHandlers } from './ipc-handlers';
 import { IPC } from '../shared/types';
 
 const execFileAsync = promisify(execFile);
+// Resolve 'gh' path for Windows where Electron's PATH may not include it
+const ghPath = which.sync('gh', { nothrow: true }) || 'gh';
 
 let mainWindow: BrowserWindow | null = null;
 const sessionManager = new SessionManager();
@@ -67,8 +70,8 @@ app.whenReady().then(async () => {
 
   ipcMain.handle('github:auth', async () => {
     try {
-      const { stdout: token } = await execFileAsync('gh', ['auth', 'token']);
-      const { stdout: username } = await execFileAsync('gh', ['api', 'user', '--jq', '.login']);
+      const { stdout: token } = await execFileAsync(ghPath, ['auth', 'token']);
+      const { stdout: username } = await execFileAsync(ghPath, ['api', 'user', '--jq', '.login']);
       return { token: token.trim(), username: username.trim() };
     } catch {
       return null;
