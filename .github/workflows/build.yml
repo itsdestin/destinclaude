@@ -49,7 +49,7 @@ jobs:
           name: destincode-${{ matrix.name }}
           path: ${{ matrix.artifact }}
 
-  release:
+  upload:
     needs: build
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
@@ -57,30 +57,17 @@ jobs:
       contents: write
 
     steps:
-      - uses: actions/checkout@v5
-
       - name: Download all artifacts
         uses: actions/download-artifact@v5
         with:
           path: artifacts
 
-      - name: Extract changelog
-        id: changelog
-        run: |
-          TAG="${GITHUB_REF_NAME}"
-          VERSION="${TAG#v}"
-          NOTES=$(awk "/^## v${VERSION}/,/^## v[0-9]/" CHANGELOG.md | tail -n +2 | sed '$d')
-          if [ -z "$NOTES" ]; then
-            NOTES="See [CHANGELOG.md](CHANGELOG.md) for details."
-          fi
-          echo "$NOTES" > /tmp/release_notes.md
-
-      - name: Create release with installers
+      - name: Upload installers to existing release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "$GITHUB_REF_NAME" \
-            --title "DestinCode $GITHUB_REF_NAME" \
-            --notes-file /tmp/release_notes.md \
-            --latest \
-            artifacts/**/*
+          # The release is already created by the release skill or release.yml.
+          # Just attach the built binaries to it.
+          for f in artifacts/**/*; do
+            [ -f "$f" ] && gh release upload "$GITHUB_REF_NAME" "$f" --repo "$GITHUB_REPOSITORY" --clobber || true
+          done
