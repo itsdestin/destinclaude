@@ -27,7 +27,7 @@ get_backup_schema_version() {
             } catch(e) { process.stdout.write('0'); }
         " "$meta_file" 2>/dev/null || echo "0"
     else
-        grep -oP '"schema_version"\s*:\s*\K[0-9]+' "$meta_file" 2>/dev/null || echo "0"
+        sed -n 's/.*"schema_version"[[:space:]]*:[[:space:]]*\([0-9]*\).*/\1/p' "$meta_file" 2>/dev/null | head -1 || echo "0"
     fi
 }
 

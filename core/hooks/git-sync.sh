@@ -85,7 +85,7 @@ if [[ -n "$PPID" ]]; then
     fi
 
     # Update registry entry for this file (simple JSON manipulation)
-    NORM_PATH="${FILE_PATH//\/\/}"
+    NORM_PATH="${FILE_PATH//\\//}"
     # Use node for reliable JSON manipulation
     REG_CONTENT=$(node -e "
         const reg = JSON.parse(process.argv[1]);
@@ -147,6 +147,7 @@ else
     # Update push marker and sync status
     date +%s > "$PUSH_MARKER"
     echo "OK: System Changes Synced" > "$CLAUDE_DIR/.sync-status"
+    log_backup "INFO" "Push completed to $(git remote get-url origin 2>/dev/null || echo 'origin')"
 
     # Restore stashed changes on success path
     if [[ "$STASHED" == "true" ]]; then

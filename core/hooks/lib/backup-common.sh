@@ -44,7 +44,7 @@ config_get() {
     fi
     # Grep fallback
     if [[ -f "$CONFIG_FILE" ]]; then
-        grep -oP "\"$key\"\s*:\s*\"\K[^\"]*" "$CONFIG_FILE" 2>/dev/null || echo "$default"
+        sed -n "s/.*\"$key\"[[:space:]]*:[[:space:]]*\"\([^\"]*\)\".*/\1/p" "$CONFIG_FILE" 2>/dev/null | head -1 || echo "$default"
     else
         echo "$default"
     fi
@@ -58,9 +58,9 @@ is_toolkit_owned() {
     [[ -z "$TOOLKIT_ROOT" ]] && return 1
     [[ ! -L "$filepath" ]] && return 1
     local target
-    target=$(readlink -f "$filepath" 2>/dev/null) || return 1
+    target=$(realpath "$filepath" 2>/dev/null || readlink -f "$filepath" 2>/dev/null || readlink "$filepath" 2>/dev/null) || return 1
     local resolved_root
-    resolved_root=$(readlink -f "$TOOLKIT_ROOT" 2>/dev/null) || return 1
+    resolved_root=$(realpath "$TOOLKIT_ROOT" 2>/dev/null || readlink -f "$TOOLKIT_ROOT" 2>/dev/null || echo "$TOOLKIT_ROOT") || return 1
     [[ "$target" == "$resolved_root/"* || "$target" == "$resolved_root" ]]
 }
 
@@ -91,7 +91,7 @@ debounce_touch() {
 # --- Path normalization ---
 normalize_path() {
     local path="$1"
-    path="${path//\//}"
+    path="${path//\\//}"
     if command -v realpath &>/dev/null; then
         realpath "$path" 2>/dev/null || echo "$path"
     elif command -v readlink &>/dev/null; then

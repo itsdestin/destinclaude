@@ -45,7 +45,11 @@ for provider in $providers; do
     google-drive)
       if command -v rclone &>/dev/null; then
         drive_path=$(cat "$CONFIG_FILE" | jq -r '.inbox_provider_config["google-drive"].inbox_path // "Claude/Inbox"' 2>/dev/null)
-        drive_count=$(timeout 5 rclone lsf "gdrive:$drive_path" 2>/dev/null | wc -l || echo 0)
+        if command -v timeout &>/dev/null; then
+          drive_count=$(timeout 5 rclone lsf "gdrive:$drive_path" 2>/dev/null | wc -l || echo 0)
+        else
+          drive_count=$(rclone lsf "gdrive:$drive_path" 2>/dev/null | wc -l || echo 0)
+        fi
         count=$((count + drive_count))
       fi
       ;;
