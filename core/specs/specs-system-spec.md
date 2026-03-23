@@ -1,7 +1,7 @@
 # Specs System — Spec
 
-**Version:** 2.4
-**Last updated:** 2026-03-16
+**Version:** 3.0
+**Last updated:** 2026-03-23
 **Feature location:** `~/.claude/specs/` (system specs), `~/.claude/skills/{name}/specs/{name}-spec.md` (skill specs), `~/.claude/plans/` (system plans/designs), `~/.claude/skills/{name}/plans/` (skill plans/designs)
 
 ## Purpose
@@ -22,7 +22,7 @@ A living specification system for every feature in the user's Claude automation 
 - Every SKILL.md must include a spec reminder comment at the top: `<!-- SPEC: Read specs/{name}-spec.md before modifying this file -->`. This puts the enforcement reminder at the point of action. (2026-03-14)
 - Design docs produced during brainstorming are preserved in `plans/` directories as frozen point-in-time artifacts. They are not authoritative (specs are); they provide historical context for decisions. (2026-03-16, revised from 2026-03-14)
 - Implementation sections in specs should focus on architecture and flow (how pieces connect, what calls what, key flows), not line-by-line code documentation. Detail remains proportional to complexity. (2026-03-14)
-- Every spec must include a "Planned Updates" section for logging future improvement ideas with brief context. (2026-03-14)
+- Every spec must include a "Known Issues & Planned Updates" section with a pointer to GitHub Issues (`https://github.com/itsdestin/destinclaude/issues`). New bugs and feature ideas are filed as GitHub Issues, not tracked inline in specs. Private-only specs (not in the public plugin repo) may optionally keep inline Planned Updates sections. (2026-03-23, revised from 2026-03-14)
 - Specs use `{topic}-spec.md` naming — no date prefix; version tracked in frontmatter (2026-03-16)
 - Designs use `{topic}-design (MM-DD-YYYY).md` naming — point-in-time architecture decisions (2026-03-16)
 - Plans use `{topic}-plan (MM-DD-YYYY).md` naming — implementation checklists (2026-03-16)
@@ -42,12 +42,12 @@ A living specification system for every feature in the user's Claude automation 
 | Design docs preserved in plans/ as frozen artifacts | Design docs and plans provide historical context for decisions. Specs remain the single source of truth; plans/designs are read-only historical records. | Delete after use (rejected: loses decision history), keep alongside specs (rejected: creates "which file is authoritative?" confusion) |
 | Plans and designs in separate `plans/` directories | Eliminates confusion about which file is authoritative. Specs are the single source of truth; plans/designs provide frozen historical context. Parallel structure (`specs/` + `plans/`) at both system and skill levels. | Mixed in specs/ (rejected: creates "which file is current?" confusion), deleted after use (rejected: loses decision history), centralized plans-only directory (rejected: breaks skill co-location) |
 | Implementation sections focus on architecture/flow | Prevents specs from becoming stale copies of the code. Architecture and flow change less frequently than implementation details, so the spec stays accurate longer. | Full implementation documentation (rejected: high maintenance burden, drifts from code), no implementation section (rejected: loses the "how pieces connect" context that aids modification) |
-| Planned Updates section in every spec | Provides a persistent, feature-scoped place to capture future ideas without acting on them. Survives across sessions. Brief context (not dates) explains why each item was logged. | Memory files for future ideas (rejected: not scoped to the feature), Todoist tasks (rejected: loses the spec context), no tracking (rejected: ideas get lost between sessions) |
+| GitHub Issues for tracking bugs and planned updates | Centralizes tracking in one community-accessible location. Eliminates drift between spec sections and actual priorities. External users can file bugs and request features. Private-only specs retain inline sections for non-public work. | Inline spec sections (previous approach — worked solo but couldn't accept community input), separate BACKLOG.md (rejected: still requires PRs to contribute), Linear/Jira (rejected: external dependency, requires separate accounts) |
 
 ## Current Implementation
 
 ### Spec template structure
-Each spec has these sections: Purpose, User Mandates (dated), Design Decisions (table with rationale + alternatives), Current Implementation (focused on architecture and flow), Dependencies, Known Bugs / Issues (active bugs and known limitations, removed when resolved), Planned Updates (bullets with brief context), Change Log (with Session ID linking to the Claude conversation transcript where the change was made).
+Each spec has these sections: Purpose, User Mandates (dated), Design Decisions (table with rationale + alternatives), Current Implementation (focused on architecture and flow), Dependencies, Known Issues & Planned Updates (pointer to GitHub Issues — see mandate), Change Log (with Session ID linking to the Claude conversation transcript where the change was made).
 
 ### Enforcement
 A `## Specs System` section in CLAUDE.md establishes hard rules:
@@ -89,3 +89,4 @@ See [GitHub Issues](https://github.com/itsdestin/destinclaude/issues) for known 
 | 2026-03-15 | 2.2 | Added enforcement rule #8 (spec-creation threshold), fixed stale sync-to-drive.sh reference | Revised | — | |
 | 2026-03-16 | 2.3 | Added "Known Bugs / Issues" as a standard section in the spec template (between Dependencies and Planned Updates). Added to all 25 existing specs. | Revised | — | |
 | 2026-03-16 | 2.4 | Added naming convention mandates for specs/designs/plans, separate plans/ directories, revised ephemeral design docs policy to preserve in plans/, updated skill spec naming to {name}-spec.md | Architecture | — | |
+| 2026-03-23 | 3.0 | Migrated Planned Updates and Known Bugs tracking to GitHub Issues. Specs now contain a pointer section instead of inline content. Updated mandate, design decision, and template description. | Architecture | Destin | |

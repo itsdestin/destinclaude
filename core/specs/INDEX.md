@@ -4,7 +4,7 @@ All feature specifications. Skill specs live in their skill folder; system specs
 
 | Feature | Type | Spec Location | Version |
 |---------|------|--------------|---------|
-| Specs System | system | core/specs/specs-system-spec.md | 2.4 |
+| Specs System | system | core/specs/specs-system-spec.md | 3.0 |
 | DestinClaude Toolkit | system | core/specs/destinclaude-spec.md | 2.6 |
 | System Architecture | system | core/specs/system-architecture-spec.md | 1.2 |
 | Backup & Sync | system | core/specs/backup-system-spec.md | 3.3 |
