@@ -12,7 +12,7 @@ Read `~/.claude/toolkit-state/config.json`. Look for:
 
 If the file doesn't exist or can't be read, check which skill symlinks exist in `~/.claude/skills/` to infer installed layers:
 - Life: `journaling-assistant` or `encyclopedia-update` exists
-- Productivity: `inbox-processor` or `skill-creator` exists
+- Productivity: `claudes-inbox` or `skill-creator` exists
 
 ## Output Format
 
@@ -43,7 +43,7 @@ Then list skills grouped by installed layer. For each skill, show the trigger ph
     google-drive ........ "sync to drive" / "upload to drive"
 
   Productivity:
-    inbox-processor ..... "check my inbox" / "process my notes"
+    claudes-inbox ....... "check my inbox" / "process my notes"
     skill-creator ....... "create a skill" / "build a new skill"
 ```
 

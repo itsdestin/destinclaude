@@ -38,7 +38,7 @@
     },
     {
       "id": "inbox-basics",
-      "feature": "inbox-processor",
+      "feature": "claudes-inbox",
       "category": "productivity",
       "comfort_levels": ["beginner", "intermediate", "power_user"],
       "requires_discovered": [],

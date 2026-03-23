@@ -23,7 +23,7 @@ All feature specifications. Skill specs live in their skill folder; system specs
 | Writing Voice | skill | life/skills/writing-voice/specs/writing-voice-spec.md | 2.2 |
 | Skill Creator | skill | productivity/skills/skill-creator/specs/skill-creator-spec.md | 1.0 |
 | Google Drive | skill | life/skills/google-drive/specs/google-drive-spec.md | 1.1 |
-| Inbox Processor | skill | productivity/skills/inbox-processor/specs/inbox-processor-spec.md | 2.3 |
+| Claude's Inbox | skill | productivity/skills/claudes-inbox/specs/claudes-inbox-spec.md | 3.0 |
 | Fork File | skill | life/skills/fork-file/specs/fork-file-spec.md | 1.0 |
 | Setup Wizard | skill | core/skills/setup-wizard/specs/setup-wizard-spec.md | 1.0 |
 
