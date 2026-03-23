@@ -58,8 +58,15 @@ function AppInner() {
     });
 
     const destroyedHandler = window.claude.on.sessionDestroyed((id) => {
-      setSessions((prev) => prev.filter((s) => s.id !== id));
-      setSessionId((curr) => (curr === id ? null : curr));
+      setSessions((prev) => {
+        const remaining = prev.filter((s) => s.id !== id);
+        // Auto-switch to another session when closing the active one
+        setSessionId((curr) => {
+          if (curr !== id) return curr;
+          return remaining.length > 0 ? remaining[remaining.length - 1].id : null;
+        });
+        return remaining;
+      });
       setViewModes((prev) => {
         const next = new Map(prev);
         next.delete(id);
