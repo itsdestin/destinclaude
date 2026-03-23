@@ -207,14 +207,32 @@ try {
 }
 
 Write-Host ""
-Write-Host ""
-Write-Host ""
-Write-Host "  =====================================================" -ForegroundColor Green
-Write-Host "  |                                                   |" -ForegroundColor Green
-Write-Host "  |   Download complete! Starting setup...            |" -ForegroundColor Green
-Write-Host "  |                                                   |" -ForegroundColor Green
-Write-Host "  =====================================================" -ForegroundColor Green
-Write-Host ""
 
-# Launch Claude and kick off the setup wizard automatically.
-& claude "set me up"
+# --- Install DestinCode desktop app ---
+Write-Host "  Installing DestinCode desktop app..." -ForegroundColor Yellow
+$installScript = Join-Path $toolkitDir "desktop\scripts\install-app.sh"
+if (Test-Path $installScript) {
+    bash $installScript
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "  DestinCode desktop app installed" -ForegroundColor Green
+    } else {
+        Write-Host "  Desktop app install failed — you can install it later with /setup-wizard" -ForegroundColor Yellow
+    }
+} else {
+    Write-Host "  Desktop app not found in toolkit — skipping" -ForegroundColor Yellow
+}
+
+Write-Host ""
+Write-Host ""
+Write-Host "  =====================================================" -ForegroundColor Green
+Write-Host "  |                                                   |" -ForegroundColor Green
+Write-Host "  |   Download complete!                              |" -ForegroundColor Green
+Write-Host "  |                                                   |" -ForegroundColor Green
+Write-Host "  |   Launch DestinCode from your Start Menu,         |" -ForegroundColor Green
+Write-Host "  |   then say: `"set me up`"                           |" -ForegroundColor Green
+Write-Host "  |                                                   |" -ForegroundColor Green
+Write-Host "  |   Or from the terminal:                           |" -ForegroundColor Green
+Write-Host "  |     claude `"set me up`"                             |" -ForegroundColor Green
+Write-Host "  |                                                   |" -ForegroundColor Green
+Write-Host "  =====================================================" -ForegroundColor Green
+Write-Host ""
