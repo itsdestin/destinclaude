@@ -58,9 +58,15 @@ is_toolkit_owned() {
     [[ -z "$TOOLKIT_ROOT" ]] && return 1
     [[ ! -L "$filepath" ]] && return 1
     local target
-    target=$(realpath "$filepath" 2>/dev/null || readlink -f "$filepath" 2>/dev/null || readlink "$filepath" 2>/dev/null) || return 1
+    target=$(realpath "$filepath" 2>/dev/null \
+        || readlink -f "$filepath" 2>/dev/null \
+        || python3 -c "import os,sys; print(os.path.realpath(sys.argv[1]))" "$filepath" 2>/dev/null \
+        || readlink "$filepath" 2>/dev/null) || return 1
     local resolved_root
-    resolved_root=$(realpath "$TOOLKIT_ROOT" 2>/dev/null || readlink -f "$TOOLKIT_ROOT" 2>/dev/null || echo "$TOOLKIT_ROOT") || return 1
+    resolved_root=$(realpath "$TOOLKIT_ROOT" 2>/dev/null \
+        || readlink -f "$TOOLKIT_ROOT" 2>/dev/null \
+        || python3 -c "import os,sys; print(os.path.realpath(sys.argv[1]))" "$TOOLKIT_ROOT" 2>/dev/null \
+        || echo "$TOOLKIT_ROOT") || return 1
     [[ "$target" == "$resolved_root/"* || "$target" == "$resolved_root" ]]
 }
 
@@ -92,13 +98,10 @@ debounce_touch() {
 normalize_path() {
     local path="$1"
     path="${path//\\//}"
-    if command -v realpath &>/dev/null; then
-        realpath "$path" 2>/dev/null || echo "$path"
-    elif command -v readlink &>/dev/null; then
-        readlink -f "$path" 2>/dev/null || echo "$path"
-    else
-        echo "$path"
-    fi
+    realpath "$path" 2>/dev/null \
+        || readlink -f "$path" 2>/dev/null \
+        || python3 -c "import os,sys; print(os.path.realpath(sys.argv[1]))" "$path" 2>/dev/null \
+        || echo "$path"
 }
 
 # --- Cross-device project slug rewriting ---

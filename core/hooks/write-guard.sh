@@ -110,8 +110,8 @@ fi
 
 # Another active session owns this file — block the write
 # Format timestamp for human-readable message
-# Cross-platform timestamp: GNU date uses -d, macOS uses -r
-WRITE_TIME=$(date -d "@$REG_TS" +"%I:%M%p" 2>/dev/null || date -r "$REG_TS" +"%I:%M%p" 2>/dev/null || echo "")
+# Cross-platform timestamp: macOS BSD date uses -r, GNU date uses -d
+WRITE_TIME=$(date -r "$REG_TS" +"%I:%M%p" 2>/dev/null || date -d "@$REG_TS" +"%I:%M%p" 2>/dev/null || echo "")
 WRITE_TIME=$(echo "$WRITE_TIME" | sed 's/^0//;s/AM/am/;s/PM/pm/')
 if [ -z "$WRITE_TIME" ]; then
     WRITE_TIME="ts:$REG_TS"

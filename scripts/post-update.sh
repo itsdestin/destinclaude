@@ -1096,7 +1096,7 @@ phase_migrations() {
   fi
 
   # Gather applicable migration versions into a newline-delimited string,
-  # then sort with sort -V.
+  # then sort using portable numeric-field split (sort -V is GNU-only).
   local applicable_versions=""
   for f in "$migrations_dir"/*.sh; do
     [ -f "$f" ] || continue

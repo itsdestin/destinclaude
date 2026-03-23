@@ -26,7 +26,7 @@ filename="${timestamp}_todo.md"
 cat > "$inbox_dir/$filename" << ENDOFFILE
 ---
 source: local
-captured: $(date -Iseconds 2>/dev/null || date +%Y-%m-%dT%H:%M:%S%z)
+captured: $(date +%Y-%m-%dT%H:%M:%S%z)
 origin: todo
 ---
 $note
