@@ -237,13 +237,17 @@ fi
 
 echo ""
 
-# --- Install DestinCode desktop app ---
-echo "  Installing DestinCode desktop app..."
+# --- Install DestinCode desktop app (optional) ---
 INSTALL_SCRIPT="$TOOLKIT_DIR/desktop/scripts/install-app.sh"
 if [ -f "$INSTALL_SCRIPT" ]; then
-    bash "$INSTALL_SCRIPT" && echo "  DestinCode desktop app installed" || echo "  Desktop app install failed — you can install it later with /setup-wizard"
-else
-    echo "  Desktop app not found in toolkit — skipping"
+    echo "  The DestinCode desktop app is available — it gives you a GUI for Claude Code."
+    printf "  Install it now? (y/n) "
+    read -r INSTALL_DESKTOP </dev/tty 2>/dev/null || INSTALL_DESKTOP="n"
+    if [[ "$INSTALL_DESKTOP" =~ ^[Yy] ]]; then
+        bash "$INSTALL_SCRIPT" && echo "  DestinCode desktop app installed" || echo "  Desktop app install failed — you can install it later with /setup-wizard"
+    else
+        echo "  Skipped — you can install it later with /setup-wizard"
+    fi
 fi
 
 echo ""

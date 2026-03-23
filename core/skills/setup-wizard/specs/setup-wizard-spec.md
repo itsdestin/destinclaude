@@ -1,7 +1,7 @@
 # Setup Wizard — Spec
 
-**Version:** 1.0
-**Last updated:** 2026-03-20
+**Version:** 1.1
+**Last updated:** 2026-03-22
 **Feature location:** `core/skills/setup-wizard/SKILL.md`, `core/skills/setup-wizard/plans/`
 
 ## Purpose
@@ -14,7 +14,7 @@ Interactive installer and restore flow for the DestinClaude toolkit. Walks users
 - Back up existing files to `~/.claude/backups/pre-toolkit/` with a manifest before any modification. The `/toolkit-uninstall` command relies on this. (2026-03-16)
 - Symlink-based registration into `~/.claude/skills/`, `~/.claude/commands/`, `~/.claude/hooks/` — NOT via `enabledPlugins` path entries (which are silently ignored by Claude Code for local plugins). (2026-03-16)
 - Marketplace plugins are registered via `enabledPlugins` in `settings.json` — distinct from symlink-based local components. (2026-03-18)
-- On Windows, if symlinks fail (Developer Mode not enabled), fall back to file copies and inform the user. (2026-03-18)
+- On Windows, if symlinks fail (Developer Mode not enabled), halt and instruct the user to enable Developer Mode. Copy-based installs are no longer supported — they caused 6+ months of silent file drift bugs. (2026-03-18, revised 2026-03-22)
 - Wait for the user's answer before proceeding at every decision point. Never auto-advance past a question. (2026-03-16)
 - Do NOT ask for feedback, feature requests, or contributions at setup completion — the user just finished a long process. (2026-03-16)
 
@@ -64,7 +64,8 @@ Phase 5: Personalization
   → 5.2: Process template files (replace {{VAR}} placeholders)
   → 5.3: Install encyclopedia starter templates (fresh install only)
   → 5.4: Merge CLAUDE.md fragments (append or update between markers)
-  → 5.5: Symlink skills, commands, hooks (with Windows copy fallback)
+  → 5.5: Symlink skills, commands, hooks (halt on failure, no copy fallback)
+  → 5b: DestinCode Desktop App (optional — offer install, run install-app.sh)
   → 5d: Register hooks in settings.json
   → 5d-ii: Register statusline in settings.json (separate from hooks)
   → 5e: Verify symlinks
