@@ -75,16 +75,7 @@ Dependencies are conditional on which providers are enabled:
 
 ## Known Issues & Planned Updates
 
-### Known Issues
-
-1. `/todo` command has been rewritten from Todoist MCP to local file write — may still need testing across edge cases (empty notes, special characters, concurrent writes).
-
-### Planned Updates
-
-1. Better rant processing — currently rants are queued for journaling with minimal preprocessing. Could benefit from sentiment detection and topic extraction before handoff.
-3. Formalize response format — standardize the resolution table format and approval flow into a documented schema.
-
-See also [GitHub Issues](https://github.com/itsdestin/destinclaude/issues) for tracked issues and planned updates.
+See [GitHub Issues](https://github.com/itsdestin/destinclaude/issues) for known issues and planned updates.
 
 ## Change Log
 
