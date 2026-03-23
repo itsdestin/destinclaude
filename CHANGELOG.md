@@ -2,7 +2,48 @@
 
 All notable changes to DestinClaude will be documented in this file.
 
-## v1.3.0 (2026-03-19)
+## [2.0.0] - 2026-03-22
+
+### Added
+- **DestinCode Desktop App** — Full Electron + React GUI for Claude Code with terminal view, chat view (message bubbles, tool cards, approval flow), command drawer for skill discovery, session management, clickable permission mode badge, status bar, and markdown styling
+- **Connect 4 Multiplayer** — In-app multiplayer game with GitHub-backed state, direct player challenges, and cross-session persistence
+- **DestinTip System** — Adaptive hint catalog (17 tips across all layers) with comfort-level filtering and session rotation, injected at session start
+- **Cross-Platform CI Build** — GitHub Actions workflow (build.yml) producing Windows .exe, macOS .dmg, and Linux .AppImage installers on every release tag
+- **Desktop App Installer** — desktop/scripts/install-app.sh with setup-wizard Phase 5b integration and /update Step 14b for existing users
+- **ErrorBoundary** — Prevents white-screen crashes in the desktop app renderer
+- **Setup Wizard Spec** — New spec (setup-wizard-spec.md v1.1) documenting the full phase flow
+
+### Changed
+- **Symlink-Only Installs** — Copy-based fallback eliminated; Developer Mode required on Windows. Setup-wizard-spec mandate revised to match
+- **Statusline Line 3** — Now displays git repo/branch alongside model and context info
+- **Announcements** — Moved from line 1 (right-aligned) to line 5 (inline after toolkit version); uses basic bold yellow ANSI only
+- **Game Architecture** — Pivoted from WebSocket relay + leaderboard server to GitHub Issues API backend (simpler, no server hosting needed)
+- **Bootstrap Installer** — Desktop app install is now opt-in with confirmation prompt (non-destructive mandate compliance)
+- **GitHub Actions** — Bumped to v5 to resolve Node.js 20 deprecation warnings
+
+### Fixed
+- **Bootstrap  bug** — Undefined variable silently skipped desktop install on macOS/Linux; fixed to use - **Setup Wizard Phase 5c** — 3 hooks missing from symlink loop (contribution-detector, tool-router, personal-sync); fresh installs had broken hook registrations
+- **Named Pipe Default** — Hook relay pipe name now platform-aware (Unix socket on POSIX, named pipe on Win32)
+- **Node Path Resolution** — Session manager uses Electron-aware node path resolution instead of bare spawn('node')
+- **GNU-only head -n -1** — Replaced with portable sed '' in build.yml
+- **Update Verification** — Step 15b table now covers all 10 registered hooks; Step 15d diagram matches current statusline layout
+
+### Removed
+- WebSocket relay server and leaderboard server (replaced by GitHub backend)
+- test-player.html (WebSocket-era test harness)
+- .firecrawl/ development research artifacts
+- SQLite database files from removed leaderboard
+
+### Documentation
+- Statusline spec bumped to v1.10 (git branch on line 3)
+- System architecture spec bumped to v1.2 (full 13-hook table, fixed topic path)
+- DestinClaude spec bumped to v2.6 (desktop app shipped, no longer planned)
+- INDEX.md versions synced; removed stale Writing Voice row
+- docs/system-architecture.md updated with DestinCode section, destintip-state.json, 3 CI workflows
+- Depersonalized encyclopedia-interviewer, skill-creator-spec, google-drive-spec, inbox-processor plans
+- Scrubbed personal data from desktop app (npm author, private skills, game repo, loading messages)
+
+## ## v1.3.0 (2026-03-19)
 
 ### Features
 - **Convention-based skill discovery** — Skills in `skills/` are now auto-discovered via symlinks, replacing manual registration
@@ -21,7 +62,7 @@ All notable changes to DestinClaude will be documented in this file.
 - `core/specs/statusline-spec.md` — Updated to v1.7: documented sync warnings subsystem, "New Session" default, independent rate limit colors, DANGER/WARN prefixes. Fixed changelog version ordering.
 - `core/specs/INDEX.md` — Synced 3 stale version numbers (destinclaude 2.1→2.3, statusline 1.4→1.7, landing-page 1.3→1.4)
 
-## v1.2.1 (2026-03-18)
+## ## v1.2.1 (2026-03-18)
 
 ### Fixes
 - **Self-healing toolkit discovery** — `session-start.sh` now resolves `TOOLKIT_ROOT` once at script start using `config.json` with a fallback path traversal. If `config.json` is missing, it auto-creates it from the discovered toolkit root. Previously, a missing `config.json` silently broke the entire auto-refresh pipeline — commands like `/update` were never installed and hooks were never refreshed.
@@ -33,7 +74,7 @@ All notable changes to DestinClaude will be documented in this file.
 - **Field delimiter fix** — Switched session JSON parser from tab to unit separator (`0x1f`) to prevent bash `read` from swallowing empty leading fields on some platforms.
 - **Label rename** — "Unbackedup Skills" renamed to "Skills Not Backed Up" for clarity.
 
-## v1.1.6 (2026-03-18)
+## ## v1.1.6 (2026-03-18)
 
 ### Features
 - **Fork File skill** — New food tracking skill (`life/skills/fork-file/`) with grocery inventory and fast food spending log. Manages pantry items across user-configured storage locations, processes receipt photos via messaging MCP servers (iMessages or Google Messages), tracks fast food visits by restaurant/item/size, and provides spending summaries. Self-bootstrapping — creates data directory, CSV files, and prompts for location setup on first use. Originally contributed by [@tjmorin03](https://github.com/tjmorin03) in PR #3.
@@ -43,7 +84,7 @@ All notable changes to DestinClaude will be documented in this file.
 - `core/specs/INDEX.md` — Added Fork File entry
 - `docs/system-architecture.md` — Added Fork File to Life layer skill table
 
-## v1.1.5 (2026-03-18)
+## ## v1.1.5 (2026-03-18)
 
 ### Features
 - **Comfort Gate (Phase 0.5)** — Setup wizard now asks new users to choose a comfort level (Minimal, Balanced, Full) before any installs begin. The chosen level controls output style plugin registration and verification strictness throughout Phases 1–6. Users who restore from backup inherit the comfort level from their config. Design doc and implementation plan at `core/skills/setup-wizard/plans/`.
@@ -67,7 +108,7 @@ All notable changes to DestinClaude will be documented in this file.
 - `core/specs/statusline-spec.md` — Updated to v1.6: documented config-based sibling discovery, copy-install breakage fix
 - `core/specs/destinclaude-spec.md` — Updated to v2.3: documented hook distribution pipeline fix, utility scripts as component type
 
-## v1.1.4 (2026-03-18)
+## ## v1.1.4 (2026-03-18)
 
 ### Features
 - **Windows Developer Mode auto-enablement** — PowerShell installer now detects whether Developer Mode is enabled and auto-enables it via UAC elevation before creating symlinks. If the user declines the prompt, the existing copy fallback handles it gracefully. Bash installer on Windows now checks Developer Mode status and nudges users toward the PowerShell installer when it's off.
@@ -80,7 +121,7 @@ All notable changes to DestinClaude will be documented in this file.
 - `core/specs/destinclaude-spec.md` — Added Design Decision for auto-enabling Developer Mode, updated install flow diagram (v2.1)
 - `core/skills/setup-wizard/SKILL.md` — Updated Windows symlink fallback note to reflect installer now handles Developer Mode
 
-## v1.1.3 (2026-03-18)
+## ## v1.1.3 (2026-03-18)
 
 ### Features
 - **Setup wizard Phase 0 — returning-user restore gate** — The wizard now asks "Have you used DestinClaude before on another device?" before running any install steps. Returning users choose their backup source (GitHub or Google Drive) and get a dedicated restore sub-flow that clones/pulls their config, rewrites hardcoded paths, merges MCP server definitions, and pulls encyclopedia + personal data. Both paths skip fresh-install Phases 1–5 and jump straight to an abbreviated dependency check (Phase 0C) followed by verification (Phase 6). iCloud restore is noted as coming soon.
@@ -94,7 +135,7 @@ All notable changes to DestinClaude will be documented in this file.
 - `core/specs/backup-system-spec.md` — Added Interactive Restore subsection (v3.3)
 - `core/specs/personal-sync-spec.md` — Clarified how session-start pull relates to the Phase 0B restore flow
 
-## v1.1.2 (2026-03-18)
+## ## v1.1.2 (2026-03-18)
 
 ### Features
 - **Marketplace plugin registration** — Setup wizard (Phase 5, Step 5f) now registers 14 recommended marketplace plugins via `enabledPlugins` in `settings.json`: superpowers, claude-md-management, code-review, code-simplifier, commit-commands, feature-dev, hookify, skill-creator, explanatory-output-style, learning-output-style, context7, linear, playwright, plugin-dev. Plugins download automatically on first use — no manual install needed.
@@ -106,7 +147,7 @@ All notable changes to DestinClaude will be documented in this file.
 - `docs/for-beginners/03-installing-the-toolkit.md` — Updated Phase 5 description to mention plugin registration
 - `core/specs/destinclaude-spec.md` — Documented `enabledPlugins` mechanism in Component Registration and Design Decisions (v1.8)
 
-## v1.1.1 (2026-03-17)
+## ## v1.1.1 (2026-03-17)
 
 ### Security
 - Sanitized SQL inputs in iMessage MCP server — proper LIKE wildcard escaping, input validation, and centralized sanitize function to prevent injection via sqlite3 CLI
@@ -132,7 +173,7 @@ All notable changes to DestinClaude will be documented in this file.
 - Restored DestinClaude branding on landing page
 - Updated landing page intro copy and Modules feature card
 
-## v1.1.0 (2026-03-17)
+## ## v1.1.0 (2026-03-17)
 
 ### Versioning Policy
 DestinClaude follows [Semantic Versioning](https://semver.org/):
@@ -159,7 +200,7 @@ Version bumps in `plugin.json` on master automatically create git tags via the `
 - MCP server configs ported from desktop (windows-control, todoist, gmessages)
 - Landing page copy updates (Claude Pro prereq, tagline, setup instruction)
 
-## v1.0.1 (2026-03-16)
+## ## v1.0.1 (2026-03-16)
 
 ### Fixes
 - Fixed plugin registration — uses symlinks into `~/.claude/skills/`, `~/.claude/commands/`, `~/.claude/hooks/` instead of broken `enabledPlugins` path entries
@@ -182,6 +223,6 @@ Version bumps in `plugin.json` on master automatically create git tags via the `
 - DRIVE_ROOT prompt explains what "root folder" means in plain language
 - rclone setup uses direct `config create` command with interactive fallback (type #24 hint)
 
-## v1.0.0 (2026-03-16)
+## ## v1.0.0 (2026-03-16)
 
 Initial public release.
