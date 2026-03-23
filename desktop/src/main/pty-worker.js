@@ -4,7 +4,8 @@
 // Communicates with the Electron main process via IPC (process.send).
 
 const pty = require('node-pty');
-const which = require('which');
+let which;
+try { which = require('which'); } catch { which = null; }
 
 let ptyProcess = null;
 
@@ -14,7 +15,7 @@ process.on('message', (msg) => {
       // Resolve full path — node-pty on Windows needs it (no shell lookup)
       let shell;
       try {
-        shell = which.sync(msg.command || 'claude');
+        shell = which ? which.sync(msg.command || 'claude') : (msg.command || 'claude');
       } catch {
         shell = msg.command || 'claude';
       }

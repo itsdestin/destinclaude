@@ -1,5 +1,6 @@
 import { app, BrowserWindow, ipcMain, nativeImage } from 'electron';
 import path from 'path';
+import os from 'os';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
 import { SessionManager } from './session-manager';
@@ -12,7 +13,9 @@ const execFileAsync = promisify(execFile);
 let mainWindow: BrowserWindow | null = null;
 const sessionManager = new SessionManager();
 // Unique pipe name per launch — avoids EADDRINUSE from stale Electron processes
-const pipeName = `\\\\.\\pipe\\claude-desktop-hooks-${process.pid}`;
+const pipeName = process.platform === 'win32'
+  ? `\\\\.\\pipe\\claude-desktop-hooks-${process.pid}`
+  : path.join(os.tmpdir(), `claude-desktop-hooks-${process.pid}.sock`);
 sessionManager.setPipeName(pipeName);
 const hookRelay = new HookRelay(pipeName);
 

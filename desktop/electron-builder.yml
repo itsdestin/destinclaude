@@ -12,7 +12,14 @@ linux:
   target: AppImage
   category: Development
 npmRebuild: false
+asarUnpack:
+  - dist/main/pty-worker.js
+  - scripts/**/*
+  - hook-scripts/**/*
 files:
   - dist/**/*
   - node_modules/**/*
+  - scripts/**/*
+  - hook-scripts/**/*
+  - assets/**/*
   - package.json

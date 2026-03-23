@@ -1,6 +1,7 @@
-import { fork, spawn, ChildProcess } from 'child_process';
+import { spawn, ChildProcess } from 'child_process';
 import { randomUUID } from 'crypto';
 import path from 'path';
+import { app } from 'electron';
 import { SessionInfo } from '../shared/types';
 import { EventEmitter } from 'events';
 
@@ -36,12 +37,17 @@ export class SessionManager extends EventEmitter {
     // native binary instead of Electron's (which requires electron-rebuild).
     // We use spawn with 'node' (system Node) + IPC channel instead of fork()
     // because fork() uses Electron's Node.js which has the same ABI mismatch.
-    const workerPath = path.join(__dirname, 'pty-worker.js');
-    const nodePath = process.execPath.includes('electron')
-      ? 'node'  // Electron's execPath is the Electron binary, fall back to PATH
-      : process.execPath;
+    // In packaged builds, pty-worker.js is unpacked from the asar archive
+    // so that system Node.js can access it (node can't read asar files).
+    let workerPath = path.join(__dirname, 'pty-worker.js');
+    if (app.isPackaged) {
+      workerPath = workerPath.replace('app.asar', 'app.asar.unpacked');
+    }
+    // Always use system Node.js — Electron's binary can't load node-pty.
+    const nodePath = 'node';
     const worker = spawn(nodePath, [workerPath], {
       stdio: ['pipe', 'pipe', 'pipe', 'ipc'],
+      windowsHide: true,
     });
 
     const info: SessionInfo = {
