@@ -545,6 +545,39 @@ phase_orphans() {
     fi
   done
 
+  # Also scan skills directory for orphans
+  if [ -d "$CLAUDE_HOME/skills" ]; then
+    local known_skills=""
+    local layer
+    for layer in $(_get_installed_layers); do
+      local skill_dir="$TOOLKIT_ROOT/$layer/skills"
+      if [ -d "$skill_dir" ]; then
+        local s
+        for s in "$skill_dir"/*/; do
+          [ -d "$s" ] && known_skills="$known_skills$(basename "$s")\n"
+        done
+      fi
+    done
+    # Also include core skills
+    if [ -d "$TOOLKIT_ROOT/core/skills" ]; then
+      local s
+      for s in "$TOOLKIT_ROOT/core/skills"/*/; do
+        [ -d "$s" ] && known_skills="$known_skills$(basename "$s")\n"
+      done
+    fi
+
+    local skill
+    for skill in "$CLAUDE_HOME/skills"/*/; do
+      [ -d "$skill" ] || continue
+      local skill_name
+      skill_name="$(basename "$skill")"
+      if ! printf '%b' "$known_skills" | grep -qxF "$skill_name"; then
+        emit "ORPHAN" "skills/$skill_name" "not in toolkit manifest"
+        orphan_count=$((orphan_count + 1))
+      fi
+    done
+  fi
+
   if [ "$orphan_count" -gt 0 ]; then
     emit_summary "${orphan_count} orphan(s) found — awaiting user decision"
   else
@@ -709,6 +742,7 @@ phase_verify() {
       var expected = [
         ['SessionStart',      'startup',    'session-start.sh'],
         ['PreToolUse',        'Write|Edit', 'write-guard.sh'],
+        ['PreToolUse',        'Bash|Agent', 'worktree-guard.sh'],
         ['PostToolUse',       'Write|Edit', 'git-sync.sh'],
         ['PostToolUse',       'Write|Edit', 'personal-sync.sh'],
         ['PostToolUse',       '.*',         'title-update.sh'],
@@ -1020,11 +1054,15 @@ phase_plugins() {
 
 # version_gt A B
 # Returns 0 (true) if A > B, 1 (false) otherwise.
-# Uses sort -V which works on macOS (coreutils), Linux, and Windows Git Bash.
+# Uses node for portable semver comparison (sort -V is GNU-only, fails on macOS stock).
 version_gt() {
-  local higher
-  higher="$(printf '%s\n%s' "$1" "$2" | sort -V | tail -1)"
-  [ "$higher" = "$1" ] && [ "$1" != "$2" ]
+  if command -v node &>/dev/null; then
+    node -e "const[a,b]=process.argv.slice(1).map(v=>v.split('.').map(Number));for(let i=0;i<3;i++){if((a[i]||0)>(b[i]||0))process.exit(0);if((a[i]||0)<(b[i]||0))process.exit(1)}process.exit(1)" "$1" "$2"
+  else
+    local higher
+    higher="$(printf '%s\n%s' "$1" "$2" | sort -t. -k1,1n -k2,2n -k3,3n | tail -1)"
+    [ "$higher" = "$1" ] && [ "$1" != "$2" ]
+  fi
 }
 
 phase_migrations() {
@@ -1083,7 +1121,7 @@ ${fname}"
 
   # Sort versions and run each migration in order
   local sorted_versions
-  sorted_versions="$(printf '%s\n' "$applicable_versions" | sort -V)"
+  sorted_versions="$(printf '%s\n' "$applicable_versions" | sort -t. -k1,1n -k2,2n -k3,3n)"
 
   export TOOLKIT_ROOT CLAUDE_HOME PLATFORM
 
