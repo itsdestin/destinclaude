@@ -34,7 +34,7 @@ After checking prerequisites, the script downloads the toolkit itself:
 
 - **From:** `https://github.com/itsdestin/destinclaude`
 - **To:** `~/.claude/plugins/destinclaude/` (inside your Claude Code configuration directory)
-- **Size:** A few megabytes
+- **Size:** About 50 MB for the toolkit, plus about 150 MB for the optional desktop app (~200 MB total)
 - **What it contains:** Skills, hooks, commands, and templates — all plain text files you can read
 
 ## What Does NOT Happen
@@ -45,7 +45,7 @@ After checking prerequisites, the script downloads the toolkit itself:
 - No system settings are changed (beyond adding the programs above, and enabling Developer Mode on Windows — see below)
 - Nothing runs automatically — you choose what to install next by talking to Claude
 
-> **Windows note:** The PowerShell installer enables Windows Developer Mode if it isn't already on. This is required for symlinks, which the toolkit uses to stay up to date automatically. You'll see a standard Windows permission prompt — approve it to continue. If you decline, the toolkit still installs fine using file copies instead, but you'll need to re-run `/setup-wizard` after each toolkit update to refresh them.
+> **Windows note:** The installer enables Windows Developer Mode if it isn't already on. This is a safe, one-time setting that lets the toolkit stay up to date automatically — it doesn't change how your computer works. You'll see a standard Windows permission prompt — approve it to continue. Developer Mode is required for the toolkit to function correctly.
 
 ## After the Script
 

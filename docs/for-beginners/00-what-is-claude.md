@@ -1,5 +1,7 @@
 # What is Claude Code?
 
+> **Prefer a visual overview?** Check out the [DestinClaude website](https://itsdestin.github.io/destinclaude/) for a quick introduction with screenshots.
+
 You've probably chatted with Claude before — you open a browser, type a question, and get a response. Claude Code is that same Claude, but instead of living in a browser tab, it lives on your computer.
 
 That might not sound like a big deal, but it changes everything.

@@ -26,26 +26,27 @@ Read the [System Architecture](docs/system-architecture.md) for the full technic
 
 ## Install
 
-```bash
-# Clone the toolkit
-git clone https://github.com/itsdestin/destinclaude.git ~/.claude/plugins/destinclaude
+Copy-paste one of these into your terminal — it handles everything automatically.
 
-# Open Claude Code and run the setup wizard
-claude
-> /setup-wizard
-```
-
-Or use the bootstrap script (installs prerequisites too):
-
-**Mac/Linux:**
+**Mac/Linux (Terminal):**
 ```bash
 curl -fsSL https://raw.githubusercontent.com/itsdestin/destinclaude/master/bootstrap/install.sh -o /tmp/install.sh && bash /tmp/install.sh
 ```
 
 **Windows (PowerShell):**
 ```powershell
-powershell -ExecutionPolicy Bypass -c "iwr -useb https://raw.githubusercontent.com/itsdestin/destinclaude/master/bootstrap/install.ps1 -OutFile install.ps1; .\install.ps1"
+iwr -useb https://raw.githubusercontent.com/itsdestin/destinclaude/master/bootstrap/install.ps1 -OutFile install.ps1; powershell -ExecutionPolicy Bypass -File install.ps1
 ```
+
+<details>
+<summary>Already have Claude Code? Manual install instead</summary>
+
+```bash
+git clone https://github.com/itsdestin/destinclaude.git ~/.claude/plugins/destinclaude
+claude
+> /setup-wizard
+```
+</details>
 
 ## What's Inside
 
