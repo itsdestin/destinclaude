@@ -32,6 +32,48 @@ export default function MarkdownContent({ content }: Props) {
       remarkPlugins={[remarkGfm]}
       rehypePlugins={[rehypeHighlight]}
       components={{
+        // -- Block elements: headings, paragraphs, lists, rules --
+        h1({ children, ...props }) {
+          return <h1 className="text-xl font-bold mt-5 mb-2 text-gray-100" {...props}>{children}</h1>;
+        },
+        h2({ children, ...props }) {
+          return <h2 className="text-lg font-bold mt-4 mb-2 text-gray-100" {...props}>{children}</h2>;
+        },
+        h3({ children, ...props }) {
+          return <h3 className="text-base font-bold mt-3 mb-1.5 text-gray-200" {...props}>{children}</h3>;
+        },
+        h4({ children, ...props }) {
+          return <h4 className="text-sm font-bold mt-3 mb-1 text-gray-200" {...props}>{children}</h4>;
+        },
+        p({ children, ...props }) {
+          return <p className="mb-2 leading-relaxed" {...props}>{children}</p>;
+        },
+        ol({ children, ...props }) {
+          return <ol className="list-decimal pl-6 mb-2 space-y-1" {...props}>{children}</ol>;
+        },
+        ul({ children, ...props }) {
+          return <ul className="list-disc pl-6 mb-2 space-y-1" {...props}>{children}</ul>;
+        },
+        li({ children, ...props }) {
+          return <li className="leading-relaxed" {...props}>{children}</li>;
+        },
+        hr({ ...props }) {
+          return <hr className="border-gray-600 my-3" {...props} />;
+        },
+        blockquote({ children, ...props }) {
+          return (
+            <blockquote className="border-l-2 border-gray-500 pl-3 my-2 text-gray-400 italic" {...props}>
+              {children}
+            </blockquote>
+          );
+        },
+        strong({ children, ...props }) {
+          return <strong className="font-bold text-gray-100" {...props}>{children}</strong>;
+        },
+        em({ children, ...props }) {
+          return <em className="italic text-gray-300" {...props}>{children}</em>;
+        },
+        // -- Code blocks --
         pre({ children, ...props }) {
           // Extract code text for copy button
           let codeText = '';
@@ -67,6 +109,7 @@ export default function MarkdownContent({ content }: Props) {
             </code>
           );
         },
+        // -- Inline & table elements --
         a({ href, children, ...props }) {
           return (
             <a

@@ -28,6 +28,9 @@ declare global {
         readTranscriptMeta: (path: string) => Promise<{ model: string; contextPercent: number } | null>;
         saveClipboardImage: () => Promise<string | null>;
       };
+      shell: {
+        openChangelog: () => Promise<void>;
+      };
       off: (channel: string, handler: (...args: any[]) => void) => void;
       removeAllListeners: (channel: string) => void;
     };

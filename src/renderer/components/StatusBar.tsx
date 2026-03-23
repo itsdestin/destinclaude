@@ -57,11 +57,25 @@ function format7dReset(iso: string): string {
 
 interface Props {
   statusData: StatusData;
+  onRunSync?: () => void;
 }
+
+// Map raw warning codes to the same descriptive text used in the terminal statusline
+const WARNING_MAP: Record<string, { text: string; level: 'danger' | 'warn' }> = {
+  'OFFLINE': { text: 'DANGER: No Internet Connection', level: 'danger' },
+  'PERSONAL:NOT_CONFIGURED': { text: 'DANGER: No Sync Act. for Personal Data', level: 'danger' },
+  'PERSONAL:STALE': { text: 'WARN: No Recent Personal Sync (>24h)', level: 'warn' },
+};
 
 function parseSyncWarnings(raw: string | null): { text: string; level: 'danger' | 'warn' }[] {
   if (!raw) return [];
   return raw.split('\n').filter(Boolean).map((line) => {
+    // Check for exact match first
+    if (WARNING_MAP[line]) return WARNING_MAP[line];
+    // Prefix match for SKILLS:* and PROJECTS:*
+    if (line.startsWith('SKILLS:')) return { text: 'DANGER: Unsynced Skills', level: 'danger' as const };
+    if (line.startsWith('PROJECTS:')) return { text: 'DANGER: Projects Excluded From Sync', level: 'danger' as const };
+    // Fallback: pass through raw text
     if (line.startsWith('DANGER:') || line.startsWith('OFFLINE')) {
       return { text: line, level: 'danger' as const };
     }
@@ -74,13 +88,13 @@ const warnStyles = {
   warn: 'bg-[#FF9800]/15 text-[#FF9800] border-[#FF9800]/25',
 };
 
-export default function StatusBar({ statusData }: Props) {
+export default function StatusBar({ statusData, onRunSync }: Props) {
   const { usage, updateStatus, contextPercent, syncStatus, syncWarnings } = statusData;
   const warnings = parseSyncWarnings(syncWarnings);
 
   return (
     <div className="flex items-center justify-between px-3 py-1 text-[10px] text-gray-500 border-t border-gray-800/50">
-      {/* Left — rate limits */}
+      {/* Left — rate limits + sync warnings */}
       <div className="flex items-center gap-2">
         {usage?.five_hour != null && (
           <span className="flex items-center gap-1.5 px-1.5 py-0.5 rounded bg-gray-900 border border-gray-700/50">
@@ -100,18 +114,19 @@ export default function StatusBar({ statusData }: Props) {
             <span className="text-gray-600">{format7dReset(usage.seven_day.resets_at)}</span>
           </span>
         )}
-      </div>
-
-      {/* Center — sync warnings + context */}
-      <div className="flex items-center gap-2">
         {warnings.map((w, i) => (
-          <span
+          <button
             key={i}
-            className={`px-1.5 py-0.5 rounded border ${warnStyles[w.level]}`}
+            onClick={onRunSync}
+            className={`px-1.5 py-0.5 rounded border ${warnStyles[w.level]} ${onRunSync ? 'cursor-pointer hover:brightness-125 transition-all' : ''}`}
           >
             {w.text}
-          </span>
+          </button>
         ))}
+      </div>
+
+      {/* Center — context */}
+      <div className="flex items-center gap-2">
         {contextPercent != null && (
           <span>
             Context:{' '}
@@ -122,9 +137,12 @@ export default function StatusBar({ statusData }: Props) {
         )}
       </div>
 
-      {/* Right — version */}
+      {/* Right — version (click opens changelog) */}
       {updateStatus && (
-        <span className="px-1.5 py-0.5 rounded bg-gray-900 border border-gray-700/50">
+        <button
+          onClick={() => window.claude.shell.openChangelog()}
+          className="px-1.5 py-0.5 rounded bg-gray-900 border border-gray-700/50 cursor-pointer hover:bg-gray-800 transition-colors"
+        >
           {updateStatus.update_available ? (
             <span className="text-[#FF9800]">
               DestinClaude v{updateStatus.current} → v{updateStatus.latest}
@@ -132,7 +150,7 @@ export default function StatusBar({ statusData }: Props) {
           ) : (
             <span>DestinClaude v{updateStatus.current}</span>
           )}
-        </span>
+        </button>
       )}
     </div>
   );

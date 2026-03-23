@@ -19,6 +19,7 @@ const IPC = {
   STATUS_DATA: 'status:data',
   READ_TRANSCRIPT_META: 'transcript:read-meta',
   SKILLS_LIST: 'skills:list',
+  OPEN_CHANGELOG: 'shell:open-changelog',
 } as const;
 
 contextBridge.exposeInMainWorld('claude', {
@@ -77,6 +78,10 @@ contextBridge.exposeInMainWorld('claude', {
       ipcRenderer.invoke(IPC.READ_TRANSCRIPT_META, transcriptPath),
     saveClipboardImage: (): Promise<string | null> =>
       ipcRenderer.invoke(IPC.CLIPBOARD_SAVE_IMAGE),
+  },
+  shell: {
+    openChangelog: (): Promise<void> =>
+      ipcRenderer.invoke(IPC.OPEN_CHANGELOG),
   },
   off: (channel: string, handler: (...args: any[]) => void) =>
     ipcRenderer.removeListener(channel, handler),

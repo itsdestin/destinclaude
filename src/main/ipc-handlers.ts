@@ -1,4 +1,4 @@
-import { IpcMain, BrowserWindow, dialog, clipboard, nativeImage } from 'electron';
+import { IpcMain, BrowserWindow, dialog, clipboard, nativeImage, shell } from 'electron';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
@@ -67,6 +67,11 @@ export function registerIpcHandlers(
     const filePath = path.join(tmpDir, filename);
     fs.writeFileSync(filePath, img.toPNG());
     return filePath;
+  });
+
+  // Open the DestinClaude CHANGELOG on GitHub in the default browser
+  ipcMain.handle(IPC.OPEN_CHANGELOG, async () => {
+    await shell.openExternal('https://github.com/itsdestin/destinclaude/blob/master/CHANGELOG.md');
   });
 
   // Read model + context from a transcript JSONL file
