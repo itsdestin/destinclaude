@@ -454,13 +454,104 @@ phase_refresh() {
   fi
 }
 
+_build_known_files() {
+  # Returns a newline-separated list of basenames managed by the toolkit.
+  # Includes: *.sh from each installed layer's hooks/ (excluding statusline.sh)
+  #           *.js from core/hooks/
+  # Does NOT include statusline.sh (lives at $CLAUDE_HOME/statusline.sh, not hooks/).
+  local known=""
+  local layer file filename
+
+  for layer in "${INSTALLED_LAYERS[@]}"; do
+    local hooks_dir="$TOOLKIT_ROOT/$layer/hooks"
+    [ -d "$hooks_dir" ] || continue
+    for file in "$hooks_dir"/*.sh; do
+      [ -f "$file" ] || continue
+      filename="$(basename "$file")"
+      [ "$filename" = "statusline.sh" ] && continue
+      if [ -z "$known" ]; then
+        known="$filename"
+      else
+        known="${known}
+${filename}"
+      fi
+    done
+  done
+
+  local js_dir="$TOOLKIT_ROOT/core/hooks"
+  if [ -d "$js_dir" ]; then
+    for file in "$js_dir"/*.js; do
+      [ -f "$file" ] || continue
+      filename="$(basename "$file")"
+      if [ -z "$known" ]; then
+        known="$filename"
+      else
+        known="${known}
+${filename}"
+      fi
+    done
+  fi
+
+  printf '%s' "$known"
+}
+
 phase_orphans() {
-  emit_summary "orphans: not yet implemented"
+  emit_section "Orphan Detection"
+
+  local known_files
+  known_files="$(_build_known_files)"
+
+  local orphan_count=0
+  local file filename
+
+  for file in "$CLAUDE_HOME/hooks/"*; do
+    [ -d "$file" ] && continue
+    { [ -f "$file" ] || [ -L "$file" ]; } || continue
+    filename="$(basename "$file")"
+    if ! echo "$known_files" | grep -qxF "$filename"; then
+      emit "ORPHAN" "$filename" "not in toolkit manifest"
+      orphan_count=$((orphan_count + 1))
+    fi
+  done
+
+  if [ "$orphan_count" -gt 0 ]; then
+    emit_summary "${orphan_count} orphan(s) found — awaiting user decision"
+  else
+    emit_summary "no orphans found"
+  fi
 }
 
 phase_remove_orphan() {
-  local target="${1:-}"
-  emit_summary "remove-orphan (${target}): not yet implemented"
+  local filename="${1:-}"
+
+  if [ -z "$filename" ]; then
+    emit "FAIL" "remove-orphan" "no filename specified"
+    exit 1
+  fi
+
+  local target="$CLAUDE_HOME/hooks/$filename"
+
+  # Safety check 1: file must exist
+  if [ ! -f "$target" ] && [ ! -L "$target" ]; then
+    emit "FAIL" "$filename" "not found at $target"
+    exit 1
+  fi
+
+  # Safety check 2: must NOT be in the known toolkit set
+  local known_files
+  known_files="$(_build_known_files)"
+  if echo "$known_files" | grep -qxF "$filename"; then
+    emit "FAIL" "$filename" "is a toolkit hook, refusing to delete"
+    exit 1
+  fi
+
+  # Safe to remove
+  if rm "$target"; then
+    emit "OK" "$filename" "removed"
+  else
+    emit "FAIL" "$filename" "could not remove"
+    exit 1
+  fi
 }
 
 phase_verify() {
@@ -475,10 +566,84 @@ phase_plugins() {
   emit_summary "plugins: not yet implemented"
 }
 
+# version_gt A B
+# Returns 0 (true) if A > B, 1 (false) otherwise.
+# Uses sort -V which works on macOS (coreutils), Linux, and Windows Git Bash.
+version_gt() {
+  local higher
+  higher="$(printf '%s\n%s' "$1" "$2" | sort -V | tail -1)"
+  [ "$higher" = "$1" ] && [ "$1" != "$2" ]
+}
+
 phase_migrations() {
   local from_ver="${1:-}"
   local to_ver="${2:-}"
-  emit_summary "migrations (${from_ver} -> ${to_ver}): not yet implemented"
+
+  # Guard: need both version bounds
+  if [ -z "$from_ver" ] || [ -z "$to_ver" ]; then
+    emit "INFO" "migrations" "skipped — no version range provided"
+    return
+  fi
+
+  local migrations_dir="$TOOLKIT_ROOT/scripts/migrations"
+
+  # Guard: directory must exist and contain at least one .sh file
+  if [ ! -d "$migrations_dir" ]; then
+    emit "INFO" "migrations" "no migrations needed (${from_ver} → ${to_ver})"
+    return
+  fi
+
+  # Collect .sh files; check if any exist
+  local has_any=0
+  local f
+  for f in "$migrations_dir"/*.sh; do
+    [ -f "$f" ] && has_any=1 && break
+  done
+
+  if [ "$has_any" -eq 0 ]; then
+    emit "INFO" "migrations" "no migrations needed (${from_ver} → ${to_ver})"
+    return
+  fi
+
+  # Gather applicable migration versions into a newline-delimited string,
+  # then sort with sort -V.
+  local applicable_versions=""
+  for f in "$migrations_dir"/*.sh; do
+    [ -f "$f" ] || continue
+    local fname
+    fname="$(basename "$f" .sh)"
+    # Apply if fname > from_ver AND fname <= to_ver
+    # i.e. version_gt fname from_ver  AND  NOT version_gt fname to_ver
+    if version_gt "$fname" "$from_ver" && ! version_gt "$fname" "$to_ver"; then
+      if [ -z "$applicable_versions" ]; then
+        applicable_versions="$fname"
+      else
+        applicable_versions="${applicable_versions}
+${fname}"
+      fi
+    fi
+  done
+
+  if [ -z "$applicable_versions" ]; then
+    emit "INFO" "migrations" "no migrations needed (${from_ver} → ${to_ver})"
+    return
+  fi
+
+  # Sort versions and run each migration in order
+  local sorted_versions
+  sorted_versions="$(printf '%s\n' "$applicable_versions" | sort -V)"
+
+  export TOOLKIT_ROOT CLAUDE_HOME PLATFORM
+
+  local version
+  while IFS= read -r version; do
+    [ -z "$version" ] && continue
+    local migration_file="$migrations_dir/${version}.sh"
+    emit_section "Migration ${version}"
+    bash "$migration_file"
+  done <<EOF
+$sorted_versions
+EOF
 }
 
 phase_post_update() {
