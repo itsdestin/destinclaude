@@ -1,0 +1,82 @@
+name: Build DestinCode
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            artifact: release/*.exe
+            name: windows
+          - os: macos-latest
+            artifact: release/*.dmg
+            name: macos
+          - os: ubuntu-latest
+            artifact: release/*.AppImage
+            name: linux
+
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: destincode-${{ matrix.name }}
+          path: ${{ matrix.artifact }}
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Extract changelog
+        id: changelog
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          VERSION="${TAG#v}"
+          NOTES=$(awk "/^## v${VERSION}/,/^## v[0-9]/" CHANGELOG.md | head -n -1 | tail -n +2)
+          if [ -z "$NOTES" ]; then
+            NOTES="See [CHANGELOG.md](CHANGELOG.md) for details."
+          fi
+          echo "$NOTES" > /tmp/release_notes.md
+
+      - name: Create release with installers
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --title "DestinCode $GITHUB_REF_NAME" \
+            --notes-file /tmp/release_notes.md \
+            --latest \
+            artifacts/**/*

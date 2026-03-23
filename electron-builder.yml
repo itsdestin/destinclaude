@@ -11,6 +11,7 @@ mac:
 linux:
   target: AppImage
   category: Development
+npmRebuild: false
 files:
   - dist/**/*
   - node_modules/**/*
