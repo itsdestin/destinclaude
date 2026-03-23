@@ -1105,7 +1105,7 @@ Only run the blocks for layers the user selected in Phase 3.
 mkdir -p ~/.claude/commands
 
 # Core commands (always)
-for cmd in setup-wizard.md contribute.md toolkit.md toolkit-uninstall.md update.md health.md; do
+for cmd in setup-wizard.md contribute.md toolkit.md toolkit-uninstall.md update.md health.md restore.md; do
   ln -sf "$TOOLKIT_ROOT/core/commands/$cmd" ~/.claude/commands/$cmd
 done
 ```
@@ -1117,7 +1117,7 @@ mkdir -p ~/.claude/hooks
 
 # Core hooks (always — skip any the user chose to "keep yours" in Phase 2)
 # NOTE: statusline.sh is NOT a hook — it's configured separately via settings.json "statusLine"
-for hook in checklist-reminder.sh contribution-detector.sh done-sound.sh git-sync.sh personal-sync.sh session-start.sh title-update.sh todo-capture.sh tool-router.sh write-guard.sh; do
+for hook in check-inbox.sh checklist-reminder.sh contribution-detector.sh done-sound.sh git-sync.sh personal-sync.sh session-start.sh title-update.sh todo-capture.sh tool-router.sh worktree-guard.sh write-guard.sh; do
   ln -sf "$TOOLKIT_ROOT/core/hooks/$hook" ~/.claude/hooks/$hook
 done
 
@@ -1125,6 +1125,20 @@ done
 for util in announcement-fetch.js usage-fetch.js; do
   ln -sf "$TOOLKIT_ROOT/core/hooks/$util" ~/.claude/hooks/$util
 done
+
+# Shared libraries used by hooks
+mkdir -p ~/.claude/hooks/lib
+for lib in backup-common.sh migrate.sh; do
+  ln -sf "$TOOLKIT_ROOT/core/hooks/lib/$lib" ~/.claude/hooks/lib/$lib
+done
+
+# Migration definitions
+if [ -d "$TOOLKIT_ROOT/core/hooks/migrations" ]; then
+  mkdir -p ~/.claude/hooks/migrations
+  for migration in "$TOOLKIT_ROOT/core/hooks/migrations"/*; do
+    [ -f "$migration" ] && ln -sf "$migration" ~/.claude/hooks/migrations/$(basename "$migration")
+  done
+fi
 
 # Statusline script — symlink to ~/.claude/ (not hooks/)
 ln -sf "$TOOLKIT_ROOT/core/hooks/statusline.sh" ~/.claude/statusline.sh
@@ -1159,6 +1173,10 @@ Hooks must also be registered in `~/.claude/settings.json` under the `hooks` key
       {
         "matcher": "Write|Edit",
         "hooks": [{ "type": "command", "command": "bash ~/.claude/hooks/write-guard.sh" }]
+      },
+      {
+        "matcher": "Bash|Agent",
+        "hooks": [{ "type": "command", "command": "bash ~/.claude/hooks/worktree-guard.sh" }]
       },
       {
         "hooks": [{ "type": "command", "command": "bash ~/.claude/hooks/tool-router.sh" }]
