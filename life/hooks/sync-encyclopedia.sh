@@ -22,8 +22,16 @@ if [[ -f "$CONFIG_FILE" ]]; then
     fi
 fi
 
+ENCYCLOPEDIA_REMOTE_PATH="The Journal/System"
+if [[ -f "$CONFIG_FILE" ]]; then
+    CONFIGURED_PATH=$(grep -o '"encyclopedia_remote_path"[[:space:]]*:[[:space:]]*"[^"]*"' "$CONFIG_FILE" | head -1 | sed 's/.*"encyclopedia_remote_path"[[:space:]]*:[[:space:]]*"//' | sed 's/"$//')
+    if [[ -n "$CONFIGURED_PATH" ]]; then
+        ENCYCLOPEDIA_REMOTE_PATH="$CONFIGURED_PATH"
+    fi
+fi
+
 LOCAL_DIR="$HOME/.claude/$ENCYCLOPEDIA_DIR"
-REMOTE_DIR="gdrive:$DRIVE_ROOT/The Journal/System"
+REMOTE_DIR="gdrive:$DRIVE_ROOT/$ENCYCLOPEDIA_REMOTE_PATH"
 
 # Ensure local directory exists
 mkdir -p "$LOCAL_DIR"
