@@ -1,7 +1,7 @@
 {
   "name": "destincode",
   "version": "1.0.0",
-  "description": "",
+  "description": "Desktop GUI for Claude Code with the DestinClaude toolkit",
   "main": "dist/main/main.js",
   "scripts": {
     "dev": "concurrently \"npm run dev:renderer\" \"wait-on http://localhost:5173 && npm run dev:main\"",
@@ -11,7 +11,7 @@
     "test": "vitest"
   },
   "keywords": [],
-  "author": "",
+  "author": "Destin Coulbary",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
