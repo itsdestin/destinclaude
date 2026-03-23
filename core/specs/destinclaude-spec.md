@@ -1,6 +1,6 @@
 # DestinClaude Toolkit — Spec
 
-**Version:** 2.6
+**Version:** 2.7
 **Last updated:** 2026-03-22
 **Feature location:** `~/.claude/plugins/destinclaude/` (toolkit root)
 
@@ -88,7 +88,7 @@ Hook trigger-point registration is written to `~/.claude/settings.json` under th
 
 | Layer | Skills | Commands | Hooks | MCP Servers |
 |-------|--------|----------|-------|-------------|
-| Core | setup-wizard | setup-wizard, toolkit, contribute, toolkit-uninstall, update, health | checklist-reminder, contribution-detector, git-sync, personal-sync, session-start, title-update, todo-capture, tool-router, write-guard + statusline (separate config) | — |
+| Core | setup-wizard | setup-wizard, toolkit, contribute, toolkit-uninstall, update, health, restore | checklist-reminder, contribution-detector, git-sync, personal-sync, session-start, title-update, todo-capture, tool-router, write-guard + lib/backup-common.sh, lib/migrate.sh, migrations/ + statusline (separate config) | — |
 | Life | encyclopedia-compile, encyclopedia-interviewer, encyclopedia-librarian, encyclopedia-update, fork-file, google-drive, journaling-assistant | — | sync-encyclopedia | — |
 | Productivity | claudes-inbox, skill-creator | — | — | todoist, gmessages, windows-control (Windows) |
 | Modules | (optional domain-specific add-ons) | — | — | — |
@@ -140,6 +140,7 @@ See [GitHub Issues](https://github.com/itsdestin/destinclaude/issues) for known 
 
 | Date | Version | What changed | Type |
 |------|---------|-------------|------|
+| 2026-03-23 | 2.7 | Backup system refactor: added lib/ directory (backup-common.sh, migrate.sh), migrations/ directory, /restore command. iCloud now supported as third personal-sync backend. Multi-backend support. See backup-system-refactor-design (03-22-2026). | Update |
 | 2026-03-20 | 2.5 | Replaced periodic `/toolkit` reminder with DestinTip — adaptive hint system using catalog-based tip selection, comfort-level filtering, and session rotation. See `core/specs/destintip-spec.md`. | Update |
 | 2026-03-20 | 2.4 | Eliminated copy-based installs. Symlinks are now required — no fallback. Bootstrap installers (bash + PowerShell) require Developer Mode on Windows and fail with clear error if unavailable. Bash installer sets `MSYS=winsymlinks:nativestrict` for real Windows symlinks. Setup wizard copy fallback removed. `/update` verifies symlinks instead of diffing copies. `session-start.sh` copy-refresh replaced with symlink verification. Added skills to `/update` refresh scope. Major bump: architectural change to install model. | Update |
 | 2026-03-18 | 2.3 | Fixed hook distribution pipeline: `/update` now refreshes hooks + utility scripts, sibling discovery uses config-based `toolkit_root` with symlink fallback, utility scripts added to install list, post-update verification with visual statusline check added. Documented utility scripts as a component type. | Update |

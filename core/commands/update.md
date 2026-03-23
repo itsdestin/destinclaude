@@ -48,9 +48,33 @@ Check for and install updates to the DestinClaude toolkit.
      for f in "$TOOLKIT_ROOT/$layer/hooks/"*.sh; do [ -f "$f" ] && ln -sf "$f" ~/.claude/hooks/$(basename "$f"); done
      for d in "$TOOLKIT_ROOT/$layer/skills/"*/; do [ -d "$d" ] && ln -sfn "$d" ~/.claude/skills/$(basename "$d"); done
    done
+
+   # JS utility scripts called by hooks
    for f in "$TOOLKIT_ROOT/core/hooks/"*.js; do [ -f "$f" ] && ln -sf "$f" ~/.claude/hooks/$(basename "$f"); done
-   for f in "$TOOLKIT_ROOT/core/commands/"*.md; do [ -f "$f" ] && ln -sf "$f" ~/.claude/commands/$(basename "$f"); done
+
+   # Shared libraries
+   mkdir -p ~/.claude/hooks/lib
+   for lib in backup-common.sh migrate.sh; do
+     [ -f "$TOOLKIT_ROOT/core/hooks/lib/$lib" ] && ln -sf "$TOOLKIT_ROOT/core/hooks/lib/$lib" ~/.claude/hooks/lib/$lib
+   done
+
+   # Migration scripts
+   if [ -d "$TOOLKIT_ROOT/core/hooks/migrations" ]; then
+     mkdir -p ~/.claude/hooks/migrations
+     for migration in "$TOOLKIT_ROOT/core/hooks/migrations"/*; do
+       [ -f "$migration" ] && ln -sf "$migration" ~/.claude/hooks/migrations/$(basename "$migration")
+     done
+   fi
+
+   # Statusline script (lives at ~/.claude/, not in hooks/)
    ln -sf "$TOOLKIT_ROOT/core/hooks/statusline.sh" ~/.claude/statusline.sh
+
+   # Core commands
+   for f in "$TOOLKIT_ROOT/core/commands/"*.md; do [ -f "$f" ] && ln -sf "$f" ~/.claude/commands/$(basename "$f"); done
+
+   # Skills — re-symlink all toolkit-managed skills
+   ln -sf "$TOOLKIT_ROOT/core/skills/setup-wizard" ~/.claude/skills/setup-wizard
+   # Layer-specific skills based on installed_layers in config
    ```
    Then skip to step 19 (final confirmation), noting that full verification can be done via `/health`.
 

@@ -1,0 +1,13 @@
+{
+    "schema_version": 1,
+    "description": "Initial backup schema — baseline file layout as of backup refactor v4.0",
+    "expected_structure": {
+        "memory": "projects/*/memory/",
+        "claude_md": "CLAUDE.md",
+        "config": "toolkit-state/config.json",
+        "encyclopedia": "encyclopedia/",
+        "custom_skills": "skills/*/",
+        "meta": "backup-meta.json"
+    },
+    "notes": "Files are relative to ~/.claude/. Custom skills are those not symlinked into TOOLKIT_ROOT."
+}

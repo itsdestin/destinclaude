@@ -51,7 +51,7 @@ Where did you back up your data?
 
 - **1 (GitHub):** Proceed to **Phase 0A: GitHub Restore**.
 - **2 (Google Drive):** Proceed to **Phase 0B: Drive Restore**.
-- **3 (iCloud):** Say "iCloud restore support is coming — for now, let's do a fresh install. I'll make sure everything is set up to back up to iCloud going forward." Then proceed to Phase 1 normally.
+- **3 (iCloud):** Proceed to **Phase 0C: iCloud Restore**.
 - **4 (not sure / skip):** Proceed to Phase 1 normally.
 
 **Wait for the user's answer before proceeding.**
@@ -160,7 +160,7 @@ If node isn't available yet, skip this step and tell the user: "I'll re-apply yo
 
 Tell the user: "Your config is restored from GitHub. Now let me confirm all the tools it needs are installed on this machine."
 
-Proceed to **Phase 0C: Abbreviated Dependency Check**.
+Proceed to **Phase 0D: Abbreviated Dependency Check**.
 
 ---
 
@@ -218,13 +218,71 @@ If any step fails and the user wants to skip it, that's fine — tell them the m
 
 Tell the user: "Your data is restored from Google Drive. Now let me confirm all the tools it needs are installed on this machine."
 
-Proceed to **Phase 0C: Abbreviated Dependency Check**.
+Proceed to **Phase 0D: Abbreviated Dependency Check**.
 
 ---
 
-## Phase 0C: Abbreviated Dependency Check
+## Phase 0C: iCloud Restore
 
-*Used only after Phase 0A or 0B. Skip this section for fresh installs — they use Phase 4.*
+### Step 1: Detect iCloud Drive folder
+
+Check for iCloud Drive in standard locations:
+
+```bash
+ICLOUD_PATH=""
+# macOS
+[[ -d "$HOME/Library/Mobile Documents/com~apple~CloudDocs/DestinClaude" ]] && \
+    ICLOUD_PATH="$HOME/Library/Mobile Documents/com~apple~CloudDocs/DestinClaude"
+# Windows (iCloud for Windows)
+[[ -z "$ICLOUD_PATH" && -d "$HOME/iCloudDrive/DestinClaude" ]] && \
+    ICLOUD_PATH="$HOME/iCloudDrive/DestinClaude"
+# Windows (Microsoft Store version)
+[[ -z "$ICLOUD_PATH" && -d "$HOME/Apple/CloudDocs/DestinClaude" ]] && \
+    ICLOUD_PATH="$HOME/Apple/CloudDocs/DestinClaude"
+```
+
+If not found, ask: "I couldn't find your iCloud Drive folder automatically. Where is it? (Full path to your iCloud Drive DestinClaude folder)"
+
+### Step 2: Verify backup exists
+
+Check if the iCloud backup has data:
+
+```bash
+ls "$ICLOUD_PATH/CLAUDE.md" "$ICLOUD_PATH/memory" "$ICLOUD_PATH/toolkit-state/config.json" 2>/dev/null
+```
+
+If none exist, tell the user: "No DestinClaude backup found in your iCloud Drive. Let's do a fresh install instead." Proceed to Phase 0.5.
+
+### Step 3: Pull data from iCloud
+
+```bash
+mkdir -p ~/.claude/.restore-staging
+cp -r "$ICLOUD_PATH"/* ~/.claude/.restore-staging/ 2>/dev/null
+```
+
+### Step 4: Run migrations
+
+Source `lib/migrate.sh` and run migrations on the staging directory (same as Phase 0A Step 5).
+
+### Step 5: Apply restored data
+
+Apply the staged data to live locations (same process as Phase 0A Step 5 / Phase 0B Step 4).
+
+### Step 6: CLAUDE.md merge
+
+Present the three merge options (merge / use backup / start fresh) — same as Phase 0A.
+
+### Step 7: Confirm and continue
+
+Tell the user: "Your config is restored from iCloud. Now let me confirm all the tools it needs are installed on this machine."
+
+Proceed to **Phase 0D: Abbreviated Dependency Check**.
+
+---
+
+## Phase 0D: Abbreviated Dependency Check
+
+*Used only after Phase 0A, 0B, or 0C. Skip this section for fresh installs — they use Phase 4.*
 
 Tell the user: "Let me make sure all the tools your restored config needs are installed on this machine."
 
@@ -254,7 +312,7 @@ Tell the user: "Since your config is restored from backup, I'll skip the persona
 
 ## Phase 0.5: Comfort Level
 
-*Only for fresh installs. If the user restored from backup (Phase 0A/0B → 0C), this phase was skipped — proceed to Phase 6 as directed by Phase 0C.*
+*Only for fresh installs. If the user restored from backup (Phase 0A/0B/0C → 0D), this phase was skipped — proceed to Phase 6 as directed by Phase 0D.*
 
 *If this is a re-run and `~/.claude/toolkit-state/config.json` already has a `comfort_level`, pre-select it:* "Last time you chose [beginner/intermediate/power user]. Still feel the same, or want to change?"
 
@@ -894,6 +952,49 @@ Fill in template variables, install selected layers, and configure CLAUDE.md.
 > - **Beginner:** Keep all explanatory framing for template variable questions (the "by 'root' I just mean..." style). When asking about `GIT_REMOTE` and `PERSONAL_SYNC_BACKEND`, keep the full tutorial offers and plain-language explanations.
 > - **Intermediate:** No change (this is the current behavior).
 > - **Power user:** Strip all explanatory framing from template variable questions — ask them rapid-fire with just the variable name and default. Skip the GitHub/sync tutorial offers (just ask the raw question). Example: "Google Drive root folder? (default: Claude)" instead of the multi-line explanation.
+
+### Phase 5.0: Personal Data Backup Setup
+
+Ask the user:
+
+> "Where would you like to back up your personal data? This keeps your memory, preferences, and encyclopedia safe across devices. You can choose more than one."
+>
+> - [ ] Google Drive (requires rclone — we set this up in Phase 4 if you chose the Life layer)
+> - [ ] GitHub private repo (free, requires a GitHub account)
+> - [ ] iCloud (requires iCloud app on Windows, built-in on macOS)
+>
+> (You can also skip this for now and set it up later with `/restore`)
+
+For each selected backend:
+
+**Google Drive:**
+- Verify rclone and gdrive: remote are configured (should be done in Phase 4 if Life layer selected)
+- If not configured, walk through rclone setup now
+- Store `DRIVE_ROOT` in config.json (from Phase 5.1 template variables, or ask now)
+
+**GitHub:**
+- Ask: "Do you have a private GitHub repo for your config backup? If not, I can help you create one."
+- If creating: `gh repo create <username>/claude-config --private --clone`
+- Store `PERSONAL_SYNC_REPO` in config.json
+
+**iCloud:**
+- Detect iCloud folder (same detection logic as Phase 0C Step 1)
+- If not found on macOS, warn that iCloud Drive may not be enabled
+- If not found on Windows, instruct to install iCloud for Windows app
+- Store `ICLOUD_PATH` in config.json
+
+Store the selected backends as comma-separated `PERSONAL_SYNC_BACKEND` in config.json. Example: `"drive,github"`.
+
+**Run initial sync** to confirm the backend works:
+
+```bash
+# Trigger personal-sync manually to test
+source ~/.claude/hooks/lib/backup-common.sh
+# Touch the debounce marker in the past to force sync
+touch -t 202001010000 ~/.claude/toolkit-state/.personal-sync-marker 2>/dev/null
+```
+
+Tell the user the result: "Backup configured! Your personal data will sync to [backends] automatically."
 
 ### Step 1: Collect template variables
 

@@ -9,6 +9,15 @@ ENCYCLOPEDIA_DIR="$CLAUDE_DIR/encyclopedia"
 CONFIG_FILE="$CLAUDE_DIR/toolkit-state/config.json"
 MCP_CONFIG="$CLAUDE_DIR/mcp-servers/mcp-config.json"
 CLAUDE_JSON="$HOME/.claude.json"
+# Source shared backup utilities
+HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -f "$HOOK_DIR/lib/backup-common.sh" ]]; then
+    source "$HOOK_DIR/lib/backup-common.sh"
+fi
+# Source migration runner
+if [[ -f "$HOOK_DIR/lib/migrate.sh" ]]; then
+    source "$HOOK_DIR/lib/migrate.sh"
+fi
 
 # --- Resolve TOOLKIT_ROOT once (used by auto-refresh, version check, announcements) ---
 TOOLKIT_ROOT=""
@@ -79,24 +88,77 @@ if git remote get-url origin &>/dev/null; then
     fi
 fi
 
-# --- Verify symlinks (detect broken or copy-based installs) ---
-# All toolkit components should be symlinks. If any are regular files (copies from
-# a pre-v1.4 install), flag them for repair via /health or /setup-wizard.
+# --- Toolkit integrity check (Design ref: D8) ---
+# Verify toolkit repo exists and is complete. If broken, offer to fix.
+if [[ -n "$TOOLKIT_ROOT" ]]; then
+    _INTEGRITY_OK=true
+    _INTEGRITY_MSG=""
+
+    [[ ! -d "$TOOLKIT_ROOT" ]] && { _INTEGRITY_OK=false; _INTEGRITY_MSG="Toolkit directory missing: $TOOLKIT_ROOT"; }
+    [[ "$_INTEGRITY_OK" == true && ! -d "$TOOLKIT_ROOT/.git" ]] && { _INTEGRITY_OK=false; _INTEGRITY_MSG="Toolkit .git directory missing"; }
+    [[ "$_INTEGRITY_OK" == true && ! -f "$TOOLKIT_ROOT/VERSION" ]] && { _INTEGRITY_OK=false; _INTEGRITY_MSG="Toolkit VERSION file missing"; }
+    [[ "$_INTEGRITY_OK" == true && ! -f "$TOOLKIT_ROOT/plugin.json" ]] && { _INTEGRITY_OK=false; _INTEGRITY_MSG="Toolkit plugin.json missing"; }
+
+    if [[ "$_INTEGRITY_OK" == false ]]; then
+        echo "{\"hookSpecificOutput\": \"Toolkit integrity check failed: $_INTEGRITY_MSG. Run /setup-wizard to repair, or run: git clone https://github.com/itsdestin/destinclaude.git \\\"$TOOLKIT_ROOT\\\" to restore the toolkit repo.\"}" >&2
+    fi
+fi
+
+# --- Auto-repair legacy copies to symlinks (Design ref: D3) ---
+# Pre-v1.3.1 installs used file copies. Replace identical copies with symlinks.
+# Modified copies are warned about but NOT replaced (non-destructive mandate).
 if [[ -n "$TOOLKIT_ROOT" && -d "$TOOLKIT_ROOT/core/hooks" ]]; then
-    _BROKEN=""
-    # Check a representative sample of toolkit files
-    for _check in "$CLAUDE_DIR/hooks/session-start.sh" "$CLAUDE_DIR/statusline.sh" "$CLAUDE_DIR/commands/update.md"; do
-        if [[ -f "$_check" && ! -L "$_check" ]]; then
-            _BROKEN="$_BROKEN $(basename "$_check")"
+    [[ "$(uname -s)" == MINGW* || "$(uname -s)" == MSYS* ]] && export MSYS=winsymlinks:nativestrict
+
+    _REPAIRED=""
+    _MODIFIED=""
+
+    # Check all expected toolkit hook files
+    for _hook in checklist-reminder.sh contribution-detector.sh done-sound.sh git-sync.sh personal-sync.sh session-start.sh title-update.sh todo-capture.sh tool-router.sh write-guard.sh; do
+        _installed="$CLAUDE_DIR/hooks/$_hook"
+        _source="$TOOLKIT_ROOT/core/hooks/$_hook"
+        if [[ -f "$_installed" && ! -L "$_installed" && -f "$_source" ]]; then
+            # Diff before replacing (Design ref: D3 safety check)
+            if diff -q "$_installed" "$_source" >/dev/null 2>&1; then
+                ln -sf "$_source" "$_installed" 2>/dev/null && _REPAIRED="$_REPAIRED $_hook"
+            else
+                _MODIFIED="$_MODIFIED $_hook"
+            fi
         fi
     done
-    if [[ -n "$_BROKEN" ]]; then
-        echo "{\"hookSpecificOutput\": \"Some toolkit files are copies instead of symlinks:$_BROKEN. Run /health to repair — symlinks are required for updates to work correctly.\"}" >&2
+
+    # Check statusline
+    if [[ -f "$CLAUDE_DIR/statusline.sh" && ! -L "$CLAUDE_DIR/statusline.sh" && -f "$TOOLKIT_ROOT/core/hooks/statusline.sh" ]]; then
+        if diff -q "$CLAUDE_DIR/statusline.sh" "$TOOLKIT_ROOT/core/hooks/statusline.sh" >/dev/null 2>&1; then
+            ln -sf "$TOOLKIT_ROOT/core/hooks/statusline.sh" "$CLAUDE_DIR/statusline.sh" 2>/dev/null && _REPAIRED="$_REPAIRED statusline.sh"
+        else
+            _MODIFIED="$_MODIFIED statusline.sh"
+        fi
     fi
-    # Flag known orphan files from pre-v1.1.5 installs (never auto-delete)
-    if [[ -f "$CLAUDE_DIR/hooks/statusline.sh" && ! -L "$CLAUDE_DIR/hooks/statusline.sh" ]]; then
-        echo "{\"hookSpecificOutput\": \"Found orphan file ~/.claude/hooks/statusline.sh (stale copy — statusline lives at ~/.claude/statusline.sh). Ask the user before deleting.\"}" >&2
-    fi
+
+    # Check skills
+    for _skill_link in "$CLAUDE_DIR/skills"/*/; do
+        [[ ! -d "$_skill_link" ]] && continue
+        _skill_name=$(basename "$_skill_link")
+        if [[ ! -L "${_skill_link%/}" ]]; then
+            # Find matching source in toolkit layers
+            for _layer in core life productivity; do
+                _skill_source="$TOOLKIT_ROOT/$_layer/skills/$_skill_name"
+                if [[ -d "$_skill_source" ]]; then
+                    if diff -rq "${_skill_link%/}" "$_skill_source" >/dev/null 2>&1; then
+                        rm -rf "${_skill_link%/}"
+                        ln -sf "$_skill_source" "${_skill_link%/}" 2>/dev/null && _REPAIRED="$_REPAIRED skill:$_skill_name"
+                    else
+                        _MODIFIED="$_MODIFIED skill:$_skill_name"
+                    fi
+                    break
+                fi
+            done
+        fi
+    done
+
+    [[ -n "$_REPAIRED" ]] && echo "{\"hookSpecificOutput\": \"Auto-repaired copy-based files to symlinks:$_REPAIRED\"}" >&2
+    [[ -n "$_MODIFIED" ]] && echo "{\"hookSpecificOutput\": \"Found modified copies (not auto-repaired, run /health to review):$_MODIFIED\"}" >&2
 fi
 
 # --- Encyclopedia cache sync ---
@@ -131,60 +193,72 @@ else
     fi
 fi
 
-# --- Personal data pull (cross-device sync for memory, CLAUDE.md, config) ---
-if [[ -f "$CONFIG_FILE" ]]; then
-    PS_BACKEND=""
-    PS_DRIVE_ROOT="Claude"
-    PS_REPO=""
+# --- Personal data pull from configured backend (Design ref: D6) ---
+# Pull from the first (preferred) configured backend only.
+_PULL_BACKEND=""
+if type get_primary_backend &>/dev/null; then
+    _PULL_BACKEND=$(get_primary_backend)
+fi
 
-    if command -v node &>/dev/null; then
-        read -r PS_BACKEND PS_DRIVE_ROOT PS_REPO < <(node -e "
-            const fs = require('fs');
-            try {
-                const c = JSON.parse(fs.readFileSync(process.argv[1], 'utf8'));
-                const b = c.PERSONAL_SYNC_BACKEND || 'none';
-                const d = c.DRIVE_ROOT || 'Claude';
-                const r = c.PERSONAL_SYNC_REPO || '';
-                process.stdout.write(b + ' ' + d + ' ' + r);
-            } catch { process.stdout.write('none Claude '); }
-        " "$CONFIG_FILE" 2>/dev/null) || true
-    else
-        PS_BACKEND=$(grep -o '"PERSONAL_SYNC_BACKEND"[[:space:]]*:[[:space:]]*"[^"]*"' "$CONFIG_FILE" 2>/dev/null | head -1 | sed 's/.*"PERSONAL_SYNC_BACKEND"[[:space:]]*:[[:space:]]*"//' | sed 's/"$//' || echo "none")
-        PS_DRIVE_ROOT=$(grep -o '"DRIVE_ROOT"[[:space:]]*:[[:space:]]*"[^"]*"' "$CONFIG_FILE" 2>/dev/null | head -1 | sed 's/.*"DRIVE_ROOT"[[:space:]]*:[[:space:]]*"//' | sed 's/"$//' || echo "Claude")
-    fi
-
-    if [[ "$PS_BACKEND" == "drive" ]] && command -v rclone &>/dev/null; then
-        REMOTE_BASE="gdrive:$PS_DRIVE_ROOT/Backup/personal"
-        # Pull memory files
-        if rclone lsd "$REMOTE_BASE/memory/" 2>/dev/null | grep -q .; then
-            for REMOTE_PROJECT in $(rclone lsd "$REMOTE_BASE/memory/" 2>/dev/null | awk '{print $NF}'); do
-                LOCAL_MEMORY="$CLAUDE_DIR/projects/$REMOTE_PROJECT/memory"
-                mkdir -p "$LOCAL_MEMORY"
-                rclone sync "$REMOTE_BASE/memory/$REMOTE_PROJECT/" "$LOCAL_MEMORY/" --update 2>/dev/null || true
-            done
-        fi
-        # Pull CLAUDE.md
-        rclone copyto "$REMOTE_BASE/CLAUDE.md" "$CLAUDE_DIR/CLAUDE.md" --update 2>/dev/null || true
-        # Pull config (careful: don't overwrite if local is newer)
-        rclone copyto "$REMOTE_BASE/toolkit-state/config.json" "$CONFIG_FILE" --update 2>/dev/null || true
-    elif [[ "$PS_BACKEND" == "github" ]] && command -v git &>/dev/null; then
-        REPO_DIR="$CLAUDE_DIR/toolkit-state/personal-sync-repo"
-        if [[ -d "$REPO_DIR/.git" ]]; then
-            (cd "$REPO_DIR" && git pull personal-sync main 2>/dev/null) || true
-            # Copy pulled data to local paths
-            if [[ -d "$REPO_DIR/memory" ]]; then
-                for PROJECT_DIR in "$REPO_DIR"/memory/*/; do
-                    [[ ! -d "$PROJECT_DIR" ]] && continue
-                    PROJECT_KEY=$(basename "$PROJECT_DIR")
-                    LOCAL_MEMORY="$CLAUDE_DIR/projects/$PROJECT_KEY/memory"
-                    mkdir -p "$LOCAL_MEMORY"
-                    cp -r "$PROJECT_DIR"* "$LOCAL_MEMORY/" 2>/dev/null || true
+if [[ -n "$_PULL_BACKEND" ]]; then
+    case "$_PULL_BACKEND" in
+        drive)
+            DRIVE_ROOT=$(config_get "DRIVE_ROOT" "Claude")
+            DRIVE_SOURCE="gdrive:$DRIVE_ROOT/Backup/personal"
+            if command -v rclone &>/dev/null; then
+                # Memory files
+                rclone sync "$DRIVE_SOURCE/memory/" "$CLAUDE_DIR/projects/" \
+                    --update --exclude '.DS_Store' 2>/dev/null || \
+                    log_backup "WARN" "Drive pull (memory) failed"
+                # CLAUDE.md
+                rclone copy "$DRIVE_SOURCE/CLAUDE.md" "$CLAUDE_DIR/" \
+                    --update 2>/dev/null || true
+                # Config
+                rclone copy "$DRIVE_SOURCE/toolkit-state/config.json" "$CLAUDE_DIR/toolkit-state/" \
+                    --update 2>/dev/null || true
+                # Encyclopedia
+                rclone sync "$DRIVE_SOURCE/encyclopedia/" "$CLAUDE_DIR/encyclopedia/" \
+                    --update --exclude '.DS_Store' 2>/dev/null || true
+            fi
+            ;;
+        github)
+            SYNC_REPO=$(config_get "PERSONAL_SYNC_REPO" "")
+            REPO_DIR="$CLAUDE_DIR/toolkit-state/personal-sync-repo"
+            if [[ -n "$SYNC_REPO" && -d "$REPO_DIR/.git" ]]; then
+                (cd "$REPO_DIR" && git pull personal-sync main 2>/dev/null) || true
+                # Copy restored files to live locations
+                [[ -d "$REPO_DIR/memory" ]] && rsync -a --update "$REPO_DIR/memory/" "$CLAUDE_DIR/projects/" 2>/dev/null || true
+                [[ -f "$REPO_DIR/CLAUDE.md" ]] && rsync -a --update "$REPO_DIR/CLAUDE.md" "$CLAUDE_DIR/" 2>/dev/null || true
+                [[ -f "$REPO_DIR/toolkit-state/config.json" ]] && rsync -a --update "$REPO_DIR/toolkit-state/config.json" "$CLAUDE_DIR/toolkit-state/" 2>/dev/null || true
+                [[ -d "$REPO_DIR/encyclopedia" ]] && rsync -a --update "$REPO_DIR/encyclopedia/" "$CLAUDE_DIR/encyclopedia/" 2>/dev/null || true
+            fi
+            ;;
+        icloud)
+            ICLOUD_PATH=$(config_get "ICLOUD_PATH" "")
+            # Auto-detect if not configured
+            if [[ -z "$ICLOUD_PATH" ]]; then
+                for _try in "$HOME/Library/Mobile Documents/com~apple~CloudDocs/DestinClaude" \
+                            "$HOME/iCloudDrive/DestinClaude" \
+                            "$HOME/Apple/CloudDocs/DestinClaude"; do
+                    [[ -d "$_try" ]] && { ICLOUD_PATH="$_try"; break; }
                 done
             fi
-            [[ -f "$REPO_DIR/CLAUDE.md" ]] && cp "$REPO_DIR/CLAUDE.md" "$CLAUDE_DIR/CLAUDE.md" 2>/dev/null || true
-            [[ -f "$REPO_DIR/toolkit-state/config.json" ]] && cp "$REPO_DIR/toolkit-state/config.json" "$CONFIG_FILE" 2>/dev/null || true
-        fi
-    fi
+            if [[ -n "$ICLOUD_PATH" && -d "$ICLOUD_PATH" ]]; then
+                [[ -d "$ICLOUD_PATH/memory" ]] && rsync -a --update "$ICLOUD_PATH/memory/" "$CLAUDE_DIR/projects/" 2>/dev/null || true
+                [[ -f "$ICLOUD_PATH/CLAUDE.md" ]] && rsync -a --update "$ICLOUD_PATH/CLAUDE.md" "$CLAUDE_DIR/" 2>/dev/null || true
+                [[ -f "$ICLOUD_PATH/toolkit-state/config.json" ]] && rsync -a --update "$ICLOUD_PATH/toolkit-state/config.json" "$CLAUDE_DIR/toolkit-state/" 2>/dev/null || true
+                [[ -d "$ICLOUD_PATH/encyclopedia" ]] && rsync -a --update "$ICLOUD_PATH/encyclopedia/" "$CLAUDE_DIR/encyclopedia/" 2>/dev/null || true
+            fi
+            ;;
+    esac
+fi
+
+# --- Migration check (Design ref: D7) ---
+# Compare backup schema version against current. Run migrations if needed.
+if type run_migrations &>/dev/null && [[ -f "$CLAUDE_DIR/backup-meta.json" ]]; then
+    run_migrations "$CLAUDE_DIR" || {
+        echo '{"hookSpecificOutput": "Warning: Backup migration failed. Some restored data may be in an old format. Run /restore to retry."}' >&2
+    }
 fi
 
 # --- Sync health check (writes ~/.claude/.sync-warnings for statusline) ---

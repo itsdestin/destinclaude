@@ -1,6 +1,6 @@
 #!/bin/bash
 # PostToolUse hook for Write|Edit
-# Commits changes to Git, pushes every 15 min, archives to Drive on push
+# Commits changes to Git, pushes every 15 min (Drive archive removed — personal-sync.sh handles all backend replication)
 # Supports multiple project repos: ~/.claude/ and ~/claude-mobile/
 set -euo pipefail
 
@@ -17,6 +17,12 @@ FILE_PATH=$(echo "$INPUT" | node -e "
 CLAUDE_DIR="${CLAUDE_DIR:-$HOME/.claude}"
 CLAUDE_MOBILE_DIR="$HOME/claude-mobile"
 REGISTRY="$CLAUDE_DIR/.write-registry.json"
+
+# Source shared backup utilities
+HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -f "$HOOK_DIR/lib/backup-common.sh" ]]; then
+    source "$HOOK_DIR/lib/backup-common.sh"
+fi
 
 # Determine which project repo this file belongs to
 REPO_DIR=""
@@ -47,6 +53,11 @@ if git check-ignore -q "$FILE_PATH" 2>/dev/null; then
     exit 0
 fi
 
+# Skip toolkit-owned files (symlinks into toolkit repo) — Design ref: D2
+if type is_toolkit_owned &>/dev/null && is_toolkit_owned "$FILE_PATH"; then
+    exit 0
+fi
+
 # --- Git commit (immediate, local) ---
 git add "$FILE_PATH" 2>/dev/null || true
 BASENAME=$(basename "$FILE_PATH")
@@ -74,7 +85,7 @@ if [[ -n "$PPID" ]]; then
     fi
 
     # Update registry entry for this file (simple JSON manipulation)
-    NORM_PATH="${FILE_PATH//\\/\/}"
+    NORM_PATH="${FILE_PATH//\/\/}"
     # Use node for reliable JSON manipulation
     REG_CONTENT=$(node -e "
         const reg = JSON.parse(process.argv[1]);
@@ -86,81 +97,60 @@ if [[ -n "$PPID" ]]; then
 fi
 
 # --- Debounced push (every 15 min) ---
-SHOULD_PUSH=false
-if [[ ! -f "$PUSH_MARKER" ]]; then
-    SHOULD_PUSH=true
+if type debounce_check &>/dev/null; then
+    debounce_check "$PUSH_MARKER" 15 || exit 0
 else
-    LAST_PUSH=$(cat "$PUSH_MARKER" 2>/dev/null || echo 0)
-    NOW=$(date +%s)
-    ELAPSED=$((NOW - LAST_PUSH))
-    if [[ $ELAPSED -ge $PUSH_INTERVAL ]]; then
-        SHOULD_PUSH=true
+    # Fallback if lib not available
+    if [[ -f "$PUSH_MARKER" ]]; then
+        LAST_PUSH=$(cat "$PUSH_MARKER" 2>/dev/null || echo 0)
+        NOW=$(date +%s)
+        ELAPSED=$((NOW - LAST_PUSH))
+        [[ $ELAPSED -lt $PUSH_INTERVAL ]] && exit 0
     fi
 fi
 
-if [[ "$SHOULD_PUSH" == "true" ]]; then
-    # Stash any dirty/untracked files so pull --rebase can proceed
-    STASHED=false
-    if ! git diff --quiet 2>/dev/null || ! git diff --cached --quiet 2>/dev/null; then
-        git stash push -q --include-untracked -m "git-sync: auto-stash before pull" 2>/dev/null && STASHED=true
+# Stash any dirty/untracked files so pull --rebase can proceed
+STASHED=false
+if ! git diff --quiet 2>/dev/null || ! git diff --cached --quiet 2>/dev/null; then
+    git stash push -q --include-untracked -m "git-sync: auto-stash before pull" 2>/dev/null && STASHED=true
+fi
+
+# Pull + rebase
+if ! git pull --rebase origin "$PUSH_BRANCH" 2>/dev/null; then
+    git rebase --abort 2>/dev/null || true
+
+    # Track consecutive rebase failures
+    FAIL_COUNT=0
+    [[ -f "$REBASE_FAIL_COUNT_FILE" ]] && FAIL_COUNT=$(cat "$REBASE_FAIL_COUNT_FILE")
+    FAIL_COUNT=$((FAIL_COUNT + 1))
+    echo "$FAIL_COUNT" > "$REBASE_FAIL_COUNT_FILE"
+
+    if [[ $FAIL_COUNT -ge 3 ]]; then
+        echo "{\"hookSpecificOutput\": \"ERROR: Git rebase conflict persisted across 3 push cycles in $REPO_DIR. Manual resolution needed: cd $REPO_DIR && git status\"}" >&2
+        echo 0 > "$REBASE_FAIL_COUNT_FILE"
+        echo "ERR: Rebase conflict (3 cycles)" > "$CLAUDE_DIR/.sync-status"
     fi
 
-    # Pull + rebase
-    if ! git pull --rebase origin "$PUSH_BRANCH" 2>/dev/null; then
-        git rebase --abort 2>/dev/null || true
+    # Restore stashed changes on failure path
+    if [[ "$STASHED" == "true" ]]; then
+        git stash pop -q 2>/dev/null || echo "Warning: stash pop failed — check 'git stash list'" >&2
+    fi
+else
+    # Rebase succeeded — reset fail counter
+    [[ -f "$REBASE_FAIL_COUNT_FILE" ]] && rm -f "$REBASE_FAIL_COUNT_FILE"
 
-        # Track consecutive rebase failures
-        FAIL_COUNT=0
-        [[ -f "$REBASE_FAIL_COUNT_FILE" ]] && FAIL_COUNT=$(cat "$REBASE_FAIL_COUNT_FILE")
-        FAIL_COUNT=$((FAIL_COUNT + 1))
-        echo "$FAIL_COUNT" > "$REBASE_FAIL_COUNT_FILE"
+    # Push
+    git push origin "$PUSH_BRANCH" 2>/dev/null || true
 
-        if [[ $FAIL_COUNT -ge 3 ]]; then
-            echo "{\"hookSpecificOutput\": \"ERROR: Git rebase conflict persisted across 3 push cycles in $REPO_DIR. Manual resolution needed: cd $REPO_DIR && git status\"}" >&2
-            echo 0 > "$REBASE_FAIL_COUNT_FILE"
-            echo "ERR: Rebase conflict (3 cycles)" > "$CLAUDE_DIR/.sync-status"
-        fi
+    # Drive archive removed — personal-sync.sh handles all backend replication (D4)
 
-        # Restore stashed changes on failure path
-        if [[ "$STASHED" == "true" ]]; then
-            git stash pop -q 2>/dev/null || echo "Warning: stash pop failed — check 'git stash list'" >&2
-        fi
-    else
-        # Rebase succeeded — reset fail counter
-        [[ -f "$REBASE_FAIL_COUNT_FILE" ]] && rm -f "$REBASE_FAIL_COUNT_FILE"
+    # Update push marker and sync status
+    date +%s > "$PUSH_MARKER"
+    echo "OK: System Changes Synced" > "$CLAUDE_DIR/.sync-status"
 
-        # Push
-        git push origin "$PUSH_BRANCH" 2>/dev/null || true
-
-        # Drive archive (best-effort, claude config repo only)
-        if [[ "$REPO_DIR" == "$CLAUDE_DIR" ]]; then
-            # Read DRIVE_ROOT from config
-            _DRIVE_ROOT="Claude"
-            if command -v node &>/dev/null && [[ -f "$CLAUDE_DIR/toolkit-state/config.json" ]]; then
-                _DR=$(node -e "try{const c=JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'));if(c.DRIVE_ROOT)console.log(c.DRIVE_ROOT)}catch{}" "$CLAUDE_DIR/toolkit-state/config.json" 2>/dev/null)
-                [[ -n "$_DR" ]] && _DRIVE_ROOT="$_DR"
-            fi
-            TIMESTAMP_FOLDER=$(date +"(%m-%d-%Y @ %I%M%p)")
-            ARCHIVE_BASE="gdrive:$_DRIVE_ROOT/Backup/$TIMESTAMP_FOLDER"
-            {
-                rclone copy "$CLAUDE_DIR/specs/" "$ARCHIVE_BASE/specs/" 2>/dev/null
-                rclone copy "$CLAUDE_DIR/skills/" "$ARCHIVE_BASE/skills/" \
-                    --exclude "node_modules/**" --exclude "__pycache__/**" --exclude "*.exe" --exclude "*.db" 2>/dev/null
-                rclone copyto "$CLAUDE_DIR/CLAUDE.md" "$ARCHIVE_BASE/claude-md/CLAUDE.md" 2>/dev/null
-                # Transcripts go to stable path (not inside timestamped folder) for restore.sh
-                rclone copy "$HOME/.claude/projects/" "gdrive:$_DRIVE_ROOT/Backup/conversations/" \
-                    --include "*.jsonl" --size-only 2>/dev/null
-            } || true  # Best-effort: don't fail if rclone errors
-        fi
-
-        # Update push marker and sync status
-        date +%s > "$PUSH_MARKER"
-        echo "OK: System Changes Synced" > "$CLAUDE_DIR/.sync-status"
-
-        # Restore stashed changes on success path
-        if [[ "$STASHED" == "true" ]]; then
-            git stash pop -q 2>/dev/null || echo "Warning: stash pop failed — check 'git stash list'" >&2
-        fi
+    # Restore stashed changes on success path
+    if [[ "$STASHED" == "true" ]]; then
+        git stash pop -q 2>/dev/null || echo "Warning: stash pop failed — check 'git stash list'" >&2
     fi
 fi
 

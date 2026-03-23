@@ -1,12 +1,12 @@
 # Personal Data Sync — Spec
 
-**Version:** 1.1
-**Last updated:** 2026-03-19
+**Version:** 2.0
+**Last updated:** 2026-03-23
 **Feature location:** `core/hooks/personal-sync.sh`, session-start integration in `core/hooks/session-start.sh`
 
 ## Purpose
 
-Backs up personal data (memory files, CLAUDE.md, toolkit config) to the user's chosen private backend — Google Drive or a private GitHub repo. This is separate from the toolkit's public git sync (which handles skills, hooks, commands) and from the encyclopedia sync (which uses Drive as source of truth). Personal-sync protects data that would otherwise be lost if the user's machine dies, and enables cross-device continuity for memory and preferences.
+Backs up personal data (memory files, CLAUDE.md, toolkit config, encyclopedia cache, and user-created skills) to the user's chosen private backend — Google Drive, a private GitHub repo, or iCloud. Supports multiple backends simultaneously via a comma-separated config value. This is separate from the toolkit's public git sync (which handles toolkit code) and from the encyclopedia sync (which uses Drive as source of truth). Personal-sync protects data that would otherwise be lost if the user's machine dies, and enables cross-device continuity for memory and preferences.
 
 ## User Mandates
 
@@ -25,6 +25,10 @@ Backs up personal data (memory files, CLAUDE.md, toolkit config) to the user's c
 | Config stored in toolkit-state/config.json | Consistent with existing config model. Setup wizard already reads/writes this file. | Separate config file (adds complexity), environment variable (not persistent). |
 | rclone sync with --update for Drive backend | Uses modification time to avoid overwriting newer remote files. Simple, reliable, bidirectional-safe for the pull-then-push pattern. | --checksum (slower for many small files), --force (overwrites newer remote). |
 | Git backend uses simple add-commit-push | No rebase, no conflict resolution. If push fails (conflict), log it and move on. Personal data files rarely conflict since they're typically edited by one device at a time. | Full rebase flow like git-sync.sh (overkill for personal data, adds complexity). |
+| iCloud backend via local folder copy | rclone's iCloud backend requires session cookies that expire, making it unreliable for automated sync. Native iCloud sync uses local folder operations on macOS (`~/Library/Mobile Documents/com~apple~CloudDocs/`) — no token management required. | rclone iCloud (rejected: session cookie expiry causes silent failures), no iCloud support (rejected: important platform for Apple-primary users). |
+| Multi-backend loop | `PERSONAL_SYNC_BACKEND` can be comma-separated (e.g., `"drive,github"`) to enable multiple backends simultaneously. The hook iterates over each backend in sequence; failure in one is logged but does not block others. | Single-backend only (rejected: users may want redundancy), parallel execution (rejected: adds complexity, race conditions on shared state files). |
+| Expanded backup scope | Now includes encyclopedia cache (`~/.claude/encyclopedia/`) and user-created skills (non-symlinks in `~/.claude/skills/`) in addition to memory, CLAUDE.md, and toolkit config. Symlinks into TOOLKIT_ROOT are explicitly excluded (those are toolkit-owned code). | Toolkit-code inclusion (rejected: toolkit code belongs in the public repo, not personal backup), encyclopedia exclusion (rejected: cache is valuable for cross-device continuity). |
+| backup-meta.json | Written after each successful sync cycle with schema version, toolkit version, timestamp, and platform. Enables the migration framework to detect version skew when restoring on a new machine. | No metadata file (rejected: migration framework needs version info to know which migrations to run). |
 
 ## What Gets Synced
 
@@ -33,10 +37,12 @@ Backs up personal data (memory files, CLAUDE.md, toolkit config) to the user's c
 | Memory files | `~/.claude/projects/*/memory/**` | User/feedback/project/reference memories |
 | CLAUDE.md | `~/.claude/CLAUDE.md` | User's customized system instructions |
 | Toolkit config | `~/.claude/toolkit-state/config.json` | Personalization values, layer selection, backend choice |
+| Encyclopedia cache | `~/.claude/encyclopedia/` | Local cache of encyclopedia source files |
+| User-created skills | `~/.claude/skills/*/` (non-symlinks) | Skills created by user, not from toolkit repo |
+| Backup metadata | `~/.claude/backup-meta.json` | Schema version for migration framework |
 
 ### What does NOT get synced
 
-- Encyclopedia files (handled by sync-encyclopedia.sh, Drive is source of truth)
 - Journal entries (written directly to Drive by journaling skill)
 - Toolkit code (skills, hooks, commands — handled by public toolkit repo)
 - Sessions, shell-snapshots, tasks (ephemeral runtime state)
@@ -51,12 +57,14 @@ Two new keys in `~/.claude/toolkit-state/config.json`:
 ```json
 {
   "PERSONAL_SYNC_BACKEND": "drive",
-  "PERSONAL_SYNC_REPO": ""
+  "PERSONAL_SYNC_REPO": "",
+  "ICLOUD_PATH": ""
 }
 ```
 
-- `PERSONAL_SYNC_BACKEND`: `"drive"`, `"github"`, `"icloud"`, or `"none"` (opt out). If unset, session-start auto-detects (see below).
-- `PERSONAL_SYNC_REPO`: GitHub repo URL (only used when backend is `"github"`)
+- `PERSONAL_SYNC_BACKEND`: `"drive"`, `"github"`, `"icloud"`, `"none"` (opt out), or a comma-separated combination (e.g., `"drive,github"`)
+- `PERSONAL_SYNC_REPO`: GitHub repo URL (only used when backend includes `"github"`)
+- `ICLOUD_PATH`: Absolute path to the local iCloud Drive folder used for personal-sync (only used when backend includes `"icloud"`). Auto-detected on macOS and Windows if not set.
 
 ### Google Drive backend
 
@@ -94,6 +102,28 @@ Two new keys in `~/.claude/toolkit-state/config.json`:
   *.tmp
   ```
 
+### iCloud backend
+
+- **Push path:** `{ICLOUD_PATH}/` (auto-detected or from config)
+- **Directory structure on iCloud:**
+  ```
+  {ICLOUD_PATH}/
+  ├── memory/
+  │   ├── C--Users-desti/
+  │   │   ├── MEMORY.md
+  │   │   └── ...
+  │   └── ...
+  ├── CLAUDE.md
+  ├── toolkit-state/
+  │   └── config.json
+  ├── encyclopedia/
+  │   └── ...
+  └── skills/
+      └── ...
+  ```
+- **Push:** `rsync -a --update <local> <icloud-path>/` for each content type
+- **Pull:** `rsync -a --update <icloud-path>/ <local>` (at session start)
+
 ## Hook Implementation: `personal-sync.sh`
 
 ### Trigger
@@ -103,17 +133,22 @@ PostToolUse hook on Write and Edit actions.
 ### Flow
 
 1. **Parse stdin JSON** — extract `file_path` from the tool input.
-2. **Path check** — exit immediately if the changed file is not in a synced path:
+2. **Path check** — exit immediately if the changed file is not in a synced path (expanded filter):
    - `~/.claude/projects/*/memory/*`
    - `~/.claude/CLAUDE.md`
    - `~/.claude/toolkit-state/config.json`
-3. **Read config** — load `PERSONAL_SYNC_BACKEND` and `DRIVE_ROOT` (or `PERSONAL_SYNC_REPO`) from `~/.claude/toolkit-state/config.json`. Exit if backend is `"none"` or unconfigured.
+   - `~/.claude/encyclopedia/*`
+   - `~/.claude/skills/*` (non-symlinks only — symlinks into TOOLKIT_ROOT are skipped)
+3. **Read config** — load `PERSONAL_SYNC_BACKEND` and `DRIVE_ROOT` (or `PERSONAL_SYNC_REPO`, `ICLOUD_PATH`) from `~/.claude/toolkit-state/config.json`. Exit if backend is `"none"` or unconfigured.
 4. **Debounce check** — read `~/.claude/toolkit-state/.personal-sync-marker`. Exit if last sync was less than 15 minutes ago.
-5. **Sync** — based on backend:
+5. **Multi-backend loop** — parse `PERSONAL_SYNC_BACKEND` as comma-separated list; iterate over each backend:
    - **Drive:** `rclone sync` each content category to `gdrive:{DRIVE_ROOT}/Backup/personal/`
    - **GitHub:** `cd` to local personal repo checkout, copy files in, `git add -A`, commit, push
+   - **iCloud:** `rsync -a --update` each content category to `{ICLOUD_PATH}/`
+   - Failure in one backend is logged but does not block remaining backends.
 6. **Update marker** — write current timestamp to `.personal-sync-marker`.
-7. **Log** — append success/failure to `~/.claude/backup.log`.
+7. **Write backup-meta.json** — record schema version, toolkit version, timestamp, and platform.
+8. **Log** — append success/failure to `~/.claude/backup.log`.
 
 ### Cross-platform considerations
 
@@ -195,5 +230,6 @@ See [GitHub Issues](https://github.com/itsdestin/destinclaude/issues) for known 
 
 | Date | Version | What changed | Type | Approved by |
 |------|---------|-------------|------|-------------|
+| 2026-03-23 | 2.0 | Added iCloud backend, multi-backend loop, expanded scope (encyclopedia, user-created skills), backup-meta.json writing. Absorbed Drive archive from git-sync.sh. See backup-system-refactor-design (03-22-2026). | Architecture | — |
 | 2026-03-17 | 1.0 | Initial spec | New | — |
 | 2026-03-19 | 1.1 | Added auto-detection/self-healing for Drive and iCloud backends; added `"icloud"` as a backend option; documented the false-warning bug fix | Update | Destin |

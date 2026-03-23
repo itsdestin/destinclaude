@@ -31,7 +31,7 @@ Hooks are bash scripts that run automatically in response to Claude Code events.
 |------|-------|---------|
 | `session-start.sh` | SessionStart | Git pull, encyclopedia sync, MCP config extraction, version check, inbox check |
 | `statusline.sh` | Statusline | Renders sync status, model info, context remaining, toolkit version |
-| `git-sync.sh` | PostToolUse | Commits and syncs changes after file modifications |
+| `git-sync.sh` | PostToolUse | Commits and syncs changes after file modifications (skips toolkit-owned symlinks) |
 | `write-guard.sh` | PreToolUse | Prevents writes to protected paths (specs, live system files) |
 | `worktree-guard.sh` | PreToolUse | Blocks branch switches in main plugin directory — enforces worktree usage for concurrent sessions |
 | `tool-router.sh` | PreToolUse | Blocks Claude.ai Gmail/Calendar MCP tools, redirects to GWS CLI |
@@ -41,12 +41,16 @@ Hooks are bash scripts that run automatically in response to Claude Code events.
 | `checklist-reminder.sh` | Stop | Reminds about system change checklist if system files were modified |
 | `usage-fetch.js` | PostToolUse | Tracks API usage statistics |
 | `announcement-fetch.js` | SessionStart | Fetches announcements from GitHub, caches to `~/.claude/.announcement-cache.json` |
-| `personal-sync.sh` | PostToolUse | Backs up memory, CLAUDE.md, and config to Drive or private GitHub (15-min debounce) |
+| `personal-sync.sh` | PostToolUse | Backs up personal data (memory, CLAUDE.md, config, encyclopedia, skills) to all configured backends: Drive, GitHub, iCloud (15-min debounce) |
 | `done-sound.sh` | Stop | Plays audio notification when Claude finishes a task (cross-platform) |
+| `lib/backup-common.sh` | (sourced library) | Shared utilities: debounce, logging, config reading, symlink ownership detection |
+| `lib/migrate.sh` | (sourced library) | Backup schema migration runner — reads backup-meta.json, runs sequential vN-to-vN+1 scripts |
 
 **Hook composition:** If a user already has hooks at the same trigger points, the setup wizard offers to merge logic (preserving both) or let the user choose which to keep. The backup system ensures nothing is lost.
 
 The life layer adds `sync-encyclopedia.sh` (rclone-based Google Drive sync for encyclopedia files).
+
+**Shared libraries:** `core/hooks/lib/` contains sourced utilities (`backup-common.sh`, `migrate.sh`) that are not hooks themselves but are loaded by hooks at runtime. `core/hooks/migrations/` contains schema migration scripts and the v1 baseline definition.
 
 **File permissions:** All `.sh` hook scripts must be committed with the execute bit set (`100755` in git). Without this, macOS and Linux users get "Permission denied" errors when Claude Code invokes the hooks. Windows git does not enforce file permissions, so this is invisible during development on Windows — always verify with `git ls-files -s core/hooks/*.sh` before releasing. Use `git update-index --chmod=+x <file>` on Windows to set the bit.
 
@@ -163,6 +167,7 @@ Registration happens in Phase 5 (Step 5f) of the setup wizard. The setup wizard 
 | `/toolkit-uninstall` | Clean removal — restores backups, removes toolkit files |
 | `/toolkit` | Full reference card — all features, trigger phrases, hooks, and commands |
 | `/health` | Quick health check — verifies hooks, symlinks, MCP servers, and marketplace plugins |
+| `/restore` | Ad-hoc personal data restore from any configured backend, with migration support and CLAUDE.md merge options |
 
 Commands are markdown files in `commands/` directories. They contain instructions that Claude follows conversationally — no executable code, just structured prompts.
 

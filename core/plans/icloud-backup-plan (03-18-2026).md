@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Status:** Pending
+**Status:** Superseded by backup-system-refactor-design (03-22-2026).md
 
 **Goal:** Add iCloud as a third personal-sync backend and clean up drive-archive.sh references from the published backup-system spec.
 

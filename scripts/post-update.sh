@@ -402,6 +402,37 @@ phase_refresh() {
     done
   fi
 
+
+  # ===========================================================================
+  # Section 2b: Shared Libraries (lib/ subdirectory)
+  # ===========================================================================
+  emit_section "Symlink Refresh: Shared Libraries"
+
+  local lib_src="$TOOLKIT_ROOT/core/hooks/lib"
+  if [ -d "$lib_src" ]; then
+    mkdir -p "$CLAUDE_HOME/hooks/lib"
+    for file in "$lib_src"/*.sh; do
+      [ -f "$file" ] || continue
+      filename="$(basename "$file")"
+      link_file "$file" "$CLAUDE_HOME/hooks/lib/$filename"
+    done
+  fi
+
+  # ===========================================================================
+  # Section 2c: Migrations (migrations/ subdirectory)
+  # ===========================================================================
+  emit_section "Symlink Refresh: Migrations"
+
+  local migrations_src="$TOOLKIT_ROOT/core/hooks/migrations"
+  if [ -d "$migrations_src" ]; then
+    mkdir -p "$CLAUDE_HOME/hooks/migrations"
+    for file in "$migrations_src"/*; do
+      [ -f "$file" ] || continue
+      filename="$(basename "$file")"
+      link_file "$file" "$CLAUDE_HOME/hooks/migrations/$filename"
+    done
+  fi
+
   # ===========================================================================
   # Section 3: Statusline
   # ===========================================================================
@@ -602,6 +633,26 @@ phase_verify() {
       [ -f "$file" ] || continue
       filename="$(basename "$file")"
       _check_freshness "$filename" "$CLAUDE_HOME/hooks/$filename"
+    done
+  fi
+
+  # --- Shared libraries (lib/ subdirectory) ---
+  local lib_src="$TOOLKIT_ROOT/core/hooks/lib"
+  if [ -d "$lib_src" ]; then
+    for file in "$lib_src"/*.sh; do
+      [ -f "$file" ] || continue
+      filename="$(basename "$file")"
+      _check_freshness "lib/$filename" "$CLAUDE_HOME/hooks/lib/$filename"
+    done
+  fi
+
+  # --- Migrations (migrations/ subdirectory) ---
+  local migrations_src="$TOOLKIT_ROOT/core/hooks/migrations"
+  if [ -d "$migrations_src" ]; then
+    for file in "$migrations_src"/*; do
+      [ -f "$file" ] || continue
+      filename="$(basename "$file")"
+      _check_freshness "migrations/$filename" "$CLAUDE_HOME/hooks/migrations/$filename"
     done
   fi
 

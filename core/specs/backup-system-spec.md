@@ -1,12 +1,12 @@
 # Backup & Sync -- Spec
 
-**Version:** 3.3
-**Last updated:** 2026-03-18
-**Feature location:** `~/.claude/hooks/git-sync.sh`, `~/.claude/hooks/drive-archive.sh`
+**Version:** 4.0
+**Last updated:** 2026-03-23
+**Feature location:** `core/hooks/git-sync.sh`, `core/hooks/personal-sync.sh`, `core/hooks/lib/backup-common.sh`
 
 ## Purpose
 
-The Backup & Sync system keeps Claude Code's configuration, memory, skills, and supporting files continuously replicated via a Git + GitHub repository as the primary sync mechanism, with a secondary write-only Drive archive for selected high-value files. It operates through two scripts: `git-sync.sh` (a PostToolUse hook that commits changes immediately and pushes on a debounced 15-minute interval) and `drive-archive.sh` (archives specs, skills, CLAUDE.md, and transcripts to Google Drive). Together they provide automatic, conflict-aware, cross-device backup with no user intervention required during normal operation.
+The Backup & Sync system keeps Claude Code's configuration, memory, skills, and supporting files continuously replicated via a Git + GitHub repository as the primary sync mechanism, with a secondary write-only Drive archive for selected high-value files. It operates through two scripts: `git-sync.sh` (a PostToolUse hook that commits changes immediately and pushes on a debounced 15-minute interval) and `personal-sync.sh` (replicates personal data to all configured backends: Drive, GitHub, iCloud). Shared utilities live in `lib/backup-common.sh`. Together they provide automatic, conflict-aware, cross-device backup with no user intervention required during normal operation.
 
 ## User Mandates
 
@@ -25,9 +25,12 @@ The Backup & Sync system keeps Claude Code's configuration, memory, skills, and 
 |----------|-----------|----------------------|
 | Immediate commit, debounced 15-minute push | Every tracked file change is committed to the local Git repo immediately (preserving full history). Pushes to GitHub are debounced to a 15-minute interval to avoid excessive API calls during active editing sessions. | Commit + push on every save (too many pushes), batch commit at push time (loses granular history), longer debounce (stale remote). |
 | `.gitignore` strategy for exclusions | Credentials, `node_modules/`, `__pycache__/`, `.claude.json`, and other machine-specific files are excluded via `.gitignore`. Simpler and more robust than per-command exclude flags. | Per-command `--exclude` flags (error-prone, must be maintained in multiple places), separate tracked-files whitelist (adds indirection). |
-| Drive archive scope: specs, skills, CLAUDE.md, transcripts | These are the highest-value files for disaster recovery beyond Git. Specs and skills represent significant investment; CLAUDE.md is the system's operating manual; transcripts are append-only historical records. Other files are adequately protected by Git alone. | Archive everything (slow, redundant with Git), archive nothing (loses Drive as DR layer), archive only transcripts (under-protects specs/skills). |
+| Personal-sync scope | `personal-sync.sh` handles all backend replication including encyclopedia cache and user-created skills. It absorbs the former drive-archive.sh scope and extends it to all personal data categories. | Archive everything (slow, redundant with Git), archive nothing (loses Drive as DR layer), separate per-backend scripts (duplicated logic). |
 | Drive archive is best-effort | Drive archive failures are logged but do not block the Git commit/push workflow. Git is the primary sync mechanism; Drive is a secondary safety net. | Hard failure on Drive errors (blocks primary workflow for secondary concern), silent failure (violates logging mandate). |
 | Mutex lock via `mkdir` | Both git-sync and drive-archive acquire `~/.claude/.backup-lock/` directory as a mutex. `mkdir` is atomic on all platforms. Stale locks (>2 minutes) are auto-broken. 30-second retry with 1-second polling. | File-based lock with `flock` (not portable to Git Bash on Windows), no locking (race conditions between concurrent hooks). |
+| Symlink ownership detection | Symlinks into TOOLKIT_ROOT determine file ownership — toolkit-owned files are never backed up by personal-sync. This cleanly separates toolkit code (handled by the public repo) from personal data (handled by personal-sync). | Path-prefix allowlist (must be maintained separately), manual tagging (error-prone). |
+| Migration framework | Schema-versioned backups with sequential migration runner. `v1.json` defines the baseline schema; `migrate.sh` runs vN-to-vN+1 scripts in order when restoring from an older backup. Enables safe evolution of the backup format without breaking restores. | Single-format backups (breaks on schema changes), no migration (forces manual recovery). |
+| Toolkit integrity check | Session-start verifies repo completeness, auto-repairs identical copies to symlinks, warns about modified copies. Prevents silent drift between installed copies and toolkit source. | Post-install-only check (misses runtime drift), no check (silent failures as seen in pre-v2.4 installs). |
 | Skills: full directory add on commit | When a skill file changes, the entire skill directory is staged (not just the changed file). Skills are coherent units; partial commits could leave broken state. | Single-file skill commit (risk of inconsistency), tarball (adds compression overhead). |
 | Log rotation at 1000 lines | `backup.log` is trimmed to the last 500 lines when it exceeds 1000. Keeps logs useful without unbounded growth. | Fixed file size limit (harder to implement in bash), external log rotation (added dependency). |
 | `rclone copyto` with `--checksum` for Drive archive | Uses checksum comparison rather than modification time to decide whether to upload to Drive. More reliable across platforms where mtime may not be preserved. | `--update` flag (mtime-based, unreliable cross-platform), no flag (always copies, wasteful). |
@@ -90,15 +93,8 @@ The hook fires on every PostToolUse for Write/Edit but immediately exits if the 
 5. **Update write registry** -- records `{pid, timestamp, content_hash}` for the written file in `~/.claude/.write-registry.json` so the PreToolUse write guard (`write-guard.sh`) can detect concurrent same-machine edits.
 6. **Git commit** -- stages the changed file and commits immediately with an auto-generated message (`auto: <filename>`).
 7. **Debounced push** -- checks the project-specific push marker for the last push timestamp. If 15+ minutes have elapsed (or no marker exists), pushes to GitHub and updates the marker.
-8. **Drive archive** -- (Claude Config repo only) archives specs, skills, CLAUDE.md, and transcripts to Google Drive on successful push.
+8. **Symlink filter** -- skips files that are symlinks into TOOLKIT_ROOT (toolkit-owned, not backed up).
 9. **Report** -- emits success/failure JSON via `hookSpecificOutput` and writes status to `~/.claude/.sync-status`.
-
-### Drive Archive Flow (`drive-archive.sh`)
-
-1. **Trigger** -- called from `git-sync.sh` after a successful push, or manually.
-2. **Scope** -- archives only: specs (`~/.claude/specs/`), skills (`~/.claude/skills/`), CLAUDE.md files, and conversation transcripts.
-3. **Upload** -- uses `rclone copyto --checksum` to `gdrive:Claude/Backup/` for the scoped files.
-4. **Best-effort** -- failures are logged to `~/.claude/backup.log` but do not block the primary Git workflow.
 
 ### Key State Files
 
@@ -107,10 +103,10 @@ The hook fires on every PostToolUse for Write/Edit but immediately exits if the 
 | `~/.claude/.push-marker` | Last push timestamp for Claude Config (15-min debounce) | git-sync |
 | `~/.claude/.push-marker-claude-mobile` | Last push timestamp for Claude Mobile (15-min debounce) | git-sync |
 | `~/.claude/.sync-status` | Human-readable status for statusline display | git-sync |
-| `~/.claude/.backup-lock/` | Mutex directory | git-sync, drive-archive (created/removed) |
 | `~/.claude/backup.log` | Persistent log of all backup operations | both scripts |
 | `~/.claude/.write-registry.json` | Write guard: last-writer PID + hash per tracked file | git-sync (via `update_registry`) |
 | `~/.claude/.rebase-fail-count-claude-mobile` | Consecutive rebase failure counter for Claude Mobile | git-sync |
+| `~/.claude/backup-meta.json` | Schema version and toolkit version stamp, written by personal-sync after each successful sync cycle | personal-sync |
 
 ## Dependencies
 
@@ -136,6 +132,7 @@ See [GitHub Issues](https://github.com/itsdestin/destinclaude/issues) for known 
 
 | Date | Version | What changed | Type | Approved by |
 |------|---------|-------------|------|-------------|
+| 2026-03-23 | 4.0 | Refactored: symlink-based ownership detection replaces drive-archive.sh — all backend replication now handled by personal-sync.sh. New shared library (lib/backup-common.sh), migration framework (lib/migrate.sh, migrations/v1.json), toolkit integrity check in session-start. See backup-system-refactor-design (03-22-2026). | Architecture | — |
 | 2026-03-18 | 3.3 | Added Interactive Restore section: setup wizard now handles restore for returning users via GitHub or Drive, complementing the existing manual restore.sh path. | Update | — |
 | 2026-03-16 | 3.2 | Multi-project backup support: git-sync.sh now routes files to the correct Git repo based on path prefix (`~/.claude/` → claude-config, `~/claude-mobile/` → claude-mobile). Each project gets independent push markers and rebase-fail counters. Branch detection is automatic. New mandate: all Claude projects must be backed up to private GitHub repos by default. | Update | — |
 | 2026-03-16 | 3.1 | Added `mcp-config.json`: session-start hook extracts mcpServers from `.claude.json` into a Git-tracked file (`mcp-servers/mcp-config.json`); restore.sh merges it back on restore. Solves the problem where `.claude.json` is excluded from Git but MCP server definitions don't regenerate automatically. | Update | — |
