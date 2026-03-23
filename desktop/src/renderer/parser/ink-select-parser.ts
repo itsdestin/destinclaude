@@ -25,90 +25,100 @@ function stripAnsi(line: string): string {
 }
 
 /**
+ * Strip leading numbering ("1. ", "2. ") from an option label if present.
+ */
+function stripNumbering(text: string): string {
+  return text.replace(/^\d+\.\s+/, '');
+}
+
+/**
+ * Measure the leading whitespace of a raw line (before any trimming).
+ */
+function indentOf(line: string): number {
+  const m = line.match(/^(\s*)/);
+  return m ? m[1].length : 0;
+}
+
+/**
+ * Checks if a line looks like a menu option sibling:
+ * - non-empty
+ * - similar indentation to the reference (within +/-2 columns)
+ * - not a box-drawing or decorative line
+ */
+function isOptionLine(line: string, referenceIndent: number): boolean {
+  const trimmed = line.trim();
+  if (!trimmed) return false;
+  if (/^[─┌┐└┘│╭╮╯╰┬┴├┤┼╔╗╚╝║═]+$/.test(trimmed)) return false;
+  const indent = indentOf(line);
+  return Math.abs(indent - referenceIndent) <= 2;
+}
+
+/**
  * Parse an Ink select menu from rendered terminal screen text.
  *
- * Instead of walking line-by-line (fragile with wrapped text), this:
- * 1. Finds the ❯ selector character
- * 2. Extracts the full menu block (selector line + surrounding numbered options)
- * 3. Joins multi-line text into single options using numbered-item boundaries
+ * Handles both numbered ("1. Yes") and unnumbered ("Yes") option formats.
+ * Detection strategy:
+ * 1. Finds the ❯ selector character (bottom-up scan)
+ * 2. Extracts the selected option's text and indentation
+ * 3. Walks up/down from the selector to find sibling option lines
+ *    at matching indentation
+ * 4. Strips optional numbering from all options
  */
 export function parseInkSelect(screenText: string): ParsedMenu | null {
   const clean = stripAnsi(screenText);
   const lines = clean.split('\n');
 
-  // Find the line with the ❯ selector
+  // Find the line with the ❯ selector (search bottom-up for the most recent)
   let selectorIdx = -1;
   for (let i = lines.length - 1; i >= 0; i--) {
     if (/^\s*❯/.test(lines[i])) { selectorIdx = i; break; }
   }
   if (selectorIdx < 0) return null;
 
-  // Collect the full menu region: walk up and down from the selector
-  // to find all numbered option lines and their continuations
-  let regionStart = selectorIdx;
-  let regionEnd = selectorIdx;
+  const selectorLine = lines[selectorIdx];
+  // The selected option text is everything after ❯ and whitespace
+  const selectedText = stripNumbering(selectorLine.replace(/^\s*❯\s*/, '').trim());
+  if (!selectedText) return null;
 
-  // Walk backward to find the start of the menu
+  // Determine the reference indentation for non-selected options.
+  // Non-selected lines use spaces where ❯ appears on the selected line.
+  // Example:  "  ❯ Yes"  ->  selected indent = 4 (after ❯ + space)
+  //           "    No"   ->  sibling indent = 4 (matching spaces)
+  // We use the indentation of the text AFTER the ❯ to find siblings.
+  const afterSelector = selectorLine.replace(/^\s*❯/, ' ');
+  const referenceIndent = indentOf(afterSelector);
+
+  const options: string[] = [];
+  let selectedIndex = 0;
+
+  // Walk backward to find options above the selector
   for (let i = selectorIdx - 1; i >= 0; i--) {
     const trimmed = lines[i].trim();
     if (!trimmed) break;
-    // A numbered option or heavily-indented continuation
-    if (/^\d+\.\s+/.test(trimmed) || /^\s{2,}/.test(lines[i])) {
-      regionStart = i;
-    } else {
-      break;
-    }
+    if (!isOptionLine(lines[i], referenceIndent)) break;
+    // Don't include lines that look like titles (end with ? or :)
+    if (/[?:]$/.test(trimmed) && !/^\d+\.\s+/.test(trimmed)) break;
+    options.unshift(stripNumbering(trimmed));
   }
 
-  // Walk forward to find the end of the menu
+  // Insert the selected option
+  selectedIndex = options.length;
+  options.push(selectedText);
+
+  // Walk forward to find options below the selector
   for (let i = selectorIdx + 1; i < lines.length; i++) {
     const trimmed = lines[i].trim();
     if (!trimmed) break;
-    if (/^\d+\.\s+/.test(trimmed) || /^\s{2,}/.test(lines[i])) {
-      regionEnd = i;
-    } else {
-      break;
-    }
-  }
-
-  // Flatten the region into a single string, collapsing internal newlines
-  // Then split on numbered-item boundaries to extract individual options
-  const regionLines = lines.slice(regionStart, regionEnd + 1);
-  const regionText = regionLines.map((l) => {
-    // Normalize: strip selector ❯ and leading whitespace, keep the rest
-    return l.replace(/^\s*❯\s*/, '  ');
-  }).join(' ');
-
-  // Match numbered options: "1. text", "2. text", etc.
-  // Use a regex that captures everything from one number to the next
-  const optionPattern = /(\d+)\.\s+(.+?)(?=\s+\d+\.\s+|$)/g;
-  const options: string[] = [];
-  const optionNumbers: number[] = [];
-  let match;
-
-  while ((match = optionPattern.exec(regionText)) !== null) {
-    const num = parseInt(match[1], 10);
-    // Clean up whitespace (from joining multi-line text)
-    const text = match[2].replace(/\s+/g, ' ').trim();
-    options.push(text);
-    optionNumbers.push(num);
+    if (!isOptionLine(lines[i], referenceIndent)) break;
+    options.push(stripNumbering(trimmed));
   }
 
   if (options.length < 2) return null;
   if (options.some((o) => o.length > 200)) return null;
 
-  // Determine which option is selected (the one on the ❯ line)
-  const selectorLine = lines[selectorIdx];
-  const selectorNumMatch = /❯\s*(\d+)\./.exec(selectorLine);
-  let selectedIndex = 0;
-  if (selectorNumMatch) {
-    const selNum = parseInt(selectorNumMatch[1], 10);
-    const idx = optionNumbers.indexOf(selNum);
-    if (idx >= 0) selectedIndex = idx;
-  }
-
   // Extract title from lines above the menu
-  const title = extractTitle(lines, regionStart, clean);
+  const firstOptionLine = selectorIdx - selectedIndex;
+  const title = extractTitle(lines, Math.max(0, firstOptionLine), clean);
 
   const id = 'menu_' + options.map((o) => o.slice(0, 10)).join('_')
     .toLowerCase().replace(/[^a-z0-9_]/g, '');

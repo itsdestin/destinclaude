@@ -54,6 +54,10 @@ export default function TerminalView({ sessionId, visible }: Props) {
     fitAddonRef.current = fitAddon;
     registerTerminal(sessionId, terminal);
 
+    // Signal to main process that we're ready to receive PTY output.
+    // This flushes any buffered output that arrived before mount.
+    window.claude.session.signalReady(sessionId);
+
     // Fit terminal to container and sync dimensions to PTY
     const fitAndSync = () => {
       try {

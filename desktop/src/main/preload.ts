@@ -20,6 +20,7 @@ const IPC = {
   READ_TRANSCRIPT_META: 'transcript:read-meta',
   SKILLS_LIST: 'skills:list',
   OPEN_CHANGELOG: 'shell:open-changelog',
+  TERMINAL_READY: 'session:terminal-ready',
 } as const;
 
 contextBridge.exposeInMainWorld('claude', {
@@ -33,6 +34,8 @@ contextBridge.exposeInMainWorld('claude', {
       ipcRenderer.send(IPC.SESSION_INPUT, sessionId, text),
     resize: (sessionId: string, cols: number, rows: number) =>
       ipcRenderer.send(IPC.SESSION_RESIZE, sessionId, cols, rows),
+    signalReady: (sessionId: string) =>
+      ipcRenderer.send(IPC.TERMINAL_READY, sessionId),
   },
   on: {
     sessionCreated: (cb: (info: any) => void) => {

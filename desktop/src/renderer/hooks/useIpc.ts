@@ -10,6 +10,7 @@ declare global {
         list: () => Promise<any[]>;
         sendInput: (sessionId: string, text: string) => void;
         resize: (sessionId: string, cols: number, rows: number) => void;
+        signalReady: (sessionId: string) => void;
       };
       skills: {
         list: () => Promise<import('../../shared/types').SkillEntry[]>;

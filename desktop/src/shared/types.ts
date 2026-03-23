@@ -63,6 +63,7 @@ export const IPC = {
   SESSION_RESIZE: 'session:resize',
   SESSION_LIST: 'session:list',
   SKILLS_LIST: 'skills:list',
+  TERMINAL_READY: 'session:terminal-ready',
   // Main -> Renderer
   SESSION_CREATED: 'session:created',
   SESSION_DESTROYED: 'session:destroyed',
