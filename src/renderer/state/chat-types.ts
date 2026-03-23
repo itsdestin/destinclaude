@@ -21,6 +21,8 @@ export interface SessionChatState {
   streamingText: string;
   /** ID of the current tool group (tools are appended here until next message) */
   currentGroupId: string | null;
+  /** Timestamp of last activity from Claude — used to reset the thinking timeout */
+  lastActivityAt: number;
 }
 
 export function createSessionChatState(): SessionChatState {
@@ -31,6 +33,7 @@ export function createSessionChatState(): SessionChatState {
     isThinking: false,
     streamingText: '',
     currentGroupId: null,
+    lastActivityAt: 0,
   };
 }
 

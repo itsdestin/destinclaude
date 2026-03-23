@@ -95,7 +95,10 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
         timeline = [...timeline, { kind: 'tool-group', groupId: currentGroupId }];
       }
 
-      next.set(action.sessionId, { ...session, toolCalls, toolGroups, timeline, currentGroupId });
+      next.set(action.sessionId, {
+        ...session, toolCalls, toolGroups, timeline, currentGroupId,
+        lastActivityAt: Date.now(),
+      });
       return next;
     }
 
@@ -111,7 +114,7 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
         });
       }
 
-      next.set(action.sessionId, { ...session, toolCalls });
+      next.set(action.sessionId, { ...session, toolCalls, lastActivityAt: Date.now() });
       return next;
     }
 
@@ -127,7 +130,7 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
         });
       }
 
-      next.set(action.sessionId, { ...session, toolCalls });
+      next.set(action.sessionId, { ...session, toolCalls, lastActivityAt: Date.now() });
       return next;
     }
 
@@ -157,7 +160,7 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
       if (!session || !session.isThinking) return state;
       // Only update if text actually changed
       if (session.streamingText === action.text) return state;
-      next.set(action.sessionId, { ...session, streamingText: action.text });
+      next.set(action.sessionId, { ...session, streamingText: action.text, lastActivityAt: Date.now() });
       return next;
     }
 

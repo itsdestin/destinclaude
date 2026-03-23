@@ -2,6 +2,19 @@ import { Terminal } from '@xterm/xterm';
 
 const terminals = new Map<string, Terminal>();
 
+// Pub/sub for write-completion notifications
+type BufferReadyCallback = (sessionId: string) => void;
+const bufferReadyListeners = new Set<BufferReadyCallback>();
+
+export function onBufferReady(cb: BufferReadyCallback): () => void {
+  bufferReadyListeners.add(cb);
+  return () => bufferReadyListeners.delete(cb);
+}
+
+export function notifyBufferReady(sessionId: string) {
+  bufferReadyListeners.forEach((cb) => cb(sessionId));
+}
+
 export function registerTerminal(sessionId: string, terminal: Terminal) {
   terminals.set(sessionId, terminal);
 }

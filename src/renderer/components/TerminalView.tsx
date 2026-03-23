@@ -5,7 +5,7 @@ import { Unicode11Addon } from '@xterm/addon-unicode11';
 import { WebglAddon } from '@xterm/addon-webgl';
 import '@xterm/xterm/css/xterm.css';
 import { usePtyOutput } from '../hooks/useIpc';
-import { registerTerminal, unregisterTerminal } from '../hooks/terminal-registry';
+import { registerTerminal, unregisterTerminal, notifyBufferReady } from '../hooks/terminal-registry';
 
 interface Props {
   sessionId: string;
@@ -112,9 +112,9 @@ export default function TerminalView({ sessionId, visible }: Props) {
     }
   }, [visible, sessionId]);
 
-  // Write PTY output to terminal
+  // Write PTY output to terminal; notify registry when buffer is updated
   usePtyOutput(sessionId, (data) => {
-    terminalRef.current?.write(data);
+    terminalRef.current?.write(data, () => notifyBufferReady(sessionId));
   });
 
   return (

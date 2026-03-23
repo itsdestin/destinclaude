@@ -18,7 +18,9 @@ export default function ChatView({ sessionId, visible }: Props) {
   const [atBottom, setAtBottom] = useState(true);
   const thinkingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Thinking timeout — if isThinking stays true for 60s, auto-clear
+  // Thinking timeout — if isThinking stays true with no activity for 60s, auto-clear.
+  // lastActivityAt resets the clock whenever hook events or streaming updates arrive,
+  // so the warning only fires after 60s of complete silence from Claude.
   useEffect(() => {
     if (state.isThinking) {
       thinkingTimerRef.current = setTimeout(() => {
@@ -33,7 +35,7 @@ export default function ChatView({ sessionId, visible }: Props) {
     return () => {
       if (thinkingTimerRef.current) clearTimeout(thinkingTimerRef.current);
     };
-  }, [state.isThinking, sessionId, dispatch]);
+  }, [state.isThinking, state.lastActivityAt, sessionId, dispatch]);
 
   // Track whether user is scrolled to bottom
   useEffect(() => {

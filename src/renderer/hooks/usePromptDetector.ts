@@ -1,20 +1,21 @@
 import { useEffect, useRef } from 'react';
 import { parseInkSelect, menuToButtons } from '../parser/ink-select-parser';
 import { useChatDispatch } from '../state/chat-context';
-import { getScreenText } from './terminal-registry';
+import { getScreenText, onBufferReady } from './terminal-registry';
 
 /**
- * Monitors PTY output events as a trigger, then reads the xterm.js screen
- * buffer (which has properly rendered all cursor movement and ANSI codes)
- * to detect Ink select menus.
+ * Monitors xterm.js write completions (via terminal-registry) to detect
+ * Ink select menus in the screen buffer.  Previously listened to raw
+ * pty:output events, but reading the buffer before xterm.js finished
+ * processing the write caused a race condition where permission prompts
+ * were silently missed.
  */
 export function usePromptDetector() {
   const dispatch = useChatDispatch();
   const lastMenuRef = useRef<Map<string, string>>(new Map());
 
   useEffect(() => {
-    const handler = window.claude.on.ptyOutput((sid: string, _data: string) => {
-      // Read the rendered screen from xterm's buffer
+    const unsub = onBufferReady((sid: string) => {
       const screen = getScreenText(sid);
       if (!screen) return;
 
@@ -43,8 +44,6 @@ export function usePromptDetector() {
       }
     });
 
-    return () => {
-      window.claude.off('pty:output', handler);
-    };
+    return unsub;
   }, [dispatch]);
 }
