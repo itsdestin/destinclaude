@@ -228,6 +228,14 @@ if [[ -n "$_PULL_BACKEND" ]]; then
     esac
 fi
 
+# --- Cross-device project slug rewriting (after pull) ---
+# If backup data came from a device with a different $HOME, the project slug
+# directories won't match. Symlink foreign slugs into the current device's slug
+# so /resume and memory lookups work transparently.
+if type rewrite_project_slugs &>/dev/null; then
+    rewrite_project_slugs "$CLAUDE_DIR/projects"
+fi
+
 # --- Migration check (Design ref: D7) ---
 # Compare backup schema version against current. Run migrations if needed.
 if type run_migrations &>/dev/null && [[ -f "$CLAUDE_DIR/backup-meta.json" ]]; then

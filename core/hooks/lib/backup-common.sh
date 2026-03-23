@@ -101,6 +101,77 @@ normalize_path() {
     fi
 }
 
+# --- Cross-device project slug rewriting ---
+# Claude Code stores sessions/memory under ~/.claude/projects/<slug>/ where
+# <slug> is derived from the working directory path (slashes replaced with dashes).
+# When restoring from a different device, the slug won't match the current device.
+# These functions detect foreign slugs and symlink them into the current device's
+# slug directory so /resume and memory lookups work transparently.
+
+get_current_project_slug() {
+    local home_path
+    # Resolve symlinks to get the canonical path (important on Android where
+    # /data/user/0 is a symlink to /data/data)
+    home_path=$(realpath "$HOME" 2>/dev/null || readlink -f "$HOME" 2>/dev/null || echo "$HOME")
+    # Replicate Claude Code's slug algorithm: replace / and \ with -
+    home_path="${home_path//\\/-}"
+    home_path="${home_path//\//-}"
+    echo "$home_path"
+}
+
+# Symlinks foreign project slug directories into the current device's slug.
+# Called after restore or pull operations to ensure cross-device continuity.
+# Arguments: $1 = projects directory (e.g., ~/.claude/projects)
+rewrite_project_slugs() {
+    local projects_dir="$1"
+    [[ ! -d "$projects_dir" ]] && return 0
+
+    local current_slug
+    current_slug=$(get_current_project_slug)
+    [[ -z "$current_slug" ]] && return 0
+
+    # Ensure current slug directory exists
+    mkdir -p "$projects_dir/$current_slug"
+
+    local foreign_count=0
+    for slug_dir in "$projects_dir"/*/; do
+        [[ ! -d "$slug_dir" ]] && continue
+        local slug_name
+        slug_name=$(basename "$slug_dir")
+
+        # Skip the current device's slug
+        [[ "$slug_name" == "$current_slug" ]] && continue
+
+        # Skip already-symlinked directories (previous rewrite)
+        [[ -L "${slug_dir%/}" ]] && continue
+
+        # This is a foreign slug — symlink its subdirectories (memory/, etc.)
+        # into the current slug. Symlinks avoid data duplication and keep
+        # edits propagating to the original files.
+        for subdir in "$slug_dir"*/; do
+            [[ ! -d "$subdir" ]] && continue
+            local subname
+            subname=$(basename "$subdir")
+            local target="$projects_dir/$current_slug/$subname"
+
+            if [[ ! -e "$target" ]]; then
+                # No local version — symlink the whole subdirectory
+                local abs_source
+                abs_source=$(cd "$subdir" && pwd)
+                ln -sf "$abs_source" "$target" 2>/dev/null || \
+                    cp -r "$subdir" "$target" 2>/dev/null || true
+            fi
+            # If local version exists, don't overwrite — user may have newer data
+        done
+
+        foreign_count=$((foreign_count + 1))
+    done
+
+    if [[ $foreign_count -gt 0 ]]; then
+        log_backup "INFO" "Mapped $foreign_count foreign project slug(s) to current device slug: $current_slug"
+    fi
+}
+
 # --- Multi-backend helpers ---
 get_backends() {
     local backends

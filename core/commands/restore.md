@@ -80,6 +80,31 @@ If both the backup and the current install have CLAUDE.md, present three options
 
 For option 1 (merge): toolkit sections are wrapped in `<!-- BEGIN:section-name -->` / `<!-- END:section-name -->` markers. Replace content between markers with the current install's version. Preserve everything outside markers as user content.
 
+## Step 5.5: Cross-device project slug rewriting
+
+Claude Code stores sessions and memory under `~/.claude/projects/<slug>/` where `<slug>` is derived from the working directory path (slashes replaced with dashes). When restoring from a different device, these slugs won't match.
+
+Detect foreign slugs in the backup and inform the user:
+
+```bash
+CURRENT_SLUG=$(get_current_project_slug)
+FOREIGN_SLUGS=()
+
+if [[ -d "$CLAUDE_DIR/.restore-staging/memory" ]]; then
+    for slug_dir in "$CLAUDE_DIR/.restore-staging/memory"/*/; do
+        [[ ! -d "$slug_dir" ]] && continue
+        slug_name=$(basename "$slug_dir")
+        [[ "$slug_name" != "$CURRENT_SLUG" ]] && FOREIGN_SLUGS+=("$slug_name")
+    done
+fi
+```
+
+If foreign slugs are found, tell the user:
+
+> "Found [N] project slug(s) from other devices: [list]. These will be automatically symlinked into your current project directory so `/resume` and memory lookups work on this device."
+
+The actual rewriting is handled automatically by `rewrite_project_slugs` (from `backup-common.sh`) after files are copied in Step 6.
+
 ## Step 6: Apply restore
 
 Copy files from staging to live locations:
@@ -105,6 +130,17 @@ fi
 
 # User-created skills
 [[ -d "$CLAUDE_DIR/.restore-staging/skills" ]] && cp -r "$CLAUDE_DIR/.restore-staging/skills"/* "$CLAUDE_DIR/skills/" 2>/dev/null
+```
+
+After copying, rewrite any foreign project slugs:
+
+```bash
+# Cross-device slug rewriting — symlinks foreign slugs into current device's slug
+HOOK_DIR="$(cd "$(dirname "$(readlink -f "$HOME/.claude/hooks/session-start.sh")")" && pwd)"
+if [[ -f "$HOOK_DIR/lib/backup-common.sh" ]]; then
+    source "$HOOK_DIR/lib/backup-common.sh"
+    rewrite_project_slugs "$CLAUDE_DIR/projects"
+fi
 ```
 
 ## Step 7: Clean up and confirm
