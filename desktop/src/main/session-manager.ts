@@ -37,7 +37,10 @@ export class SessionManager extends EventEmitter {
     // We use spawn with 'node' (system Node) + IPC channel instead of fork()
     // because fork() uses Electron's Node.js which has the same ABI mismatch.
     const workerPath = path.join(__dirname, 'pty-worker.js');
-    const worker = spawn('node', [workerPath], {
+    const nodePath = process.execPath.includes('electron')
+      ? 'node'  // Electron's execPath is the Electron binary, fall back to PATH
+      : process.execPath;
+    const worker = spawn(nodePath, [workerPath], {
       stdio: ['pipe', 'pipe', 'pipe', 'ipc'],
     });
 

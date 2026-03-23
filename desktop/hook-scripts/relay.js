@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 const net = require('net');
-const PIPE_NAME = process.env.CLAUDE_DESKTOP_PIPE || '\\\\.\\pipe\\claude-desktop-hooks';
+const PIPE_NAME = process.env.CLAUDE_DESKTOP_PIPE || (process.platform === 'win32' ? '\\\\.\\pipe\\claude-desktop-hooks' : '/tmp/claude-desktop-hooks.sock');
 
 let input = '';
 process.stdin.setEncoding('utf8');
