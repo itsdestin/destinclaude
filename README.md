@@ -103,7 +103,7 @@ The statusline shows your version and flags available updates. To update:
 
 ## Contributing
 
-See the [Contributing Guide](docs/contributing.md) for details, or just type `/contribute` and Claude handles the rest.
+Report bugs or request features via [GitHub Issues](https://github.com/itsdestin/destinclaude/issues). See the [Contributing Guide](docs/contributing.md) for details, or just type `/contribute` and Claude handles the rest.
 
 ## Built By
 
