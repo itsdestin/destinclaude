@@ -1262,6 +1262,33 @@ Summarize: "Everything is personalized for you — your name, preferences, and s
 
 ---
 
+## Phase 5b: DestinCode Desktop App (Optional)
+
+Offer to install the DestinCode desktop app — a GUI for Claude Code with chat view, tool cards, session management, and status monitoring.
+
+> **Comfort-level adaptation:**
+> - **Beginner:** Explain what the desktop app provides: "Instead of using Claude Code in a terminal, you can use a desktop app with a visual chat interface, clickable tool approvals, and session tabs."
+> - **Intermediate:** Brief description: "DestinCode is an optional GUI for Claude Code."
+> - **Power user:** One-liner: "Install DestinCode desktop app?"
+
+Ask: "Would you like to install the DestinCode desktop app?"
+
+If yes:
+
+1. Run the install script:
+```bash
+bash "$TOOLKIT_ROOT/desktop/scripts/install-app.sh"
+```
+
+2. If the script fails (e.g., no release found for this version), inform the user:
+   - "The desktop app isn't available for this version yet. You can install it later by running: `bash ~/.claude/plugins/destinclaude/desktop/scripts/install-app.sh`"
+
+3. If successful, the script prints launch instructions for their platform.
+
+If no, skip — they can always install later.
+
+---
+
 ## Phase 6: Verification
 
 Run a health check on everything that was installed.
