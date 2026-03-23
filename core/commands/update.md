@@ -214,11 +214,15 @@ Check for and install updates to the DestinClaude toolkit.
     | Hook | Trigger | Matcher |
     |------|---------|---------|
     | `session-start.sh` | `SessionStart` | `startup` |
+    | `contribution-detector.sh` | `SessionStart` | `startup` |
     | `write-guard.sh` | `PreToolUse` | `Write\|Edit` |
+    | `tool-router.sh` | `PreToolUse` | `.*` |
     | `git-sync.sh` | `PostToolUse` | `Write\|Edit` |
+    | `personal-sync.sh` | `PostToolUse` | `Write\|Edit` |
     | `title-update.sh` | `PostToolUse` | `.*` |
     | `todo-capture.sh` | `UserPromptSubmit` | `.*` |
     | `checklist-reminder.sh` | `Stop` | `.*` |
+    | `done-sound.sh` | `Stop` | `.*` |
 
     Each entry must look like: `{ "matcher": "...", "hooks": [{ "type": "command", "command": "bash ~/.claude/hooks/foo.sh" }] }` — NOT `{ "command": "bash ~/.claude/hooks/foo.sh" }`.
 
@@ -291,18 +295,18 @@ Check for and install updates to the DestinClaude toolkit.
     Here's what your statusline should look like after this update:
 
     ┌─────────────────────────────────────────────────────────────┐
-    │ Session Topic Here                    ★ Announcement Text   │
+    │ Session Topic Here                                          │
     │ OK: Changes Synced                                          │
-    │ Claude Opus 4  Context Remaining: 85%                       │
+    │ Claude Opus 4  Context Remaining: 85%  repo/branch          │
     │ 5h (12%): Resets at 3:45 PM | 7d (8%): Resets on Friday... │
-    │ DestinClaude vX.Y.Z                                         │
+    │ DestinClaude vX.Y.Z | ★ Announcement Text                  │
     └─────────────────────────────────────────────────────────────┘
 
-    Line 1: Session name (bold white) + announcement (yellow, right-aligned)
+    Line 1: Session name (bold white)
     Line 2: Sync status (green/yellow/red)
-    Line 3: Model name + context remaining percentage
+    Line 3: Model name + context remaining percentage + git repo/branch
     Line 4: Rate limit utilization (if available)
-    Line 5: Toolkit version (yellow if update available)
+    Line 5: Toolkit version (yellow if update available) + announcement (bold yellow, inline)
     ```
 
     Then run the actual statusline with mock data and show the raw output:
