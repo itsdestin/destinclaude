@@ -101,9 +101,34 @@ fi
 
 # --- Encyclopedia cache sync ---
 mkdir -p "$ENCYCLOPEDIA_DIR"
-if command -v rclone &>/dev/null; then
-    rclone sync "gdrive:$DRIVE_ROOT/The Journal/System/" "$ENCYCLOPEDIA_DIR/" 2>/dev/null || \
-        echo '{"hookSpecificOutput": "Warning: Encyclopedia cache sync failed. Skills will use stale cache."}' >&2
+VAULT_TEMP="$HOME/.claude/.vault-temp"
+VAULT_CONFIG="$HOME/.claude/journal-vault.json"
+
+# Check for stale vault temp dir (crash recovery)
+if [[ -d "$VAULT_TEMP" ]]; then
+    VAULT_PS1="$HOME/.claude/plugins/destinclaude/life/hooks/journal-vault.ps1"
+    pwsh -File "$VAULT_PS1" lock 2>&1 | head -1
+fi
+
+# Check if vault exists (skip rclone sync if so — cache is populated on vault unlock)
+if [[ -f "$VAULT_CONFIG" ]]; then
+    VAULT_REMOTE=$(node -e "try{console.log(JSON.parse(require('fs').readFileSync('$(echo "$VAULT_CONFIG" | sed "s|\\\\|/|g")','utf8')).vault_remote_path)}catch{}" 2>/dev/null)
+    if [[ -n "$VAULT_REMOTE" ]]; then
+        VAULT_EXISTS=$(rclone lsf "$VAULT_REMOTE" 2>/dev/null)
+        if [[ -n "$VAULT_EXISTS" ]]; then
+            echo '{"hookSpecificOutput": "Encyclopedia sync deferred (vault mode)"}' >&2
+        else
+            if command -v rclone &>/dev/null; then
+                rclone sync "gdrive:$DRIVE_ROOT/The Journal/System/" "$ENCYCLOPEDIA_DIR/" 2>/dev/null || \
+                    echo '{"hookSpecificOutput": "Warning: Encyclopedia cache sync failed."}' >&2
+            fi
+        fi
+    fi
+else
+    if command -v rclone &>/dev/null; then
+        rclone sync "gdrive:$DRIVE_ROOT/The Journal/System/" "$ENCYCLOPEDIA_DIR/" 2>/dev/null || \
+            echo '{"hookSpecificOutput": "Warning: Encyclopedia cache sync failed. Skills will use stale cache."}' >&2
+    fi
 fi
 
 # --- Personal data pull (cross-device sync for memory, CLAUDE.md, config) ---

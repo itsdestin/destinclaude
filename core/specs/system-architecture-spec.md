@@ -99,7 +99,7 @@ Local (~/.claude/)
 **Start:**
 1. `session-start.sh` fires → `git pull --rebase` (cross-device sync)
 2. `rclone sync` encyclopedia cache from Drive
-3. `check-inbox.sh` → if Todoist inbox has items, injects prompt for inbox-processor skill
+3. `check-inbox.sh` → checks configured inbox providers for items, injects prompt for claudes-inbox skill
 4. CLAUDE.md loaded into context (always)
 5. MEMORY.md loaded into context (always)
 

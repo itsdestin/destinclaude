@@ -380,7 +380,7 @@ The toolkit is a Claude Code plugin. Determine where it's installed by checking 
 
 Check for each of the following and record what you find:
 
-1. **Existing skills** — Run `ls ~/.claude/skills/` if it exists. Compare against toolkit skill names (journaling-assistant, encyclopedia-update, encyclopedia-compile, encyclopedia-interviewer, encyclopedia-librarian, inbox-processor, skill-creator, google-drive).
+1. **Existing skills** — Run `ls ~/.claude/skills/` if it exists. Compare against toolkit skill names (journaling-assistant, encyclopedia-update, encyclopedia-compile, encyclopedia-interviewer, encyclopedia-librarian, claudes-inbox, skill-creator, google-drive).
 2. **Existing CLAUDE.md** — Read `~/.claude/CLAUDE.md` if it exists. Note its length and whether it contains any of the toolkit's section markers (`## Installed Skills`, `## Specs System`, `## System Change Protocol`, `## MCP Server Configuration`).
 3. **Existing hooks** — Check `~/.claude/hooks/` for any hook scripts. List what you find.
 4. **Existing plugins** — Check if any Claude Code plugins are already installed by looking at the user's Claude Code settings or scanning `~/.claude/plugins/` if it exists.
@@ -508,9 +508,10 @@ DestinClaude has three layers you can install:
 
   Productivity (recommended)
     Task management and communication — an inbox processor that
-    triages notes from your phone, a skill creator for building
-    new Claude skills, and text messaging integration (Google
-    Messages for Android, or iMessage for macOS users).
+    triages notes from provider-agnostic capture sources (Todoist,
+    SMS, and more), a skill creator for building new Claude skills,
+    and text messaging integration (Google Messages for Android,
+    or iMessage for macOS users).
 
 Modules are optional domain-specific add-ons. Available modules
 will be listed during setup.
@@ -990,7 +991,7 @@ for skill in encyclopedia-compile encyclopedia-interviewer encyclopedia-libraria
 done
 
 # Productivity skills (if Productivity layer selected)
-for skill in inbox-processor skill-creator; do
+for skill in claudes-inbox skill-creator; do
   ln -sf "$TOOLKIT_ROOT/productivity/skills/$skill" ~/.claude/skills/$skill
 done
 ```
@@ -1411,7 +1412,7 @@ All systems check out — you're good to go!
 Setup complete! Here's what's installed:
 
   Layers: Core, Life, Productivity
-  Skills: journaling-assistant, encyclopedia-*, inbox-processor, skill-creator
+  Skills: journaling-assistant, encyclopedia-*, claudes-inbox, skill-creator
   Hooks: 8 active hooks for file protection and sync
   MCP servers: Todoist, imessages, gmessages (varies by selection)
 ```
