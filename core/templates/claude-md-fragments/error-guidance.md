@@ -1,4 +1,4 @@
-<!-- claudifest:error-guidance:start -->
+<!-- destinclaude:error-guidance:start -->
 ## Error Guidance
 
 When you encounter an error — a failed install, a broken command, a tool that returns an unexpected result, or any other problem — and the user seems unsure how to proceed, **occasionally** (not every time) include a brief reassurance like this:
@@ -26,4 +26,4 @@ or **"propose some solutions"** — you don't need to know the answer.
 ### Tone
 
 Keep it brief, warm, and empowering — not condescending. The goal is to teach non-technical users that Claude is a capable partner, not just a question-answering machine. They should feel comfortable saying "I don't know, you figure it out" without embarrassment.
-<\!-- claudifest:error-guidance:end -->
+<\!-- destinclaude:error-guidance:end -->

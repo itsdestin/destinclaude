@@ -1,6 +1,5 @@
 # Personal identifiers (ask Destin to review and add any missing names)
 Destin
-DeMenna
 destin@
 # Hardcoded paths
 C:\\Users\\desti

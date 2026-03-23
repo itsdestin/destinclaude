@@ -87,12 +87,43 @@ Check for and install updates to the DestinClaude toolkit.
    - If `"life"` is installed and `$TOOLKIT_ROOT/life/hooks/` exists, refresh those too
    - If `"productivity"` is installed and `$TOOLKIT_ROOT/productivity/hooks/` exists, refresh those too
 
-   **Scan for orphan files.** After refreshing, scan `~/.claude/hooks/` for files that don't match any known toolkit hook. For each orphan found:
+   **Scan for orphan hooks.** After refreshing, scan `~/.claude/hooks/` for files that don't match any known toolkit hook. For each orphan found:
    - Check if the file is a known pre-v1.1.5 orphan (e.g., `~/.claude/hooks/statusline.sh` — a stale copy that nothing references since `settings.json` points to `~/.claude/statusline.sh`)
    - List all orphans and explain what each one is (or that it's unrecognized)
    - **Ask the user:** "These files in `~/.claude/hooks/` don't match any current toolkit hook. They may be leftovers from a previous version or files you created. Want me to remove any of them?"
    - Only delete files the user explicitly approves
    - Never delete files silently
+
+   **Scan for orphan skills.** After refreshing, scan `~/.claude/skills/` for entries that don't match any skill in the toolkit's `core/`, `life/`, or `productivity/` layers. For each entry in `~/.claude/skills/`:
+
+   ```bash
+   for skill_link in ~/.claude/skills/*/; do
+     skill_name=$(basename "$skill_link")
+     FOUND=false
+     for layer in core life productivity; do
+       if [ -d "$TOOLKIT_ROOT/$layer/skills/$skill_name" ]; then
+         FOUND=true
+         break
+       fi
+     done
+     if [ "$FOUND" = false ]; then
+       # Check if it's a broken symlink (source deleted) vs unknown skill
+       if [ -L "${skill_link%/}" ] && [ ! -e "${skill_link%/}" ]; then
+         ORPHAN_SKILLS="$ORPHAN_SKILLS $skill_name(broken symlink — source deleted)"
+       elif [ -L "${skill_link%/}" ]; then
+         ORPHAN_SKILLS="$ORPHAN_SKILLS $skill_name(symlink to unknown source)"
+       else
+         ORPHAN_SKILLS="$ORPHAN_SKILLS $skill_name(not toolkit-managed)"
+       fi
+     fi
+   done
+   ```
+
+   If orphan skills are found:
+   - List all orphans with their status (broken symlink, unknown source, or not toolkit-managed)
+   - **Ask the user:** "These skills in `~/.claude/skills/` don't match any current toolkit skill. They may be leftovers from a removed module or skills you created. Want me to remove any of them?"
+   - Only delete entries the user explicitly approves
+   - Never delete entries silently
 
 10. **Check for new dependencies.** After a successful merge, check if the setup wizard's verification phase should run (look for changes in plugin.json files or new dependency requirements). If so, suggest: "This update may have added new features. Want me to run a quick setup check?"
 
@@ -194,14 +225,24 @@ Check for and install updates to the DestinClaude toolkit.
     # Skills
     for skill_dir in ~/.claude/skills/*/; do
       skill_name=$(basename "$skill_dir")
+      # Check for broken symlinks (source directory deleted from repo)
+      if [ -L "${skill_dir%/}" ] && [ ! -e "${skill_dir%/}" ]; then
+        ISSUES="$ISSUES $skill_name(broken symlink — source deleted)"
+        continue
+      fi
+      FOUND=false
       for layer in core life productivity; do
         if [ -d "$TOOLKIT_ROOT/$layer/skills/$skill_name" ]; then
+          FOUND=true
           if [ ! -L "$skill_dir" ] && [ ! -L "${skill_dir%/}" ]; then
             ISSUES="$ISSUES $skill_name(copy, not symlink)"
           fi
           break
         fi
       done
+      if [ "$FOUND" = false ] && [ ! -L "${skill_dir%/}" ]; then
+        ISSUES="$ISSUES $skill_name(not toolkit-managed)"
+      fi
     done
     ```
 
