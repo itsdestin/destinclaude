@@ -27,7 +27,7 @@ The Backup & Sync system keeps Claude Code's configuration, memory, skills, and 
 | `.gitignore` strategy for exclusions | Credentials, `node_modules/`, `__pycache__/`, `.claude.json`, and other machine-specific files are excluded via `.gitignore`. Simpler and more robust than per-command exclude flags. | Per-command `--exclude` flags (error-prone, must be maintained in multiple places), separate tracked-files whitelist (adds indirection). |
 | Personal-sync scope | `personal-sync.sh` handles all backend replication including encyclopedia cache and user-created skills. It absorbs the former drive-archive.sh scope and extends it to all personal data categories. | Archive everything (slow, redundant with Git), archive nothing (loses Drive as DR layer), separate per-backend scripts (duplicated logic). |
 | Drive archive is best-effort | Drive archive failures are logged but do not block the Git commit/push workflow. Git is the primary sync mechanism; Drive is a secondary safety net. | Hard failure on Drive errors (blocks primary workflow for secondary concern), silent failure (violates logging mandate). |
-| Mutex lock via `mkdir` | Both git-sync and drive-archive acquire `~/.claude/.backup-lock/` directory as a mutex. `mkdir` is atomic on all platforms. Stale locks (>2 minutes) are auto-broken. 30-second retry with 1-second polling. | File-based lock with `flock` (not portable to Git Bash on Windows), no locking (race conditions between concurrent hooks). |
+| Mutex lock via `mkdir` | Both git-sync and personal-sync acquire `~/.claude/.backup-lock/` directory as a mutex. `mkdir` is atomic on all platforms. Stale locks (>2 minutes) are auto-broken. 30-second retry with 1-second polling. | File-based lock with `flock` (not portable to Git Bash on Windows), no locking (race conditions between concurrent hooks). |
 | Symlink ownership detection | Symlinks into TOOLKIT_ROOT determine file ownership — toolkit-owned files are never backed up by personal-sync. This cleanly separates toolkit code (handled by the public repo) from personal data (handled by personal-sync). | Path-prefix allowlist (must be maintained separately), manual tagging (error-prone). |
 | Migration framework | Schema-versioned backups with sequential migration runner. `v1.json` defines the baseline schema; `migrate.sh` runs vN-to-vN+1 scripts in order when restoring from an older backup. Enables safe evolution of the backup format without breaking restores. | Single-format backups (breaks on schema changes), no migration (forces manual recovery). |
 | Toolkit integrity check | Session-start verifies repo completeness, auto-repairs identical copies to symlinks, warns about modified copies. Prevents silent drift between installed copies and toolkit source. | Post-install-only check (misses runtime drift), no check (silent failures as seen in pre-v2.4 installs). |
@@ -73,7 +73,7 @@ The hook fires on every PostToolUse for Write/Edit but immediately exits if the 
 | CLAUDE.md | `*CLAUDE.md` |
 | Settings | `*settings.json`, `*settings.local.json`, `*keybindings.json` |
 | MCP config | `*mcp.json` |
-| Hook scripts | `*git-sync.sh`, `*drive-archive.sh`, `*write-guard.sh`, `*check-inbox.sh`, `*statusline.sh`, `*usage-fetch.js`, `*prune-backups.sh` |
+| Hook scripts | `*git-sync.sh`, `*personal-sync.sh`, `*write-guard.sh`, `*check-inbox.sh`, `*statusline.sh`, `*usage-fetch.js`, `*prune-backups.sh` |
 | OAuth | `*gws/client_secret.json` |
 | Plugins | `*installed_plugins.json`, `*blocklist.json` |
 | Skills | `*/skills/*` |
