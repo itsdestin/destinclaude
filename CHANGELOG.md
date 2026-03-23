@@ -2,6 +2,53 @@
 
 All notable changes to DestinClaude will be documented in this file.
 
+## [2.1.0] - 2026-03-23
+
+### Added
+- **Backup System Refactor** — Shared utility library (`lib/backup-common.sh`) with debounce, logging, config reading, symlink ownership detection, and path normalization. Migration framework (`lib/migrate.sh`) with schema-versioned backups and sequential migration runner. Toolkit integrity check at session start with auto-repair of copies to symlinks.
+- **Claude's Inbox v3.0** — Complete rewrite as a provider-agnostic inbox system with 7 capture sources: Todoist, Google Drive, Gmail, Apple Notes, Apple Reminders, iCloud Drive, and local staging directory. `/todo` hook rewritten to write local files. Session-start inbox count checker across all configured providers. Journal-queue directory for cross-skill rant handoff.
+- **Post-Update Pipeline** — New `scripts/post-update.sh` with 7 automated phases: self-check, migrations, refresh (dynamic symlink creation), orphan cleanup, verify (file freshness + settings registration + feature pipeline), MCP detection, and plugin detection. `/update` skill slimmed to thin orchestrator.
+- **Worktree Guard** — New PreToolUse hook blocks git branch switches in the main plugin directory, with instructions to use git worktrees instead. String-stripping prevents false positives on commit messages.
+- **iCloud Backup Support** — Personal-sync, session-start, setup-wizard, and /restore all support iCloud as a third backend alongside Google Drive and GitHub. Multi-backend selection during setup.
+- **`/restore` Command** — Ad-hoc personal data restore from any configured backend (Drive, GitHub, iCloud) with migration check and CLAUDE.md merge prompt.
+- **Cross-Device Project Slug Rewriting** — Backup/restore system detects foreign project slugs and symlinks them into the current device's slug directory for transparent `/resume` and memory lookups.
+- **GitHub Issue Templates** — Bug report and feature request templates with area dropdowns and structured fields.
+- **GitHub Issues Migration** — All spec Planned Updates and Known Bugs sections replaced with GitHub Issues pointers (specs-system-spec v3.0).
+- **Desktop App Integration** — Bootstrap installers auto-install DestinCode desktop app. Setup wizard Phase 5b and `/update` Step 14b for desktop app management.
+
+### Changed
+- **personal-sync.sh** — Multi-backend loop replaces single Drive archive. Expanded scope to encyclopedia cache and user-created skills. Backend failure isolation. 15-minute debounce with backup-meta.json.
+- **git-sync.sh** — Removed inline Drive archive logic (moved to personal-sync). Symlink filter skips toolkit-owned files before staging.
+- **session-start.sh** — Integrity check, auto-repair copies→symlinks, multi-backend pull, migration runner, sync health warnings.
+- **Journaling Assistant** — Journal-queue directory (`~/.claude/inbox/journal-queue/`) as primary rant source before Todoist fallback.
+- **Setup Wizard** — iCloud restore phase (0C), abbreviated dependency check renamed to Phase 0D, backend multi-select during install.
+
+### Fixed
+- **Desktop App** — White screen from relative asset paths, broken sessions from Electron node path resolution, worker spawn error handling, IPC send guards against closed channels.
+- **Execute Permissions** — All `.sh` files set to 100755 in git (was 100644, causing permission denied on macOS/Linux).
+- **Orphan Skill Cleanup** — Update command now prunes deleted modules (was only pruning hooks).
+- **Phase Functions** — `return 1` instead of `exit 1` so post-update curated sequence continues to next phase.
+- **macOS Portability** — Date ordering (BSD `-r` before GNU `-d`), python3 fallback for `readlink -f` / `realpath`, `wc -l` output trimming, portable date format in todo-capture.
+- **Windows PATH** — `node` and `gh` resolved via `which.sync()` in Electron main process.
+- **Depersonalization** — Removed private skill names from public migration plan, made encyclopedia remote path configurable, cleaned security patterns.
+- **Cross-Platform** — Install script executable guards, TMPDIR shadowing fix, post-update sort comment correction.
+
+### Removed
+- **Journal Vault** — Encryption system added then reverted (deferred to future release due to platform issues).
+- **Drive Archive in git-sync** — Replaced by personal-sync.sh multi-backend architecture.
+
+### Documentation
+- Worktree guard spec (v1.0) created
+- Backup system spec bumped to v4.0
+- Personal sync spec bumped to v2.0
+- DestinClaude spec bumped to v2.7
+- Specs system spec bumped to v3.0 (GitHub Issues migration)
+- Setup wizard spec bumped to v1.1
+- System architecture spec bumped to v1.2 (14 hooks)
+- RESTORE.md added to repo root
+- Beginner guide, quickstart, and architecture docs updated
+- Claude's Inbox inline issues migrated to GitHub Issues (#56, #57, #58)
+
 ## [2.0.0] - 2026-03-22
 
 ### Added
