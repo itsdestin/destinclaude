@@ -273,7 +273,11 @@ if [ "$DESKTOP_INSTALLED" = true ]; then
             open /Applications/DestinCode.app 2>/dev/null &
             ;;
         Linux)
-            nohup "$HOME/.local/bin/DestinCode.AppImage" >/dev/null 2>&1 &
+            if [ -x "$HOME/.local/bin/DestinCode.AppImage" ]; then
+                nohup "$HOME/.local/bin/DestinCode.AppImage" >/dev/null 2>&1 &
+            else
+                echo "  Note: DestinCode.AppImage not found or not executable. Launch Claude Code manually."
+            fi
             ;;
         MINGW*|MSYS*|CYGWIN*)
             cmd.exe /c start "" "DestinCode" 2>/dev/null &

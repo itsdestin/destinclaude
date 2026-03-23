@@ -55,8 +55,8 @@ echo ""
 echo "  Installing DestinCode $TAG for $PLATFORM..."
 
 # Create temp directory
-TMPDIR=$(mktemp -d)
-trap 'rm -rf "$TMPDIR"' EXIT
+WORK_DIR=$(mktemp -d)
+trap 'rm -rf "$WORK_DIR"' EXIT
 
 # Download the right binary
 download() {
@@ -64,7 +64,7 @@ download() {
 
   # Try gh CLI first (handles auth, cleaner)
   if command -v gh &>/dev/null; then
-    gh release download "$TAG" --repo "$REPO" --pattern "$pattern" --dir "$TMPDIR" 2>/dev/null
+    gh release download "$TAG" --repo "$REPO" --pattern "$pattern" --dir "$WORK_DIR" 2>/dev/null
     return $?
   fi
 
@@ -80,14 +80,14 @@ download() {
     return 1
   fi
 
-  curl -sL -o "$TMPDIR/$(basename "$asset_url")" "$asset_url"
+  curl -sL -o "$WORK_DIR/$(basename "$asset_url")" "$asset_url"
 }
 
 case "$PLATFORM" in
   windows)
     echo "  Downloading installer..."
     download "*.exe"
-    INSTALLER=$(find "$TMPDIR" -name "*.exe" | head -1)
+    INSTALLER=$(find "$WORK_DIR" -name "*.exe" | head -1)
     if [[ -z "$INSTALLER" ]]; then
       echo "ERROR: No .exe found in release $TAG" >&2
       exit 1
@@ -106,16 +106,16 @@ case "$PLATFORM" in
   macos)
     echo "  Downloading disk image..."
     download "*.dmg"
-    DMG=$(find "$TMPDIR" -name "*.dmg" | head -1)
+    DMG=$(find "$WORK_DIR" -name "*.dmg" | head -1)
     if [[ -z "$DMG" ]]; then
       echo "ERROR: No .dmg found in release $TAG" >&2
       exit 1
     fi
 
     echo "  Installing to /Applications..."
-    hdiutil attach "$DMG" -quiet -nobrowse -mountpoint "$TMPDIR/mnt"
-    cp -R "$TMPDIR/mnt/"*.app /Applications/
-    hdiutil detach "$TMPDIR/mnt" -quiet
+    hdiutil attach "$DMG" -quiet -nobrowse -mountpoint "$WORK_DIR/mnt"
+    cp -R "$WORK_DIR/mnt/"*.app /Applications/
+    hdiutil detach "$WORK_DIR/mnt" -quiet
 
     echo ""
     echo "  DestinCode installed to /Applications!"
@@ -128,7 +128,7 @@ case "$PLATFORM" in
   linux)
     echo "  Downloading AppImage..."
     download "*.AppImage"
-    APPIMAGE=$(find "$TMPDIR" -name "*.AppImage" | head -1)
+    APPIMAGE=$(find "$WORK_DIR" -name "*.AppImage" | head -1)
     if [[ -z "$APPIMAGE" ]]; then
       echo "ERROR: No .AppImage found in release $TAG" >&2
       exit 1
