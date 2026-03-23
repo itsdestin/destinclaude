@@ -236,30 +236,41 @@ else
 fi
 
 echo ""
+
+# --- Install DestinCode desktop app ---
+echo "  Installing DestinCode desktop app..."
+INSTALL_SCRIPT="$TOOLKIT_ROOT/desktop/scripts/install-app.sh"
+if [ -f "$INSTALL_SCRIPT" ]; then
+    bash "$INSTALL_SCRIPT" && echo "  DestinCode desktop app installed" || echo "  Desktop app install failed — you can install it later with /setup-wizard"
+else
+    echo "  Desktop app not found in toolkit — skipping"
+fi
+
 echo ""
 echo ""
 
-# Launch Claude and kick off the setup wizard automatically.
-# If stdout is a terminal we can start an interactive session right here.
-# curl|bash sets stdin to a pipe, so redirect from /dev/tty so Claude can
-# still receive keyboard input even in that case.
-if [ -t 1 ]; then
-    echo "  ====================================================="
-    echo "  |                                                   |"
-    echo "  |   Download complete! Starting setup...            |"
-    echo "  |                                                   |"
-    echo "  ====================================================="
-    echo ""
-    claude "set me up" < /dev/tty
-else
-    echo "  ====================================================="
-    echo "  |                                                   |"
-    echo "  |   Download complete!                              |"
-    echo "  |                                                   |"
-    echo "  |   Open a new terminal and run:                    |"
-    echo "  |     claude                                        |"
-    echo "  |   Then say: \"set me up\"                           |"
-    echo "  |                                                   |"
-    echo "  ====================================================="
-    echo ""
-fi
+PLATFORM=$(uname -s)
+case "$PLATFORM" in
+    Darwin)
+        LAUNCH_HINT="Launch DestinCode from Spotlight or /Applications,"
+        ;;
+    Linux)
+        LAUNCH_HINT="Launch DestinCode from your app launcher,"
+        ;;
+    *)
+        LAUNCH_HINT="Launch DestinCode from your Start Menu,"
+        ;;
+esac
+
+echo "  ====================================================="
+echo "  |                                                   |"
+echo "  |   Download complete!                              |"
+echo "  |                                                   |"
+echo "  |   $LAUNCH_HINT"
+echo "  |   then say: \"set me up\"                           |"
+echo "  |                                                   |"
+echo "  |   Or from the terminal:                           |"
+echo "  |     claude \"set me up\"                             |"
+echo "  |                                                   |"
+echo "  ====================================================="
+echo ""

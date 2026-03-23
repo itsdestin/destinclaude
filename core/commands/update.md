@@ -149,6 +149,19 @@ Check for and install updates to the DestinClaude toolkit.
 
 14. **Confirm update.** Tell the user: "Updated to LATEST_TAG. Now let me verify everything is working."
 
+14b. **DestinCode desktop app update.** Check if the desktop app directory exists and if the user has it installed:
+    ```bash
+    ls "$TOOLKIT_ROOT/desktop/scripts/install-app.sh" 2>/dev/null
+    ```
+    If it exists, ask: "Would you like to update the DestinCode desktop app to match?"
+    If yes, run:
+    ```bash
+    bash "$TOOLKIT_ROOT/desktop/scripts/install-app.sh"
+    ```
+    If the user has never installed the desktop app before, offer:
+    "The DestinCode desktop app is available — it gives you a GUI for Claude Code. Would you like to install it?"
+    If they decline, move on.
+
 15. **Post-update verification.** Run a comprehensive check of all features that depend on the hook/script distribution pipeline. This catches problems before the user discovers them in a future session.
 
     ### 15a: Hook file freshness
