@@ -2,7 +2,9 @@ import net from 'net';
 import { EventEmitter } from 'events';
 import { HookEvent } from '../shared/types';
 
-const DEFAULT_PIPE_NAME = '\\\\.\\pipe\\claude-desktop-hooks';
+const DEFAULT_PIPE_NAME = process.platform === 'win32'
+  ? '\\\\.\\pipe\\claude-desktop-hooks'
+  : '/tmp/claude-desktop-hooks.sock';
 
 export class HookRelay extends EventEmitter {
   private server: net.Server | null = null;
