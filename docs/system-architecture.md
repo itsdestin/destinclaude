@@ -107,10 +107,10 @@ The `/setup-wizard` skill is the primary entry point for both first-time install
 
 **Phase 0 — Prior use check:** The wizard's first question is whether the user has run DestinClaude before on another device. Returning users choose a backup source and enter a restore sub-flow; new users proceed to Phase 1.
 
-- **Phase 0A (GitHub restore):** Clones or pulls the user's private config repo into `~/.claude/`, rewrites hardcoded HOME paths and project slugs, and merges `mcp-servers/mcp-config.json` back into `~/.claude.json`. Then jumps to Phase 0C.
-- **Phase 0B (Drive restore):** Installs rclone if missing, configures the `gdrive:` remote, and syncs encyclopedia files, personal data (memory, CLAUDE.md, config), and conversation transcripts from Drive. Then jumps to Phase 0C.
-- **Phase 0C (abbreviated check):** Runs the same dependency checks as Phase 4 but frames them as "confirming everything your restored config needs." Skips Phase 5 (personalization) entirely since templates and config already exist from backup. Proceeds directly to Phase 6 (verification).
-- **Phase 0C (iCloud restore):** Detects the iCloud Drive folder (macOS: `~/Library/Mobile Documents/com~apple~CloudDocs/DestinClaude/`, Windows: `~/iCloudDrive/DestinClaude/`), copies personal data, and proceeds to the abbreviated dependency check.
+- **Phase 0A (GitHub restore):** Clones or pulls the user's private config repo into `~/.claude/`, rewrites hardcoded HOME paths and project slugs, and merges `mcp-servers/mcp-config.json` back into `~/.claude.json`. Then jumps to Phase 0D.
+- **Phase 0B (Drive restore):** Installs rclone if missing, configures the `gdrive:` remote, and syncs encyclopedia files, personal data (memory, CLAUDE.md, config), and conversation transcripts from Drive. Then jumps to Phase 0D.
+- **Phase 0C (iCloud restore):** Detects the iCloud Drive folder (macOS: `~/Library/Mobile Documents/com~apple~CloudDocs/DestinClaude/`, Windows: `~/iCloudDrive/DestinClaude/`), copies personal data, and proceeds to Phase 0D.
+- **Phase 0D (abbreviated dependency check):** Runs the same dependency checks as Phase 4 but frames them as "confirming everything your restored config needs." Skips Phase 5 (personalization) entirely since templates and config already exist from backup. Proceeds directly to Phase 6 (verification).
 
 **Phases 1–6 (fresh install):** Environment check → conflict resolution → layer selection → dependency install → personalization (encyclopedia templates, CLAUDE.md fragments, marketplace plugins) → verification.
 
