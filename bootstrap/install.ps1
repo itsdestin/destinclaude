@@ -123,11 +123,11 @@ if (Test-Path $toolkitDir) {
     }
     Pop-Location
 } else {
-    Write-Host "  Cloning toolkit..." -ForegroundColor Yellow
+    Write-Host "  Downloading toolkit (this may take a minute)..." -ForegroundColor Yellow
     $pluginsDir = Join-Path $HOME ".claude\plugins"
     if (-not (Test-Path $pluginsDir)) { New-Item -ItemType Directory -Path $pluginsDir -Force | Out-Null }
-    git clone https://github.com/itsdestin/destinclaude.git $toolkitDir
-    Write-Host "  Toolkit cloned" -ForegroundColor Green
+    git clone --progress https://github.com/itsdestin/destinclaude.git $toolkitDir
+    Write-Host "  Toolkit downloaded" -ForegroundColor Green
 }
 
 # --- Ensure Developer Mode is enabled (required for symlinks) ---
@@ -141,8 +141,9 @@ try {
 if ($devModeEnabled) {
     Write-Host "  Developer Mode enabled" -ForegroundColor Green
 } else {
-    Write-Host "  Enabling Developer Mode (required for symlinks)..." -ForegroundColor Yellow
-    Write-Host "  You may see a permission prompt — please approve it." -ForegroundColor Yellow
+    Write-Host "  Enabling Developer Mode — this is a safe Windows setting that" -ForegroundColor Yellow
+    Write-Host "  lets the toolkit stay up to date automatically. It doesn't" -ForegroundColor Yellow
+    Write-Host "  change how your computer works. You may see a permission prompt." -ForegroundColor Yellow
     try {
         $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
         if ($isAdmin) {
@@ -159,14 +160,16 @@ if ($devModeEnabled) {
         }
     } catch {
         Write-Host ""
-        Write-Host "  ERROR: Could not enable Developer Mode." -ForegroundColor Red
+        Write-Host "  ERROR: Could not enable Developer Mode automatically." -ForegroundColor Red
         Write-Host ""
-        Write-Host "  Developer Mode is required for symlinks, which DestinClaude" -ForegroundColor Red
-        Write-Host "  depends on. Please enable it manually:" -ForegroundColor Red
+        Write-Host "  This is a one-time Windows setting the toolkit needs. To enable" -ForegroundColor Red
+        Write-Host "  it manually:" -ForegroundColor Red
         Write-Host ""
-        Write-Host "    Settings > System > For Developers > Developer Mode" -ForegroundColor Yellow
+        Write-Host "    1. Open Settings (press Windows key, type 'Settings')" -ForegroundColor Yellow
+        Write-Host "    2. Go to System > For Developers" -ForegroundColor Yellow
+        Write-Host "    3. Turn on Developer Mode" -ForegroundColor Yellow
+        Write-Host "    4. Re-run this installer" -ForegroundColor Yellow
         Write-Host ""
-        Write-Host "  Then re-run this installer."
         exit 1
     }
 }
@@ -210,11 +213,13 @@ Write-Host ""
 
 # --- Install DestinCode desktop app ---
 Write-Host "  Installing DestinCode desktop app..." -ForegroundColor Yellow
+$desktopInstalled = $false
 $installScript = Join-Path $toolkitDir "desktop\scripts\install-app.sh"
 if (Test-Path $installScript) {
     bash $installScript
     if ($LASTEXITCODE -eq 0) {
         Write-Host "  DestinCode desktop app installed" -ForegroundColor Green
+        $desktopInstalled = $true
     } else {
         Write-Host "  Desktop app install failed — you can install it later with /setup-wizard" -ForegroundColor Yellow
     }
@@ -228,11 +233,20 @@ Write-Host "  =====================================================" -Foreground
 Write-Host "  |                                                   |" -ForegroundColor Green
 Write-Host "  |   Download complete!                              |" -ForegroundColor Green
 Write-Host "  |                                                   |" -ForegroundColor Green
-Write-Host "  |   Launch DestinCode from your Start Menu,         |" -ForegroundColor Green
-Write-Host "  |   then say: `"set me up`"                           |" -ForegroundColor Green
-Write-Host "  |                                                   |" -ForegroundColor Green
-Write-Host "  |   Or from the terminal:                           |" -ForegroundColor Green
-Write-Host "  |     claude `"set me up`"                             |" -ForegroundColor Green
+Write-Host "  |   Start a conversation and say: `"set me up`"       |" -ForegroundColor Green
 Write-Host "  |                                                   |" -ForegroundColor Green
 Write-Host "  =====================================================" -ForegroundColor Green
 Write-Host ""
+
+# --- Auto-launch the app ---
+if ($desktopInstalled) {
+    Write-Host "  Launching DestinCode..." -ForegroundColor Green
+    Start-Process "DestinCode" -ErrorAction SilentlyContinue
+} else {
+    Write-Host "  Launching Claude Code..." -ForegroundColor Green
+    try {
+        & claude
+    } catch {
+        Write-Host "  Could not launch Claude Code. Open it manually and say: `"set me up`"" -ForegroundColor Yellow
+    }
+}

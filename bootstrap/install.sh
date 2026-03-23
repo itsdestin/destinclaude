@@ -24,8 +24,9 @@ if [[ "$OS" == "windows" ]]; then
     # Developer Mode is required for symlinks on Windows — no fallback to copies.
     DEV_MODE=$(reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock" /v AllowDevelopmentWithoutDevLicense 2>/dev/null | grep -o "0x1" || true)
     if [[ -z "$DEV_MODE" ]]; then
-        echo "  Developer Mode is required but not enabled."
-        echo "  Attempting to enable it now (you may see a permission prompt)..."
+        echo "  Enabling Developer Mode — this is a safe Windows setting that"
+        echo "  lets the toolkit stay up to date automatically. It doesn't"
+        echo "  change how your computer works. You may see a permission prompt."
         echo ""
         if powershell.exe -Command "Start-Process powershell -ArgumentList '-Command','Set-ItemProperty -Path HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\AppModelUnlock -Name AllowDevelopmentWithoutDevLicense -Value 1 -Type DWord' -Verb RunAs -Wait" 2>/dev/null; then
             # Verify it worked
@@ -38,15 +39,15 @@ if [[ "$OS" == "windows" ]]; then
         fi
         if [[ -z "$DEV_MODE" ]]; then
             echo ""
-            echo "  ERROR: Could not enable Developer Mode."
+            echo "  ERROR: Could not enable Developer Mode automatically."
             echo ""
-            echo "  Developer Mode is required for symlinks, which DestinClaude"
-            echo "  depends on. Please enable it manually:"
+            echo "  This is a one-time Windows setting the toolkit needs. To enable"
+            echo "  it manually:"
             echo ""
-            echo "    Settings > System > For Developers > Developer Mode"
-            echo ""
-            echo "  Or use the PowerShell installer which handles this automatically:"
-            echo "    powershell -ExecutionPolicy Bypass -File install.ps1"
+            echo "    1. Open Settings (press Windows key, type 'Settings')"
+            echo "    2. Go to System > For Developers"
+            echo "    3. Turn on Developer Mode"
+            echo "    4. Re-run this installer"
             echo ""
             exit 1
         fi
@@ -180,10 +181,10 @@ if [ -d "$TOOLKIT_DIR" ]; then
         echo "  Toolkit update skipped (local changes present)"
     fi
 else
-    echo "  Cloning toolkit..."
+    echo "  Downloading toolkit (this may take a minute)..."
     mkdir -p "$HOME/.claude/plugins"
-    git clone https://github.com/itsdestin/destinclaude.git "$TOOLKIT_DIR"
-    echo "  Toolkit cloned"
+    git clone --progress https://github.com/itsdestin/destinclaude.git "$TOOLKIT_DIR"
+    echo "  Toolkit downloaded"
 fi
 
 # --- Register /setup command and wizard skill ---
@@ -224,11 +225,12 @@ else
     echo ""
     echo "  ERROR: Symlink creation failed."
     if [[ "$OS" == "windows" ]]; then
-        echo "  On Windows, ensure Developer Mode is enabled and you're"
-        echo "  running Git Bash (not cmd.exe or PowerShell)."
         echo ""
-        echo "  Or use the PowerShell installer instead:"
-        echo "    powershell -ExecutionPolicy Bypass -File install.ps1"
+        echo "  Make sure Developer Mode is turned on:"
+        echo "    1. Open Settings (press Windows key, type 'Settings')"
+        echo "    2. Go to System > For Developers"
+        echo "    3. Turn on Developer Mode"
+        echo "    4. Re-run this installer"
     else
         echo "  Check filesystem permissions and try again."
     fi
@@ -237,44 +239,47 @@ fi
 
 echo ""
 
-# --- Install DestinCode desktop app (optional) ---
+# --- Install DestinCode desktop app ---
+echo "  Installing DestinCode desktop app..."
+DESKTOP_INSTALLED=false
 INSTALL_SCRIPT="$TOOLKIT_DIR/desktop/scripts/install-app.sh"
 if [ -f "$INSTALL_SCRIPT" ]; then
-    echo "  The DestinCode desktop app is available — it gives you a GUI for Claude Code."
-    printf "  Install it now? (y/n) "
-    read -r INSTALL_DESKTOP </dev/tty 2>/dev/null || INSTALL_DESKTOP="n"
-    if [[ "$INSTALL_DESKTOP" =~ ^[Yy] ]]; then
-        bash "$INSTALL_SCRIPT" && echo "  DestinCode desktop app installed" || echo "  Desktop app install failed — you can install it later with /setup-wizard"
+    if bash "$INSTALL_SCRIPT"; then
+        echo "  DestinCode desktop app installed"
+        DESKTOP_INSTALLED=true
     else
-        echo "  Skipped — you can install it later with /setup-wizard"
+        echo "  Desktop app install failed — you can install it later with /setup-wizard"
     fi
+else
+    echo "  Desktop app not found in toolkit — skipping"
 fi
 
 echo ""
 echo ""
-
-PLATFORM=$(uname -s)
-case "$PLATFORM" in
-    Darwin)
-        LAUNCH_HINT="Launch DestinCode from Spotlight or /Applications,"
-        ;;
-    Linux)
-        LAUNCH_HINT="Launch DestinCode from your app launcher,"
-        ;;
-    *)
-        LAUNCH_HINT="Launch DestinCode from your Start Menu,"
-        ;;
-esac
-
 echo "  ====================================================="
 echo "  |                                                   |"
 echo "  |   Download complete!                              |"
 echo "  |                                                   |"
-echo "  |   $LAUNCH_HINT"
-echo "  |   then say: \"set me up\"                           |"
-echo "  |                                                   |"
-echo "  |   Or from the terminal:                           |"
-echo "  |     claude \"set me up\"                             |"
+echo "  |   Start a conversation and say: \"set me up\"       |"
 echo "  |                                                   |"
 echo "  ====================================================="
 echo ""
+
+# --- Auto-launch the app ---
+if [ "$DESKTOP_INSTALLED" = true ]; then
+    echo "  Launching DestinCode..."
+    case "$(uname -s)" in
+        Darwin)
+            open /Applications/DestinCode.app 2>/dev/null &
+            ;;
+        Linux)
+            nohup "$HOME/.local/bin/DestinCode.AppImage" >/dev/null 2>&1 &
+            ;;
+        MINGW*|MSYS*|CYGWIN*)
+            cmd.exe /c start "" "DestinCode" 2>/dev/null &
+            ;;
+    esac
+else
+    echo "  Launching Claude Code..."
+    claude 2>/dev/null || echo "  Could not launch Claude Code. Open it manually and say: \"set me up\""
+fi

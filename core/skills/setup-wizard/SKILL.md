@@ -269,8 +269,8 @@ How comfortable are you with this terminal and Claude Code?
   2. I know what I'm doing, but walk me through linking my accounts
      → Full setup wizard, standard pacing
 
-  3. I really don't need any setup help
-     → Speed run — defaults where possible, only asks what it has to
+  3. Just set everything up with defaults
+     → Installs everything, only stops for your name and sign-ins
 ```
 
 (The user may answer in plain language — "I'm terrified" maps to 1, "just set it up" maps to 3, etc.)
@@ -284,6 +284,24 @@ Map the answer to a comfort level and store in working state:
 - Option 1 → `"beginner"`
 - Option 2 → `"intermediate"`
 - Option 3 → `"power_user"`
+
+### Step 1b: Express setup (power_user only)
+
+If the user chose option 3, run an express setup that skips most interactive phases:
+
+1. **Phase 1 (Inventory):** Run silently. Only stop if conflicts are found.
+2. **Phase 2 (Conflicts):** Skip if none. Resolve any found conflicts tersely.
+3. **Phase 3 (Layers):** Auto-select all layers (Core + Life + Productivity). No question asked.
+4. **Phase 4 (Dependencies):** Install all dependencies silently. For each tool that needs a browser sign-in (GitHub, Google Drive, gcloud), open the browser without preamble — just say "Sign in to [service] in the browser that just opened." Show a single summary table at the end.
+5. **Phase 5 (Personalization):** Only ask for `USER_NAME`. Use defaults for all other template variables (`DRIVE_ROOT`: "Claude", `TODOIST_PROJECT`: "Claude's Inbox", `JOURNAL_DIR`: "journal", `ENCYCLOPEDIA_DIR`: "encyclopedia"). For `GIT_REMOTE` and `PERSONAL_SYNC_BACKEND`, skip with defaults ("none") — the user can configure these later. Run all symlink, hook, MCP, and plugin registration steps silently.
+6. **Phase 5b (Desktop App):** Install without asking if the install script exists.
+7. **Phase 6 (Verification):** Show compact pass/fail table only.
+
+After express setup, tell the user: "Express setup complete. Run `/setup-wizard` again anytime to customize settings I defaulted (like Google Drive folder name or backup preferences)."
+
+Then proceed to Phase 6 Step 6 (first-run guided experience).
+
+For options 1 and 2, proceed to Phase 1 normally (no express setup).
 
 ### Step 2: Activate output style immediately
 
@@ -580,16 +598,12 @@ If missing:
 
 After install, sign in to GitHub:
 
-1. Run `gh auth login`
-2. Tell the user: "This will ask a few questions in the terminal, then open your browser to sign in."
-3. Walk them through each prompt:
-   - **Where do you use GitHub?** → Choose "GitHub.com"
-   - **Preferred protocol** → Choose "HTTPS"
-   - **Authenticate** → Choose "Login with a web browser"
-4. A code will appear in the terminal (like `A1B2-C3D4`). Tell the user: "Copy that code — your browser is about to open and ask for it."
-5. The browser opens to GitHub. The user pastes the code, clicks Authorize, and it's done.
-6. Verify: `gh auth status` — should show "Logged in to github.com"
-7. If it works, confirm: "GitHub is connected. You'll get toolkit updates and cloud backups of your config."
+1. Tell the user: "I'm going to sign you in to GitHub. Your browser will open — just sign in with your GitHub account and click Authorize."
+2. Run: `gh auth login --hostname github.com --git-protocol https --web`
+   This skips all terminal prompts and goes straight to browser authentication. A one-time code will appear in the terminal output, and the browser opens automatically. The user signs in, enters the code, and clicks Authorize.
+3. If the browser doesn't open automatically, the terminal will print a URL and a code. Tell the user: "Copy the code shown above, then open this URL in your browser: [URL]. Paste the code and click Authorize."
+4. Verify: `gh auth status` — should show "Logged in to github.com"
+5. If it works, confirm: "GitHub is connected. You'll get toolkit updates and cloud backups of your config."
 
 #### gcloud CLI (optional)
 
@@ -609,23 +623,21 @@ If the user wants it and it's not installed:
 
 **After install, walk through sign-in step by step:**
 
-**Step 1 — Initialize gcloud:**
+**Step 1 — Sign in to Google:**
 
-Run `gcloud init`. Tell the user: "This will ask you to sign in with Google. A browser window will open."
+Tell the user: "I'm going to sign you in to Google. Your browser will open twice — once to connect the account, and once to set up automatic access for scripts and tools."
 
-Walk them through each prompt:
-- **Log in?** → Type `Y` and press Enter
-- The browser opens to Google sign-in → User signs in with their Google account and clicks Allow
-- Back in the terminal, it asks to pick a project → Tell the user: "You can press Enter to skip this — we don't need a Google Cloud project for what we're doing."
+Run: `gcloud auth login --brief`
+
+This opens the browser directly with no terminal prompts. The user signs in with their Google account and clicks Allow. The `--brief` flag suppresses the interactive project selection that isn't needed.
 
 **Step 2 — Set up app credentials:**
 
 Tell the user: "One more sign-in — this one lets scripts and tools use your Google account automatically, so you won't have to sign in again each time."
 
-Run `gcloud auth application-default login`
+Run: `gcloud auth application-default login`
 
-- The browser opens again → User signs in and clicks Allow
-- Terminal says "Credentials saved" → Done
+This also opens the browser directly — no terminal prompts. The user signs in and clicks Allow. Terminal says "Credentials saved" when done.
 
 **Step 3 — Verify it works:**
 
@@ -694,19 +706,16 @@ This will:
 
 Tell the user: "A browser window should open. Sign in with the Google account that has the Drive you want to use, then click Allow."
 
-If the direct command doesn't work and you need to fall back to `rclone config` (interactive mode), walk the user through it:
-- **n** for new remote
-- Name: **gdrive**
-- Storage type: Don't ask the user to find a number in the list — it changes between versions. Instead, tell them: "Type `drive` and press Enter — that filters the list to just Google Drive." If that doesn't work, run `rclone config | grep -n "Google Drive"` in a separate terminal to find the number, then tell the user which number to type.
-- **client_id** → press Enter (leave blank)
-- **client_secret** → press Enter (leave blank)
-- **scope** → type **1** (full access)
-- **service_account_file** → press Enter (leave blank)
-- **Edit advanced config?** → **n**
-- **Use auto config?** → **y** (opens browser)
-- After browser sign-in: **y** to confirm
+If the command fails, try deleting any partial config and retrying:
 
-If the browser doesn't open automatically (common on remote/headless Linux), rclone will print a URL and ask for a verification code. Tell the user: "Copy that URL, open it in a browser, sign in, and paste the code it gives you back here."
+```bash
+rclone config delete gdrive 2>/dev/null
+rclone config create gdrive drive
+```
+
+If it still fails, tell the user: "Google Drive setup didn't work on this attempt. No worries — everything else in the toolkit will work fine without it. You can try again later by telling Claude 'help me set up Google Drive' in a future session."
+
+Do NOT fall back to the interactive `rclone config` command — it requires terminal interaction that can't be driven from within Claude Code.
 
 **Step 3 — Verify:**
 
@@ -849,16 +858,9 @@ If they don't use Todoist: "No problem — skip this. You can always set it up l
 
 If they do use Todoist:
 
-1. Tell them: "I need an API token — it's like a password that lets Claude talk to your Todoist account."
-2. Walk them to it step by step:
-   - "Open todoist.com in your browser and sign in"
-   - "Click your profile picture in the top-left corner"
-   - "Click **Settings**"
-   - "Click **Integrations** in the left sidebar"
-   - "Scroll down to **Developer** and click it"
-   - "You'll see an **API token** — it's a long string of letters and numbers. Copy it and paste it here."
-3. The Todoist MCP server handles authentication through its own OAuth flow when Claude first connects — no API token is needed.
-4. Confirm: "Todoist will be connected via MCP! You can say things like 'what's on my todo list?' or 'add a task to buy groceries.'"
+1. Tell them: "Great — I'll register the Todoist connection now. The first time Claude tries to use it, your browser will open and ask you to sign in to Todoist and authorize access. No setup needed on your end."
+2. Record `todoist_selected: true` in config so Phase 5 registers the MCP server.
+3. Confirm: "Todoist will be connected via MCP! You can say things like 'what's on my todo list?' or 'add a task to buy groceries.'"
 
 ### Summary
 
