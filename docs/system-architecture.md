@@ -47,6 +47,8 @@ Hooks are bash scripts that run automatically in response to Claude Code events.
 
 The life layer adds `sync-encyclopedia.sh` (rclone-based Google Drive sync for encyclopedia files).
 
+**File permissions:** All `.sh` hook scripts must be committed with the execute bit set (`100755` in git). Without this, macOS and Linux users get "Permission denied" errors when Claude Code invokes the hooks. Windows git does not enforce file permissions, so this is invisible during development on Windows — always verify with `git ls-files -s core/hooks/*.sh` before releasing. Use `git update-index --chmod=+x <file>` on Windows to set the bit.
+
 ## Specs System
 
 Specs are structured documentation files that describe features with enough detail that a future Claude session can modify them correctly. They follow a three-tier hierarchy:
@@ -241,4 +243,5 @@ For detailed guidance on each component type, ask Claude: "How do I create a new
 7. **Update `core/specs/INDEX.md`** if a spec was added, removed, or had its version bumped.
 8. **Grep for stale references** to anything you renamed or removed — check specs, SKILL.md files, hooks, commands, and docs for outdated paths, function names, or feature references.
 9. **Update `docs/system-architecture.md`** if the change affects the architecture (new hook, new layer component, changed data flow).
-10. **Offer to create a spec** if you created a new feature with behavior or workflow logic that a future session would need to understand to modify correctly.
+10. **Verify file permissions** for any new or modified `.sh` scripts. All shell scripts must be `100755` (executable) in git, not `100644`. On Windows, use `git update-index --chmod=+x <file>` since `chmod` has no effect. On macOS/Linux, use `chmod +x <file> && git add <file>`. Check with `git ls-files -s <file>` — the first column must be `100755`. Without this, macOS/Linux users get "Permission denied" when hooks fire.
+11. **Offer to create a spec** if you created a new feature with behavior or workflow logic that a future session would need to understand to modify correctly.
