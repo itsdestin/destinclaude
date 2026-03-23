@@ -63,6 +63,22 @@ export class SessionManager extends EventEmitter {
     const session: ManagedSession = { info, worker };
     this.sessions.set(id, session);
 
+    // Handle spawn failure (e.g., node not on PATH) — without this,
+    // the unhandled 'error' event would crash the Electron main process.
+    worker.on('error', (err) => {
+      console.error(`[SessionManager] Worker spawn failed for session ${id}:`, err);
+      if (this.sessions.has(id)) {
+        this.sessions.get(id)!.info.status = 'destroyed';
+        this.sessions.delete(id);
+        this.emit('session-exit', id, 1);
+      }
+    });
+
+    // Drain stderr so the pipe buffer doesn't fill up and cause backpressure.
+    worker.stderr?.on('data', (chunk: Buffer) => {
+      console.error(`[SessionManager] Worker [${id}]:`, chunk.toString());
+    });
+
     worker.on('message', (msg: any) => {
       switch (msg.type) {
         case 'data':
