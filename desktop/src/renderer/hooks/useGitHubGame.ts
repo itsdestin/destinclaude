@@ -3,7 +3,7 @@ import { useGameDispatch, useGameState } from '../state/game-context';
 import { GitHubAPI } from '../game/github-api';
 import { GameOps } from '../game/github-game';
 
-const GITHUB_REPO = 'itsdestin/destinclaude-games';
+const GITHUB_REPO = process.env.DESTINCLAUDE_GAME_REPO || 'itsdestin/destinclaude-games';
 
 export function useGitHubGame() {
   const dispatch = useGameDispatch();

@@ -24,7 +24,7 @@ const THINKING_LINES = [
   'Embellishing',
   'Simmering',
   'Calibrating',
-  'Destining',
+  'Perplexing',
 ];
 
 export default function ThinkingIndicator() {

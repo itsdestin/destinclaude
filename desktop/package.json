@@ -11,7 +11,7 @@
     "test": "vitest"
   },
   "keywords": [],
-  "author": "Destin Coulbary",
+  "author": "itsdestin",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {

@@ -29,7 +29,7 @@
   },
   "encyclopedia-compile": {
     "displayName": "Encyclopedia Compile",
-    "description": "Build the full Encyclopedia of Destin from source files",
+    "description": "Build the full Encyclopedia from source files",
     "category": "personal",
     "prompt": "compile my encyclopedia",
     "source": "destinclaude"
@@ -48,13 +48,6 @@
     "prompt": "check my food inventory",
     "source": "destinclaude"
   },
-  "destins-writing-voice": {
-    "displayName": "Write in My Voice",
-    "description": "Draft text in your authentic writing style",
-    "category": "personal",
-    "prompt": "write in my voice",
-    "source": "destinclaude"
-  },
   "google-drive": {
     "displayName": "Google Drive",
     "description": "Upload, download, and manage files on Google Drive",
@@ -67,20 +60,6 @@
     "description": "Slides, Sheets, Gmail, Calendar, and Docs via API",
     "category": "work",
     "prompt": "/google-workspace",
-    "source": "destinclaude"
-  },
-  "elections-notebook": {
-    "displayName": "Elections Notebook",
-    "description": "Update the AZ legislative elections notebook with candidate data",
-    "category": "work",
-    "prompt": "update the elections notebook",
-    "source": "destinclaude"
-  },
-  "jlbc-fiscal-note": {
-    "displayName": "Fiscal Note",
-    "description": "Draft an AZ JLBC-style fiscal note for a bill",
-    "category": "work",
-    "prompt": "draft a fiscal note",
     "source": "destinclaude"
   },
   "code-review:code-review": {
