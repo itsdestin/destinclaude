@@ -208,7 +208,7 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
       if (!session) return state;
 
       const timeline = session.timeline.filter(
-        (e) => !(e.kind === 'prompt' && e.prompt.promptId === action.promptId),
+        (e) => !(e.kind === 'prompt' && e.prompt.promptId === action.promptId && !e.prompt.completed),
       );
 
       next.set(action.sessionId, { ...session, timeline });

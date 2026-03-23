@@ -220,14 +220,43 @@ export function registerIpcHandlers(
     sessionManager.resizeSession(sessionId, cols, rows);
   });
 
-  // Forward PTY output to renderer
+  // --- PTY output buffering ---
+  // Buffer output per-session until the renderer signals its terminal is mounted.
+  // This prevents losing the initial trust prompt on slow systems where
+  // PTY output arrives before TerminalView mounts and registers its listener.
+  const pendingOutput = new Map<string, string[]>();
+  const readySessions = new Set<string>();
+
   sessionManager.on('pty-output', (sessionId: string, data: string) => {
-    send(IPC.PTY_OUTPUT, sessionId, data);
+    if (readySessions.has(sessionId)) {
+      send(IPC.PTY_OUTPUT, sessionId, data);
+    } else {
+      let buf = pendingOutput.get(sessionId);
+      if (!buf) {
+        buf = [];
+        pendingOutput.set(sessionId, buf);
+      }
+      buf.push(data);
+    }
+  });
+
+  // Renderer signals terminal is mounted and listening
+  ipcMain.on(IPC.TERMINAL_READY, (_event, sessionId: string) => {
+    readySessions.add(sessionId);
+    const buffered = pendingOutput.get(sessionId);
+    if (buffered) {
+      for (const data of buffered) {
+        send(IPC.PTY_OUTPUT, sessionId, data);
+      }
+      pendingOutput.delete(sessionId);
+    }
   });
 
   // Forward session exit events
   sessionManager.on('session-exit', (sessionId: string) => {
     send(IPC.SESSION_DESTROYED, sessionId);
+    pendingOutput.delete(sessionId);
+    readySessions.delete(sessionId);
   });
 
   // --- Status data poller ---
