@@ -68,11 +68,25 @@ Check for and install updates to the DestinClaude toolkit.
      ln -sf "$TOOLKIT_ROOT/core/hooks/$util" ~/.claude/hooks/$util
    done
 
+   # Shared libraries
+   mkdir -p ~/.claude/hooks/lib
+   for lib in backup-common.sh migrate.sh; do
+     [ -f "$TOOLKIT_ROOT/core/hooks/lib/$lib" ] && ln -sf "$TOOLKIT_ROOT/core/hooks/lib/$lib" ~/.claude/hooks/lib/$lib
+   done
+
+   # Migration scripts
+   if [ -d "$TOOLKIT_ROOT/core/hooks/migrations" ]; then
+     mkdir -p ~/.claude/hooks/migrations
+     for migration in "$TOOLKIT_ROOT/core/hooks/migrations"/*; do
+       [ -f "$migration" ] && ln -sf "$migration" ~/.claude/hooks/migrations/$(basename "$migration")
+     done
+   fi
+
    # Statusline script (lives at ~/.claude/, not in hooks/)
    ln -sf "$TOOLKIT_ROOT/core/hooks/statusline.sh" ~/.claude/statusline.sh
 
    # Core commands
-   for cmd in setup-wizard.md contribute.md toolkit.md toolkit-uninstall.md update.md health.md; do
+   for cmd in setup-wizard.md contribute.md toolkit.md toolkit-uninstall.md update.md health.md restore.md; do
      [ -f "$TOOLKIT_ROOT/core/commands/$cmd" ] && ln -sf "$TOOLKIT_ROOT/core/commands/$cmd" ~/.claude/commands/$cmd
    done
 

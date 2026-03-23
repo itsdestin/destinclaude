@@ -36,6 +36,14 @@ Run a lightweight health check on the installed toolkit. This is the same verifi
      - Announcements: `announcement-fetch.js` is reachable (via `toolkit_root` config or as sibling)
      - Version display: `~/.claude/toolkit-state/update-status.json` exists with valid JSON
      - Rate limits: `usage-fetch.js` is reachable from where `statusline.sh` runs
+   - [ ] **Backend connectivity:** For each configured backend in `PERSONAL_SYNC_BACKEND` (comma-separated):
+     - **Drive:** `rclone lsd gdrive: 2>/dev/null` succeeds
+     - **GitHub:** `git ls-remote` on the personal-sync repo URL succeeds
+     - **iCloud:** iCloud folder exists at the configured or auto-detected path
+     If any backend is unreachable, show WARN (not FAIL — backends can be temporarily offline)
+   - [ ] **Backup schema:** If `~/.claude/backup-meta.json` exists, verify `schema_version` matches the toolkit's expected version. If it doesn't match, show WARN: "Backup schema mismatch — run /restore to migrate"
+   - [ ] **Shared libraries:** `~/.claude/hooks/lib/backup-common.sh` and `~/.claude/hooks/lib/migrate.sh` exist and resolve (if symlinks)
+   - [ ] **Migrations directory:** `~/.claude/hooks/migrations/v1.json` exists
 
    **Life (if installed):**
    - [ ] `rclone lsd gdrive:` succeeds (Google Drive connected)
