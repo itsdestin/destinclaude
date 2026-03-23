@@ -43,13 +43,9 @@ No custom scripts, no build step, no external dependencies beyond rclone.
   - `encyclopedia-librarian` (reads journal entries and system files from Drive)
   - `skill-creator` (backup snapshots include skills via the hook)
 
-## Known Bugs / Issues
+## Known Issues & Planned Updates
 
-*None currently tracked.*
-
-## Planned Updates
-
-*(None currently)*
+See [GitHub Issues](https://github.com/itsdestin/destinclaude/issues) for known issues and planned updates.
 
 ## Change Log
 

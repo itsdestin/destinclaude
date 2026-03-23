@@ -73,14 +73,9 @@ When a new skill is created via skill-creator, a first-draft spec is generated a
 - Depends on: Backup & Sync (for backup of system-level specs), CLAUDE.md (for enforcement rule)
 - Depended on by: All other features (specs are consulted before modifications)
 
-## Known Bugs / Issues
+## Known Issues & Planned Updates
 
-*None currently tracked.*
-
-## Planned Updates
-
-- **Title Case convention for UI text:** Specs that cover user-facing features (statusline, menus, notifications) should document that all displayed text must use Title Case. This convention should be part of the standard spec template guidance for any feature that surfaces text to the user.
-- **"What do we need to improve?" utility** — A tool or command that searches all specs' Planned Updates sections and aggregates them into a single prioritized list. Would give a quick overview of logged improvement ideas across the entire system.
+See [GitHub Issues](https://github.com/itsdestin/destinclaude/issues) for known issues and planned updates.
 
 ## Change Log
 

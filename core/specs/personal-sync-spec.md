@@ -187,13 +187,9 @@ If **Skip:** set `PERSONAL_SYNC_BACKEND: "none"`.
   - **Session-start hook** — calls personal-sync pull logic
   - **Setup wizard** — configures the backend choice
 
-## Known Bugs / Issues
+## Known Issues & Planned Updates
 
-- (Fixed in v1.1) **False "Not Configured" warning:** `git-sync.sh` archives to Drive on every push, but the health check only looked at `PERSONAL_SYNC_BACKEND` in config.json. If the flag was unset (e.g., manual rclone setup), the statusline showed a false DANGER warning. Fixed by adding auto-detection that probes rclone+gdrive and iCloud, then self-heals the config.
-
-## Planned Updates
-
-*None.*
+See [GitHub Issues](https://github.com/itsdestin/destinclaude/issues) for known issues and planned updates.
 
 ## Change Log
 

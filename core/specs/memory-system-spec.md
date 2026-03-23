@@ -53,13 +53,9 @@ The memory system gives Claude Code persistent context about the user across con
 - **Depends on:** Claude Code's built-in memory system (reads `MEMORY.md` into context); `git-sync.sh` hook for Git backup, with Drive archive on push.
 - **Depended on by:** All skills and workflows that need persistent user context (journaling, encyclopedia, writing voice, and optional domain-specific modules). The Encyclopedia system on Google Drive is the canonical store for biographical detail — memory just points to it.
 
-## Known Bugs / Issues
+## Known Issues & Planned Updates
 
-*None currently tracked.*
-
-## Planned Updates
-
-*(None currently)*
+See [GitHub Issues](https://github.com/itsdestin/destinclaude/issues) for known issues and planned updates.
 
 ## Change Log
 

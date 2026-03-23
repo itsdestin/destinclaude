@@ -159,16 +159,9 @@ These rules are enforced globally. Each has an authoritative spec — do NOT dup
 - **Depends on:** Git, GitHub (private repo), rclone (Drive sync), Node.js (JSON parsing in hooks), Claude Code (hook system, auto-memory, skill loading)
 - **Depended on by:** All features — this spec documents the system they operate within
 
-## Known Bugs / Issues
+## Known Issues & Planned Updates
 
-*None currently tracked.*
-
-## Planned Updates
-
-- **Layer 3 completion:** Slim CLAUDE.md to ~2KB core with pointer docs (from system overhaul design)
-- **Test infrastructure:** `tests/` directory with bash integration tests (from system overhaul Layer 6)
-- **Restore script:** Automated restore from GitHub clone (from system overhaul Layer 6)
-- **Reinforce research before new skill/feature:** Add a mandatory research-existing-solutions step to the development workflow. Currently enforced via feedback memory only — should be elevated to a CLAUDE.md rule or a required agent run during brainstorming/design sessions. (from inbox 2026-03-16)
+See [GitHub Issues](https://github.com/itsdestin/destinclaude/issues) for known issues and planned updates.
 
 ## Change Log
 

@@ -110,16 +110,9 @@ The wizard is safe to re-run. Each phase detects prior state:
 - Depends on: Claude Code (host environment), `core/templates/` (fragments, variables, spec template), `core/mcp-manifest.json` (MCP server definitions)
 - Depended on by: All other toolkit features (the wizard is the primary installation path), `/toolkit-uninstall` (reads backup manifest), `/update` (re-runs hook refresh and marketplace plugin registration)
 
-## Known Bugs / Issues
+## Known Issues & Planned Updates
 
-- iCloud restore (Phase 0, option 3) is not yet implemented — falls through to fresh install with a note
-- On Windows without Developer Mode, symlink creation fails silently — the wizard detects this and falls back to copies, but copy-based installs require re-running `/setup-wizard` after updates to refresh files
-
-## Planned Updates
-
-- **iCloud restore path** — Implement Phase 0 option 3 for users who back up to iCloud instead of GitHub/Drive
-- **Module discovery and selection** — Phase 3 currently only handles Core/Life/Productivity layers; module selection UI is not yet implemented
-- **Incremental re-run** — Detect which phases have already completed and skip them automatically, rather than relying on each phase's individual state detection
+See [GitHub Issues](https://github.com/itsdestin/destinclaude/issues) for known issues and planned updates.
 
 ## Change Log
 

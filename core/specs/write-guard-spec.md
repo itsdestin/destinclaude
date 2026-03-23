@@ -137,13 +137,9 @@ Added to `~/.claude/settings.json` (user-level settings, same file as existing h
 - [ ] Update `CLAUDE.md` — hooks section
 - [ ] Update `git-sync.sh` — restore path for new hook file
 
-## Known Bugs / Issues
+## Known Issues & Planned Updates
 
-*None currently tracked.*
-
-## Planned Updates
-
-*(None currently)*
+See [GitHub Issues](https://github.com/itsdestin/destinclaude/issues) for known issues and planned updates.
 
 ## Change Log
 

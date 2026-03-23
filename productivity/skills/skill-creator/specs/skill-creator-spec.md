@@ -121,13 +121,9 @@ skill-creator/
 - **Depends on:** Python 3 (for all scripts), `claude` CLI (`claude -p` for description optimization), subagent capability (for parallel test runs, grading, blind comparison — gracefully degrades without), browser/display (for viewer — falls back to `--static` HTML or inline presentation).
 - **Depended on by:** All other skills benefit from this skill during their creation and iteration lifecycle. Referenced in CLAUDE.md skill table. The `encyclopedia-update`, `encyclopedia-compile`, `journaling-assistant`, `encyclopedia-librarian`, `google-drive`, and `destins-writing-voice` skills were (or can be) developed and refined through this workflow.
 
-## Known Bugs / Issues
+## Known Issues & Planned Updates
 
-*None currently tracked.*
-
-## Planned Updates
-
-*(None currently)*
+See [GitHub Issues](https://github.com/itsdestin/destinclaude/issues) for known issues and planned updates.
 
 ## Change Log
 

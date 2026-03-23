@@ -181,11 +181,9 @@ Framing: rounded rect with accent-color border + subtle horizontal accent lines 
 - `gh-pages` branch exists but is not the active source
 - No custom domain configured (uses `itsdestin.github.io/destinclaude/`)
 
-## Planned Updates
+## Known Issues & Planned Updates
 
-- **Self-host integration icons** — Bundle integration tag icons as local SVGs instead of loading from Wikipedia/SimpleIcons CDN (#12 from mockup)
-- **OG image** — Create and host `og-image.png` for social sharing previews
-- **Promote mockup to live** — Replace `index.html` with `index-mockup.html` once all changes are reviewed
+See [GitHub Issues](https://github.com/itsdestin/destinclaude/issues) for known issues and planned updates.
 
 ## Changelog
 

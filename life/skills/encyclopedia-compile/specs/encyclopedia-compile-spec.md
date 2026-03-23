@@ -143,13 +143,9 @@ Issues are fixed silently — not presented for approval.
   - `encyclopedia-librarian` skill — searches the compiled Encyclopedia as one of its sources
   - Any workflow that references the user's Encyclopedia as a biographical resource
 
-## Known Bugs / Issues
+## Known Issues & Planned Updates
 
-*None currently tracked.*
-
-## Planned Updates
-
-*(None currently)*
+See [GitHub Issues](https://github.com/itsdestin/destinclaude/issues) for known issues and planned updates.
 
 ## Change Log
 

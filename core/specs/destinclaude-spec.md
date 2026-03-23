@@ -132,51 +132,9 @@ The toolkit ships CLAUDE.md fragment templates in `core/templates/claude-md-frag
 - **Depends on:** Claude Code (skill/command/hook auto-discovery, settings.json hook registration), git, Node.js, platform package manager (Homebrew on Mac)
 - **Depended on by:** All toolkit skills, hooks, and commands — this spec documents how they get installed
 
-## Known Issues
+## Known Issues & Planned Updates
 
-### MCP servers — resolved items and remaining gaps
-
-MCP server configs have been audited against the author's desktop `~/.claude.json` and ported to the toolkit:
-
-- **windows-control** — Added to setup wizard (Windows only, `uvx windows-mcp`).
-- **macos-automator, home-mcp, apple-events** — Added to setup wizard (macOS only, v1.1.0). Covers macOS desktop control.
-- **todoist** — Config verified: `"type": "http", "url": "https://ai.todoist.net/mcp"`. Works out of the box.
-- **gmessages** — Config verified. Pre-built Windows binary (`gmessages.exe`) included in repo. Setup wizard handles platform-appropriate binary name.
-
-
-Remaining gap: No Linux desktop control MCP server equivalent to `windows-control` or `macos-automator`.
-
-### `/contribute` command has no recovery path for non-technical users
-
-The `/contribute` flow involves git concepts (forks, branches, remotes, pull requests) that non-technical users can't recover from if something goes wrong mid-flow. If a fork fails, a branch checkout errors, or a push is rejected, the user may be stranded on a detached or orphan branch with no idea how to get back to a working state. The command instructs Claude to "explain what GitHub is" at the start, but the mid-flow steps (diffing against tags, checking out contribution branches, adding fork remotes) generate git output that Claude would need to interpret and recover from on behalf of the user. Needs: a clear "bail out" instruction at the top (e.g., "If anything goes wrong, type `git checkout main` to get back to safety"), and ideally a pre-flight check that verifies the repo is in a clean state before starting.
-
-### Messaging setup is the longest and most complex optional phase
-
-The messaging setup (iMessage permissions + Google Messages Go compilation) is easily the most intimidating part of the wizard for non-technical users. It involves granting macOS Full Disk Access, installing a compiler, building from source, and deferring phone pairing to a future session. This complexity is embedded in the middle of the setup wizard rather than being a separate, deferrable flow. Users who just want journaling or task management may abandon setup when confronted with "I need to install a programming language to build a text messaging server." Consider: extracting messaging into a standalone post-setup flow (e.g., "say 'set up messaging' anytime") so users can finish core setup quickly and tackle messaging later if they want it.
-
-### Hook distribution pipeline (resolved in v2.3, superseded in v2.4)
-
-The `/update` command merged new code into the repo but did NOT refresh the active hooks in `~/.claude/hooks/` or `~/.claude/statusline.sh`. On copy-based installs, hooks stayed frozen at whatever version was originally copied during setup. Fixed in v2.3 with copy-refresh mechanism. **Superseded in v2.4:** copy-based installs are no longer supported. All components must be symlinks, which inherently track the toolkit source. The copy-refresh code in `session-start.sh` was replaced with a symlink verification check that flags copies and directs users to `/health` for repair.
-
-### Copy-based installs eliminated (v2.4)
-
-Copy-based installs caused persistent, hard-to-diagnose file drift: installed copies diverged from toolkit source in both directions, user edits landed on the installed copy while toolkit updates landed on the repo copy, and bidirectional conflicts within the same skill were unresolvable. On Windows, the root cause was that Git Bash's `ln -sf` silently creates copies instead of real symlinks unless `MSYS=winsymlinks:nativestrict` is set. Fixed by: (1) requiring Developer Mode on Windows (installer enables automatically, fails if it can't), (2) setting `MSYS=winsymlinks:nativestrict` in all symlink-creating code paths, (3) removing all copy fallback code from bootstrap, setup wizard, `/update`, and `session-start.sh`, (4) adding symlink verification to `session-start.sh` that warns if copies are detected.
-
-### Other gaps
-
-- Linux desktop control MCP server equivalent to `windows-control` / `macos-automator` not yet bundled.
-
-## Planned Updates
-
-- Add Linux desktop control MCP server equivalent (Mac resolved via macos-automator/home-mcp/apple-events in v1.1.0)
-- Add recovery/bail-out instructions to `/contribute` command for non-technical users
-- Extract messaging setup from the main wizard into a standalone post-setup flow
-- Add difficulty options for install: (1) full beginner — hold my hand, (2) some experience — guidance but not every explanation, (3) expert — let's hurry this up (from inbox 2026-03-17)
-- Add clearer explanations of how to create new skills/workflows and how dynamic Claude is (from inbox 2026-03-17, partial — marketplace plugin registration resolved in v1.8)
-- ~~Add setup feature to restore configuration from Google Drive~~ (resolved in v1.1.3 — Phase 0 restore flow)
-- Add more tip prompts and hints in the first setup wizard run — mention Google Drive widget or Apple Notes widget on home screen for quick inbox capture, which can be emptied later from laptop, etc. (from inbox 2026-03-17)
-- Add iCloud support via rclone as a Drive alternative — rclone has native iCloud backend (from inbox 2026-03-17)
-- **Desktop App (Phase 2)** — Electron GUI wrapping Claude Code CLI with chat view, tool cards, approval flow, and session management UI. Phase 1 (terminal-only) complete on `DesktopApp` branch. Phase 2 adds structured chat view with message bubbles, tool card rendering from hook events, and approval buttons for blocking hooks. See `~/.claude/specs/claude-desktop-ui-spec.md` for full design.
+See [GitHub Issues](https://github.com/itsdestin/destinclaude/issues) for known issues and planned updates.
 
 ## Change Log
 

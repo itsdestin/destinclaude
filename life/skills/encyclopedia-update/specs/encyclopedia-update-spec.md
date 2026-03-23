@@ -130,13 +130,9 @@ When the skill needs prior context (contradiction verification, arc tracing), it
   - `journaling-assistant` skill (invokes this skill, then depends on updated files for future sessions)
   - `encyclopedia-interviewer` skill (delegates all modular file writes to this skill, produces entries with routing hints)
 
-## Known Bugs / Issues
+## Known Issues & Planned Updates
 
-*None currently tracked.*
-
-## Planned Updates
-
-*(None currently)*
+See [GitHub Issues](https://github.com/itsdestin/destinclaude/issues) for known issues and planned updates.
 
 ## Change Log
 

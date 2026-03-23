@@ -40,7 +40,7 @@ The `/todo <note>` command lets the user capture notes to Claude's Inbox mid-con
 | Claude Tasks section for unresolvable | Prevents inbox from becoming a permanent parking lot; dedicated section separates active inbox from parked items | Leave in inbox, separate project |
 | Newest-to-oldest processing order | Newer notes more likely to supersede older ones; matches the user's stated preference | Oldest first (v1) |
 | Google Drive Inbox for screenshots/files | Todoist file attachment URLs require web session cookies and cannot be downloaded programmatically. Screenshots and files are uploaded to `gdrive:Claude/Inbox` instead, where rclone has full authenticated access. Files are deleted from Drive after processing. | Fix Todoist auth (not possible — server-side limitation), Playwright browser login (fragile, requires credentials) |
-| Spec-routable category | Items referencing existing skills/features should be added to that feature's spec — under "Planned Updates" for improvements/ideas or "Known Bugs / Issues" for bug reports — not just parked in Claude Tasks. Captures intent where it's actionable. | Move all to Claude Tasks (loses context), create separate tracking project |
+| Spec-routable category | Items referencing existing skills/features should be added to that feature's GitHub Issues — as a planned update or bug report — not just parked in Claude Tasks. Captures intent where it's actionable. | Move all to Claude Tasks (loses context), create separate tracking project |
 | Triage unresolvables before tabling | Unresolvable items are presented to the user for routing direction before the resolution summary, not silently included with a recommendation. Prevents Claude from guessing wrong on big-ticket items. | Include in resolution table with recommendation (v2.0 approach) |
 | Grouped presentation | Resolution summary is grouped by category (Completed, Research Answers, Actions, Noise, Rants, Unresolvable) instead of one flat table. Easier to scan and approve. | Single flat table (v2.0 approach) |
 
@@ -58,17 +58,9 @@ The `/todo <note>` command lets the user capture notes to Claude's Inbox mid-con
 - **journaling-assistant skill:** Cross-skill contract — queued rants picked up via `[queued-for-journal]` comments; journaling skill checks Claude's Inbox for queued rants at session start
 - **Open Threads & Goals:** Routing now goes through journaling → encyclopedia-update chain, not direct
 
-## Known Bugs / Issues
+## Known Issues & Planned Updates
 
-1. **`/todo` command not working** — The `/todo` quick-add command (UserPromptSubmit hook at `~/.claude/hooks/todo-capture.sh`) needs fixing. *(Reported 2026-03-16)*
-
-## Planned Updates
-
-1. **Better rant/mini journal processing** — Improve how rants and short reflections are handled during inbox processing. Current flow queues them for journaling, but there may be room for lighter-weight processing (e.g., short rants that don't need a full journal session, quick reflections that could be captured as encyclopedia facts or open threads without invoking the full journaling skill). *(Added 2026-03-15 from inbox)*
-
-2. ~~**Quick-add to Claude's Inbox from Claude Code interface**~~ — **DONE (2026-03-16).** Implemented as `/todo` via UserPromptSubmit hook at `~/.claude/hooks/todo-capture.sh`. Returns systemMessage instructing Claude to use Todoist MCP tools, confirms briefly, and resumes prior task.
-
-3. **Formalize response format** — Define a strict, consistent output format for the inbox processor's resolution summary. Current format evolved organically — needs a formal spec for the grouped-by-category presentation (headers, table schemas, bullet point styles, ordering rules) so it's reproducible across sessions. *(Added 2026-03-16)*
+See [GitHub Issues](https://github.com/itsdestin/destinclaude/issues) for known issues and planned updates.
 
 ## Change Log
 

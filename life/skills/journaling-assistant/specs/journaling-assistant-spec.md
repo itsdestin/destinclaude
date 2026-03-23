@@ -116,13 +116,9 @@ Used 1-2 per session within relevant domains during Step 3. Topics include: acad
   - `encyclopedia-librarian` skill — searches journal entries produced by this skill
   - `encyclopedia-compile` skill — compiles encyclopedia from modular files that this skill triggers updates to (via encyclopedia-update)
 
-## Known Bugs / Issues
+## Known Issues & Planned Updates
 
-*None currently tracked.*
-
-## Planned Updates
-
-*(None currently)*
+See [GitHub Issues](https://github.com/itsdestin/destinclaude/issues) for known issues and planned updates.
 
 ## Change Log
 

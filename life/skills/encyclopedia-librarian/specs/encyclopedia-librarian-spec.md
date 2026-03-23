@@ -160,13 +160,9 @@ Reports can optionally be saved to `gdrive:Claude/The Journal/Librarian Reports/
   - CLAUDE.md mandates this skill as the entry point for all journal/encyclopedia/text-history searches
   - Any workflow or conversation where the user asks "what did I say about X", "search my journal", "brief me on [person]", etc.
 
-## Known Bugs / Issues
+## Known Issues & Planned Updates
 
-*None currently tracked.*
-
-## Planned Updates
-
-- **Audience-aware filtering:** When a report is about a specific individual, the Librarian should ask whether the subject(s) will be reading the report. If yes, filter out potentially embarrassing or unflattering details — harsh characterizations, recorded frustrations, candid assessments the user wouldn't say to their face — while preserving the report's usefulness. This filter would stack with the detail-level filter.
+See [GitHub Issues](https://github.com/itsdestin/destinclaude/issues) for known issues and planned updates.
 
 ## Change Log
 

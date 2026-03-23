@@ -191,6 +191,10 @@ Tips available this session:
 | `~/.claude/toolkit-state/destintip-state.json` | Auto-created at runtime | Per-user tip state (not checked into repo) |
 | `~/.claude/toolkit-state/toolkit-reminder.json` | Remove at runtime | Subsumed by DestinTip |
 
+## Known Issues & Planned Updates
+
+See [GitHub Issues](https://github.com/itsdestin/destinclaude/issues) for known issues and planned updates.
+
 ## Changelog
 
 | Version | Date | Changes |

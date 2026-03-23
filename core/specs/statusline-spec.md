@@ -110,20 +110,9 @@ A real-time information display system for Claude Code sessions. Four components
 - Depends on: git-sync.sh (writes `.sync-status`), session-start.sh (writes `update-status.json`), Node.js, Anthropic OAuth credentials (`~/.claude/.credentials.json` or macOS Keychain), Claude Code session JSON (stdin), announcement-fetch.js (writes `.announcement-cache.json`), Node.js 18+ (`fetch` built-in required for announcement-fetch.js)
 - Depended on by: CLAUDE.md Auto-Title instructions (define Claude's behavior when it sees the reminder)
 
-## Known Bugs / Issues
+## Known Issues & Planned Updates
 
-- (Fixed in v1.2) **37% miss rate:** Claude ignored Auto-Title reminders during complex tasks. Fixed by switching to Bash (eliminates Read-first friction) and adaptive throttle (2-min nag while untitled, 10-min once titled).
-- (Fixed in v1.2) **"Error writing file":** Write tool requires Read first; Claude frequently skipped the Read step. Fixed by switching to Bash echo.
-- (Fixed in v1.3) **Version never displayed:** Symlinked scripts resolved `BASH_SOURCE[0]` to `~/.claude/hooks/`, not the real file location. Upward walk for `VERSION` never reached the toolkit root. Fixed with cross-platform symlink resolution.
-- (Fixed in v1.3) **Colors not rendering on some shells:** `echo -e` is non-portable. Fixed by switching to `printf '%b\n'`.
-- (Fixed in v1.3) **macOS credential failure:** OAuth tokens stored in Keychain were inaccessible. Fixed with `execFileSync('security', ...)` fallback.
-- (Fixed in v1.5) **Spec-code mismatch on topic path:** Spec said `/tmp/claude-topics/` but code used `~/.claude/topics/` since v1.1.1 security fix. Spec now aligned with code.
-- (Fixed in v1.6) **Sibling scripts unreachable on copy-based installs:** On Windows (and any install where hooks are copies, not symlinks), `readlink -f` resolved to `~/.claude/hooks/` or `~/.claude/` but `usage-fetch.js` and `announcement-fetch.js` were only in the repo. Added config-based `toolkit_root` lookup as primary discovery path, keeping symlink resolution as fallback. Also added `announcement-fetch.js` and `usage-fetch.js` to the setup wizard's install list.
-
-## Planned Updates
-
-- **Session cost display:** The session JSON may contain cost data — could be added as a 6th statusline row if available
-- **Configurable throttle interval:** Currently hardcoded to 10 minutes; could be made configurable if sessions vary in pace
+See [GitHub Issues](https://github.com/itsdestin/destinclaude/issues) for known issues and planned updates.
 
 ## Change Log
 

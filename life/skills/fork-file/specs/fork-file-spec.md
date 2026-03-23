@@ -38,6 +38,10 @@ A food tracking skill with two components: grocery/pantry inventory management a
 - **Required:** DestinClaude core layer
 - **Optional:** `imessages` MCP server (macOS) or `gmessages` MCP server (all platforms) — needed for receipt/photo processing via text messages. Without either, only manual entry operations are available.
 
+## Known Issues & Planned Updates
+
+See [GitHub Issues](https://github.com/itsdestin/destinclaude/issues) for known issues and planned updates.
+
 ## Changelog
 
 | Version | Date | Changes |

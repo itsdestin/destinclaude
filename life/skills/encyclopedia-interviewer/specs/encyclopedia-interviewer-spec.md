@@ -107,13 +107,9 @@ Direct, neutral, no therapy/affirmations. Same rules as journaling assistant. Th
   - `journaling-assistant` skill — monthly audit hook suggests interview sessions
   - `encyclopedia-update` skill — processes interview entries with routing hints
 
-## Known Bugs / Issues
+## Known Issues & Planned Updates
 
-*None currently tracked.*
-
-## Planned Updates
-
-*(None currently)*
+See [GitHub Issues](https://github.com/itsdestin/destinclaude/issues) for known issues and planned updates.
 
 ## Change Log
 

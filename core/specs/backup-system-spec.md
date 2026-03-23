@@ -128,13 +128,9 @@ The hook fires on every PostToolUse for Write/Edit but immediately exits if the 
   - **CLAUDE.md manual backup instructions** -- references the hook scripts directly and documents trigger phrases.
   - **Specs INDEX** (`~/.claude/specs/INDEX.md`) -- lists this spec.
 
-## Known Bugs / Issues
+## Known Issues & Planned Updates
 
-*None currently tracked.*
-
-## Planned Updates
-
-- **Full snapshot time estimate:** Track how long full snapshots take (start/end timestamps) and include an estimated duration in the pre-snapshot notification (e.g., "[Backup] Full snapshot starting — usually takes ~15s"). Could use a rolling average stored in a stats file.
+See [GitHub Issues](https://github.com/itsdestin/destinclaude/issues) for known issues and planned updates.
 
 ## Change Log
 

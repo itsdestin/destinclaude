@@ -113,16 +113,9 @@ This spec does NOT supersede individual skill specs. The hierarchy:
 2. **Skill specs** — skill-specific behavior, internal workflow, skill-specific mandates
 3. If a conflict exists between this spec and a skill spec, flag it for the user rather than silently resolving
 
-## Known Bugs / Issues
+## Known Issues & Planned Updates
 
-*None currently tracked.*
-
-## Planned Updates
-
-- **Monthly review sequencing:** Document the exact interaction between update's monthly review and journaling-assistant's gap audit hook — currently implicit
-- **Interview metadata schema:** Formalize the structure of the `Interview Metadata` section that interviewer produces and update consumes
-- **Deep Search approval unification:** Librarian and interviewer both have Deep Search with slightly different approval models — could be unified
-- **Todoist integration failure contract:** Update spec mentions non-blocking Todoist failures but the error reporting pattern is undefined
+See [GitHub Issues](https://github.com/itsdestin/destinclaude/issues) for known issues and planned updates.
 
 ## Change Log
 
