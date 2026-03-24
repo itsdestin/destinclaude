@@ -83,6 +83,12 @@ export function hookEventToAction(event: HookEvent): ChatAction | null {
       return { type: 'STOP', sessionId, lastAssistantMessage, timestamp };
     }
 
+    case 'PermissionExpired': {
+      const requestId = payload._requestId as string;
+      if (!requestId) return null;
+      return { type: 'PERMISSION_EXPIRED', sessionId, requestId };
+    }
+
     // SessionStart, Notification, etc. — don't affect chat state
     default:
       return null;

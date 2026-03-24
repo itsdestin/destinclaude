@@ -74,6 +74,18 @@ function createWindow() {
       mainWindow.webContents.send(IPC.HOOK_EVENT, event);
     }
   });
+
+  // Notify renderer when a permission request socket closes (timeout/killed)
+  hookRelay.on('permission-expired', (sessionId: string, requestId: string) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send(IPC.HOOK_EVENT, {
+        type: 'PermissionExpired',
+        sessionId,
+        payload: { _requestId: requestId },
+        timestamp: Date.now(),
+      });
+    }
+  });
 }
 
 app.whenReady().then(async () => {
