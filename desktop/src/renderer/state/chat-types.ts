@@ -97,6 +97,14 @@ export type ChatAction =
   | {
       type: 'THINKING_TIMEOUT';
       sessionId: string;
+    }
+  | {
+      type: 'PERMISSION_REQUEST';
+      sessionId: string;
+      toolName: string;
+      input: Record<string, unknown>;
+      requestId: string;
+      permissionSuggestions?: unknown[];
     };
 
 export type ChatState = Map<string, SessionChatState>;
