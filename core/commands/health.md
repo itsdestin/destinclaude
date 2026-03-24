@@ -29,7 +29,7 @@ Run a lightweight health check on the installed toolkit. This is the same verifi
    - [ ] Hooks are registered in `~/.claude/settings.json`
    - [ ] Statusline is configured in `~/.claude/settings.json`
    - [ ] `~/.claude/statusline.sh` exists and resolves
-   - [ ] All 14 marketplace plugins present in `~/.claude/settings.json` `enabledPlugins`
+   - [ ] All 13 marketplace plugins present in `~/.claude/settings.json` `enabledPlugins`
    - [ ] **Hook freshness:** For each hook in `~/.claude/hooks/` and `~/.claude/statusline.sh`, compare against the repo version in `<toolkit_root>/core/hooks/`. If any differ (stale copies from a previous version), show WARN with the stale file names and offer to refresh them. Also check that utility scripts (`announcement-fetch.js`, `usage-fetch.js`) are present in `~/.claude/hooks/`.
    - [ ] **Feature pipeline:** Verify the four statusline features work end-to-end:
      - Session naming: `title-update.sh` registered at `PostToolUse`, `~/.claude/topics/` directory exists
@@ -65,7 +65,6 @@ Run a lightweight health check on the installed toolkit. This is the same verifi
    code-simplifier@claude-plugins-official
    commit-commands@claude-plugins-official
    feature-dev@claude-plugins-official
-   hookify@claude-plugins-official
    skill-creator@claude-plugins-official
    explanatory-output-style@claude-plugins-official
    learning-output-style@claude-plugins-official
