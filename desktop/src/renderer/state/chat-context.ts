@@ -23,3 +23,7 @@ export function useChatState(sessionId: string): SessionChatState {
 export function useChatDispatch(): Dispatch<ChatAction> {
   return useContext(ChatDispatchContext);
 }
+
+export function useChatStateMap(): ChatState {
+  return useContext(ChatStateContext);
+}
