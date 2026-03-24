@@ -4,8 +4,29 @@
 // Communicates with the Electron main process via IPC (process.send).
 
 const pty = require('node-pty');
-let which;
-try { which = require('which'); } catch { which = null; }
+const path = require('path');
+const fs = require('fs');
+
+// Resolve a command to its absolute path by searching PATH (+ PATHEXT on Windows).
+// Uses only Node builtins — the `which` npm package is unavailable here because it
+// lives inside the asar archive, which this child process can't read.
+// On macOS/Linux, pty.spawn can resolve bare command names via execvp, but Windows
+// ConPTY cannot — it needs an absolute path. This function handles both platforms.
+function resolveCommand(cmd) {
+  // On Windows, check PATHEXT extensions (.cmd, .exe, etc.)
+  // On Unix, just check the bare name (extensions array = [''])
+  const extensions = process.platform === 'win32'
+    ? (process.env.PATHEXT || '.COM;.EXE;.BAT;.CMD').toLowerCase().split(';')
+    : [''];
+  const dirs = (process.env.PATH || '').split(path.delimiter);
+  for (const dir of dirs) {
+    for (const ext of extensions) {
+      const full = path.join(dir, cmd + ext);
+      if (fs.existsSync(full)) return full;
+    }
+  }
+  return cmd; // fallback to bare name (works on macOS/Linux via execvp)
+}
 
 let ptyProcess = null;
 
@@ -13,12 +34,7 @@ process.on('message', (msg) => {
   switch (msg.type) {
     case 'spawn': {
       // Resolve full path — node-pty on Windows needs it (no shell lookup)
-      let shell;
-      try {
-        shell = which ? which.sync(msg.command || 'claude') : (msg.command || 'claude');
-      } catch {
-        shell = msg.command || 'claude';
-      }
+      const shell = resolveCommand(msg.command || 'claude');
       const args = msg.args || [];
       ptyProcess = pty.spawn(shell, args, {
         name: 'xterm-256color',

@@ -44,11 +44,19 @@ function indentOf(line: string): number {
  * - non-empty
  * - similar indentation to the reference (within +/-2 columns)
  * - not a box-drawing or decorative line
+ * - starts with a number prefix ("1. ", "2. ", etc.)
+ *
+ * The numbered-line requirement prevents contextual text (descriptions,
+ * warnings, paths) from being collected as menu options. This is important
+ * because Ink menus in Claude Code use numbered options, and on Windows
+ * ConPTY the selector character is ">" (not "❯"), so indentation alone
+ * isn't enough to distinguish options from surrounding text.
  */
 function isOptionLine(line: string, referenceIndent: number): boolean {
   const trimmed = line.trim();
   if (!trimmed) return false;
   if (/^[─┌┐└┘│╭╮╯╰┬┴├┤┼╔╗╚╝║═]+$/.test(trimmed)) return false;
+  if (!/^\d+\.\s+/.test(trimmed)) return false;
   const indent = indentOf(line);
   return Math.abs(indent - referenceIndent) <= 2;
 }
@@ -71,13 +79,13 @@ export function parseInkSelect(screenText: string): ParsedMenu | null {
   // Find the line with the ❯ selector (search bottom-up for the most recent)
   let selectorIdx = -1;
   for (let i = lines.length - 1; i >= 0; i--) {
-    if (/^\s*❯/.test(lines[i])) { selectorIdx = i; break; }
+    if (/^\s*[❯>]/.test(lines[i])) { selectorIdx = i; break; }
   }
   if (selectorIdx < 0) return null;
 
   const selectorLine = lines[selectorIdx];
   // The selected option text is everything after ❯ and whitespace
-  const selectedText = stripNumbering(selectorLine.replace(/^\s*❯\s*/, '').trim());
+  const selectedText = stripNumbering(selectorLine.replace(/^\s*[❯>]\s*/, '').trim());
   if (!selectedText) return null;
 
   // Determine the reference indentation for non-selected options.
@@ -85,7 +93,7 @@ export function parseInkSelect(screenText: string): ParsedMenu | null {
   // Example:  "  ❯ Yes"  ->  selected indent = 4 (after ❯ + space)
   //           "    No"   ->  sibling indent = 4 (matching spaces)
   // We use the indentation of the text AFTER the ❯ to find siblings.
-  const afterSelector = selectorLine.replace(/^\s*❯/, ' ');
+  const afterSelector = selectorLine.replace(/^\s*[❯>]/, ' ');
   const referenceIndent = indentOf(afterSelector);
 
   const options: string[] = [];
@@ -118,7 +126,7 @@ export function parseInkSelect(screenText: string): ParsedMenu | null {
 
   // Extract title from lines above the menu
   const firstOptionLine = selectorIdx - selectedIndex;
-  const title = extractTitle(lines, Math.max(0, firstOptionLine), clean);
+  const title = extractTitle(lines, Math.max(0, firstOptionLine));
 
   const id = 'menu_' + options.map((o) => o.slice(0, 10)).join('_')
     .toLowerCase().replace(/[^a-z0-9_]/g, '');
@@ -126,14 +134,20 @@ export function parseInkSelect(screenText: string): ParsedMenu | null {
   return { id, title, options, selectedIndex };
 }
 
-function extractTitle(lines: string[], firstOptionLine: number, fullText: string): string {
-  const lower = fullText.toLowerCase();
+/**
+ * Extract a title for the menu by examining lines above the first option.
+ * TITLE_OVERRIDES are checked against only the nearby lines (not the full
+ * screen text) to prevent stale content from earlier prompts from matching —
+ * e.g., after answering a trust prompt, the word "trust" remains in the
+ * terminal buffer and would incorrectly title all subsequent menus.
+ */
+function extractTitle(lines: string[], firstOptionLine: number): string {
+  const searchStart = Math.max(0, firstOptionLine - 10);
+  const nearbyText = lines.slice(searchStart, firstOptionLine).join(' ').toLowerCase();
 
   for (const [keyword, title] of Object.entries(TITLE_OVERRIDES)) {
-    if (lower.includes(keyword)) return title;
+    if (nearbyText.includes(keyword)) return title;
   }
-
-  const searchStart = Math.max(0, firstOptionLine - 10);
   for (let i = firstOptionLine - 1; i >= searchStart; i--) {
     const clean = stripAnsi(lines[i]).trim();
     if (!clean) continue;
