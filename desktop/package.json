@@ -5,9 +5,9 @@
   "main": "dist/main/main.js",
   "scripts": {
     "dev": "concurrently \"npm run dev:renderer\" \"wait-on http://localhost:5173 && npm run dev:main\"",
-    "dev:main": "tsc -p tsconfig.json && cp src/main/pty-worker.js dist/main/pty-worker.js && electron .",
+    "dev:main": "tsc -p tsconfig.json && node -e \"require('fs').cpSync('src/main/pty-worker.js','dist/main/pty-worker.js')\" && electron .",
     "dev:renderer": "vite",
-    "build": "tsc && cp src/main/pty-worker.js dist/main/pty-worker.js && node -e \"require('fs').mkdirSync('dist/renderer/data',{recursive:true})\" && cp src/renderer/data/skill-registry.json dist/renderer/data/ && vite build && electron-builder",
+    "build": "tsc && node -e \"require('fs').cpSync('src/main/pty-worker.js','dist/main/pty-worker.js')\" && node -e \"require('fs').mkdirSync('dist/renderer/data',{recursive:true})\" && node -e \"require('fs').cpSync('src/renderer/data/skill-registry.json','dist/renderer/data/skill-registry.json')\" && vite build && electron-builder",
     "test": "vitest"
   },
   "keywords": [],

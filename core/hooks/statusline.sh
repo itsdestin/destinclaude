@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Claude Code status line script
 # Line 1: Session name (bold, if named)
 # Line 2: Sync status (from .sync-status file)
@@ -23,7 +23,7 @@ let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{
   }catch(e){console.error('statusline parse error: '+e.message);console.log(SEP+'unknown'+SEP+'100'+SEP)}
 })" 2>>"$HOME/.claude/statusline.log")
 
-IFS=$'\x1f' read -r SESSION_NAME MODEL REMAINING SESSION_ID <<< "$PARSED"
+IFS=$(printf '\037') read -r SESSION_NAME MODEL REMAINING SESSION_ID <<< "$PARSED"
 
 # Defaults if node failed
 MODEL=${MODEL:-unknown}

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Release script — bumps VERSION + plugin.json, adds CHANGELOG header, commits, tags, and pushes.
 # Usage: ./scripts/release.sh 1.3.0
 set -euo pipefail

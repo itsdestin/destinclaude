@@ -143,7 +143,7 @@ export function registerIpcHandlers(
 
     // Helper: infer source from filesystem path
     function inferSource(skillPath: string): 'destinclaude' | 'self' | 'plugin' {
-      const normalized = skillPath.replace(/\\/g, '/');
+      const normalized = path.normalize(skillPath).replace(/\\/g, '/').toLowerCase();
       if (normalized.includes('/plugins/destinclaude/')) return 'destinclaude';
       if (normalized.includes('/skills/') && !normalized.includes('/plugins/cache/')) return 'self';
       return 'plugin';

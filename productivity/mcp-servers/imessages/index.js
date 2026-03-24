@@ -10,6 +10,41 @@
 
 'use strict';
 
+// This MCP server only works on macOS — it reads the Messages database and
+// sends messages via AppleScript. Fail early with a clear error on other platforms.
+if (process.platform !== 'darwin') {
+  const readline = require('readline');
+  const rl = readline.createInterface({ input: process.stdin, crlfDelay: Infinity });
+  function respond(id, result) {
+    process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id, result }) + '\n');
+  }
+  function respondError(id, code, message) {
+    process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id, error: { code, message } }) + '\n');
+  }
+  rl.on('line', (line) => {
+    try {
+      const req = JSON.parse(line.trim());
+      if (req.method === 'initialize') {
+        respond(req.id, {
+          protocolVersion: '2024-11-05',
+          capabilities: { tools: {} },
+          serverInfo: { name: 'imessages', version: '1.0.0' },
+        });
+      } else if (req.method === 'tools/list') {
+        respond(req.id, { tools: [] });
+      } else if (req.method === 'tools/call') {
+        respond(req.id, {
+          content: [{ type: 'text', text: 'Error: The iMessages MCP server only works on macOS. It requires the macOS Messages database and AppleScript.' }],
+          isError: true,
+        });
+      } else if (req.id != null) {
+        respondError(req.id, -32601, `Method not found: ${req.method}`);
+      }
+    } catch {}
+  });
+  return;
+}
+
 const { spawnSync } = require('child_process');
 const path = require('path');
 const os = require('os');

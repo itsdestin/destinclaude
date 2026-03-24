@@ -24,7 +24,7 @@ if (process.platform === 'darwin') {
     `${home}/.local/bin`,         // pipx, cargo, etc.
     `${home}/.npm-global/bin`,    // npm global installs
   ];
-  process.env.PATH = `${extraPaths.join(':')}:${process.env.PATH}`;
+  process.env.PATH = `${extraPaths.join(path.delimiter)}${path.delimiter}${process.env.PATH}`;
 }
 
 const execFileAsync = promisify(execFile);
