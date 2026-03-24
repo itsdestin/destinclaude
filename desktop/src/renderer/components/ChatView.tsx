@@ -26,8 +26,14 @@ export default function ChatView({ sessionId, visible }: Props) {
     return () => { mountedRef.current = false; };
   }, []);
 
+  const hasAwaitingApproval = [...state.toolCalls.values()].some(
+    (t) => t.status === 'awaiting-approval',
+  );
+
   useEffect(() => {
-    if (state.isThinking) {
+    // Don't start the timeout when a tool is awaiting permission approval —
+    // Claude is waiting for the user, not the other way around.
+    if (state.isThinking && !hasAwaitingApproval) {
       thinkingTimerRef.current = setTimeout(() => {
         if (mountedRef.current) {
           dispatch({ type: 'THINKING_TIMEOUT', sessionId });
@@ -42,7 +48,7 @@ export default function ChatView({ sessionId, visible }: Props) {
     return () => {
       if (thinkingTimerRef.current) clearTimeout(thinkingTimerRef.current);
     };
-  }, [state.isThinking, state.lastActivityAt, sessionId, dispatch]);
+  }, [state.isThinking, state.lastActivityAt, hasAwaitingApproval, sessionId, dispatch]);
 
   // Track whether user is scrolled to bottom
   useEffect(() => {
