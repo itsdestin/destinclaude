@@ -11,6 +11,9 @@ import { IPC } from '../shared/types';
 // macOS Electron apps launched from Finder/Dock inherit a minimal PATH from
 // launchd (just /usr/bin:/bin:/usr/sbin:/sbin). Homebrew and nvm paths are
 // missing, so 'node' and 'claude' can't be found. Prepend common locations.
+// NOTE: Linux desktop environments typically inherit the user's shell PATH,
+// but some (Snap, Flatpak, certain DEs) may also strip it. If Linux users
+// report 'command not found' errors, extend this block to include linux.
 if (process.platform === 'darwin') {
   const home = os.homedir();
   const extraPaths = [

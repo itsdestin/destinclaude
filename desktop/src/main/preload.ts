@@ -91,5 +91,6 @@ contextBridge.exposeInMainWorld('claude', {
   removeAllListeners: (channel: string) =>
     ipcRenderer.removeAllListeners(channel),
   getGitHubAuth: () => ipcRenderer.invoke('github:auth'),
+  // Async IPC — renderer must await this (was sendSync before v2.2.0)
   getHomePath: (): Promise<string> => ipcRenderer.invoke('get-home-path'),
 });
