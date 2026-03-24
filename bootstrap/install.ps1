@@ -214,7 +214,7 @@ Write-Host ""
 # --- Install DestinCode desktop app ---
 Write-Host "  Installing DestinCode desktop app..." -ForegroundColor Yellow
 $desktopInstalled = $false
-$installScript = Join-Path $toolkitDir "desktop\scripts\install-app.sh"
+$installScript = (Join-Path $toolkitDir "desktop\scripts\install-app.sh") -replace '\\', '/'
 if (Test-Path $installScript) {
     bash $installScript
     if ($LASTEXITCODE -eq 0) {

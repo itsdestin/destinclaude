@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 const SETTINGS_PATH = path.join(
-  process.env.HOME || process.env.USERPROFILE,
+  require('os').homedir(),
   '.claude',
   'settings.json'
 );
@@ -11,13 +11,13 @@ const SETTINGS_PATH = path.join(
 // but Claude Code invokes relay.js externally via system node (which can't read asar).
 // Convert to the unpacked path so the hook command works at runtime.
 const rawRelayPath = path.resolve(__dirname, '..', 'hook-scripts', 'relay.js');
-const unpackedRelayPath = rawRelayPath.replace('app.asar', 'app.asar.unpacked');
+const unpackedRelayPath = rawRelayPath.replace(`app.asar${path.sep}`, `app.asar.unpacked${path.sep}`);
 // Use unpacked path if it exists, otherwise fall back to original
 const RELAY_PATH = fs.existsSync(unpackedRelayPath) ? unpackedRelayPath : rawRelayPath;
 
 // Blocking relay for PermissionRequest — holds socket open for bidirectional response
 const rawBlockingRelayPath = path.resolve(__dirname, '..', 'hook-scripts', 'relay-blocking.js');
-const unpackedBlockingRelayPath = rawBlockingRelayPath.replace('app.asar', 'app.asar.unpacked');
+const unpackedBlockingRelayPath = rawBlockingRelayPath.replace(`app.asar${path.sep}`, `app.asar.unpacked${path.sep}`);
 const BLOCKING_RELAY_PATH = fs.existsSync(unpackedBlockingRelayPath) ? unpackedBlockingRelayPath : rawBlockingRelayPath;
 
 // Fire-and-forget events use the standard relay

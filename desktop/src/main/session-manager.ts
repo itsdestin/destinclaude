@@ -49,7 +49,7 @@ export class SessionManager extends EventEmitter {
     // so that system Node.js can access it (node can't read asar files).
     let workerPath = path.join(__dirname, 'pty-worker.js');
     if (app.isPackaged) {
-      const unpackedPath = workerPath.replace('app.asar', 'app.asar.unpacked');
+      const unpackedPath = workerPath.replace(`app.asar${path.sep}`, `app.asar.unpacked${path.sep}`);
       if (fs.existsSync(unpackedPath)) {
         workerPath = unpackedPath;
       } else {

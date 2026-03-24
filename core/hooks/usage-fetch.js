@@ -3,7 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const home = process.env.USERPROFILE || process.env.HOME;
+const home = require('os').homedir();
 const credsPath = path.join(home, '.claude', '.credentials.json');
 const cachePath = path.join(home, '.claude', '.usage-cache.json');
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
@@ -26,6 +26,7 @@ try {
 } catch {
   // macOS: credentials may live in the system Keychain
   try {
+    if (process.platform !== 'darwin') throw new Error('not macOS');
     const { execFileSync } = require('child_process');
     const user = process.env.USER || process.env.USERNAME || require('os').userInfo().username;
     const raw = execFileSync(

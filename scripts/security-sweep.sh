@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Scans all files in a directory for personal/sensitive content
 # Usage: bash security-sweep.sh <directory>
 # Requires: bash (runs in Git Bash on Windows, native bash on macOS/Linux)

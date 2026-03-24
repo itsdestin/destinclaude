@@ -24,7 +24,7 @@ process.on('message', (msg) => {
         name: 'xterm-256color',
         cols: msg.cols || 120,
         rows: msg.rows || 30,
-        cwd: msg.cwd || process.env.HOME || process.env.USERPROFILE,
+        cwd: msg.cwd || require('os').homedir(),
         env: {
           ...process.env,
           // Pass our session ID so hook scripts can include it in payloads
