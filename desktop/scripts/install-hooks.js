@@ -10,8 +10,10 @@ const SETTINGS_PATH = path.join(
 // In packaged builds, __dirname points inside app.asar (which Electron can read),
 // but Claude Code invokes relay.js externally via system node (which can't read asar).
 // Convert to the unpacked path so the hook command works at runtime.
-const RELAY_PATH = path.resolve(__dirname, '..', 'hook-scripts', 'relay.js')
-  .replace('app.asar', 'app.asar.unpacked');
+const rawRelayPath = path.resolve(__dirname, '..', 'hook-scripts', 'relay.js');
+const unpackedRelayPath = rawRelayPath.replace('app.asar', 'app.asar.unpacked');
+// Use unpacked path if it exists, otherwise fall back to original
+const RELAY_PATH = fs.existsSync(unpackedRelayPath) ? unpackedRelayPath : rawRelayPath;
 
 const HOOK_EVENTS = [
   'PreToolUse',

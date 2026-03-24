@@ -1,4 +1,5 @@
 import net from 'net';
+import fs from 'fs';
 import { EventEmitter } from 'events';
 import { HookEvent } from '../shared/types';
 
@@ -33,7 +34,10 @@ export class HookRelay extends EventEmitter {
       let processed = false;
       socket.setEncoding('utf8');
 
-      socket.on('error', () => {});
+      socket.on('error', (err) => {
+        // Log connection-level errors for debugging (ECONNRESET, EPIPE, etc.)
+        console.warn('[HookRelay] Socket error:', err.message);
+      });
 
       const processPayload = (payload: string) => {
         if (processed) return;
@@ -41,8 +45,8 @@ export class HookRelay extends EventEmitter {
         try {
           const event = this.parseHookPayload(payload);
           this.emit('hook-event', event);
-        } catch {
-          // Invalid JSON — ignore
+        } catch (err: any) {
+          console.warn('[HookRelay] Invalid hook payload:', err.message);
         }
         socket.end();
       };
@@ -92,6 +96,13 @@ export class HookRelay extends EventEmitter {
   }
 
   private async forceReleasePipe(): Promise<void> {
+    // On Unix, try unlinking the stale socket file directly — this is the
+    // most reliable way to clear a dead socket from a crashed process.
+    if (process.platform !== 'win32') {
+      try { fs.unlinkSync(this.pipeName); } catch { /* may not exist */ }
+      return;
+    }
+
     // On Windows, named pipes held by dead processes can't be released by
     // client connection alone. We need to try connecting (which may error),
     // wait, and also try unlinking the pipe path as a filesystem entry.
@@ -108,22 +119,6 @@ export class HookRelay extends EventEmitter {
         setTimeout(resolve, 1000);
       });
     });
-
-    // Also try creating and immediately closing a temp server to clear the name
-    try {
-      const tempServer = net.createServer(() => {});
-      await new Promise<void>((resolve, reject) => {
-        tempServer.listen(this.pipeName, () => {
-          tempServer.close();
-          setTimeout(resolve, 500);
-        });
-        tempServer.on('error', () => {
-          setTimeout(resolve, 500);
-        });
-      });
-    } catch {
-      // Ignore — best effort
-    }
   }
 
   stop(): void {
@@ -131,6 +126,10 @@ export class HookRelay extends EventEmitter {
       this.server.close();
       this.server = null;
       this.running = false;
+    }
+    // Clean up Unix socket file
+    if (process.platform !== 'win32') {
+      try { fs.unlinkSync(this.pipeName); } catch { /* may already be gone */ }
     }
   }
 

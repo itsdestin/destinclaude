@@ -6,6 +6,9 @@ import { SessionManager } from './session-manager';
 import { HookRelay } from './hook-relay';
 import { IPC, SkillEntry } from '../shared/types';
 
+// Max age for clipboard paste images (1 hour)
+const CLIPBOARD_MAX_AGE_MS = 60 * 60 * 1000;
+
 export function registerIpcHandlers(
   ipcMain: IpcMain,
   sessionManager: SessionManager,
@@ -57,12 +60,28 @@ export function registerIpcHandlers(
     return result.canceled ? null : result.filePaths[0];
   });
 
-  // Save clipboard image to temp file
+  // Save clipboard image to temp file (with cleanup of stale files)
   ipcMain.handle(IPC.CLIPBOARD_SAVE_IMAGE, async () => {
     const img = clipboard.readImage();
     if (img.isEmpty()) return null;
     const tmpDir = path.join(os.tmpdir(), 'claude-desktop-attachments');
     fs.mkdirSync(tmpDir, { recursive: true });
+
+    // Clean up stale paste files older than 1 hour
+    try {
+      const now = Date.now();
+      for (const file of fs.readdirSync(tmpDir)) {
+        if (!file.startsWith('paste-')) continue;
+        const filePath = path.join(tmpDir, file);
+        try {
+          const stat = fs.statSync(filePath);
+          if (now - stat.mtimeMs > CLIPBOARD_MAX_AGE_MS) {
+            fs.unlinkSync(filePath);
+          }
+        } catch { /* ignore individual file errors */ }
+      }
+    } catch { /* ignore cleanup errors */ }
+
     const filename = `paste-${Date.now()}.png`;
     const filePath = path.join(tmpDir, filename);
     fs.writeFileSync(filePath, img.toPNG());
@@ -114,7 +133,9 @@ export function registerIpcHandlers(
       try {
         const devPath = path.join(__dirname, '..', '..', 'src', 'renderer', 'data', 'skill-registry.json');
         registry = JSON.parse(fs.readFileSync(devPath, 'utf8'));
-      } catch {}
+      } catch {
+        console.warn('[IPC] skill-registry.json not found in prod or dev paths');
+      }
     }
 
     const discoveredIds = new Set<string>();
@@ -293,8 +314,8 @@ export function registerIpcHandlers(
     return { usage, announcement, updateStatus, syncStatus, syncWarnings };
   }
 
-  // Push status data every 10s
-  setInterval(() => {
+  // Push status data every 10s — store handle so it can be cleared on shutdown
+  const statusInterval = setInterval(() => {
     send(IPC.STATUS_DATA, buildStatusData());
   }, 10000);
 
@@ -317,7 +338,7 @@ export function registerIpcHandlers(
   const topicDir = path.join(os.homedir(), '.claude', 'topics');
   // Maps desktop session ID → Claude Code session ID
   const sessionIdMap = new Map<string, string>();
-  const topicWatchers = new Map<string, NodeJS.Timeout>();
+  const topicWatchers = new Map<string, fs.FSWatcher | NodeJS.Timeout>();
   const lastTopics = new Map<string, string>();
 
   function readTopicFile(claudeSessionId: string): string | null {
@@ -339,7 +360,32 @@ export function registerIpcHandlers(
       send(IPC.SESSION_RENAMED, desktopId, initial);
     }
 
-    // Poll every 2s
+    const topicFilePath = path.join(topicDir, `topic-${claudeId}`);
+
+    // Prefer fs.watch for efficiency; fall back to polling if watch fails
+    // (e.g., on network filesystems or platforms with limited inotify)
+    try {
+      const watcher = fs.watch(topicFilePath, { persistent: false }, () => {
+        const topic = readTopicFile(claudeId);
+        if (topic && topic !== 'New Session' && topic !== lastTopics.get(desktopId)) {
+          lastTopics.set(desktopId, topic);
+          send(IPC.SESSION_RENAMED, desktopId, topic);
+        }
+      });
+      watcher.on('error', () => {
+        // File may not exist yet — fall back to polling
+        watcher.close();
+        startPolling(desktopId, claudeId);
+      });
+      topicWatchers.set(desktopId, watcher);
+    } catch {
+      // fs.watch not available or file doesn't exist yet — poll instead
+      startPolling(desktopId, claudeId);
+    }
+  }
+
+  function startPolling(desktopId: string, claudeId: string) {
+    if (topicWatchers.has(desktopId)) return;
     const interval = setInterval(() => {
       const topic = readTopicFile(claudeId);
       if (topic && topic !== 'New Session' && topic !== lastTopics.get(desktopId)) {
@@ -347,7 +393,6 @@ export function registerIpcHandlers(
         send(IPC.SESSION_RENAMED, desktopId, topic);
       }
     }, 2000);
-
     topicWatchers.set(desktopId, interval);
   }
 
@@ -365,12 +410,31 @@ export function registerIpcHandlers(
 
   // Stop watching when a session is destroyed
   sessionManager.on('session-exit', (sessionId: string) => {
-    const interval = topicWatchers.get(sessionId);
-    if (interval) {
-      clearInterval(interval);
+    const watcher = topicWatchers.get(sessionId);
+    if (watcher) {
+      if (typeof (watcher as fs.FSWatcher).close === 'function') {
+        (watcher as fs.FSWatcher).close();
+      } else {
+        clearInterval(watcher as NodeJS.Timeout);
+      }
       topicWatchers.delete(sessionId);
       lastTopics.delete(sessionId);
       sessionIdMap.delete(sessionId);
     }
   });
+
+  // Return cleanup function for use during app shutdown
+  return function cleanup() {
+    clearInterval(statusInterval);
+    for (const [id, watcher] of topicWatchers) {
+      if (typeof (watcher as fs.FSWatcher).close === 'function') {
+        (watcher as fs.FSWatcher).close();
+      } else {
+        clearInterval(watcher as NodeJS.Timeout);
+      }
+    }
+    topicWatchers.clear();
+    lastTopics.clear();
+    sessionIdMap.clear();
+  };
 }

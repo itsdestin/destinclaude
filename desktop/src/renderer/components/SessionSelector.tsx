@@ -18,11 +18,16 @@ interface Props {
 export default function SessionSelector({ sessions, activeSessionId, onSelectSession, onCreateSession, onCloseSession }: Props) {
   const [open, setOpen] = useState(false);
   const [showNewForm, setShowNewForm] = useState(false);
-  const [newCwd, setNewCwd] = useState(() => {
-    try { return window.claude.getHomePath(); } catch { return ''; }
-  });
+  const [newCwd, setNewCwd] = useState('');
   const [dangerous, setDangerous] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Resolve home path asynchronously on mount
+  useEffect(() => {
+    window.claude.getHomePath?.()
+      .then((home: string) => { if (home) setNewCwd(home); })
+      .catch(() => {});
+  }, []);
 
   const activeSession = sessions.find((s) => s.id === activeSessionId);
   const displayName = activeSession?.name || 'No Session';

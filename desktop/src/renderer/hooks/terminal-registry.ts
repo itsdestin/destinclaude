@@ -27,7 +27,13 @@ export function getScreenText(sessionId: string): string | null {
   const terminal = terminals.get(sessionId);
   if (!terminal) return null;
 
-  const buf = terminal.buffer.active;
+  // Guard against accessing a disposed terminal's buffer
+  let buf;
+  try {
+    buf = terminal.buffer.active;
+  } catch {
+    return null;
+  }
   const lines: string[] = [];
   let current = '';
 

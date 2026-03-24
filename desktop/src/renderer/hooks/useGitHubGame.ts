@@ -13,16 +13,28 @@ export function useGitHubGame() {
 
   // ── Initialize: get GitHub auth on mount ──
   useEffect(() => {
+    let cancelled = false;
     const w = window as any;
-    w.claude?.getGitHubAuth?.().then((auth: { token: string; username: string } | null) => {
-      if (!auth) {
-        dispatch({ type: 'GITHUB_ERROR', message: 'GitHub CLI not authenticated. Run: gh auth login' });
-        return;
-      }
-      const api = new GitHubAPI(auth.token, GITHUB_REPO);
-      opsRef.current = new GameOps(api, auth.username);
-      dispatch({ type: 'GITHUB_READY', username: auth.username });
-    });
+    w.claude?.getGitHubAuth?.()
+      .then((auth: { token: string; username: string } | null) => {
+        if (cancelled) return;
+        if (!auth) {
+          dispatch({ type: 'GITHUB_ERROR', message: 'GitHub CLI not authenticated. Run: gh auth login' });
+          return;
+        }
+        const api = new GitHubAPI(auth.token, GITHUB_REPO);
+        opsRef.current = new GameOps(api, auth.username);
+        dispatch({ type: 'GITHUB_READY', username: auth.username });
+      })
+      .catch(() => {
+        if (!cancelled) {
+          dispatch({ type: 'GITHUB_ERROR', message: 'Failed to get GitHub auth' });
+        }
+      });
+    return () => {
+      cancelled = true;
+      opsRef.current = null;
+    };
   }, [dispatch]);
 
   // ── Presence write loop (60s, while connected) ──

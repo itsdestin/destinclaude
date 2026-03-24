@@ -30,6 +30,7 @@ let ghPath = 'gh';
 try { const w = require('which'); ghPath = w.sync('gh'); } catch { /* use bare 'gh' */ }
 
 let mainWindow: BrowserWindow | null = null;
+let cleanupIpcHandlers: (() => void) | null = null;
 const sessionManager = new SessionManager();
 // Unique pipe name per launch — avoids EADDRINUSE from stale Electron processes
 const pipeName = process.platform === 'win32'
@@ -37,6 +38,9 @@ const pipeName = process.platform === 'win32'
   : path.join(os.tmpdir(), `claude-desktop-hooks-${process.pid}.sock`);
 sessionManager.setPipeName(pipeName);
 const hookRelay = new HookRelay(pipeName);
+
+// Dev server URL — configurable via env var, defaults to Vite's default
+const DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL || 'http://localhost:5173';
 
 function createWindow() {
   const iconPath = path.join(__dirname, '../../assets/icon.png');
@@ -54,12 +58,12 @@ function createWindow() {
   });
 
   if (!app.isPackaged) {
-    mainWindow.loadURL('http://localhost:5173');
+    mainWindow.loadURL(DEV_SERVER_URL);
   } else {
     mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
   }
 
-  registerIpcHandlers(ipcMain, sessionManager, mainWindow, hookRelay);
+  cleanupIpcHandlers = registerIpcHandlers(ipcMain, sessionManager, mainWindow, hookRelay);
 
   // Forward hook events to renderer
   hookRelay.on('hook-event', (event) => {
@@ -89,15 +93,21 @@ app.whenReady().then(async () => {
       const { stdout: token } = await execFileAsync(ghPath, ['auth', 'token']);
       const { stdout: username } = await execFileAsync(ghPath, ['api', 'user', '--jq', '.login']);
       return { token: token.trim(), username: username.trim() };
-    } catch {
+    } catch (err: any) {
+      // Log specific failure reason for debugging
+      if (err.code === 'ENOENT') {
+        console.warn('[GitHub Auth] gh CLI not found on PATH');
+      } else if (err.stderr?.includes('not logged in')) {
+        console.warn('[GitHub Auth] gh CLI not authenticated');
+      } else {
+        console.warn('[GitHub Auth] Failed:', err.message || err);
+      }
       return null;
     }
   });
 
-  // Expose the system home directory to the renderer
-  ipcMain.on('get-home-path', (event) => {
-    event.returnValue = os.homedir();
-  });
+  // Expose the system home directory to the renderer (async to avoid blocking)
+  ipcMain.handle('get-home-path', () => os.homedir());
 
   // Remove the default menu bar (File, Edit, View, Window, Help)
   Menu.setApplicationMenu(null);
@@ -106,6 +116,7 @@ app.whenReady().then(async () => {
 });
 
 app.on('window-all-closed', () => {
+  if (cleanupIpcHandlers) cleanupIpcHandlers();
   sessionManager.destroyAll();
   hookRelay.stop();
   app.quit();

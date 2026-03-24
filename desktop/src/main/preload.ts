@@ -91,5 +91,5 @@ contextBridge.exposeInMainWorld('claude', {
   removeAllListeners: (channel: string) =>
     ipcRenderer.removeAllListeners(channel),
   getGitHubAuth: () => ipcRenderer.invoke('github:auth'),
-  getHomePath: (): string => ipcRenderer.sendSync('get-home-path'),
+  getHomePath: (): Promise<string> => ipcRenderer.invoke('get-home-path'),
 });

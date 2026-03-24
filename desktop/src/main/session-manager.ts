@@ -49,7 +49,12 @@ export class SessionManager extends EventEmitter {
     // so that system Node.js can access it (node can't read asar files).
     let workerPath = path.join(__dirname, 'pty-worker.js');
     if (app.isPackaged) {
-      workerPath = workerPath.replace('app.asar', 'app.asar.unpacked');
+      const unpackedPath = workerPath.replace('app.asar', 'app.asar.unpacked');
+      if (fs.existsSync(unpackedPath)) {
+        workerPath = unpackedPath;
+      } else {
+        console.error(`[SessionManager] Unpacked worker not found at ${unpackedPath}, using asar path`);
+      }
     }
     // Always use system Node.js — Electron's binary can't load node-pty.
     // Resolve via which() for Windows where Electron's PATH may differ.
