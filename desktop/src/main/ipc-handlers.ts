@@ -423,6 +423,13 @@ export function registerIpcHandlers(
     }
   });
 
+  // --- Permission response (blocking hooks) ---
+  if (hookRelay) {
+    ipcMain.handle(IPC.PERMISSION_RESPOND, async (_event, requestId: string, decision: object) => {
+      return hookRelay.respond(requestId, decision);
+    });
+  }
+
   // Return cleanup function for use during app shutdown
   return function cleanup() {
     clearInterval(statusInterval);

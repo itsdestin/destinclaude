@@ -21,6 +21,7 @@ const IPC = {
   SKILLS_LIST: 'skills:list',
   OPEN_CHANGELOG: 'shell:open-changelog',
   TERMINAL_READY: 'session:terminal-ready',
+  PERMISSION_RESPOND: 'permission:respond',
 } as const;
 
 contextBridge.exposeInMainWorld('claude', {
@@ -36,6 +37,8 @@ contextBridge.exposeInMainWorld('claude', {
       ipcRenderer.send(IPC.SESSION_RESIZE, sessionId, cols, rows),
     signalReady: (sessionId: string) =>
       ipcRenderer.send(IPC.TERMINAL_READY, sessionId),
+    respondToPermission: (requestId: string, decision: object) =>
+      ipcRenderer.invoke(IPC.PERMISSION_RESPOND, requestId, decision),
   },
   on: {
     sessionCreated: (cb: (info: any) => void) => {

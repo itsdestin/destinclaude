@@ -27,8 +27,22 @@ export function hookEventToAction(event: HookEvent): ChatAction | null {
     }
 
     case 'PermissionRequest': {
-      // Handled by PTY-based prompt detection (InkSelectParser) — not hooks
-      return null;
+      const toolName = (payload.tool_name as string) || 'Unknown';
+      const toolInput = (payload.tool_input as Record<string, unknown>) || {};
+      const requestId = payload._requestId as string;
+      const permissionSuggestions = payload.permission_suggestions as unknown[] | undefined;
+
+      // Only create action if requestId is present (socket was held by HookRelay)
+      if (!requestId) return null;
+
+      return {
+        type: 'PERMISSION_REQUEST',
+        sessionId,
+        toolName,
+        input: toolInput,
+        requestId,
+        permissionSuggestions: permissionSuggestions || undefined,
+      };
     }
 
     case 'PostToolUse': {

@@ -15,11 +15,16 @@ const unpackedRelayPath = rawRelayPath.replace('app.asar', 'app.asar.unpacked');
 // Use unpacked path if it exists, otherwise fall back to original
 const RELAY_PATH = fs.existsSync(unpackedRelayPath) ? unpackedRelayPath : rawRelayPath;
 
-const HOOK_EVENTS = [
+// Blocking relay for PermissionRequest — holds socket open for bidirectional response
+const rawBlockingRelayPath = path.resolve(__dirname, '..', 'hook-scripts', 'relay-blocking.js');
+const unpackedBlockingRelayPath = rawBlockingRelayPath.replace('app.asar', 'app.asar.unpacked');
+const BLOCKING_RELAY_PATH = fs.existsSync(unpackedBlockingRelayPath) ? unpackedBlockingRelayPath : rawBlockingRelayPath;
+
+// Fire-and-forget events use the standard relay
+const FIRE_AND_FORGET_EVENTS = [
   'PreToolUse',
   'PostToolUse',
   'PostToolUseFailure',
-  'PermissionRequest',
   'Stop',
   'UserPromptSubmit',
   'SessionStart',
@@ -39,12 +44,12 @@ function installHooks() {
     settings.hooks = {};
   }
 
-  for (const event of HOOK_EVENTS) {
+  // Register fire-and-forget events with standard relay
+  for (const event of FIRE_AND_FORGET_EVENTS) {
     if (!settings.hooks[event]) {
       settings.hooks[event] = [];
     }
 
-    // Check if our relay is already registered
     const hasRelay = settings.hooks[event].some((matcher) =>
       matcher.hooks?.some((h) => h.command?.includes('relay.js'))
     );
@@ -63,8 +68,35 @@ function installHooks() {
     }
   }
 
+  // Register PermissionRequest with blocking relay (longer timeout for user response)
+  if (!settings.hooks['PermissionRequest']) {
+    settings.hooks['PermissionRequest'] = [];
+  }
+
+  const hasBlockingRelay = settings.hooks['PermissionRequest'].some((matcher) =>
+    matcher.hooks?.some((h) => h.command?.includes('relay-blocking.js'))
+  );
+
+  if (!hasBlockingRelay) {
+    // Remove any old fire-and-forget relay for PermissionRequest
+    settings.hooks['PermissionRequest'] = settings.hooks['PermissionRequest'].filter((matcher) =>
+      !matcher.hooks?.some((h) => h.command?.includes('relay.js') && !h.command?.includes('relay-blocking.js'))
+    );
+
+    settings.hooks['PermissionRequest'].push({
+      matcher: '',
+      hooks: [
+        {
+          type: 'command',
+          command: 'node "' + BLOCKING_RELAY_PATH + '"',
+          timeout: 300,
+        },
+      ],
+    });
+  }
+
   fs.writeFileSync(SETTINGS_PATH, JSON.stringify(settings, null, 2));
-  console.log('Hooks installed for ' + HOOK_EVENTS.length + ' events');
+  console.log('Hooks installed for ' + FIRE_AND_FORGET_EVENTS.length + ' fire-and-forget events + PermissionRequest (blocking)');
 }
 
 installHooks();

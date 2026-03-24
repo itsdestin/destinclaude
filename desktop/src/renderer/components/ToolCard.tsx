@@ -81,6 +81,33 @@ export default function ToolCard({ tool }: Props) {
         </svg>
       </button>
 
+
+      {/* Permission approval buttons */}
+      {tool.status === 'awaiting-approval' && tool.requestId && (
+        <div className="flex items-center gap-2 px-3 py-2 border-t border-gray-700 bg-gray-800/30">
+          <button
+            onClick={() => (window as any).claude.session.respondToPermission(tool.requestId, { decision: { behavior: 'allow' } })}
+            className="px-3 py-1 text-xs font-medium rounded bg-green-600 hover:bg-green-500 text-white transition-colors"
+          >
+            Yes
+          </button>
+          {tool.permissionSuggestions?.length ? (
+            <button
+              onClick={() => (window as any).claude.session.respondToPermission(tool.requestId, { decision: { behavior: 'allow' }, updatedPermissions: [tool.permissionSuggestions![0]] })}
+              className="px-3 py-1 text-xs font-medium rounded bg-blue-600 hover:bg-blue-500 text-white transition-colors"
+            >
+              Always Allow
+            </button>
+          ) : null}
+          <button
+            onClick={() => (window as any).claude.session.respondToPermission(tool.requestId, { decision: { behavior: 'deny' } })}
+            className="px-3 py-1 text-xs font-medium rounded bg-red-600 hover:bg-red-500 text-white transition-colors"
+          >
+            No
+          </button>
+        </div>
+      )}
+
       {/* Expanded details */}
       {expanded && (
         <div className="px-3 pb-3 border-t border-gray-700 pt-2 space-y-2">

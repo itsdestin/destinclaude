@@ -114,6 +114,11 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
         });
       }
 
+      // Clean up any orphaned permission socket
+      if (existing?.requestId && typeof window !== 'undefined' && (window as any).claude?.session?.respondToPermission) {
+        (window as any).claude.session.respondToPermission(existing.requestId, {});
+      }
+
       next.set(action.sessionId, { ...session, toolCalls, lastActivityAt: Date.now() });
       return next;
     }
@@ -128,6 +133,11 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
         toolCalls.set(action.toolUseId, {
           ...existing, status: 'failed', error: action.error,
         });
+      }
+
+      // Clean up any orphaned permission socket
+      if (existing?.requestId && typeof window !== 'undefined' && (window as any).claude?.session?.respondToPermission) {
+        (window as any).claude.session.respondToPermission(existing.requestId, {});
       }
 
       next.set(action.sessionId, { ...session, toolCalls, lastActivityAt: Date.now() });
@@ -233,6 +243,31 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
         streamingText: '',
         currentGroupId: null,
       });
+      return next;
+    }
+
+    case 'PERMISSION_REQUEST': {
+      const session = next.get(action.sessionId);
+      if (!session) return state;
+
+      // Find the last running tool and transition to awaiting-approval
+      const toolCalls = new Map(session.toolCalls);
+      let found = false;
+      for (const [id, tool] of toolCalls) {
+        if (tool.status === 'running') {
+          toolCalls.set(id, {
+            ...tool,
+            status: 'awaiting-approval',
+            requestId: action.requestId,
+            permissionSuggestions: action.permissionSuggestions,
+          });
+          found = true;
+          break;
+        }
+      }
+
+      if (!found) return state;
+      next.set(action.sessionId, { ...session, toolCalls });
       return next;
     }
 
