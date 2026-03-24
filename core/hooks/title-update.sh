@@ -24,6 +24,7 @@ if [ ! -f "$PRUNE_MARKER" ]; then
     DO_PRUNE=true
 else
     LAST_PRUNE=$(head -1 "$PRUNE_MARKER" 2>/dev/null)
+    [[ ! "$LAST_PRUNE" =~ ^[0-9]+$ ]] && LAST_PRUNE=0
     if [ $((NOW - ${LAST_PRUNE:-0})) -ge 86400 ]; then
         DO_PRUNE=true
     fi

@@ -60,7 +60,7 @@ function installHooks() {
         hooks: [
           {
             type: 'command',
-            command: 'node "' + RELAY_PATH + '"',
+            command: `node ${JSON.stringify(RELAY_PATH)}`,
             timeout: 10,
           },
         ],
@@ -88,7 +88,7 @@ function installHooks() {
       hooks: [
         {
           type: 'command',
-          command: 'node "' + BLOCKING_RELAY_PATH + '"',
+          command: `node ${JSON.stringify(BLOCKING_RELAY_PATH)}`,
           timeout: 300,
         },
       ],

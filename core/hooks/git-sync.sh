@@ -47,6 +47,10 @@ cd "$REPO_DIR"
 
 # Detect the default branch for this repo
 PUSH_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "main")
+# Validate the detected branch exists on the remote; fall back to main if not
+if ! git rev-parse --verify "origin/$PUSH_BRANCH" &>/dev/null; then
+    PUSH_BRANCH="main"
+fi
 
 # Is this file ignored by .gitignore? If so, skip.
 if git check-ignore -q "$FILE_PATH" 2>/dev/null; then
@@ -73,7 +77,7 @@ fi
 if [[ -n "$PPID" ]]; then
     CONTENT_HASH=""
     if [[ -f "$FILE_PATH" ]]; then
-        CONTENT_HASH=$( (sha256sum "$FILE_PATH" 2>/dev/null || shasum -a 256 "$FILE_PATH" 2>/dev/null) | cut -c1-16)
+        CONTENT_HASH=$( (sha256sum "$FILE_PATH" 2>/dev/null || shasum -a 256 "$FILE_PATH" 2>/dev/null) | awk '{print substr($1,1,16)}')
     fi
     TIMESTAMP=$(date +%s)
 

@@ -2,6 +2,10 @@
 # Hook: UserPromptSubmit — capture /todo notes to local inbox
 set -euo pipefail
 
+if ! command -v jq &>/dev/null; then
+  exit 0
+fi
+
 input=$(cat)
 prompt=$(echo "$input" | jq -r '.user_prompt // ""')
 

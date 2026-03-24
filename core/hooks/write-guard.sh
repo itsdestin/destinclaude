@@ -102,7 +102,7 @@ fi
 # Detects third-party modifications (manual edits, other tools) since the registry entry
 BLOCK_REASON="another active Claude session"
 if [ -f "$FILE_PATH" ]; then
-    CURRENT_HASH=$( (sha256sum "$FILE_PATH" 2>/dev/null || shasum -a 256 "$FILE_PATH" 2>/dev/null) | cut -c1-16)
+    CURRENT_HASH=$( (sha256sum "$FILE_PATH" 2>/dev/null || shasum -a 256 "$FILE_PATH" 2>/dev/null) | awk '{print substr($1,1,16)}')
     if [ "$CURRENT_HASH" != "$REG_HASH" ]; then
         BLOCK_REASON="another active Claude session (file also modified externally since their last write)"
     fi

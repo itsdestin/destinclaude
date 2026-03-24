@@ -26,14 +26,19 @@ type GMClient struct {
 	connected   bool
 	paired      bool
 	myParticipantIDs map[string]bool // participant IDs that belong to "me"
+	ctx              context.Context
+	cancel           context.CancelFunc
 }
 
 // NewGMClient creates a new client. If a saved session exists, loads it.
 func NewGMClient(logger zerolog.Logger, store *Store) (*GMClient, error) {
+	ctx, cancel := context.WithCancel(context.Background())
 	gm := &GMClient{
 		logger:           logger,
 		store:            store,
 		myParticipantIDs: make(map[string]bool),
+		ctx:              ctx,
+		cancel:           cancel,
 	}
 
 	auth, err := LoadSession()
@@ -133,8 +138,9 @@ func (gm *GMClient) Connect() error {
 	return nil
 }
 
-// Disconnect cleanly disconnects.
+// Disconnect cleanly disconnects and cancels background goroutines.
 func (gm *GMClient) Disconnect() {
+	gm.cancel()
 	gm.client.Disconnect()
 	gm.mu.Lock()
 	gm.connected = false
@@ -396,7 +402,11 @@ func (gm *GMClient) storeMessage(msg *gmproto.Message) {
 func (gm *GMClient) reconnect() {
 	delays := []time.Duration{5 * time.Second, 15 * time.Second, 30 * time.Second, 60 * time.Second}
 	for i, delay := range delays {
-		time.Sleep(delay)
+		select {
+		case <-gm.ctx.Done():
+			return
+		case <-time.After(delay):
+		}
 		gm.logger.Info().Int("attempt", i+1).Msg("attempting reconnect")
 		if err := gm.client.Connect(); err == nil {
 			gm.mu.Lock()
@@ -420,7 +430,11 @@ func (gm *GMClient) reauthWithBackoff() {
 		5 * time.Minute,
 	}
 	for i, delay := range delays {
-		time.Sleep(delay)
+		select {
+		case <-gm.ctx.Done():
+			return
+		case <-time.After(delay):
+		}
 		gm.logger.Info().Int("attempt", i+1).Msg("attempting cookie re-auth")
 
 		cookies, err := LoadCookies()

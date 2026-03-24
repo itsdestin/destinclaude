@@ -73,9 +73,11 @@ export class HookRelay extends EventEmitter {
 
       socket.on('data', (chunk) => {
         data += chunk;
-        const nlIndex = data.indexOf('\n');
-        if (nlIndex >= 0) {
+        // Process all complete newline-delimited messages in the buffer
+        let nlIndex: number;
+        while ((nlIndex = data.indexOf('\n')) >= 0) {
           processPayload(data.substring(0, nlIndex));
+          data = data.substring(nlIndex + 1);
         }
       });
 

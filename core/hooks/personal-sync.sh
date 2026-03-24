@@ -212,7 +212,7 @@ sync_github() {
                 mkdir -p "$REPO_DIR/skills/$skill_name"
                 # Note: cp -r dereferences symlinks within user skills. If a skill
                 # contains internal symlinks, the backup will contain copies instead.
-                cp -r "$skill_dir"* "$REPO_DIR/skills/$skill_name/" 2>/dev/null || true
+                cp -r "$skill_dir"/* "$REPO_DIR/skills/$skill_name/" 2>/dev/null || true
             fi
         done
     fi
@@ -295,7 +295,7 @@ sync_icloud() {
                 skill_name=$(basename "$skill_dir")
                 mkdir -p "$ICLOUD_PATH/skills/$skill_name"
                 rsync -a --update "$skill_dir" "$ICLOUD_PATH/skills/$skill_name/" 2>/dev/null || \
-                    cp -r "$skill_dir"* "$ICLOUD_PATH/skills/$skill_name/" 2>/dev/null || true
+                    cp -r "$skill_dir"/* "$ICLOUD_PATH/skills/$skill_name/" 2>/dev/null || true
             fi
         done
     fi

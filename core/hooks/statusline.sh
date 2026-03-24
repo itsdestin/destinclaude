@@ -32,7 +32,7 @@ REMAINING=${REMAINING:-100}
 # Fall back to topic file if session_name is empty, default to "New Session"
 if [[ -z "$SESSION_NAME" && -n "$SESSION_ID" ]]; then
     TOPIC_FILE="$HOME/.claude/topics/topic-${SESSION_ID}"
-    if [[ -f "$TOPIC_FILE" ]]; then
+    if [[ -n "$TOPIC_FILE" && -f "$TOPIC_FILE" ]]; then
         SESSION_NAME=$(cat "$TOPIC_FILE" 2>/dev/null | tr -d '\n\r')
     fi
     SESSION_NAME="${SESSION_NAME:-New Session}"

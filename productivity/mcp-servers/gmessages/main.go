@@ -52,6 +52,7 @@ func main() {
 	if err != nil {
 		logger.Fatal().Err(err).Msg("failed to initialize store")
 	}
+	defer store.Close()
 
 	// Initialize libgm client
 	gm, err := NewGMClient(logger, store)

@@ -91,13 +91,13 @@ json_read() {
   node_file="$(to_node_path "$file")"
   node -e "
     try {
-      var d = require('fs').readFileSync('${node_file}', 'utf8');
+      var d = require('fs').readFileSync(process.argv[1], 'utf8');
       var obj = JSON.parse(d);
-      var val = obj['${key}'];
-      if (val === undefined || val === null) { process.stderr.write('key not found: ${key}\n'); process.exit(1); }
+      var val = obj[process.argv[2]];
+      if (val === undefined || val === null) { process.stderr.write('key not found: ' + process.argv[2] + '\n'); process.exit(1); }
       process.stdout.write(String(val));
     } catch(e) { process.stderr.write(e.message + '\n'); process.exit(1); }
-  "
+  " "$node_file" "$key"
 }
 
 # json_read_array FILE KEY
@@ -109,13 +109,13 @@ json_read_array() {
   node_file="$(to_node_path "$file")"
   node -e "
     try {
-      var d = require('fs').readFileSync('${node_file}', 'utf8');
+      var d = require('fs').readFileSync(process.argv[1], 'utf8');
       var obj = JSON.parse(d);
-      var arr = obj['${key}'];
-      if (!Array.isArray(arr)) { process.stderr.write('key is not an array: ${key}\n'); process.exit(1); }
+      var arr = obj[process.argv[2]];
+      if (!Array.isArray(arr)) { process.stderr.write('key is not an array: ' + process.argv[2] + '\n'); process.exit(1); }
       arr.forEach(function(item) { process.stdout.write(String(item) + '\n'); });
     } catch(e) { process.stderr.write(e.message + '\n'); process.exit(1); }
-  "
+  " "$node_file" "$key"
 }
 
 # =============================================================================

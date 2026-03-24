@@ -17,7 +17,7 @@ done < "$PATTERNS_FILE"
 
 found=0
 for pattern in "${patterns[@]}"; do
-    matches=$(grep -rn "$pattern" "$TARGET_DIR" \
+    matches=$(grep -rn -F "$pattern" "$TARGET_DIR" \
         --include="*.sh" --include="*.md" --include="*.json" \
         --include="*.py" --include="*.go" --include="*.js" \
         --include="*.yaml" --include="*.yml" --include="*.txt" \

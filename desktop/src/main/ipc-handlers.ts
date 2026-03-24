@@ -350,8 +350,11 @@ export function registerIpcHandlers(
     }
   }
 
+  const pendingWatchers = new Set<string>();
+
   function startWatching(desktopId: string, claudeId: string) {
-    if (topicWatchers.has(desktopId)) return;
+    if (topicWatchers.has(desktopId) || pendingWatchers.has(desktopId)) return;
+    pendingWatchers.add(desktopId);
 
     // Read initial value
     const initial = readTopicFile(claudeId);
@@ -378,8 +381,10 @@ export function registerIpcHandlers(
         startPolling(desktopId, claudeId);
       });
       topicWatchers.set(desktopId, watcher);
+      pendingWatchers.delete(desktopId);
     } catch {
       // fs.watch not available or file doesn't exist yet — poll instead
+      pendingWatchers.delete(desktopId);
       startPolling(desktopId, claudeId);
     }
   }

@@ -128,7 +128,9 @@ var toolDefinitions = []map[string]any{
 func handleToolCall(gm *GMClient, store *Store, name string, args json.RawMessage) (any, error) {
 	var params map[string]any
 	if len(args) > 0 {
-		json.Unmarshal(args, &params)
+		if err := json.Unmarshal(args, &params); err != nil {
+			return nil, fmt.Errorf("parse tool arguments: %w", err)
+		}
 	}
 	if params == nil {
 		params = map[string]any{}

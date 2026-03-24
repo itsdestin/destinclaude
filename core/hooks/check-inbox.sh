@@ -59,14 +59,16 @@ for provider in $providers; do
     apple-notes)
       if [[ "$PLATFORM" == "darwin" ]]; then
         notes_folder=$(cat "$CONFIG_FILE" | jq -r '.inbox_provider_config["apple-notes"].folder // "Claude"' 2>/dev/null)
-        notes_count=$(timeout 5 osascript -e "tell application \"Notes\" to count notes of folder \"$notes_folder\"" 2>/dev/null || echo 0)
+        sanitized_folder=$(printf '%s' "$notes_folder" | sed 's/\\/\\\\/g; s/"/\\"/g')
+        notes_count=$(timeout 5 osascript -e "tell application \"Notes\" to count notes of folder \"$sanitized_folder\"" 2>/dev/null || echo 0)
         count=$((count + notes_count))
       fi
       ;;
     apple-reminders)
       if [[ "$PLATFORM" == "darwin" ]]; then
         reminders_list=$(cat "$CONFIG_FILE" | jq -r '.inbox_provider_config["apple-reminders"].list // "Claude"' 2>/dev/null)
-        reminders_count=$(timeout 5 osascript -e "tell application \"Reminders\" to count (reminders of list \"$reminders_list\" whose completed is false)" 2>/dev/null || echo 0)
+        sanitized_list=$(printf '%s' "$reminders_list" | sed 's/\\/\\\\/g; s/"/\\"/g')
+        reminders_count=$(timeout 5 osascript -e "tell application \"Reminders\" to count (reminders of list \"$sanitized_list\" whose completed is false)" 2>/dev/null || echo 0)
         count=$((count + reminders_count))
       fi
       ;;

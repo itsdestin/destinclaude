@@ -56,7 +56,7 @@ echo "  Installing DestinCode $TAG for $PLATFORM..."
 
 # Create temp directory
 WORK_DIR=$(mktemp -d)
-trap 'rm -rf "$WORK_DIR"' EXIT
+trap '[[ -n "$WORK_DIR" ]] && rm -rf "$WORK_DIR"' EXIT
 
 # Download the right binary
 download() {

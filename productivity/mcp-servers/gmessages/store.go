@@ -25,6 +25,7 @@ func NewStore() (*Store, error) {
 	}
 	s := &Store{db: db}
 	if err := s.migrate(); err != nil {
+		db.Close()
 		return nil, err
 	}
 	return s, nil
@@ -62,6 +63,11 @@ func (s *Store) migrate() error {
 		);
 	`)
 	return err
+}
+
+// Close closes the underlying database connection.
+func (s *Store) Close() error {
+	return s.db.Close()
 }
 
 // UpsertParticipant stores a participant ID to name mapping.

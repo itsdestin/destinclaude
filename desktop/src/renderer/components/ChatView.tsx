@@ -21,10 +21,17 @@ export default function ChatView({ sessionId, visible }: Props) {
   // Thinking timeout — if isThinking stays true with no activity for 60s, auto-clear.
   // lastActivityAt resets the clock whenever hook events or streaming updates arrive,
   // so the warning only fires after 60s of complete silence from Claude.
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    return () => { mountedRef.current = false; };
+  }, []);
+
   useEffect(() => {
     if (state.isThinking) {
       thinkingTimerRef.current = setTimeout(() => {
-        dispatch({ type: 'THINKING_TIMEOUT', sessionId });
+        if (mountedRef.current) {
+          dispatch({ type: 'THINKING_TIMEOUT', sessionId });
+        }
       }, 60000);
     } else {
       if (thinkingTimerRef.current) {

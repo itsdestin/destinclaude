@@ -31,11 +31,19 @@ async function refreshCookies() {
       return;
     }
 
-    const resp = await fetch(ENDPOINT, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(cookieMap)
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    let resp;
+    try {
+      resp = await fetch(ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(cookieMap),
+        signal: controller.signal
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
 
     if (resp.ok) {
       console.log(`[gmessages] Pushed ${found} cookies to MCP server`);

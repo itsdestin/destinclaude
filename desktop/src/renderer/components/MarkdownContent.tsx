@@ -111,6 +111,10 @@ export default function MarkdownContent({ content }: Props) {
         },
         // -- Inline & table elements --
         a({ href, children, ...props }) {
+          const isSafeHref = href && /^(https?:|mailto:)/.test(href);
+          if (!isSafeHref) {
+            return <span className="text-[#66AAFF]">{children}</span>;
+          }
           return (
             <a
               href={href}

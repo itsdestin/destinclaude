@@ -39,6 +39,47 @@ function toolSummary(tool: ToolCallState): string {
   }
 }
 
+function PermissionButtons({ requestId, suggestions }: { requestId: string; suggestions?: string[] }) {
+  const [responding, setResponding] = useState(false);
+  const handleRespond = async (decision: object) => {
+    setResponding(true);
+    try {
+      await (window as any).claude.session.respondToPermission(requestId, decision);
+    } catch (err) {
+      console.error('Failed to respond to permission:', err);
+      setResponding(false);
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-2 px-3 py-2 border-t border-gray-700 bg-gray-800/30">
+      <button
+        disabled={responding}
+        onClick={() => handleRespond({ decision: { behavior: 'allow' } })}
+        className="px-3 py-1 text-xs font-medium rounded bg-green-600 hover:bg-green-500 text-white transition-colors disabled:opacity-50"
+      >
+        Yes
+      </button>
+      {suggestions?.length ? (
+        <button
+          disabled={responding}
+          onClick={() => handleRespond({ decision: { behavior: 'allow' }, updatedPermissions: [suggestions[0]] })}
+          className="px-3 py-1 text-xs font-medium rounded bg-blue-600 hover:bg-blue-500 text-white transition-colors disabled:opacity-50"
+        >
+          Always Allow
+        </button>
+      ) : null}
+      <button
+        disabled={responding}
+        onClick={() => handleRespond({ decision: { behavior: 'deny' } })}
+        className="px-3 py-1 text-xs font-medium rounded bg-red-600 hover:bg-red-500 text-white transition-colors disabled:opacity-50"
+      >
+        No
+      </button>
+    </div>
+  );
+}
+
 interface Props {
   tool: ToolCallState;
 }
@@ -84,28 +125,7 @@ export default function ToolCard({ tool }: Props) {
 
       {/* Permission approval buttons */}
       {tool.status === 'awaiting-approval' && tool.requestId && (
-        <div className="flex items-center gap-2 px-3 py-2 border-t border-gray-700 bg-gray-800/30">
-          <button
-            onClick={() => (window as any).claude.session.respondToPermission(tool.requestId, { decision: { behavior: 'allow' } })}
-            className="px-3 py-1 text-xs font-medium rounded bg-green-600 hover:bg-green-500 text-white transition-colors"
-          >
-            Yes
-          </button>
-          {tool.permissionSuggestions?.length ? (
-            <button
-              onClick={() => (window as any).claude.session.respondToPermission(tool.requestId, { decision: { behavior: 'allow' }, updatedPermissions: [tool.permissionSuggestions![0]] })}
-              className="px-3 py-1 text-xs font-medium rounded bg-blue-600 hover:bg-blue-500 text-white transition-colors"
-            >
-              Always Allow
-            </button>
-          ) : null}
-          <button
-            onClick={() => (window as any).claude.session.respondToPermission(tool.requestId, { decision: { behavior: 'deny' } })}
-            className="px-3 py-1 text-xs font-medium rounded bg-red-600 hover:bg-red-500 text-white transition-colors"
-          >
-            No
-          </button>
-        </div>
+        <PermissionButtons requestId={tool.requestId} suggestions={tool.permissionSuggestions} />
       )}
 
       {/* Expanded details */}
