@@ -19,13 +19,15 @@ export interface HookEvent {
 
 // --- Chat view types ---
 
-export type ToolCallStatus = 'running' | 'complete' | 'failed';
+export type ToolCallStatus = 'running' | 'complete' | 'failed' | 'awaiting-approval';
 
 export interface ToolCallState {
   toolUseId: string;
   toolName: string;
   input: Record<string, unknown>;
   status: ToolCallStatus;
+  requestId?: string;
+  permissionSuggestions?: unknown[];
   response?: string;
   error?: string;
 }
@@ -76,4 +78,5 @@ export const IPC = {
   STATUS_DATA: 'status:data',
   READ_TRANSCRIPT_META: 'transcript:read-meta',
   OPEN_CHANGELOG: 'shell:open-changelog',
+  PERMISSION_RESPOND: 'permission:respond',
 } as const;

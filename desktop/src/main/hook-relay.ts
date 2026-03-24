@@ -1,15 +1,17 @@
 import net from 'net';
+import { randomUUID } from 'crypto';
 import fs from 'fs';
 import { EventEmitter } from 'events';
 import { HookEvent } from '../shared/types';
 
 const DEFAULT_PIPE_NAME = process.platform === 'win32'
-  ? '\\\\.\\pipe\\claude-desktop-hooks'
+  ? '\\.\pipe\claude-desktop-hooks'
   : '/tmp/claude-desktop-hooks.sock';
 
 export class HookRelay extends EventEmitter {
   private server: net.Server | null = null;
   private running = false;
+  private pendingSockets = new Map<string, net.Socket>();
   private pipeName: string;
 
   constructor(pipeName?: string) {
@@ -43,12 +45,28 @@ export class HookRelay extends EventEmitter {
         if (processed) return;
         processed = true;
         try {
+          const parsed = JSON.parse(payload);
           const event = this.parseHookPayload(payload);
-          this.emit('hook-event', event);
+
+          if (parsed.hook_event_name === 'PermissionRequest') {
+            // Hold the socket open — relay-blocking.js is waiting for a response
+            const requestId = randomUUID();
+            this.pendingSockets.set(requestId, socket);
+            event.payload._requestId = requestId;
+            this.emit('hook-event', event);
+
+            // Clean up if socket closes unexpectedly
+            socket.on('close', () => {
+              this.pendingSockets.delete(requestId);
+            });
+          } else {
+            this.emit('hook-event', event);
+            socket.end();
+          }
         } catch (err: any) {
           console.warn('[HookRelay] Invalid hook payload:', err.message);
+          socket.end();
         }
-        socket.end();
       };
 
       socket.on('data', (chunk) => {
@@ -121,7 +139,35 @@ export class HookRelay extends EventEmitter {
     });
   }
 
+  respond(requestId: string, decision: object): boolean {
+    const socket = this.pendingSockets.get(requestId);
+    if (!socket || socket.destroyed) {
+      this.pendingSockets.delete(requestId);
+      return false;
+    }
+    socket.write(JSON.stringify(decision) + '\n');
+    socket.end();
+    this.pendingSockets.delete(requestId);
+    return true;
+  }
+
+  closeSocket(requestId: string): void {
+    const socket = this.pendingSockets.get(requestId);
+    if (socket && !socket.destroyed) {
+      socket.end();
+    }
+    this.pendingSockets.delete(requestId);
+  }
+
   stop(): void {
+    // Clean up all pending permission sockets
+    for (const [id, socket] of this.pendingSockets) {
+      if (!socket.destroyed) {
+        socket.end();
+      }
+    }
+    this.pendingSockets.clear();
+
     if (this.server) {
       this.server.close();
       this.server = null;

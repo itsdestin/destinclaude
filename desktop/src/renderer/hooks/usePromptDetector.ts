@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { parseInkSelect, menuToButtons } from '../parser/ink-select-parser';
-import { useChatDispatch } from '../state/chat-context';
+import { useChatDispatch, useChatStateMap } from '../state/chat-context';
 import { getScreenText, onBufferReady } from './terminal-registry';
 
 /**
@@ -12,10 +12,19 @@ import { getScreenText, onBufferReady } from './terminal-registry';
  */
 export function usePromptDetector() {
   const dispatch = useChatDispatch();
+  const chatState = useChatStateMap();
   const lastMenuRef = useRef<Map<string, string>>(new Map());
 
   useEffect(() => {
     const unsub = onBufferReady((sid: string) => {
+      // Skip prompt detection when a PermissionRequest approval is active
+      // (the hook-based UI is handling the permission flow)
+      for (const [, session] of chatState) {
+        for (const [, tool] of session.toolCalls) {
+          if (tool.status === 'awaiting-approval') return;
+        }
+      }
+
       const screen = getScreenText(sid);
       if (!screen) return;
 
@@ -45,5 +54,5 @@ export function usePromptDetector() {
     });
 
     return unsub;
-  }, [dispatch]);
+  }, [dispatch, chatState]);
 }
