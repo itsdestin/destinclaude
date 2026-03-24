@@ -39,10 +39,6 @@ function AppInner() {
   });
 
   const [permissionModes, setPermissionModes] = useState<Map<string, PermissionMode>>(new Map());
-  // Track which sessions have had a PermissionRequest since the last mode inference.
-  // When a tool completes WITHOUT a preceding PermissionRequest, the session is in
-  // auto-accept or bypass mode. When a PermissionRequest fires, it's in normal mode.
-  const sawPermissionRef = useRef<Set<string>>(new Set());
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerSearchMode, setDrawerSearchMode] = useState(false);
   const [skills, setSkills] = useState<SkillEntry[]>([]);
@@ -90,45 +86,31 @@ function AppInner() {
       if (action) {
         dispatch(action);
       }
-      // Sync permission mode from hook events — this keeps the badge
-      // in sync even when the user presses Shift+Tab in terminal view
-      // or when Claude Code changes mode for any other reason.
-      const sid = event.sessionId;
-      if (sid) {
-        if (event.type === 'PermissionRequest') {
-          // Claude asked for permission → we're in normal mode
-          sawPermissionRef.current.add(sid);
-          setPermissionModes((prev) => {
-            if (prev.get(sid) === 'normal') return prev;
-            return new Map(prev).set(sid, 'normal');
-          });
-        } else if (event.type === 'PostToolUse' || event.type === 'PostToolUseFailure') {
-          // Tool completed. If no PermissionRequest preceded it, the session
-          // is in auto-accept (or bypass) mode — Claude didn't ask.
-          if (!sawPermissionRef.current.has(sid)) {
-            setPermissionModes((prev) => {
-              const current = prev.get(sid);
-              // Don't override if already in plan or bypass (can't distinguish
-              // auto-accept from bypass from events alone, but either way it's
-              // not 'normal')
-              if (current === 'normal' || current === undefined) {
-                return new Map(prev).set(sid, 'auto-accept');
-              }
-              return prev;
-            });
-          }
-          sawPermissionRef.current.delete(sid);
-        } else if (event.type === 'PreToolUse') {
-          // New tool starting — reset the permission-seen flag for this session
-          sawPermissionRef.current.delete(sid);
-        }
-      }
     });
 
     const renamedHandler = window.claude.on.sessionRenamed((sid, name) => {
       setSessions((prev) =>
         prev.map((s) => (s.id === sid ? { ...s, name } : s)),
       );
+    });
+
+    // Sync permission mode by reading Claude Code's mode indicator from PTY output.
+    // Same approach as the mobile app — just check for mode text in the output.
+    const ptyModeHandler = window.claude.on.ptyOutput((sid: string, data: string) => {
+      const lower = data.toLowerCase();
+      let mode: PermissionMode | null = null;
+      if (lower.includes('bypass permissions on')) mode = 'bypass';
+      else if (lower.includes('accept edits on')) mode = 'auto-accept';
+      else if (lower.includes('plan mode on')) mode = 'plan';
+      else if (lower.includes('bypass permissions off')
+            || lower.includes('accept edits off')
+            || lower.includes('plan mode off')) mode = 'normal';
+      if (mode) {
+        setPermissionModes((prev) => {
+          if (prev.get(sid) === mode) return prev;
+          return new Map(prev).set(sid, mode!);
+        });
+      }
     });
 
     const statusHandler = window.claude.on.statusData((data) => {
@@ -147,6 +129,7 @@ function AppInner() {
       window.claude.off('session:destroyed', destroyedHandler);
       window.claude.off('hook:event', hookHandler);
       window.claude.off('session:renamed', renamedHandler);
+      window.claude.off('pty:output', ptyModeHandler);
       window.claude.off('status:data', statusHandler);
     };
   }, [dispatch]);
