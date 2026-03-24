@@ -267,7 +267,15 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
       }
 
       if (!found) return state;
-      next.set(action.sessionId, { ...session, toolCalls });
+
+      // Dismiss any parser-detected PromptCards for this session — the hook-based
+      // ToolCard is now handling the permission flow. This prevents duplicate
+      // prompts when the parser fires before the hook event arrives.
+      const timeline = session.timeline.filter(
+        (e) => !(e.kind === 'prompt' && !e.prompt.completed),
+      );
+
+      next.set(action.sessionId, { ...session, toolCalls, timeline });
       return next;
     }
 
