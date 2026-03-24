@@ -57,9 +57,14 @@ export class HookRelay extends EventEmitter {
             event.payload._requestId = requestId;
             this.emit('hook-event', event);
 
-            // Clean up if socket closes unexpectedly
+            // When the socket closes (relay timeout, Claude Code kills hook,
+            // or network error), notify listeners so the UI can clear the
+            // awaiting-approval state instead of leaving dead buttons.
             socket.on('close', () => {
-              this.pendingSockets.delete(requestId);
+              const wasOpen = this.pendingSockets.delete(requestId);
+              if (wasOpen) {
+                this.emit('permission-expired', event.sessionId, requestId);
+              }
             });
           } else {
             this.emit('hook-event', event);

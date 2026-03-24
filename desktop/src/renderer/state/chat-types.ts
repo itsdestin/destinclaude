@@ -105,6 +105,11 @@ export type ChatAction =
       input: Record<string, unknown>;
       requestId: string;
       permissionSuggestions?: string[];
+    }
+  | {
+      type: 'PERMISSION_EXPIRED';
+      sessionId: string;
+      requestId: string;
     };
 
 export type ChatState = Map<string, SessionChatState>;
