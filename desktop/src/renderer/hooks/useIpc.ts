@@ -34,6 +34,8 @@ declare global {
       };
       off: (channel: string, handler: (...args: any[]) => void) => void;
       removeAllListeners: (channel: string) => void;
+      getGitHubAuth: () => Promise<{ token: string; username: string } | null>;
+      getHomePath: () => Promise<string>;
     };
   }
 }
