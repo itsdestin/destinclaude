@@ -133,7 +133,12 @@ export default function TerminalView({ sessionId, visible }: Props) {
         background: '#0A0A0A',
         borderRadius: 8,
         overflow: 'hidden',
-        display: visible ? 'block' : 'none',
+        // Use visibility:hidden instead of display:none so xterm.js can
+        // measure fonts and maintain its screen buffer while the terminal
+        // tab is not active. display:none causes a 0x0 container, which
+        // prevents xterm from initializing properly — the prompt detector
+        // then reads an empty buffer and can't detect Ink select menus.
+        visibility: visible ? 'visible' : 'hidden',
       }}
     />
   );
