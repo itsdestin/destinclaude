@@ -8,6 +8,19 @@ const bufferReadyListeners = new Set<BufferReadyCallback>();
 
 export function onBufferReady(cb: BufferReadyCallback): () => void {
   bufferReadyListeners.add(cb);
+  // Fire immediately for all existing terminals so the new subscriber can
+  // read any content already in the buffer. This handles the race where
+  // TerminalView's signalReady flushes buffered PTY output (triggering
+  // notifyBufferReady) before the prompt detector subscribes — React runs
+  // child effects before parent effects, so the child's flush fires with
+  // zero listeners. This catch-up ensures nothing is missed.
+  if (terminals.size > 0) {
+    queueMicrotask(() => {
+      for (const sessionId of terminals.keys()) {
+        cb(sessionId);
+      }
+    });
+  }
   return () => bufferReadyListeners.delete(cb);
 }
 
