@@ -252,7 +252,13 @@ WARNINGS_FILE="$CLAUDE_DIR/.sync-warnings"
 > "$WARNINGS_FILE" 2>/dev/null  # reset each session
 
 # 0. Internet connectivity (DNS lookup via node — fast, no HTTP overhead)
-if ! timeout 5 node -e "require('dns').lookup('github.com',e=>{process.exit(e?1:0)})" 2>/dev/null; then
+dns_check='require("dns").lookup("github.com",e=>{process.exit(e?1:0)})'
+if command -v timeout &>/dev/null; then
+  dns_ok=true; timeout 5 node -e "$dns_check" 2>/dev/null || dns_ok=false
+else
+  dns_ok=true; node -e "setTimeout(()=>{process.exit(1)},5000);$dns_check" 2>/dev/null || dns_ok=false
+fi
+if ! "$dns_ok"; then
     echo "OFFLINE" >> "$WARNINGS_FILE"
 fi
 
