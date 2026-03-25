@@ -312,6 +312,11 @@ if [[ -n "$_PULL_BACKEND" ]]; then
                 # Encyclopedia
                 rclone sync "$DRIVE_SOURCE/encyclopedia/" "$CLAUDE_DIR/encyclopedia/" \
                     --update --exclude '.DS_Store' 2>/dev/null || true
+                # Conversations — pull per-slug (Design ref: D3)
+                log_backup "INFO" "Pulling conversations from Drive..."
+                rclone copy "$DRIVE_SOURCE/conversations/" "$CLAUDE_DIR/projects/" \
+                    --checksum --include '*.jsonl' 2>/dev/null || \
+                    log_backup "WARN" "Drive pull (conversations) failed"
             fi
             ;;
         github)
@@ -324,6 +329,15 @@ if [[ -n "$_PULL_BACKEND" ]]; then
                 [[ -f "$REPO_DIR/CLAUDE.md" ]] && rsync -a --update "$REPO_DIR/CLAUDE.md" "$CLAUDE_DIR/" 2>/dev/null || true
                 [[ -f "$REPO_DIR/toolkit-state/config.json" ]] && rsync -a --update "$REPO_DIR/toolkit-state/config.json" "$CLAUDE_DIR/toolkit-state/" 2>/dev/null || true
                 [[ -d "$REPO_DIR/encyclopedia" ]] && rsync -a --update "$REPO_DIR/encyclopedia/" "$CLAUDE_DIR/encyclopedia/" 2>/dev/null || true
+                # Conversations
+                if [[ -d "$REPO_DIR/conversations" ]]; then
+                    for _conv_slug in "$REPO_DIR/conversations"/*/; do
+                        [[ ! -d "$_conv_slug" ]] && continue
+                        _cs_name=$(basename "$_conv_slug")
+                        mkdir -p "$CLAUDE_DIR/projects/$_cs_name"
+                        cp -n "$_conv_slug"*.jsonl "$CLAUDE_DIR/projects/$_cs_name/" 2>/dev/null || true
+                    done
+                fi
             fi
             ;;
         icloud)
@@ -341,6 +355,16 @@ if [[ -n "$_PULL_BACKEND" ]]; then
                 [[ -f "$ICLOUD_PATH/CLAUDE.md" ]] && rsync -a --update "$ICLOUD_PATH/CLAUDE.md" "$CLAUDE_DIR/" 2>/dev/null || true
                 [[ -f "$ICLOUD_PATH/toolkit-state/config.json" ]] && rsync -a --update "$ICLOUD_PATH/toolkit-state/config.json" "$CLAUDE_DIR/toolkit-state/" 2>/dev/null || true
                 [[ -d "$ICLOUD_PATH/encyclopedia" ]] && rsync -a --update "$ICLOUD_PATH/encyclopedia/" "$CLAUDE_DIR/encyclopedia/" 2>/dev/null || true
+                # Conversations
+                if [[ -d "$ICLOUD_PATH/conversations" ]]; then
+                    for _conv_slug in "$ICLOUD_PATH/conversations"/*/; do
+                        [[ ! -d "$_conv_slug" ]] && continue
+                        _cs_name=$(basename "$_conv_slug")
+                        mkdir -p "$CLAUDE_DIR/projects/$_cs_name"
+                        rsync -a --update "$_conv_slug"*.jsonl "$CLAUDE_DIR/projects/$_cs_name/" 2>/dev/null || \
+                            cp -n "$_conv_slug"*.jsonl "$CLAUDE_DIR/projects/$_cs_name/" 2>/dev/null || true
+                    done
+                fi
             fi
             ;;
     esac
