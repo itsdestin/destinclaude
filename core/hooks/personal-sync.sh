@@ -28,6 +28,8 @@ fi
 CLAUDE_DIR="${CLAUDE_DIR:-$HOME/.claude}"
 
 case "$FILE_PATH" in
+    */toolkit-state/config.local.json) exit 0 ;;   # Machine-specific, never sync (D1)
+    */mcp-servers/mcp-config.json) exit 0 ;;        # Machine-specific, never sync (D2)
     */projects/*/memory/*) ;;
     */CLAUDE.md) ;;
     */toolkit-state/config.json) ;;
