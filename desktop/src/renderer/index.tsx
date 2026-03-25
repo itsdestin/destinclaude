@@ -55,8 +55,10 @@ function LoginScreen({ onLogin }: { onLogin: (password: string) => Promise<void>
  * This eliminates the race condition where LoginScreen and Root both
  * independently manage connection state.
  */
+// Capture before any shim can modify window.claude
+const isElectron = !!(window as any).claude;
+
 function Root() {
-  const isElectron = !!(window as any).claude;
   const [connected, setConnected] = useState(isElectron);
   const [shimReady, setShimReady] = useState(isElectron);
 

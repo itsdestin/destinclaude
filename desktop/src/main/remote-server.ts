@@ -53,11 +53,18 @@ export class RemoteServer {
     this.sessionManager.on('session-exit', this.onSessionExit);
     this.sessionManager.on('session-created', this.onSessionCreated);
 
-    // Determine static file directory
+    // Determine static file directory (production) or Vite dev server URL (development)
     const staticDir = path.join(__dirname, '..', 'renderer');
+    const viteDevUrl = process.env.VITE_DEV_SERVER_URL || 'http://localhost:5173';
+    // In dev mode, dist/renderer/index.html doesn't exist — proxy to Vite
+    const hasStaticBuild = fs.existsSync(path.join(staticDir, 'index.html'));
 
     this.httpServer = http.createServer((req, res) => {
-      this.handleHttpRequest(req, res, staticDir);
+      if (hasStaticBuild) {
+        this.handleHttpRequest(req, res, staticDir);
+      } else {
+        this.proxyToVite(req, res, viteDevUrl);
+      }
     });
 
     this.wss = new WebSocketServer({ server: this.httpServer, path: '/ws' });
@@ -237,6 +244,24 @@ export class RemoteServer {
       res.writeHead(200, { 'Content-Type': mimeTypes[ext] || 'application/octet-stream' });
       res.end(data);
     });
+  }
+
+  // --- Dev mode: proxy HTTP requests to Vite dev server ---
+
+  private proxyToVite(req: http.IncomingMessage, res: http.ServerResponse, viteUrl: string): void {
+    const url = new URL(req.url || '/', viteUrl);
+    const proxyReq = http.request(url, {
+      method: req.method,
+      headers: req.headers,
+    }, (proxyRes) => {
+      res.writeHead(proxyRes.statusCode || 502, proxyRes.headers);
+      proxyRes.pipe(res);
+    });
+    proxyReq.on('error', () => {
+      res.writeHead(502);
+      res.end('Vite dev server not available');
+    });
+    req.pipe(proxyReq);
   }
 
   // --- WebSocket connection handling ---
