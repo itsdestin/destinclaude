@@ -210,16 +210,20 @@ function AppInner() {
     window.claude.skills.list().then(setSkills).catch(console.error);
   }, []);
 
-  // Check if remote setup needs attention (show badge on gear icon)
+  // Check if remote setup banner is active (show badge on gear icon)
+  // Badge shows whenever the blue "Set Up Remote Access" banner would be visible
+  // in the settings panel — i.e., no remote clients are connected
   useEffect(() => {
     const claude = (window as any).claude;
     if (!claude?.remote) return;
-    Promise.all([
-      claude.remote.getConfig(),
-      claude.remote.detectTailscale(),
-    ]).then(([cfg, ts]: [any, any]) => {
-      setSettingsBadge(!cfg.hasPassword || !ts.installed);
-    }).catch(() => {});
+    const check = () => {
+      claude.remote.getClientCount().then((count: number) => {
+        setSettingsBadge(count === 0);
+      }).catch(() => {});
+    };
+    check();
+    const interval = setInterval(check, 10000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleOpenDrawer = useCallback((searchMode: boolean) => {
