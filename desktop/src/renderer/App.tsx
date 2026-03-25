@@ -54,7 +54,7 @@ function AppInner() {
 
   useEffect(() => {
     const createdHandler = window.claude.on.sessionCreated((info) => {
-setSessions((prev) => [...prev, info]);
+      setSessions((prev) => [...prev, info]);
       setSessionId(info.id);
       setViewModes((prev) => new Map(prev).set(info.id, 'chat'));
       setPermissionModes((prev) => new Map(prev).set(info.id, info.permissionMode || 'normal'));
