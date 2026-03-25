@@ -7,6 +7,8 @@ description: Show sync status dashboard and resolve warnings. Use when user says
 
 You are managing the user's data protection across three categories: system changes (Git), personal data (Drive/GitHub/iCloud), and project repos. The goal: the user should never lose information.
 
+**Note:** Git-synced repos (`~/.claude/`, `~/claude-mobile/`) and the Drive remote name (`gdrive:`) are determined by the user's backup configuration. The paths below reflect the default setup; adapt to the user's actual config by reading `~/.claude/toolkit-state/config.json`.
+
 ## Parse Arguments
 
 Check if the user provided an argument:
