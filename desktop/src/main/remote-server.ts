@@ -434,7 +434,7 @@ export class RemoteServer {
   // --- Replay buffers on new connection ---
 
   private replayBuffers(ws: WebSocket): void {
-    // Session list
+    // Session list — sent immediately so client can initialize chat state
     const sessions = this.sessionManager.listSessions();
     ws.send(JSON.stringify({
       type: 'session:list:response',
@@ -442,24 +442,30 @@ export class RemoteServer {
       payload: sessions,
     }));
 
-    // Session created events for each active session
     for (const session of sessions) {
       ws.send(JSON.stringify({ type: 'session:created', payload: session }));
     }
 
-    // PTY buffers
-    for (const [sessionId, buf] of this.ptyBuffers) {
-      if (buf.length > 0) {
-        ws.send(JSON.stringify({ type: 'pty:output', payload: { sessionId, data: buf } }));
-      }
-    }
+    // Delay PTY + hook replay to give the client time to process SESSION_INIT.
+    // Without this delay, hook events arrive before the chat reducer has
+    // initialized the session state, and all events are silently dropped.
+    setTimeout(() => {
+      if (ws.readyState !== WebSocket.OPEN) return;
 
-    // Hook event buffers
-    for (const [_sessionId, events] of this.hookBuffers) {
-      for (const event of events) {
-        ws.send(JSON.stringify({ type: 'hook:event', payload: event }));
+      // PTY buffers
+      for (const [sessionId, buf] of this.ptyBuffers) {
+        if (buf.length > 0) {
+          ws.send(JSON.stringify({ type: 'pty:output', payload: { sessionId, data: buf } }));
+        }
       }
-    }
+
+      // Hook event buffers
+      for (const [_sessionId, events] of this.hookBuffers) {
+        for (const event of events) {
+          ws.send(JSON.stringify({ type: 'hook:event', payload: event }));
+        }
+      }
+    }, 500); // 500ms gives React time to render App and register SESSION_INIT
   }
 
   // --- Message routing ---
