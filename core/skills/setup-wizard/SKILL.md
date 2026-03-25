@@ -1263,7 +1263,6 @@ Read the existing `~/.claude/settings.json`, then merge the following entries in
     "code-simplifier@claude-plugins-official": true,
     "commit-commands@claude-plugins-official": true,
     "feature-dev@claude-plugins-official": true,
-    "hookify@claude-plugins-official": true,
     "skill-creator@claude-plugins-official": true,
     "explanatory-output-style@claude-plugins-official": true,
     "learning-output-style@claude-plugins-official": true,
@@ -1277,7 +1276,7 @@ Read the existing `~/.claude/settings.json`, then merge the following entries in
 
 **Important:** These plugins are downloaded automatically by Claude Code on first use — no manual install step needed. If a plugin is already present in `enabledPlugins` (key exists, regardless of whether value is `true` or `false`), skip it — don't overwrite the existing value. This is critical for the output style plugins, which were already set by Phase 0.5 based on the user's comfort level. (Phase 0.5 handles the re-run/re-choice case by overwriting before Phase 5f runs.)
 
-After registering, tell the user: "I've registered 14 recommended plugins. They'll download automatically the first time you use them."
+After registering, tell the user: "I've registered 13 recommended plugins. They'll download automatically the first time you use them."
 
 ### Step 6: Configure MCP servers (if applicable)
 
@@ -1432,7 +1431,7 @@ Run a health check on everything that was installed.
 - [ ] Hooks are registered in `~/.claude/settings.json` under the `hooks` key
 - [ ] `statusLine` is configured in `~/.claude/settings.json` (separate from hooks)
 - [ ] `~/.claude/statusline.sh` is a real symlink (not a copy) and resolves
-- [ ] All 14 marketplace plugin keys present in `~/.claude/settings.json` `enabledPlugins` (keys may be `true` or `false` — both count as present; beginners will have `learning-output-style` set to `false`)
+- [ ] All 13 marketplace plugin keys present in `~/.claude/settings.json` `enabledPlugins` (keys may be `true` or `false` — both count as present; beginners will have `learning-output-style` set to `false`)
 
 ### Step 2: Life checks (if installed)
 
