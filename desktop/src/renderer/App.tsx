@@ -46,6 +46,7 @@ function AppInner() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerSearchMode, setDrawerSearchMode] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsBadge, setSettingsBadge] = useState(false);
   const [skills, setSkills] = useState<SkillEntry[]>([]);
 
   usePromptDetector();
@@ -209,6 +210,18 @@ function AppInner() {
     window.claude.skills.list().then(setSkills).catch(console.error);
   }, []);
 
+  // Check if remote setup needs attention (show badge on gear icon)
+  useEffect(() => {
+    const claude = (window as any).claude;
+    if (!claude?.remote) return;
+    Promise.all([
+      claude.remote.getConfig(),
+      claude.remote.detectTailscale(),
+    ]).then(([cfg, ts]: [any, any]) => {
+      setSettingsBadge(!cfg.hasPassword || !ts.installed);
+    }).catch(() => {});
+  }, []);
+
   const handleOpenDrawer = useCallback((searchMode: boolean) => {
     setDrawerSearchMode(searchMode);
     setDrawerOpen(true);
@@ -308,6 +321,7 @@ function AppInner() {
               announcement={announcementText}
               settingsOpen={settingsOpen}
               onToggleSettings={() => setSettingsOpen(prev => !prev)}
+              settingsBadge={settingsBadge}
             />
             <div className="flex-1 overflow-hidden relative">
               {sessions.map((s) => (
