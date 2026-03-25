@@ -219,6 +219,68 @@ rewrite_project_slugs() {
     fi
 }
 
+# --- Home-directory conversation aggregation (Design ref: D5, D6) ---
+# Symlinks all .jsonl conversation files from all project slugs into the
+# home-directory slug so /resume from ~ shows all conversations.
+# Arguments: $1 = projects directory (e.g., ~/.claude/projects)
+aggregate_conversations() {
+    local projects_dir
+    projects_dir=$(cd "$1" && pwd) || return 0
+    [[ ! -d "$projects_dir" ]] && return 0
+
+    local home_slug
+    home_slug=$(get_current_project_slug)
+    [[ -z "$home_slug" ]] && return 0
+
+    local home_dir="$projects_dir/$home_slug"
+    mkdir -p "$home_dir"
+
+    # Windows symlink support
+    [[ "$(uname -s)" == MINGW* || "$(uname -s)" == MSYS* ]] && export MSYS=winsymlinks:nativestrict
+
+    local aggregated=0
+
+    for slug_dir in "$projects_dir"/*/; do
+        [[ ! -d "$slug_dir" ]] && continue
+        local slug_name
+        slug_name=$(basename "$slug_dir")
+
+        # Skip the home slug itself
+        [[ "$slug_name" == "$home_slug" ]] && continue
+
+        # Skip symlinked slug directories (foreign device slugs from rewrite_project_slugs)
+        [[ -L "${slug_dir%/}" ]] && continue
+
+        # Symlink each .jsonl file into the home slug
+        for jsonl_file in "$slug_dir"*.jsonl; do
+            [[ ! -f "$jsonl_file" ]] && continue
+            local basename_jsonl
+            basename_jsonl=$(basename "$jsonl_file")
+            local target="$home_dir/$basename_jsonl"
+
+            # Skip if already exists (real file = local conversation, symlink = already aggregated)
+            [[ -e "$target" || -L "$target" ]] && continue
+
+            # Create relative symlink
+            ln -s "../$slug_name/$basename_jsonl" "$target" 2>/dev/null || \
+                cp "$jsonl_file" "$target" 2>/dev/null || true
+            aggregated=$((aggregated + 1))
+        done
+    done
+
+    # Clean up dangling symlinks in home slug
+    for link in "$home_dir"/*.jsonl; do
+        [[ ! -L "$link" ]] && continue
+        if [[ ! -e "$link" ]]; then
+            rm -f "$link" 2>/dev/null
+        fi
+    done
+
+    if [[ $aggregated -gt 0 ]]; then
+        log_backup "INFO" "Aggregated $aggregated conversation(s) into home slug: $home_slug"
+    fi
+}
+
 # --- Multi-backend helpers ---
 get_backends() {
     local backends

@@ -378,6 +378,11 @@ if type rewrite_project_slugs &>/dev/null; then
     rewrite_project_slugs "$CLAUDE_DIR/projects"
 fi
 
+# --- Home-directory conversation aggregation (Design ref: D5) ---
+if type aggregate_conversations &>/dev/null; then
+    aggregate_conversations "$CLAUDE_DIR/projects"
+fi
+
 # --- Migration check (Design ref: D7) ---
 # Compare backup schema version against current. Run migrations if needed.
 if type run_migrations &>/dev/null && [[ -f "$CLAUDE_DIR/backup-meta.json" ]]; then
