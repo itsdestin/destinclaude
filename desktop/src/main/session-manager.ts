@@ -146,6 +146,7 @@ export class SessionManager extends EventEmitter {
     if (!session) return false;
     session.info.status = 'destroyed';
     this.sessions.delete(id);
+    this.emit('session-exit', id, 0);
     try {
       session.worker.send({ type: 'kill' });
       session.worker.disconnect();
