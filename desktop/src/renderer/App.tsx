@@ -107,6 +107,8 @@ function AppInner() {
           if (prev.has(event.sessionId)) return prev;
           const next = new Set(prev);
           next.add(event.sessionId);
+          // Broadcast so other devices transition out of Initializing too
+          (window as any).claude?.remote?.broadcastAction({ type: '_SESSION_INITIALIZED', sessionId: event.sessionId });
           return next;
         });
       }
@@ -150,9 +152,18 @@ function AppInner() {
 
     // UI action sync — receive actions broadcast from other devices
     const uiActionHandler = (window.claude.on as any).uiAction?.((action: any) => {
-      if (action && action.type) {
-        dispatch(action);
+      if (!action?.type) return;
+      // Handle session initialization sync (not a chat reducer action)
+      if (action.type === '_SESSION_INITIALIZED' && action.sessionId) {
+        setInitializedSessions((prev) => {
+          if (prev.has(action.sessionId)) return prev;
+          const next = new Set(prev);
+          next.add(action.sessionId);
+          return next;
+        });
+        return;
       }
+      dispatch(action);
     });
 
     return () => {
@@ -263,6 +274,7 @@ function AppInner() {
         if (prev.has(sessionId)) return prev;
         const next = new Set(prev);
         next.add(sessionId);
+        (window as any).claude?.remote?.broadcastAction({ type: '_SESSION_INITIALIZED', sessionId });
         return next;
       });
     }
