@@ -416,6 +416,7 @@ export class RemoteServer {
     private sessionManager: SessionManager,
     private hookRelay: HookRelay,
     private config: RemoteConfig,
+    private skillScanner?: () => any[],
   ) {}
 
   async start(): Promise<void> {
@@ -735,8 +736,8 @@ export class RemoteServer {
         break;
       }
       case 'skills:list': {
-        // Use the shared skill scanner (extracted from ipc-handlers in Task 3b)
-        const skills = this.skillScanner();
+        // Placeholder until Task 3b extracts the shared scanner
+        const skills = this.skillScanner ? this.skillScanner() : [];
         this.respond(client.ws, type, id, skills);
         break;
       }
@@ -913,7 +914,13 @@ this.sessionManager.on('session-created', (info: any) => {
 });
 ```
 
-Remove the manual `this.broadcast({ type: 'session:created', ...})` from the `session:create` message handler — it's now handled by the event.
+- [ ] **Step 5b: Remove duplicate `session:created` broadcast from `handleMessage`**
+
+In `remote-server.ts`, in the `session:create` case of `handleMessage`, **remove** the line:
+```typescript
+this.broadcast({ type: 'session:created', payload: info });
+```
+This is now handled by the `session-created` event listener in Step 5. Without this removal, remote clients would receive duplicate `session:created` events.
 
 - [ ] **Step 6: Add topic file watcher to RemoteServer for `session:renamed`**
 
@@ -1336,10 +1343,6 @@ function Root() {
       }
     });
   }, [isElectron]);
-
-  if (isElectron || connected) {
-    return <App />;
-  }
 
   const handleLogin = useCallback(async (password: string) => {
     const { connect } = await import('./remote-shim');
