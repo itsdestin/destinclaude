@@ -50,6 +50,9 @@ function AppInner() {
   });
 
   const [permissionModes, setPermissionModes] = useState<Map<string, PermissionMode>>(new Map());
+  // Sessions that have received their first hook event (Claude is initialized).
+  // Until this fires, show an "Initializing" overlay to prevent premature input.
+  const [initializedSessions, setInitializedSessions] = useState<Set<string>>(new Set());
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerSearchMode, setDrawerSearchMode] = useState(false);
   const [skills, setSkills] = useState<SkillEntry[]>([]);
@@ -91,6 +94,12 @@ function AppInner() {
         return next;
       });
       dispatch({ type: 'SESSION_REMOVE', sessionId: id });
+      setInitializedSessions((prev) => {
+        if (!prev.has(id)) return prev;
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
     });
 
     const hookHandler = window.claude.on.hookEvent((event) => {
@@ -101,6 +110,15 @@ function AppInner() {
         dispatch(action);
       } else {
         diag(`  → (no action)`);
+      }
+      // First hook event for a session = Claude is initialized
+      if (event.sessionId) {
+        setInitializedSessions((prev) => {
+          if (prev.has(event.sessionId)) return prev;
+          const next = new Set(prev);
+          next.add(event.sessionId);
+          return next;
+        });
       }
     });
 
@@ -210,6 +228,7 @@ function AppInner() {
   }, [sessionId, canBypass, currentPermissionMode]);
 
   const trustGateActive = useTrustGateActive(sessionId);
+  const sessionInitialized = sessionId ? (initializedSessions.has(sessionId) || trustGateActive) : true;
 
   // Parse announcement
   const announcementText = statusData.announcement?.message || null;
@@ -253,11 +272,18 @@ function AppInner() {
                   </ErrorBoundary>
                 </React.Fragment>
               ))}
+              {/* Initializing overlay — shown before Claude is ready */}
+              {!sessionInitialized && sessionId && (
+                <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-gray-950">
+                  <AppIcon className="w-16 h-16 text-gray-400 mb-6 animate-pulse" />
+                  <p className="text-sm text-gray-400 font-medium">Initializing session...</p>
+                </div>
+              )}
               {trustGateActive && sessionId && <TrustGate sessionId={sessionId} />}
             </div>
             {currentViewMode === 'chat' && (
               <>
-                <ChatInputBar sessionId={sessionId} onOpenDrawer={handleOpenDrawer} disabled={trustGateActive} />
+                <ChatInputBar sessionId={sessionId} onOpenDrawer={handleOpenDrawer} disabled={trustGateActive || !sessionInitialized} />
                 <CommandDrawer
                   open={drawerOpen}
                   searchMode={drawerSearchMode}
