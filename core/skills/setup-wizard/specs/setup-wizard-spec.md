@@ -69,7 +69,7 @@ Phase 5: Personalization
   → 5d: Register hooks in settings.json
   → 5d-ii: Register statusline in settings.json (separate from hooks)
   → 5e: Verify symlinks
-  → 5f: Register 14 marketplace plugins in enabledPlugins
+  → 5f: Register 13 marketplace plugins in enabledPlugins
 
 Phase 6: Verification
   → Core checks (git, toolkit root, CLAUDE.md, hooks, symlinks, statusline, marketplace plugins)

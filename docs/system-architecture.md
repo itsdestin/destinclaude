@@ -136,7 +136,7 @@ Memory files use YAML frontmatter and markdown content. The index (`MEMORY.md`) 
 
 ## Marketplace Plugins
 
-In addition to local toolkit components (registered via symlinks), the setup wizard registers 14 marketplace plugins via `enabledPlugins` in `~/.claude/settings.json`. These are downloaded automatically by Claude Code on first use — no local binary or manual install needed.
+In addition to local toolkit components (registered via symlinks), the setup wizard registers 13 marketplace plugins via `enabledPlugins` in `~/.claude/settings.json`. These are downloaded automatically by Claude Code on first use — no local binary or manual install needed.
 
 | Plugin | Purpose |
 |--------|---------|
@@ -146,7 +146,6 @@ In addition to local toolkit components (registered via symlinks), the setup wiz
 | `code-simplifier` | Simplifies code for clarity while preserving functionality |
 | `commit-commands` | Streamlined git commit/push/PR workflow |
 | `feature-dev` | Full feature development workflow (explore → architect → review) |
-| `hookify` | Create hooks to prevent unwanted Claude behaviors |
 | `skill-creator` | Create, test, and benchmark skills |
 | `explanatory-output-style` | Adds educational insights about implementation choices |
 | `learning-output-style` | Requests meaningful code contributions at decision points |
