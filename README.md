@@ -54,13 +54,13 @@ claude
 - **Session hooks** — Auto-sync, statusline, write guards, git backup, worktree guard
 - **Specs system** — Structured documentation that persists across conversations
 - **Memory templates** — Organized persistent memory for Claude
-- **Commands** — `/setup-wizard`, `/update`, `/health`, `/restore`, `/contribute`, `/toolkit-uninstall`
+- **Commands** — `/setup-wizard`, `/update`, `/health`, `/sync`, `/restore`, `/contribute`, `/toolkit-uninstall`
 - **Contribution detector** — Notices your improvements, offers to share them upstream
 
 ### Life (Personal Knowledge)
 - **Journaling assistant** — Conversational daily journaling with Socratic prompts
 - **Encyclopedia system** — A living biography built from 8 modular source files
-- **Personal data sync** — Automated backup via Google Drive, GitHub, or iCloud
+- **Personal data sync** — Automated backup via Google Drive, GitHub, or iCloud; `/sync` shows status and resolves warnings
 
 ### Productivity (Task Management)
 - **Claude's Inbox** — Processes notes and tasks from any configured source (Todoist, Drive, Gmail, Apple Notes, and more)
