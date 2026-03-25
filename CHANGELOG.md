@@ -2,6 +2,32 @@
 
 All notable changes to DestinClaude will be documented in this file.
 
+## [2.1.4] - 2026-03-25
+
+### Added
+- **`/sync` skill** — Status dashboard, warning resolution, project onboarding, and force sync. Type `/sync` to see backup health across Git, Drive, and project repos; `/sync now` to force an immediate backup.
+- **Project discovery** — `discover_projects()` in backup-common.sh automatically scans common directories (`~/projects/`, `~/repos/`, `~/code/`, etc.) for git repos not tracked by git-sync. Session-start surfaces untracked repos in the statusline.
+- **Branch safety check** — Session-start warns when the working directory is on a non-default branch, preventing accidental commits to stale feature branches.
+
+### Changed
+- **Desktop app version sync** — DestinCode app version now tracks the toolkit version (was stuck at 1.0.0). build.yml injects tag version; release.sh bumps desktop/package.json.
+
+### Fixed
+- **CRITICAL: rclone sync → copy** — Push operations in personal-sync.sh changed from `rclone sync` to `rclone copy`. `rclone sync` was propagating accidental local deletions to Drive, destroying backup copies.
+- **Memory pull path mapping** — Session-start Drive pull now iterates per project key so memory files land in `projects/{key}/memory/` instead of at the project root.
+- **Windows project slug** — `get_current_project_slug()` now uses `cygpath -w` on Windows to match Claude Code's slug algorithm, preventing phantom directory mismatches.
+- **Connect 4 race conditions** — Moves no longer vanish or duplicate. Added actionCount-based versioning, move-in-flight guards, and atomic game-over dispatches.
+- **Desktop app update pipeline** — NSIS silent installer now uninstalls the previous version first (avoids same-version skip), closes running app before install, and verifies installation on all three platforms.
+- **node-pty spawn-helper** — Postinstall patch prevents double path replacement on macOS (`app.asar.unpacked.unpacked`).
+- **Git-sync stash pop** — Failures now emit visible `hookSpecificOutput` JSON instead of silent stderr warnings.
+- **discover_projects() path normalization** — Paths from tracked-projects.json are now normalized before comparison, preventing false positives on Windows.
+
+### Documentation
+- Backup system spec bumped to v4.2 (project discovery, /sync skill)
+- Personal sync spec bumped to v2.2 (rclone copy fix, memory pull fix, Windows slug fix)
+- Sync skill implementation plan added
+- README updated with /sync command
+
 ## [2.1.3] - 2026-03-24
 
 ### Added

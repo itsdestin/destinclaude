@@ -1,6 +1,6 @@
 {
   "name": "destincode",
-  "version": "2.1.3",
+  "version": "2.1.4",
   "description": "Desktop GUI for Claude Code with the DestinClaude toolkit",
   "main": "dist/main/main.js",
   "scripts": {
