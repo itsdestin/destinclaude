@@ -75,3 +75,32 @@ describe('RemoteServer', () => {
     server.stop();
   });
 });
+
+describe('RemoteServer auth flow', () => {
+  it('can be created with null password (rejects connections at auth time)', async () => {
+    const mockSessionManager = Object.assign(new EventEmitter(), {
+      listSessions: vi.fn(() => []),
+      createSession: vi.fn(),
+      destroySession: vi.fn(),
+      sendInput: vi.fn(),
+      resizeSession: vi.fn(),
+    });
+    const mockHookRelay = Object.assign(new EventEmitter(), {
+      respond: vi.fn(() => true),
+    });
+    const config = {
+      enabled: true,
+      port: 9900,
+      passwordHash: null,
+      trustTailscale: false,
+      verifyPassword: vi.fn(async () => false),
+      isTailscaleIp: vi.fn(() => false),
+    };
+    const { RemoteServer } = await import('../src/main/remote-server');
+    const server = new RemoteServer(mockSessionManager, mockHookRelay, config);
+    expect(server).toBeDefined();
+    // Can start even with no password — connections will be rejected at auth handshake
+    await server.start();
+    server.stop();
+  });
+});
