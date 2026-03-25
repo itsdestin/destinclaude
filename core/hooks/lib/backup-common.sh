@@ -201,3 +201,58 @@ get_backends() {
 get_primary_backend() {
     get_backends | head -1
 }
+
+# --- Project discovery ---
+# Scans common working directories for git repos not already tracked by git-sync.
+# Outputs one path per line to stdout. Does NOT write any files.
+# Arguments: none (reads tracked-projects.json and git-sync hardcoded paths)
+discover_projects() {
+    local tracked_file="$CLAUDE_DIR/tracked-projects.json"
+
+    # Build skip set: hardcoded git-sync paths + registered + ignored
+    local -a skip_paths=()
+    skip_paths+=("$(normalize_path "$CLAUDE_DIR")")
+    skip_paths+=("$(normalize_path "$HOME/claude-mobile")")
+
+    if [[ -f "$tracked_file" ]] && command -v node &>/dev/null; then
+        while IFS= read -r p; do
+            [[ -n "$p" ]] && skip_paths+=("$p")
+        done < <(node -e "
+            const fs = require('fs');
+            try {
+                const reg = JSON.parse(fs.readFileSync(process.argv[1], 'utf8'));
+                for (const p of (reg.projects || [])) { if (p.path) console.log(p.path); }
+                for (const p of (reg.ignored || [])) { console.log(p); }
+            } catch {}
+        " "$tracked_file" 2>/dev/null)
+    fi
+
+    # Scan common directories (depth 1 — only direct children)
+    local -a scan_dirs=()
+    [[ -d "$HOME/projects" ]] && scan_dirs+=("$HOME/projects")
+    [[ -d "$HOME/repos" ]] && scan_dirs+=("$HOME/repos")
+    [[ -d "$HOME/code" ]] && scan_dirs+=("$HOME/code")
+    [[ -d "$HOME/dev" ]] && scan_dirs+=("$HOME/dev")
+    [[ -d "$HOME/src" ]] && scan_dirs+=("$HOME/src")
+    [[ -d "$HOME/Documents" ]] && scan_dirs+=("$HOME/Documents")
+    [[ -d "$HOME/Desktop" ]] && scan_dirs+=("$HOME/Desktop")
+
+    for scan_dir in "${scan_dirs[@]}"; do
+        for candidate in "$scan_dir"/*/; do
+            [[ ! -d "$candidate" ]] && continue
+            [[ ! -d "$candidate/.git" ]] && continue
+
+            local norm_path
+            norm_path=$(normalize_path "${candidate%/}")
+
+            # Check skip set
+            local skip=false
+            for sp in "${skip_paths[@]}"; do
+                [[ "$norm_path" == "$sp" ]] && { skip=true; break; }
+            done
+            "$skip" && continue
+
+            echo "$norm_path"
+        done
+    done
+}
