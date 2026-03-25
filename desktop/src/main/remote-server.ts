@@ -1,0 +1,470 @@
+import http from 'http';
+import fs from 'fs';
+import path from 'path';
+import os from 'os';
+import { randomUUID } from 'crypto';
+import { WebSocketServer, WebSocket } from 'ws';
+import { EventEmitter } from 'events';
+import type { SessionManager } from './session-manager';
+import type { HookRelay } from './hook-relay';
+import type { RemoteConfig } from './remote-config';
+
+const PTY_BUFFER_SIZE = 256 * 1024; // 256KB per session
+const HOOK_BUFFER_SIZE = 500; // events per session
+const AUTH_TIMEOUT_MS = 5000;
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_MAX_FAILURES = 5;
+
+interface AuthenticatedClient {
+  ws: WebSocket;
+  token: string;
+}
+
+export class RemoteServer {
+  private httpServer: http.Server | null = null;
+  private wss: WebSocketServer | null = null;
+  private clients = new Set<AuthenticatedClient>();
+  private tokens = new Map<string, boolean>(); // token → valid
+  private ptyBuffers = new Map<string, string>(); // sessionId → rolling PTY output
+  private hookBuffers = new Map<string, any[]>(); // sessionId → rolling hook events
+  private statusInterval: ReturnType<typeof setInterval> | null = null;
+  private failedAttempts = new Map<string, { count: number; resetAt: number }>();
+
+  constructor(
+    private sessionManager: SessionManager,
+    private hookRelay: HookRelay,
+    private config: RemoteConfig,
+    private skillScanner?: () => any[],
+  ) {}
+
+  async start(): Promise<void> {
+    if (!this.config.enabled) {
+      console.log('[RemoteServer] Disabled in config, not starting');
+      return;
+    }
+
+    // Subscribe to events for buffering
+    this.sessionManager.on('pty-output', this.onPtyOutput);
+    this.hookRelay.on('hook-event', this.onHookEvent);
+    this.sessionManager.on('session-exit', this.onSessionExit);
+
+    // Determine static file directory
+    const staticDir = path.join(__dirname, '..', 'renderer');
+
+    this.httpServer = http.createServer((req, res) => {
+      this.handleHttpRequest(req, res, staticDir);
+    });
+
+    this.wss = new WebSocketServer({ server: this.httpServer, path: '/ws' });
+    this.wss.on('connection', (ws, req) => this.handleConnection(ws, req));
+
+    // Status data polling — independent of ipc-handlers.ts
+    const usageCachePath = path.join(os.homedir(), '.claude', '.usage-cache.json');
+    const announcementCachePath = path.join(os.homedir(), '.claude', '.announcement-cache.json');
+    const updateStatusPath = path.join(os.homedir(), '.claude', 'toolkit-state', 'update-status.json');
+    const syncStatusPath = path.join(os.homedir(), '.claude', '.sync-status');
+    const syncWarningsPath = path.join(os.homedir(), '.claude', '.sync-warnings');
+
+    this.statusInterval = setInterval(() => {
+      const data = {
+        usage: readJsonFile(usageCachePath),
+        announcement: readJsonFile(announcementCachePath),
+        updateStatus: readJsonFile(updateStatusPath),
+        syncStatus: readTextFile(syncStatusPath),
+        syncWarnings: readTextFile(syncWarningsPath),
+      };
+      this.broadcast({ type: 'status:data', payload: data });
+    }, 10_000);
+
+    return new Promise<void>((resolve) => {
+      this.httpServer!.listen(this.config.port, () => {
+        console.log(`[RemoteServer] Listening on port ${this.config.port}`);
+        resolve();
+      });
+    });
+  }
+
+  stop(): void {
+    if (this.statusInterval) clearInterval(this.statusInterval);
+    this.sessionManager.off('pty-output', this.onPtyOutput);
+    this.hookRelay.off('hook-event', this.onHookEvent);
+    this.sessionManager.off('session-exit', this.onSessionExit);
+
+    for (const client of this.clients) {
+      client.ws.close(1001, 'Server shutting down');
+    }
+    this.clients.clear();
+    this.tokens.clear();
+
+    if (this.wss) { this.wss.close(); this.wss = null; }
+    if (this.httpServer) { this.httpServer.close(); this.httpServer = null; }
+  }
+
+  /** Invalidate all session tokens (e.g., after password change). */
+  invalidateTokens(): void {
+    this.tokens.clear();
+    for (const client of this.clients) {
+      client.ws.close(4001, 'Password changed');
+    }
+    this.clients.clear();
+  }
+
+  // --- Event handlers for buffering ---
+
+  private onPtyOutput = (sessionId: string, data: string) => {
+    // Append to rolling buffer
+    let buf = this.ptyBuffers.get(sessionId) || '';
+    buf += data;
+    if (buf.length > PTY_BUFFER_SIZE) {
+      buf = buf.slice(buf.length - PTY_BUFFER_SIZE);
+    }
+    this.ptyBuffers.set(sessionId, buf);
+
+    // Broadcast live
+    this.broadcast({ type: 'pty:output', payload: { sessionId, data } });
+  };
+
+  private onHookEvent = (event: any) => {
+    const sessionId = event.sessionId || '';
+
+    // Append to rolling buffer
+    let buf = this.hookBuffers.get(sessionId) || [];
+    buf.push(event);
+    if (buf.length > HOOK_BUFFER_SIZE) {
+      buf = buf.slice(buf.length - HOOK_BUFFER_SIZE);
+    }
+    this.hookBuffers.set(sessionId, buf);
+
+    // Broadcast live
+    this.broadcast({ type: 'hook:event', payload: event });
+  };
+
+  private onSessionExit = (sessionId: string) => {
+    this.ptyBuffers.delete(sessionId);
+    this.hookBuffers.delete(sessionId);
+    this.broadcast({ type: 'session:destroyed', payload: { sessionId } });
+  };
+
+  // --- HTTP static file serving ---
+
+  private handleHttpRequest(req: http.IncomingMessage, res: http.ServerResponse, staticDir: string): void {
+    const url = req.url || '/';
+    let filePath: string;
+
+    if (url === '/' || url === '/index.html') {
+      filePath = path.join(staticDir, 'index.html');
+    } else {
+      // Prevent directory traversal
+      const safePath = path.normalize(url).replace(/^(\.\.[\/\\])+/, '');
+      filePath = path.join(staticDir, safePath);
+    }
+
+    // Verify the resolved path is within staticDir
+    if (!filePath.startsWith(staticDir)) {
+      res.writeHead(403);
+      res.end('Forbidden');
+      return;
+    }
+
+    fs.readFile(filePath, (err, data) => {
+      if (err) {
+        // SPA fallback — serve index.html for non-file routes
+        fs.readFile(path.join(staticDir, 'index.html'), (err2, html) => {
+          if (err2) {
+            res.writeHead(404);
+            res.end('Not found');
+          } else {
+            res.writeHead(200, { 'Content-Type': 'text/html' });
+            res.end(html);
+          }
+        });
+        return;
+      }
+
+      const ext = path.extname(filePath).toLowerCase();
+      const mimeTypes: Record<string, string> = {
+        '.html': 'text/html',
+        '.js': 'application/javascript',
+        '.css': 'text/css',
+        '.json': 'application/json',
+        '.png': 'image/png',
+        '.svg': 'image/svg+xml',
+        '.ico': 'image/x-icon',
+        '.woff': 'font/woff',
+        '.woff2': 'font/woff2',
+      };
+      res.writeHead(200, { 'Content-Type': mimeTypes[ext] || 'application/octet-stream' });
+      res.end(data);
+    });
+  }
+
+  // --- WebSocket connection handling ---
+
+  private handleConnection(ws: WebSocket, req: http.IncomingMessage): void {
+    const ip = req.socket.remoteAddress || '';
+
+    // Check rate limiting
+    if (this.isRateLimited(ip)) {
+      ws.close(4029, 'Too many failed attempts');
+      return;
+    }
+
+    // Auto-accept Tailscale-trusted connections
+    if (this.config.trustTailscale && this.config.isTailscaleIp(ip)) {
+      const token = randomUUID();
+      this.tokens.set(token, true);
+      this.addClient(ws, token);
+      ws.send(JSON.stringify({ type: 'auth:ok', token }));
+      this.replayBuffers(ws);
+      return;
+    }
+
+    // Auth timeout
+    const timeout = setTimeout(() => {
+      ws.close(4000, 'Auth timeout');
+    }, AUTH_TIMEOUT_MS);
+
+    // Wait for auth message
+    const authHandler = async (raw: Buffer | string) => {
+      clearTimeout(timeout);
+      ws.off('message', authHandler);
+
+      try {
+        const msg = JSON.parse(raw.toString());
+        if (msg.type !== 'auth') {
+          ws.send(JSON.stringify({ type: 'auth:failed', reason: 'expected-auth' }));
+          ws.close(4000, 'Expected auth');
+          return;
+        }
+
+        // No password configured
+        if (!this.config.passwordHash) {
+          ws.send(JSON.stringify({ type: 'auth:failed', reason: 'no-password-configured' }));
+          ws.close(4000, 'No password configured');
+          return;
+        }
+
+        let authenticated = false;
+
+        if (msg.token && this.tokens.has(msg.token)) {
+          authenticated = true;
+        } else if (msg.password) {
+          authenticated = await this.config.verifyPassword(msg.password);
+        }
+
+        if (authenticated) {
+          this.clearFailedAttempts(ip);
+          const token = msg.token && this.tokens.has(msg.token) ? msg.token : randomUUID();
+          this.tokens.set(token, true);
+          this.addClient(ws, token);
+          ws.send(JSON.stringify({ type: 'auth:ok', token }));
+          this.replayBuffers(ws);
+        } else {
+          this.recordFailedAttempt(ip);
+          ws.send(JSON.stringify({ type: 'auth:failed', reason: 'invalid-credentials' }));
+          ws.close(4001, 'Auth failed');
+        }
+      } catch {
+        ws.send(JSON.stringify({ type: 'auth:failed', reason: 'invalid-message' }));
+        ws.close(4000, 'Invalid auth message');
+      }
+    };
+
+    ws.on('message', authHandler);
+  }
+
+  private addClient(ws: WebSocket, token: string): void {
+    const client: AuthenticatedClient = { ws, token };
+    this.clients.add(client);
+
+    ws.on('message', (raw) => this.handleMessage(client, raw));
+    ws.on('close', () => this.clients.delete(client));
+    ws.on('error', () => this.clients.delete(client));
+  }
+
+  // --- Replay buffers on new connection ---
+
+  private replayBuffers(ws: WebSocket): void {
+    // Session list
+    const sessions = this.sessionManager.listSessions();
+    ws.send(JSON.stringify({
+      type: 'session:list:response',
+      id: '_replay',
+      payload: sessions,
+    }));
+
+    // Session created events for each active session
+    for (const session of sessions) {
+      ws.send(JSON.stringify({ type: 'session:created', payload: session }));
+    }
+
+    // PTY buffers
+    for (const [sessionId, buf] of this.ptyBuffers) {
+      if (buf.length > 0) {
+        ws.send(JSON.stringify({ type: 'pty:output', payload: { sessionId, data: buf } }));
+      }
+    }
+
+    // Hook event buffers
+    for (const [_sessionId, events] of this.hookBuffers) {
+      for (const event of events) {
+        ws.send(JSON.stringify({ type: 'hook:event', payload: event }));
+      }
+    }
+  }
+
+  // --- Message routing ---
+
+  private async handleMessage(client: AuthenticatedClient, raw: Buffer | string): Promise<void> {
+    let msg: any;
+    try {
+      msg = JSON.parse(raw.toString());
+    } catch {
+      return;
+    }
+
+    const { type, id, payload } = msg;
+
+    switch (type) {
+      // --- Request/response ---
+      case 'session:create': {
+        const info = this.sessionManager.createSession(payload);
+        this.respond(client.ws, type, id, info);
+        // Broadcast session:created to all clients
+        this.broadcast({ type: 'session:created', payload: info });
+        break;
+      }
+      case 'session:destroy': {
+        const result = this.sessionManager.destroySession(payload.sessionId || payload);
+        this.respond(client.ws, type, id, result);
+        if (result) {
+          this.broadcast({ type: 'session:destroyed', payload: { sessionId: payload.sessionId || payload } });
+        }
+        break;
+      }
+      case 'session:list': {
+        const sessions = this.sessionManager.listSessions();
+        this.respond(client.ws, type, id, sessions);
+        break;
+      }
+      case 'permission:respond': {
+        const { requestId, decision } = payload;
+        const result = this.hookRelay.respond(requestId, decision);
+        this.respond(client.ws, type, id, result);
+        break;
+      }
+      case 'skills:list': {
+        const skills = this.skillScanner ? this.skillScanner() : [];
+        this.respond(client.ws, type, id, skills);
+        break;
+      }
+      case 'get-home-path': {
+        this.respond(client.ws, type, id, os.homedir());
+        break;
+      }
+      case 'transcript:read-meta': {
+        const transcriptPath = payload.path || payload;
+        try {
+          const content = fs.readFileSync(transcriptPath, 'utf8');
+          const lines = content.trim().split('\n');
+          let model = 'unknown';
+          let contextPercent = 100;
+          for (const line of lines) {
+            try {
+              const obj = JSON.parse(line);
+              if (obj.model) model = obj.model.display_name || obj.model.id || obj.model;
+              if (obj.costInfo?.contextRemaining != null) contextPercent = Math.round(obj.costInfo.contextRemaining * 100);
+              if (obj.context_window?.remaining_percentage != null) contextPercent = Math.round(obj.context_window.remaining_percentage);
+            } catch { /* skip non-JSON lines */ }
+          }
+          this.respond(client.ws, type, id, { model, contextPercent });
+        } catch {
+          this.respond(client.ws, type, id, null);
+        }
+        break;
+      }
+      case 'github:auth': {
+        try {
+          const { execFile } = require('child_process');
+          const { promisify } = require('util');
+          const execFileAsync = promisify(execFile);
+          let ghPath = 'gh';
+          try { const w = require('which'); ghPath = w.sync('gh'); } catch { /* use bare 'gh' */ }
+          const { stdout: token } = await execFileAsync(ghPath, ['auth', 'token']);
+          const { stdout: username } = await execFileAsync(ghPath, ['api', 'user', '--jq', '.login']);
+          this.respond(client.ws, type, id, { token: token.trim(), username: username.trim() });
+        } catch {
+          this.respond(client.ws, type, id, null);
+        }
+        break;
+      }
+
+      // --- Fire-and-forget ---
+      case 'session:input': {
+        this.sessionManager.sendInput(payload.sessionId, payload.text);
+        break;
+      }
+      case 'session:resize': {
+        this.sessionManager.resizeSession(payload.sessionId, payload.cols, payload.rows);
+        break;
+      }
+      case 'session:terminal-ready': {
+        // Remote clients don't need the buffering gate that ipc-handlers uses,
+        // because we replay the PTY buffer on connect instead.
+        break;
+      }
+    }
+  }
+
+  // --- Helpers ---
+
+  private respond(ws: WebSocket, type: string, id: string, payload: any): void {
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: `${type}:response`, id, payload }));
+    }
+  }
+
+  private broadcast(msg: { type: string; payload: any }): void {
+    const data = JSON.stringify(msg);
+    for (const client of this.clients) {
+      if (client.ws.readyState === WebSocket.OPEN) {
+        client.ws.send(data);
+      }
+    }
+  }
+
+  // --- Rate limiting ---
+
+  private isRateLimited(ip: string): boolean {
+    const entry = this.failedAttempts.get(ip);
+    if (!entry) return false;
+    if (Date.now() > entry.resetAt) {
+      this.failedAttempts.delete(ip);
+      return false;
+    }
+    return entry.count >= RATE_LIMIT_MAX_FAILURES;
+  }
+
+  private recordFailedAttempt(ip: string): void {
+    const entry = this.failedAttempts.get(ip);
+    if (entry && Date.now() < entry.resetAt) {
+      entry.count++;
+    } else {
+      this.failedAttempts.set(ip, { count: 1, resetAt: Date.now() + RATE_LIMIT_WINDOW_MS });
+    }
+  }
+
+  private clearFailedAttempts(ip: string): void {
+    this.failedAttempts.delete(ip);
+  }
+}
+
+// --- File reading helpers (same pattern as ipc-handlers.ts) ---
+
+function readJsonFile(filePath: string): any {
+  try { return JSON.parse(fs.readFileSync(filePath, 'utf8')); } catch { return null; }
+}
+
+function readTextFile(filePath: string): string | null {
+  try { return fs.readFileSync(filePath, 'utf8').trim() || null; } catch { return null; }
+}
