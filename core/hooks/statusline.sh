@@ -124,11 +124,17 @@ printf '%b\n' "$MODEL_LINE"
 
 # --- Line 4: Rate limit info (via usage-fetch.js) ---
 # Find hooks directory: config-based lookup (works with copies on Windows), symlink fallback
+# Check config.local.json first (machine-specific), then config.json (portable) — Design ref: D1
 HOOKS_DIR=""
-if command -v node &>/dev/null && [[ -f "$HOME/.claude/toolkit-state/config.json" ]]; then
-    _TK=$(node -e "try{const c=JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'));if(c.toolkit_root)console.log(c.toolkit_root)}catch{}" "$HOME/.claude/toolkit-state/config.json" 2>/dev/null)
-    [[ -n "$_TK" && -d "$_TK/core/hooks" ]] && HOOKS_DIR="$_TK/core/hooks"
+_TK=""
+if command -v node &>/dev/null; then
+    for _cfg in "$HOME/.claude/toolkit-state/config.local.json" "$HOME/.claude/toolkit-state/config.json"; do
+        [[ ! -f "$_cfg" ]] && continue
+        _TK=$(node -e "try{const c=JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'));if(c.toolkit_root)console.log(c.toolkit_root)}catch{}" "$_cfg" 2>/dev/null)
+        [[ -n "$_TK" ]] && break
+    done
 fi
+[[ -n "$_TK" && -d "$_TK/core/hooks" ]] && HOOKS_DIR="$_TK/core/hooks"
 if [[ -z "$HOOKS_DIR" ]]; then
     _REAL="$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || realpath "${BASH_SOURCE[0]}" 2>/dev/null || python3 -c "import os,sys; print(os.path.realpath(sys.argv[1]))" "${BASH_SOURCE[0]}" 2>/dev/null || echo "${BASH_SOURCE[0]}")"
     HOOKS_DIR="$(dirname "$_REAL")"

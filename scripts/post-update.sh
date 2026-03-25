@@ -131,7 +131,14 @@ load_config() {
     exit 1
   fi
 
-  TOOLKIT_ROOT="$(json_read "$CONFIG_FILE" "toolkit_root")"
+  LOCAL_CONFIG_FILE="$CLAUDE_HOME/toolkit-state/config.local.json"
+  TOOLKIT_ROOT=""
+  if [ -f "$LOCAL_CONFIG_FILE" ]; then
+      TOOLKIT_ROOT="$(json_read "$LOCAL_CONFIG_FILE" "toolkit_root" 2>/dev/null)" || true
+  fi
+  if [ -z "$TOOLKIT_ROOT" ]; then
+      TOOLKIT_ROOT="$(json_read "$CONFIG_FILE" "toolkit_root")"
+  fi
 
   # Read installed_layers array into a bash indexed array.
   # Uses a while-read loop for bash 3.2 compatibility (no mapfile/readarray).
