@@ -474,6 +474,15 @@ else
     fi
 fi
 
+# 1b. Git repo health (Design ref: D8)
+_GIT_REMOTE=""
+if type config_get &>/dev/null; then
+    _GIT_REMOTE=$(config_get "GIT_REMOTE" "")
+fi
+if [[ -n "$_GIT_REMOTE" && "$_GIT_REMOTE" != "none" && ! -d "$CLAUDE_DIR/.git" ]]; then
+    echo "GIT:NOT_INITIALIZED" >> "$WARNINGS_FILE"
+fi
+
 # 2. Unbackedup user skills (not toolkit symlinks, not in a git-tracked backup)
 _UNBACKEDUP_SKILLS=""
 if [[ -d "$CLAUDE_DIR/skills" ]]; then
