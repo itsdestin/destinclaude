@@ -153,6 +153,11 @@ export class RemoteServer {
     this.clients.clear();
   }
 
+  /** Number of currently connected remote clients. */
+  getClientCount(): number {
+    return this.clients.size;
+  }
+
   // --- Event handlers for buffering ---
 
   private onPtyOutput = (sessionId: string, data: string) => {

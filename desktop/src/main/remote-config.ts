@@ -69,7 +69,7 @@ export class RemoteConfig {
     return first === 100 && second >= 64 && second <= 127;
   }
 
-  private save(): void {
+  save(): void {
     const configPath = CONFIG_PATH();
     fs.mkdirSync(path.dirname(configPath), { recursive: true });
     fs.writeFileSync(configPath, JSON.stringify({
@@ -78,5 +78,40 @@ export class RemoteConfig {
       passwordHash: this.passwordHash,
       trustTailscale: this.trustTailscale,
     }, null, 2));
+  }
+
+  /** Return config data safe for the renderer (no password hash). */
+  toSafeObject(): { enabled: boolean; port: number; hasPassword: boolean; trustTailscale: boolean } {
+    return {
+      enabled: this.enabled,
+      port: this.port,
+      hasPassword: !!this.passwordHash,
+      trustTailscale: this.trustTailscale,
+    };
+  }
+
+  /** Detect Tailscale installation and connection status. */
+  static async detectTailscale(port: number): Promise<{ installed: boolean; ip: string | null; hostname: string | null; url: string | null }> {
+    try {
+      const { execFile } = require('child_process');
+      const { promisify } = require('util');
+      const execFileAsync = promisify(execFile);
+      let tsPath = 'tailscale';
+      try { const w = require('which'); tsPath = w.sync('tailscale'); } catch {}
+
+      const { stdout: ip } = await execFileAsync(tsPath, ['ip', '-4']);
+      const tailscaleIp = ip.trim();
+
+      let hostname = '';
+      try {
+        const { stdout: statusJson } = await execFileAsync(tsPath, ['status', '--json']);
+        const status = JSON.parse(statusJson);
+        hostname = status.Self?.HostName || '';
+      } catch {}
+
+      return { installed: true, ip: tailscaleIp, hostname, url: `http://${tailscaleIp}:${port}` };
+    } catch {
+      return { installed: false, ip: null, hostname: null, url: null };
+    }
   }
 }
