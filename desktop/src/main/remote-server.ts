@@ -468,6 +468,37 @@ export class RemoteServer {
         }
         break;
       }
+      case 'remote:get-config': {
+        const config = {
+          ...this.config.toSafeObject(),
+          clientCount: this.getClientCount(),
+        };
+        this.respond(client.ws, type, id, config);
+        break;
+      }
+      case 'remote:set-password': {
+        await this.config.setPassword(payload);
+        this.invalidateTokens();
+        this.respond(client.ws, type, id, true);
+        break;
+      }
+      case 'remote:set-config': {
+        if (typeof payload.enabled === 'boolean') this.config.enabled = payload.enabled;
+        if (typeof payload.trustTailscale === 'boolean') this.config.trustTailscale = payload.trustTailscale;
+        this.config.save();
+        this.respond(client.ws, type, id, this.config.toSafeObject());
+        break;
+      }
+      case 'remote:detect-tailscale': {
+        const { RemoteConfig } = require('./remote-config');
+        const result = await RemoteConfig.detectTailscale(this.config.port);
+        this.respond(client.ws, type, id, result);
+        break;
+      }
+      case 'remote:get-client-count': {
+        this.respond(client.ws, type, id, this.getClientCount());
+        break;
+      }
 
       // --- Fire-and-forget ---
       case 'session:input': {

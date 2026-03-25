@@ -22,6 +22,11 @@ const IPC = {
   OPEN_CHANGELOG: 'shell:open-changelog',
   TERMINAL_READY: 'session:terminal-ready',
   PERMISSION_RESPOND: 'permission:respond',
+  REMOTE_GET_CONFIG: 'remote:get-config',
+  REMOTE_SET_PASSWORD: 'remote:set-password',
+  REMOTE_SET_CONFIG: 'remote:set-config',
+  REMOTE_DETECT_TAILSCALE: 'remote:detect-tailscale',
+  REMOTE_GET_CLIENT_COUNT: 'remote:get-client-count',
 } as const;
 
 contextBridge.exposeInMainWorld('claude', {
@@ -88,6 +93,14 @@ contextBridge.exposeInMainWorld('claude', {
   shell: {
     openChangelog: (): Promise<void> =>
       ipcRenderer.invoke(IPC.OPEN_CHANGELOG),
+  },
+  remote: {
+    getConfig: () => ipcRenderer.invoke(IPC.REMOTE_GET_CONFIG),
+    setPassword: (password: string) => ipcRenderer.invoke(IPC.REMOTE_SET_PASSWORD, password),
+    setConfig: (updates: { enabled?: boolean; trustTailscale?: boolean }) =>
+      ipcRenderer.invoke(IPC.REMOTE_SET_CONFIG, updates),
+    detectTailscale: () => ipcRenderer.invoke(IPC.REMOTE_DETECT_TAILSCALE),
+    getClientCount: () => ipcRenderer.invoke(IPC.REMOTE_GET_CLIENT_COUNT),
   },
   off: (channel: string, handler: (...args: any[]) => void) =>
     ipcRenderer.removeListener(channel, handler),

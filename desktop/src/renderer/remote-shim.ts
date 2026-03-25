@@ -251,6 +251,14 @@ export function installShim(): void {
     shell: {
       openChangelog: async () => {},
     },
+    remote: {
+      getConfig: () => invoke('remote:get-config'),
+      setPassword: (password: string) => invoke('remote:set-password', password),
+      setConfig: (updates: { enabled?: boolean; trustTailscale?: boolean }) =>
+        invoke('remote:set-config', updates),
+      detectTailscale: () => invoke('remote:detect-tailscale'),
+      getClientCount: () => invoke('remote:get-client-count'),
+    },
     off: (channel: string, handler: Callback) => removeListener(channel, handler),
     removeAllListeners: (channel: string) => removeAllListeners(channel),
     getGitHubAuth: () => invoke('github:auth'),
