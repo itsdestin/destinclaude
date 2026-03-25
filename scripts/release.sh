@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Release script — bumps VERSION + plugin.json, adds CHANGELOG header, commits, tags, and pushes.
+# Release script — bumps VERSION, plugin.json, desktop/package.json, adds CHANGELOG header, commits, tags, and pushes.
 # Usage: ./scripts/release.sh 1.3.0
 set -euo pipefail
 
@@ -50,12 +50,15 @@ echo "$VERSION" > VERSION
 # 2. Bump plugin.json (portable: temp file instead of sed -i which differs on macOS)
 sed "s/\"version\": \"$CURRENT\"/\"version\": \"$VERSION\"/" plugin.json > plugin.json.tmp && mv plugin.json.tmp plugin.json
 
-# 3. Add CHANGELOG header (portable: awk instead of GNU-only sed 0,/ADDR/ syntax)
+# 3. Bump desktop/package.json so electron-builder produces correctly versioned binaries
+node -e "var p='desktop/package.json',pkg=JSON.parse(require('fs').readFileSync(p,'utf8'));pkg.version=process.argv[1];require('fs').writeFileSync(p,JSON.stringify(pkg,null,2)+'\n')" "$VERSION"
+
+# 4. Add CHANGELOG header (portable: awk instead of GNU-only sed 0,/ADDR/ syntax)
 TODAY=$(date +%Y-%m-%d)
 awk -v ver="$VERSION" -v today="$TODAY" 'BEGIN{done=0} /^## / && !done {printf "## v%s (%s)\n\n_(fill in release notes)_\n\n", ver, today; done=1} {print}' CHANGELOG.md > CHANGELOG.md.tmp && mv CHANGELOG.md.tmp CHANGELOG.md
 
-# 4. Commit, tag, push
-git add VERSION plugin.json CHANGELOG.md
+# 5. Commit, tag, push
+git add VERSION plugin.json desktop/package.json CHANGELOG.md
 git commit -m "release: v$VERSION"
 git tag "v$VERSION"
 git push origin master --tags

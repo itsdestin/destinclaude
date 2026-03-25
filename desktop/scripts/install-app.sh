@@ -83,6 +83,34 @@ download() {
   curl -sL -o "$WORK_DIR/$(basename "$asset_url")" "$asset_url"
 }
 
+# Close running DestinCode instances
+close_running_app() {
+  case "$PLATFORM" in
+    windows)
+      # taskkill returns non-zero if process not found — that's fine
+      taskkill //IM "DestinCode.exe" //F 2>/dev/null || true
+      sleep 1
+      ;;
+    macos)
+      if pgrep -x "DestinCode" >/dev/null 2>&1; then
+        echo "  Closing running DestinCode..."
+        osascript -e 'tell application "DestinCode" to quit' 2>/dev/null || true
+        # Wait up to 5s for graceful quit
+        for i in 1 2 3 4 5; do
+          pgrep -x "DestinCode" >/dev/null 2>&1 || break
+          sleep 1
+        done
+        # Force kill if still running
+        pkill -9 -x "DestinCode" 2>/dev/null || true
+      fi
+      ;;
+    linux)
+      pkill -f "DestinCode.AppImage" 2>/dev/null || true
+      sleep 1
+      ;;
+  esac
+}
+
 case "$PLATFORM" in
   windows)
     echo "  Downloading installer..."
@@ -93,12 +121,28 @@ case "$PLATFORM" in
       exit 1
     fi
 
+    # Close running app so the installer can replace files
+    close_running_app
+
+    # Uninstall previous version to avoid NSIS same-version skip.
+    # electron-builder installs to $LOCALAPPDATA/Programs/DestinCode
+    UNINSTALLER="$LOCALAPPDATA/Programs/DestinCode/Uninstall DestinCode.exe"
+    if [[ -f "$UNINSTALLER" ]]; then
+      echo "  Removing previous version..."
+      "$UNINSTALLER" /S 2>/dev/null || true
+      # Wait for uninstaller to finish
+      sleep 3
+    fi
+
     echo "  Running installer..."
     # NSIS installer — /S for silent, creates Start Menu shortcuts automatically
     "$INSTALLER" /S
 
+    # NSIS /S forks to background on Windows — wait for it to finish
+    sleep 5
+
     echo ""
-    echo "  DestinCode installed!"
+    echo "  DestinCode $TAG installed!"
     echo "  - Start Menu shortcut created automatically"
     echo "  - Launch from Start Menu or search for 'DestinCode'"
     ;;
@@ -112,13 +156,18 @@ case "$PLATFORM" in
       exit 1
     fi
 
+    # Close running app so we can replace the .app bundle
+    close_running_app
+
     echo "  Installing to /Applications..."
     hdiutil attach "$DMG" -quiet -nobrowse -mountpoint "$WORK_DIR/mnt"
+    # Remove old app first to avoid cp -R failing on locked files
+    rm -rf /Applications/DestinCode.app
     cp -R "$WORK_DIR/mnt/"*.app /Applications/
     hdiutil detach "$WORK_DIR/mnt" -quiet
 
     echo ""
-    echo "  DestinCode installed to /Applications!"
+    echo "  DestinCode $TAG installed to /Applications!"
     echo "  - Launch from Spotlight (Cmd+Space → 'DestinCode')"
     echo "  - Or open /Applications/DestinCode.app"
     echo ""
@@ -133,6 +182,9 @@ case "$PLATFORM" in
       echo "ERROR: No .AppImage found in release $TAG" >&2
       exit 1
     fi
+
+    # Close running app before replacing the binary
+    close_running_app
 
     # Install to ~/.local/bin
     mkdir -p "$HOME/.local/bin"
@@ -152,10 +204,36 @@ Categories=Development;
 DESKTOP
 
     echo ""
-    echo "  DestinCode installed!"
+    echo "  DestinCode $TAG installed!"
     echo "  - Added to app launcher"
     echo "  - Or run: ~/.local/bin/DestinCode.AppImage"
     ;;
 esac
 
+# Post-install verification
+echo ""
+case "$PLATFORM" in
+  windows)
+    if [[ -d "$LOCALAPPDATA/Programs/DestinCode" ]]; then
+      echo "  Verified: DestinCode installed at $LOCALAPPDATA/Programs/DestinCode"
+    else
+      echo "  WARNING: Installation directory not found. The installer may still be running." >&2
+      echo "  Check Start Menu for DestinCode in a few seconds." >&2
+    fi
+    ;;
+  macos)
+    if [[ -d "/Applications/DestinCode.app" ]]; then
+      echo "  Verified: /Applications/DestinCode.app exists"
+    else
+      echo "  WARNING: /Applications/DestinCode.app not found after install." >&2
+    fi
+    ;;
+  linux)
+    if [[ -x "$HOME/.local/bin/DestinCode.AppImage" ]]; then
+      echo "  Verified: ~/.local/bin/DestinCode.AppImage exists and is executable"
+    else
+      echo "  WARNING: AppImage not found or not executable after install." >&2
+    fi
+    ;;
+esac
 echo ""
