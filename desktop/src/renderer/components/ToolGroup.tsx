@@ -13,10 +13,7 @@ export default function ToolGroup({ group, toolCalls }: Props) {
     .map((id) => toolCalls.get(id))
     .filter((t): t is ToolCallState => t !== undefined);
 
-  // Auto-expand when a tool needs permission approval — the user must see it
-  const hasAwaitingApproval = tools.some((t) => t.status === 'awaiting-approval');
-  const [manualExpanded, setManualExpanded] = useState(false);
-  const expanded = manualExpanded || hasAwaitingApproval;
+  const [expanded, setExpanded] = useState(false);
 
   if (tools.length === 0) return null;
 
@@ -43,7 +40,7 @@ export default function ToolGroup({ group, toolCalls }: Props) {
     <div className="px-4 py-1">
       <div className="border border-gray-700 rounded-lg overflow-hidden">
         <button
-          onClick={() => setManualExpanded(!expanded)}
+          onClick={() => setExpanded(!expanded)}
           className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-800/50 transition-colors"
         >
           {runningCount > 0 ? (

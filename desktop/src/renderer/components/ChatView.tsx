@@ -3,6 +3,7 @@ import { useChatState, useChatDispatch } from '../state/chat-context';
 import UserMessage from './UserMessage';
 import AssistantMessage from './AssistantMessage';
 import ToolGroup from './ToolGroup';
+import ToolCard from './ToolCard';
 import PromptCard from './PromptCard';
 import ThinkingIndicator from './ThinkingIndicator';
 
@@ -117,12 +118,38 @@ export default function ChatView({ sessionId, visible }: Props) {
                 case 'tool-group': {
                   const group = state.toolGroups.get(entry.groupId);
                   if (!group || group.toolIds.length === 0) return null;
+
+                  // Pull awaiting-approval tools out of the group and render
+                  // them as standalone cards so they're always visible — not
+                  // hidden inside a collapsed tool group.
+                  const pendingIds = group.toolIds.filter((id) => {
+                    const t = state.toolCalls.get(id);
+                    return t?.status === 'awaiting-approval';
+                  });
+                  const restIds = group.toolIds.filter((id) => !pendingIds.includes(id));
+
+                  const restGroup = restIds.length > 0
+                    ? { ...group, toolIds: restIds }
+                    : null;
+
                   return (
-                    <ToolGroup
-                      key={entry.groupId}
-                      group={group}
-                      toolCalls={state.toolCalls}
-                    />
+                    <React.Fragment key={entry.groupId}>
+                      {restGroup && (
+                        <ToolGroup
+                          group={restGroup}
+                          toolCalls={state.toolCalls}
+                        />
+                      )}
+                      {pendingIds.map((id) => {
+                        const tool = state.toolCalls.get(id);
+                        if (!tool) return null;
+                        return (
+                          <div key={id} className="px-4 py-1">
+                            <ToolCard tool={tool} />
+                          </div>
+                        );
+                      })}
+                    </React.Fragment>
                   );
                 }
                 case 'prompt':
