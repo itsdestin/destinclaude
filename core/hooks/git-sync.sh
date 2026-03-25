@@ -45,6 +45,14 @@ fi
 
 cd "$REPO_DIR"
 
+# Bail if this directory is not a git repo (Design ref: D8)
+if [[ ! -d "$REPO_DIR/.git" ]]; then
+    if type log_backup &>/dev/null; then
+        log_backup "WARN" "git-sync: $REPO_DIR is not a git repo — skipping"
+    fi
+    exit 0
+fi
+
 # Detect the default branch for this repo
 PUSH_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "main")
 # Validate the detected branch exists on the remote; fall back to main if not
