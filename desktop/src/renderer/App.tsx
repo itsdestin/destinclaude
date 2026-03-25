@@ -228,7 +228,22 @@ function AppInner() {
   }, [sessionId, canBypass, currentPermissionMode]);
 
   const trustGateActive = useTrustGateActive(sessionId);
-  const sessionInitialized = sessionId ? (initializedSessions.has(sessionId) || trustGateActive) : true;
+
+  // Once trust gate activates, permanently mark the session as initialized
+  // so the "Initializing" overlay doesn't reappear after trust is completed
+  // (there's a gap between trust completion and the first hook event).
+  useEffect(() => {
+    if (trustGateActive && sessionId) {
+      setInitializedSessions((prev) => {
+        if (prev.has(sessionId)) return prev;
+        const next = new Set(prev);
+        next.add(sessionId);
+        return next;
+      });
+    }
+  }, [trustGateActive, sessionId]);
+
+  const sessionInitialized = sessionId ? initializedSessions.has(sessionId) : true;
 
   // Parse announcement
   const announcementText = statusData.announcement?.message || null;
