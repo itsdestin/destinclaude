@@ -338,7 +338,6 @@ discover_projects() {
     # Build skip set: hardcoded git-sync paths + registered + ignored
     local -a skip_paths=()
     skip_paths+=("$(normalize_path "$CLAUDE_DIR")")
-    skip_paths+=("$(normalize_path "$HOME/claude-mobile")")
 
     if [[ -f "$tracked_file" ]] && command -v node &>/dev/null; then
         while IFS= read -r p; do

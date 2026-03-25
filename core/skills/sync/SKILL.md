@@ -7,7 +7,7 @@ description: Show sync status dashboard and resolve warnings. Use when user says
 
 You are managing the user's data protection across three categories: system changes (Git), personal data (Drive/GitHub/iCloud), and project repos. The goal: the user should never lose information.
 
-**Note:** Git-synced repos (`~/.claude/`, `~/claude-mobile/`) and the Drive remote name (`gdrive:`) are determined by the user's backup configuration. The paths below reflect the default setup; adapt to the user's actual config by reading `~/.claude/toolkit-state/config.json`.
+**Note:** The Git-synced repo (`~/.claude/`) and the Drive remote name (`gdrive:`) are determined by the user's backup configuration. The paths below reflect the default setup; adapt to the user's actual config by reading `~/.claude/toolkit-state/config.json`.
 
 ## Parse Arguments
 
@@ -27,7 +27,7 @@ cat ~/.claude/.sync-status 2>/dev/null           # Git sync status line
 cat ~/.claude/backup-meta.json 2>/dev/null       # Last personal sync metadata
 cat ~/.claude/toolkit-state/.personal-sync-marker 2>/dev/null  # Personal sync debounce timestamp
 cat ~/.claude/.push-marker 2>/dev/null           # Git-sync push debounce timestamp
-cat ~/.claude/.push-marker-claude-mobile 2>/dev/null  # Claude Mobile push marker
+
 cat ~/.claude/.unsynced-projects 2>/dev/null     # Discovered but unregistered projects
 cat ~/.claude/tracked-projects.json 2>/dev/null  # Project registry (may not exist yet)
 cat ~/.claude/toolkit-state/config.json 2>/dev/null  # Backend config
@@ -59,7 +59,6 @@ Always show this first. Compute relative times from epoch timestamps.
 
   System (Git):
     ✓ ~/.claude → origin (last push: Xm ago)
-    ✓ ~/claude-mobile → origin (last push: Xh ago)
     — OR —
     ⚠ No remote configured
 
@@ -245,16 +244,10 @@ Triggered by `/sync now` or trigger phrases ("backup now", "force a full backup"
 # Reset debounce markers so hooks will fire immediately
 touch -t 202001010000 ~/.claude/toolkit-state/.personal-sync-marker 2>/dev/null
 touch -t 202001010000 ~/.claude/.push-marker 2>/dev/null
-touch -t 202001010000 ~/.claude/.push-marker-claude-mobile 2>/dev/null
 
-# Run git-sync for each tracked repo
+# Run git-sync
 cd ~/.claude && git add -A 2>/dev/null && git diff --cached --quiet 2>/dev/null || git commit -m "manual: force sync" --no-gpg-sign 2>/dev/null
 git push origin $(git symbolic-ref --short HEAD) 2>/dev/null && echo "✓ Git push: ~/.claude" || echo "⚠ Git push failed: ~/.claude"
-
-if [ -d ~/claude-mobile/.git ]; then
-    cd ~/claude-mobile && git add -A 2>/dev/null && git diff --cached --quiet 2>/dev/null || git commit -m "manual: force sync" --no-gpg-sign 2>/dev/null
-    git push origin $(git symbolic-ref --short HEAD) 2>/dev/null && echo "✓ Git push: ~/claude-mobile" || echo "⚠ Git push failed: ~/claude-mobile"
-fi
 
 # Run personal-sync directly
 bash ~/.claude/hooks/personal-sync.sh <<< '{"tool_input":{"file_path":"'"$HOME/.claude/CLAUDE.md"'"}}'
@@ -264,7 +257,6 @@ Report results:
 ```
 Force sync complete:
   Git (claude-config): ✓ pushed
-  Git (claude-mobile): ✓ pushed / ⚠ failed / — not found
   Personal data: ✓ synced to Drive / ⚠ failed
 ```
 

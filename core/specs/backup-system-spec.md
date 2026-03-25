@@ -48,20 +48,17 @@ The Backup & Sync system keeps Claude Code's configuration, memory, skills, and 
 
 ### Tracked Projects
 
-The hook supports multiple independent Git repositories. File path routing determines which repo to commit to:
+The hook tracks the `~/.claude/` Git repository:
 
 | Project | Local path | GitHub repo | Branch |
 |---------|-----------|-------------|--------|
 | Claude Config | `~/.claude/` | `{github-user}/claude-config` (private) | `main` |
-| Claude Mobile | `~/claude-mobile/` | `{github-user}/claude-mobile` (private) | `master` |
-
-Each project has independent push markers and rebase-fail counters. Drive archive only runs for the Claude Config repo.
 
 ### Project Discovery & Registration
 
 `discover_projects()` in `lib/backup-common.sh` scans common working directories for git repos not already tracked. Called by `session-start.sh` on every session start:
 
-1. **Build skip set** — hardcoded git-sync paths (`~/.claude/`, `~/claude-mobile/`) plus all `projects[].path` and `ignored[]` entries from `tracked-projects.json`
+1. **Build skip set** — the git-sync path (`~/.claude/`) plus all `projects[].path` and `ignored[]` entries from `tracked-projects.json`
 2. **Scan** — checks depth-1 children of `~/projects/`, `~/repos/`, `~/code/`, `~/dev/`, `~/src/`, `~/Documents/`, `~/Desktop/` for `.git/` directories
 3. **Output** — writes discovered paths to `~/.claude/.unsynced-projects` (one per line, sorted, deduped)
 4. **Warn** — writes `PROJECTS:<count>` to `~/.claude/.sync-warnings` for statusline display
@@ -132,7 +129,7 @@ The hook fires on every PostToolUse for Write/Edit but immediately exits if the 
 ### Git Sync Flow (`git-sync.sh`)
 
 1. **Parse stdin JSON** -- extracts `tool_input.file_path`, normalizes backslashes to forward slashes.
-2. **Project routing** -- matches file path to a tracked project (`~/.claude/` or `~/claude-mobile/`). Exits silently if no match.
+2. **Project routing** -- matches file path to `~/.claude/`. Exits silently if no match.
 3. **Branch detection** -- reads the repo's default branch via `git symbolic-ref refs/remotes/origin/HEAD`.
 4. **gitignore check** -- exits silently if the file is ignored by the project's `.gitignore`.
 5. **Update write registry** -- records `{pid, timestamp, content_hash}` for the written file in `~/.claude/.write-registry.json` so the PreToolUse write guard (`write-guard.sh`) can detect concurrent same-machine edits.
@@ -146,11 +143,9 @@ The hook fires on every PostToolUse for Write/Edit but immediately exits if the 
 | File | Purpose | Written by |
 |------|---------|-----------|
 | `~/.claude/.push-marker` | Last push timestamp for Claude Config (15-min debounce) | git-sync |
-| `~/.claude/.push-marker-claude-mobile` | Last push timestamp for Claude Mobile (15-min debounce) | git-sync |
 | `~/.claude/.sync-status` | Human-readable status for statusline display | git-sync |
 | `~/.claude/backup.log` | Persistent log of all backup operations | both scripts |
 | `~/.claude/.write-registry.json` | Write guard: last-writer PID + hash per tracked file | git-sync (via `update_registry`) |
-| `~/.claude/.rebase-fail-count-claude-mobile` | Consecutive rebase failure counter for Claude Mobile | git-sync |
 | `~/.claude/backup-meta.json` | Schema version and toolkit version stamp, written by personal-sync after each successful sync cycle | personal-sync |
 | `~/.claude/.unsynced-projects` | Discovered git repos not tracked by git-sync or registered | session-start (via `discover_projects()`) |
 | `~/.claude/tracked-projects.json` | Project registry — tracked and ignored project paths | `/sync` skill |
@@ -182,7 +177,7 @@ See [GitHub Issues](https://github.com/itsdestin/destinclaude/issues) for known 
 
 | Date | Version | What changed | Type | Approved by |
 |------|---------|-------------|------|-------------|
-| 2026-03-25 | 4.3 | Cross-device sync: portable/local config split (D1), mcp-config.json excluded from sync (D2, reversal of v4.2), conversations added to personal-sync scope, home-directory conversation aggregation via symlinks, git repo health check (D8), renamed get_primary_backend to get_preferred_backend. All backends now documented as complementary (no primary/secondary hierarchy). See cross-device-sync-design (03-25-2026). | Update | Destin |
+| 2026-03-25 | 4.3 | Cross-device sync: portable/local config split (D1), mcp-config.json excluded from sync (D2, reversal of v4.2), conversations added to personal-sync scope, home-directory conversation aggregation via symlinks, git repo health check (D8), renamed get_primary_backend to get_preferred_backend. All backends now documented as complementary (no primary/secondary hierarchy). See cross-device-sync-design (03-25-2026). Removed Claude Mobile (`~/claude-mobile/`) as a tracked project — git-sync.sh now only tracks `~/.claude/`. Removed associated state files and project discovery skip entry. | Update | Destin |
 | 2026-03-24 | 4.2 | Added `/sync` skill and project discovery. `discover_projects()` in backup-common.sh scans common directories for untracked git repos; session-start.sh now actively writes `.unsynced-projects`. The `/sync` skill provides status dashboard, warning resolution, project onboarding, and force sync — fulfilling the manual backup mandate (line 19). New state files: `.unsynced-projects`, `tracked-projects.json`. New design decisions: project discovery, `/sync` as resolution layer. | Update | Destin |
 | 2026-03-24 | 4.1 | Critical fix: session-start Drive pull used `rclone sync` for memory, which deletes local files (including conversation .jsonl) not present on the remote. Changed to `rclone copy --update`. This was silently destroying conversation history on every session start when Drive backend was configured. | Bugfix | Destin |
 | 2026-03-23 | 4.0 | Refactored: symlink-based ownership detection replaces drive-archive.sh — all backend replication now handled by personal-sync.sh. New shared library (lib/backup-common.sh), migration framework (lib/migrate.sh, migrations/v1.json), toolkit integrity check in session-start. See backup-system-refactor-design (03-22-2026). | Architecture | — |

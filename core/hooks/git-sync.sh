@@ -1,7 +1,7 @@
 #!/bin/bash
 # PostToolUse hook for Write|Edit
 # Commits changes to Git, pushes every 15 min (Drive archive removed — personal-sync.sh handles all backend replication)
-# Supports multiple project repos: ~/.claude/ and ~/claude-mobile/
+# Tracks the ~/.claude/ project repo
 set -euo pipefail
 
 # Read file path from stdin JSON
@@ -15,7 +15,6 @@ FILE_PATH=$(echo "$INPUT" | node -e "
 
 # Config
 CLAUDE_DIR="${CLAUDE_DIR:-$HOME/.claude}"
-CLAUDE_MOBILE_DIR="$HOME/claude-mobile"
 REGISTRY="$CLAUDE_DIR/.write-registry.json"
 
 # Source shared backup utilities
@@ -35,10 +34,6 @@ if [[ "$FILE_PATH" == */.claude/* || "$FILE_PATH" == "$CLAUDE_DIR"/* ]]; then
     REPO_DIR="$CLAUDE_DIR"
     PUSH_MARKER="$CLAUDE_DIR/.push-marker"
     REBASE_FAIL_COUNT_FILE="$CLAUDE_DIR/.rebase-fail-count"
-elif [[ "$FILE_PATH" == */claude-mobile/* || "$FILE_PATH" == "$CLAUDE_MOBILE_DIR"/* ]]; then
-    REPO_DIR="$CLAUDE_MOBILE_DIR"
-    PUSH_MARKER="$CLAUDE_DIR/.push-marker-claude-mobile"
-    REBASE_FAIL_COUNT_FILE="$CLAUDE_DIR/.rebase-fail-count-claude-mobile"
 else
     exit 0
 fi

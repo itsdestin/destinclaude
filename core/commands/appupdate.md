@@ -1,8 +1,8 @@
 ---
-description: Check for and install the latest DestinCode desktop app from GitHub Releases
+description: Download and install the latest DestinCode desktop app from GitHub Releases
 ---
 
-Check for the latest DestinCode desktop app release on GitHub, compare it to the currently installed version, and install/update if needed.
+Always downloads and installs the latest DestinCode desktop app from GitHub Releases. No version comparison — just get the latest and install it.
 
 ## Steps
 
@@ -17,47 +17,29 @@ Check for the latest DestinCode desktop app release on GitHub, compare it to the
    ```bash
    command -v gh &>/dev/null && echo "OK" || echo "MISSING"
    ```
-   If missing: "The `gh` CLI is required for app updates. Install it with `winget install GitHub.cli` (Windows), `brew install gh` (macOS), or see https://cli.github.com/."
+   If missing: "The `gh` CLI is required. Install with `winget install GitHub.cli` (Windows), `brew install gh` (macOS), or see https://cli.github.com/."
 
-3. **Fetch latest release info from GitHub.**
+3. **Fetch latest release version from GitHub.**
    ```bash
-   gh release view --repo itsdestin/destinclaude --json tagName,name,publishedAt 2>/dev/null
+   gh release view --repo itsdestin/destinclaude --json tagName --jq '.tagName' 2>/dev/null
    ```
-   Store the `tagName` (e.g., `v2.1.4`) as `LATEST_TAG` and strip the `v` prefix as `LATEST_VERSION`.
+   Store as `LATEST_TAG` (e.g., `v2.1.4`). Strip `v` prefix as `LATEST_VERSION`.
 
    If this fails: "Can't reach GitHub — you may be offline."
 
-4. **Determine currently installed app version.** Read the local cache:
-   ```bash
-   cat ~/.claude/toolkit-state/app-version.json 2>/dev/null
-   ```
-   This file contains `{"installed_version": "X.Y.Z"}`. If the file doesn't exist or has no `installed_version`, the installed version is unknown — treat as "not installed" and proceed to install.
-
-5. **Compare versions.** If the installed version matches `LATEST_VERSION`: "DestinCode is up to date (vX.Y.Z)." — stop. Otherwise, show:
-   - Current installed version (or "not installed / unknown")
-   - Latest available version
-   - Ask: "Would you like to install DestinCode vX.Y.Z?"
-
-6. **Verify install script exists.**
+4. **Verify install script exists.**
    ```bash
    [[ -f "$TOOLKIT_ROOT/desktop/scripts/install-app.sh" ]] && echo "OK" || echo "MISSING"
    ```
-   If missing: "Install script not found at `$TOOLKIT_ROOT/desktop/scripts/install-app.sh`. Your toolkit may not include the desktop component."
+   If missing: "Install script not found. Your toolkit may not include the desktop component."
 
-7. **Run the installer.** Use the existing install script with the latest version:
+5. **Run the installer.** No confirmation needed — just install:
    ```bash
    TOOLKIT_ROOT="$TOOLKIT_ROOT" bash "$TOOLKIT_ROOT/desktop/scripts/install-app.sh" --version "$LATEST_VERSION"
    ```
    Present the installer output to the user.
 
-8. **Update the version cache** so future checks know what's installed:
-   ```bash
-   echo "{\"installed_version\": \"$LATEST_VERSION\"}" > ~/.claude/toolkit-state/app-version.json
-   ```
-
-9. **Offer to launch the app.** Ask: "Would you like to launch DestinCode now?"
-
-   If yes, launch based on platform:
+6. **Launch the app** based on platform:
    ```bash
    # Windows
    "$LOCALAPPDATA/Programs/DestinCode/DestinCode.exe" &
@@ -69,7 +51,7 @@ Check for the latest DestinCode desktop app release on GitHub, compare it to the
    ~/.local/bin/DestinCode.AppImage &
    ```
 
-10. **Final confirmation.**
-    ```
-    DestinCode vX.Y.Z installed and running.
-    ```
+7. **Final confirmation.**
+   ```
+   DestinCode vX.Y.Z installed and launched.
+   ```
