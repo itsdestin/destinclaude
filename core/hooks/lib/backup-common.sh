@@ -12,6 +12,7 @@ CLAUDE_DIR="${CLAUDE_DIR:-$HOME/.claude}"
 TOOLKIT_ROOT="${TOOLKIT_ROOT:-}"
 BACKUP_LOG="$CLAUDE_DIR/backup.log"
 CONFIG_FILE="$CLAUDE_DIR/toolkit-state/config.json"
+LOCAL_CONFIG_FILE="$CLAUDE_DIR/toolkit-state/config.local.json"
 
 # --- Logging ---
 log_backup() {
@@ -25,11 +26,28 @@ log_backup() {
 }
 
 # --- Config reading ---
-# Read a key from config.json. Falls back to grep if node unavailable.
+# Read a key from config.local.json (machine-specific, takes precedence),
+# then config.json (portable). Falls back to grep if node unavailable.
+# Design ref: cross-device-sync-design (03-25-2026) D1
 config_get() {
     local key="$1" default="${2:-}"
+    local val=""
+    # Check local config first (machine-specific, takes precedence)
+    if [[ -f "$LOCAL_CONFIG_FILE" ]] && command -v node &>/dev/null; then
+        val=$(node -e "
+            try {
+                const c = JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'));
+                const v = c[process.argv[2]];
+                if (v !== undefined && v !== null) process.stdout.write(String(v));
+            } catch(e) {}
+        " "$LOCAL_CONFIG_FILE" "$key" 2>/dev/null) || true
+        if [[ -n "$val" ]]; then
+            echo "$val"
+            return
+        fi
+    fi
+    # Then check portable config
     if command -v node &>/dev/null && [[ -f "$CONFIG_FILE" ]]; then
-        local val
         val=$(node -e "
             try {
                 const c = JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'));
@@ -42,12 +60,15 @@ config_get() {
             return
         fi
     fi
-    # Grep fallback
+    # Grep fallback (portable config only — local is always valid JSON from node)
     if [[ -f "$CONFIG_FILE" ]]; then
-        sed -n "s/.*\"$key\"[[:space:]]*:[[:space:]]*\"\([^\"]*\)\".*/\1/p" "$CONFIG_FILE" 2>/dev/null | head -1 || echo "$default"
-    else
-        echo "$default"
+        val=$(sed -n "s/.*\"$key\"[[:space:]]*:[[:space:]]*\"\([^\"]*\)\".*/\1/p" "$CONFIG_FILE" 2>/dev/null | head -1)
+        if [[ -n "$val" ]]; then
+            echo "$val"
+            return
+        fi
     fi
+    echo "$default"
 }
 
 # --- Symlink ownership detection (Design ref: D2) ---
