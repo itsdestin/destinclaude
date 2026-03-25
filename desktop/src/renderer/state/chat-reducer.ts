@@ -279,14 +279,15 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
       return next;
     }
 
+    case 'PERMISSION_RESPONDED':
     case 'PERMISSION_EXPIRED': {
       const session = next.get(action.sessionId);
       if (!session) return state;
 
-      // The relay socket closed (timeout or Claude Code killed the hook).
-      // Transition the tool back from awaiting-approval so the UI doesn't
-      // show dead buttons. The permission prompt is still live in the
-      // terminal — the user can respond there.
+      // Transition the tool from awaiting-approval back to running.
+      // PERMISSION_RESPONDED: user clicked Yes/Always Allow/No — merge
+      //   the tool back into its group immediately.
+      // PERMISSION_EXPIRED: relay socket closed (timeout) — clear dead buttons.
       const toolCalls = new Map(session.toolCalls);
       for (const [id, tool] of toolCalls) {
         if (tool.status === 'awaiting-approval' && tool.requestId === action.requestId) {

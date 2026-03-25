@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ToolCallState } from '../../shared/types';
+import { useChatDispatch } from '../state/chat-context';
 import BrailleSpinner from './BrailleSpinner';
 
 const TOOL_LABELS: Record<string, string> = {
@@ -88,12 +89,12 @@ function PermissionButtons({ requestId, suggestions, onResponded }: {
 
 interface Props {
   tool: ToolCallState;
+  sessionId?: string;
 }
 
-export default function ToolCard({ tool }: Props) {
+export default function ToolCard({ tool, sessionId }: Props) {
   const [expanded, setExpanded] = useState(false);
-  // Optimistic: hide permission buttons immediately on click, don't wait for PostToolUse
-  const [responded, setResponded] = useState(false);
+  const dispatch = useChatDispatch();
   const summary = toolSummary(tool);
 
   return (
@@ -104,7 +105,7 @@ export default function ToolCard({ tool }: Props) {
         className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-800/50 transition-colors"
       >
         {/* Status indicator */}
-        {(tool.status === 'running' || (tool.status === 'awaiting-approval' && responded)) && (
+        {tool.status === 'running' && (
           <BrailleSpinner size="sm" />
         )}
         {tool.status === 'complete' && (
@@ -131,12 +132,16 @@ export default function ToolCard({ tool }: Props) {
       </button>
 
 
-      {/* Permission approval buttons — hidden once user responds */}
-      {tool.status === 'awaiting-approval' && tool.requestId && !responded && (
+      {/* Permission approval buttons */}
+      {tool.status === 'awaiting-approval' && tool.requestId && (
         <PermissionButtons
           requestId={tool.requestId}
           suggestions={tool.permissionSuggestions}
-          onResponded={() => setResponded(true)}
+          onResponded={() => {
+            if (sessionId && tool.requestId) {
+              dispatch({ type: 'PERMISSION_RESPONDED', sessionId, requestId: tool.requestId });
+            }
+          }}
         />
       )}
 

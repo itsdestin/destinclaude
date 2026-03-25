@@ -25,12 +25,6 @@ export function onBufferReady(cb: BufferReadyCallback): () => void {
 }
 
 export function notifyBufferReady(sessionId: string) {
-  // Diagnostic — remove after debugging
-  const el = document.getElementById('__diag');
-  if (el) {
-    const t = new Date().toISOString().slice(11, 23);
-    el.textContent = (el.textContent || '') + `\n${t} [NBR] sid=${sessionId.slice(0,8)} listeners=${bufferReadyListeners.size}`;
-  }
   bufferReadyListeners.forEach((cb) => cb(sessionId));
 }
 

@@ -6,9 +6,10 @@ import BrailleSpinner from './BrailleSpinner';
 interface Props {
   group: ToolGroupState;
   toolCalls: Map<string, ToolCallState>;
+  sessionId?: string;
 }
 
-export default function ToolGroup({ group, toolCalls }: Props) {
+export default function ToolGroup({ group, toolCalls, sessionId }: Props) {
   const tools = group.toolIds
     .map((id) => toolCalls.get(id))
     .filter((t): t is ToolCallState => t !== undefined);
@@ -21,7 +22,7 @@ export default function ToolGroup({ group, toolCalls }: Props) {
   if (tools.length === 1) {
     return (
       <div className="px-4 py-1">
-        <ToolCard tool={tools[0]} />
+        <ToolCard tool={tools[0]} sessionId={sessionId} />
       </div>
     );
   }
@@ -61,7 +62,7 @@ export default function ToolGroup({ group, toolCalls }: Props) {
         {expanded && (
           <div className="px-2 pb-2 space-y-1">
             {tools.map((tool) => (
-              <ToolCard key={tool.toolUseId} tool={tool} />
+              <ToolCard key={tool.toolUseId} tool={tool} sessionId={sessionId} />
             ))}
           </div>
         )}

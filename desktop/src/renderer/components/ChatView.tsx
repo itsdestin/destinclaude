@@ -138,6 +138,7 @@ export default function ChatView({ sessionId, visible }: Props) {
                         <ToolGroup
                           group={restGroup}
                           toolCalls={state.toolCalls}
+                          sessionId={sessionId}
                         />
                       )}
                       {pendingIds.map((id) => {
@@ -145,7 +146,7 @@ export default function ChatView({ sessionId, visible }: Props) {
                         if (!tool) return null;
                         return (
                           <div key={id} className="px-4 py-1">
-                            <ToolCard tool={tool} />
+                            <ToolCard tool={tool} sessionId={sessionId} />
                           </div>
                         );
                       })}

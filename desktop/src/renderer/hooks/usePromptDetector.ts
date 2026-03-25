@@ -1,14 +1,7 @@
 import { useEffect, useRef } from 'react';
-import { parseInkSelect, menuToButtons, ParsedMenu } from '../parser/ink-select-parser';
+import { parseInkSelect, menuToButtons } from '../parser/ink-select-parser';
 import { useChatDispatch, useChatStateMap } from '../state/chat-context';
 import { getScreenText, onBufferReady } from './terminal-registry';
-
-// Diagnostic logger — mirrors App.tsx diag(). Remove after debugging.
-function diag(msg: string) {
-  const entry = `${new Date().toISOString().slice(11, 23)} ${msg}`;
-  const el = document.getElementById('__diag');
-  if (el) el.textContent = (el.textContent || '') + '\n' + entry;
-}
 
 // How long to wait before showing a parser-detected prompt, giving the hook
 // system time to deliver a PermissionRequest via the named pipe relay.
@@ -41,25 +34,18 @@ export function usePromptDetector() {
       const sessionState = chatStateRef.current.get(sid);
       if (sessionState) {
         for (const [, tool] of sessionState.toolCalls) {
-          if (tool.status === 'awaiting-approval') {
-            diag(`[PD] skip: awaiting-approval in sid=${sid.slice(0,8)}`);
-            return;
-          }
+          if (tool.status === 'awaiting-approval') return;
         }
       }
 
       const screen = getScreenText(sid);
-      if (!screen) {
-        diag(`[PD] no screen text for sid=${sid.slice(0,8)}`);
-        return;
-      }
+      if (!screen) return;
 
       const menu = parseInkSelect(screen);
       const lastMenuId = lastMenuRef.current.get(sid) || null;
 
       if (menu) {
         if (menu.id !== lastMenuId) {
-          diag(`[PD] new menu: ${menu.title} opts=${menu.options.length} id=${menu.id.slice(0,20)}`);
           lastMenuRef.current.set(sid, menu.id);
 
           // Cancel any previous pending prompt for this session
@@ -74,19 +60,11 @@ export function usePromptDetector() {
             // a tool will be in awaiting-approval — don't show the prompt
             const currentSession = chatStateRef.current.get(sid);
             if (currentSession) {
-              const statuses = [...currentSession.toolCalls.values()].map(t => t.status);
-              diag(`[PD] debounce fired sid=${sid.slice(0,8)} tools=[${statuses.join(',')}]`);
               for (const [, tool] of currentSession.toolCalls) {
-                if (tool.status === 'awaiting-approval') {
-                  diag(`[PD] debounce suppressed: awaiting-approval`);
-                  return;
-                }
+                if (tool.status === 'awaiting-approval') return;
               }
-            } else {
-              diag(`[PD] debounce fired: NO SESSION STATE for sid=${sid.slice(0,8)}`);
             }
 
-            diag(`[PD] dispatching SHOW_PROMPT`);
             const buttons = menuToButtons(menu);
             dispatch({
               type: 'SHOW_PROMPT',

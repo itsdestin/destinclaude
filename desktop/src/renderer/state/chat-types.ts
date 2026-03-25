@@ -110,6 +110,11 @@ export type ChatAction =
       type: 'PERMISSION_EXPIRED';
       sessionId: string;
       requestId: string;
+    }
+  | {
+      type: 'PERMISSION_RESPONDED';
+      sessionId: string;
+      requestId: string;
     };
 
 export type ChatState = Map<string, SessionChatState>;
