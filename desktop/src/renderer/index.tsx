@@ -60,6 +60,7 @@ const isElectron = !!(window as any).claude;
 
 function Root() {
   const [connected, setConnected] = useState(isElectron);
+  const [hasConnectedOnce, setHasConnectedOnce] = useState(isElectron);
   const [shimReady, setShimReady] = useState(isElectron);
 
   // In browser mode: install shim once, attempt token auto-login, listen for state changes
@@ -70,7 +71,9 @@ function Root() {
       setShimReady(true);
 
       onConnectionStateChange((state) => {
-        setConnected(state === 'connected');
+        const isConnected = state === 'connected';
+        setConnected(isConnected);
+        if (isConnected) setHasConnectedOnce(true);
       });
 
       // Auto-login with stored token
@@ -88,7 +91,8 @@ function Root() {
     await connect(password);
   }, []);
 
-  if (isElectron || connected) {
+  // Once connected, keep showing App even during transient disconnections
+  if (isElectron || connected || hasConnectedOnce) {
     return <App />;
   }
 
