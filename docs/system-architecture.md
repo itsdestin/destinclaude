@@ -189,7 +189,8 @@ An Electron + React GUI that wraps Claude Code CLI. Located at `desktop/` in the
 
 - **Main process** (`desktop/src/main/`) — SessionManager (PTY pool, multi-session), HookRelay (named pipe/Unix socket server for hook events), IPC handlers
 - **Renderer** (`desktop/src/renderer/`) — Terminal view (xterm.js), chat view (message bubbles, tool cards), command drawer (skill discovery), Connect 4 multiplayer game
-- **Hook scripts** (`desktop/hook-scripts/`) — Relay scripts that forward Claude Code hook events to the desktop app via named pipe
+- **Hook scripts** (`desktop/hook-scripts/`) — Relay scripts that forward Claude Code hook events to the desktop app via named pipe. Includes `relay-blocking.js` for bidirectional permission hooks (holds socket open for approve/deny response, 300s timeout, fail-closed)
+- **Permission hooks** — Blocking permission relay: when Claude Code requests tool approval, the desktop app shows Yes/Always Allow/No buttons on a ToolCard. The relay holds the hook socket open until the user responds or the 300s timeout expires (auto-deny). Design doc at `docs/superpowers/specs/2026-03-23-blocking-permission-hooks-design.md`
 - **Build** — Cross-platform via electron-builder (Windows `.exe`, macOS `.dmg`, Linux `.AppImage`); CI build workflow at `.github/workflows/build.yml`
 - **Install** — Optional, offered during setup-wizard Phase 5b or bootstrap; runs `desktop/scripts/install-app.sh`
 
