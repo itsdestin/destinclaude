@@ -291,6 +291,7 @@ phase_refresh() {
   local new_count=0
   local refreshed_count=0
   local converted_count=0
+  local skipped_count=0
   local failed_count=0
 
   # Ensure target directories exist
@@ -319,8 +320,11 @@ phase_refresh() {
         failed_count=$((failed_count + 1))
       fi
     elif [ -f "$target" ]; then
-      # Regular file (copy) — convert to symlink
-      if rm -f "$target" && ln -sf "$source" "$target" 2>/dev/null; then
+      # Regular file (copy) — convert to symlink if unmodified
+      if ! diff -q "$source" "$target" >/dev/null 2>&1; then
+        emit "WARN" "$name" "copy differs from source — skipping (user may have local edits)"
+        skipped_count=$((skipped_count + 1))
+      elif rm -f "$target" && ln -sf "$source" "$target" 2>/dev/null; then
         emit "WARN" "$name" "converted regular file to symlink"
         converted_count=$((converted_count + 1))
       else
@@ -478,7 +482,9 @@ phase_refresh() {
   # ===========================================================================
   # Summary
   # ===========================================================================
-  emit_summary "${new_count} new, ${refreshed_count} refreshed, ${converted_count} converted, ${failed_count} failed"
+  local summary="${new_count} new, ${refreshed_count} refreshed, ${converted_count} converted, ${failed_count} failed"
+  [ "$skipped_count" -gt 0 ] && summary="${summary}, ${skipped_count} skipped (user-modified copies)"
+  emit_summary "$summary"
 
   if [ "$failed_count" -gt 0 ]; then
     return 1
