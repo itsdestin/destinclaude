@@ -78,7 +78,7 @@ Hook trigger-point registration is written to `~/.claude/settings.json` under th
 { "statusLine": { "type": "command", "command": "bash ~/.claude/statusline.sh" } }
 ```
 
-**Marketplace plugins** are registered separately via `enabledPlugins` in `~/.claude/settings.json`. The setup wizard (Phase 5, Step 5f) merges 14 recommended plugins into this key. Claude Code downloads them automatically on first use — no local binary or symlink needed:
+**Marketplace plugins** are registered separately via `enabledPlugins` in `~/.claude/settings.json`. The setup wizard (Phase 5, Step 5f) merges 13 recommended plugins into this key. Claude Code downloads them automatically on first use — no local binary or symlink needed:
 
 ```json
 { "enabledPlugins": { "superpowers@claude-plugins-official": true, "context7@claude-plugins-official": true, ... } }
