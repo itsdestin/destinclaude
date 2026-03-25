@@ -77,6 +77,7 @@ export class SessionManager extends EventEmitter {
 
     const session: ManagedSession = { info, worker };
     this.sessions.set(id, session);
+    this.emit('session-created', info);
 
     // Handle spawn failure (e.g., node not on PATH) — without this,
     // the unhandled 'error' event would crash the Electron main process.

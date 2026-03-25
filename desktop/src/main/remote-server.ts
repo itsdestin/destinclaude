@@ -29,6 +29,10 @@ export class RemoteServer {
   private hookBuffers = new Map<string, any[]>(); // sessionId → rolling hook events
   private statusInterval: ReturnType<typeof setInterval> | null = null;
   private failedAttempts = new Map<string, { count: number; resetAt: number }>();
+  // Topic file watcher for session:renamed events
+  private sessionIdMap = new Map<string, string>(); // desktopId → claudeId
+  private lastTopics = new Map<string, string>();
+  private topicInterval: ReturnType<typeof setInterval> | null = null;
 
   constructor(
     private sessionManager: SessionManager,
@@ -43,10 +47,11 @@ export class RemoteServer {
       return;
     }
 
-    // Subscribe to events for buffering
+    // Subscribe to events for buffering and broadcasting
     this.sessionManager.on('pty-output', this.onPtyOutput);
     this.hookRelay.on('hook-event', this.onHookEvent);
     this.sessionManager.on('session-exit', this.onSessionExit);
+    this.sessionManager.on('session-created', this.onSessionCreated);
 
     // Determine static file directory
     const staticDir = path.join(__dirname, '..', 'renderer');
@@ -76,6 +81,34 @@ export class RemoteServer {
       this.broadcast({ type: 'status:data', payload: data });
     }, 10_000);
 
+    // Topic file watcher — discover desktop→claude session ID mapping from hook events
+    // and poll topic files for session:renamed events
+    const topicDir = path.join(os.homedir(), '.claude', 'topics');
+    this.hookRelay.on('hook-event', (event: any) => {
+      const desktopId = event.sessionId;
+      const claudeId = event.payload?.session_id as string;
+      if (!desktopId || !claudeId || this.sessionIdMap.has(desktopId)) return;
+      this.sessionIdMap.set(desktopId, claudeId);
+    });
+
+    this.topicInterval = setInterval(() => {
+      for (const [desktopId, claudeId] of this.sessionIdMap) {
+        try {
+          const content = fs.readFileSync(path.join(topicDir, `topic-${claudeId}`), 'utf8').trim();
+          if (content && content !== 'New Session' && content !== this.lastTopics.get(desktopId)) {
+            this.lastTopics.set(desktopId, content);
+            this.broadcast({ type: 'session:renamed', payload: { sessionId: desktopId, name: content } });
+          }
+        } catch { /* file may not exist yet */ }
+      }
+    }, 2000);
+
+    // Clean up topic tracking when sessions exit
+    this.sessionManager.on('session-exit', (sessionId: string) => {
+      this.sessionIdMap.delete(sessionId);
+      this.lastTopics.delete(sessionId);
+    });
+
     return new Promise<void>((resolve) => {
       this.httpServer!.listen(this.config.port, () => {
         console.log(`[RemoteServer] Listening on port ${this.config.port}`);
@@ -86,9 +119,13 @@ export class RemoteServer {
 
   stop(): void {
     if (this.statusInterval) clearInterval(this.statusInterval);
+    if (this.topicInterval) clearInterval(this.topicInterval);
+    this.sessionIdMap.clear();
+    this.lastTopics.clear();
     this.sessionManager.off('pty-output', this.onPtyOutput);
     this.hookRelay.off('hook-event', this.onHookEvent);
     this.sessionManager.off('session-exit', this.onSessionExit);
+    this.sessionManager.off('session-created', this.onSessionCreated);
 
     for (const client of this.clients) {
       client.ws.close(1001, 'Server shutting down');
@@ -137,6 +174,10 @@ export class RemoteServer {
 
     // Broadcast live
     this.broadcast({ type: 'hook:event', payload: event });
+  };
+
+  private onSessionCreated = (info: any) => {
+    this.broadcast({ type: 'session:created', payload: info });
   };
 
   private onSessionExit = (sessionId: string) => {
@@ -330,8 +371,7 @@ export class RemoteServer {
       case 'session:create': {
         const info = this.sessionManager.createSession(payload);
         this.respond(client.ws, type, id, info);
-        // Broadcast session:created to all clients
-        this.broadcast({ type: 'session:created', payload: info });
+        // session:created broadcast is handled by the onSessionCreated event listener
         break;
       }
       case 'session:destroy': {
