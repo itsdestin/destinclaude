@@ -1,7 +1,7 @@
 # System Design — Spec
 
-**Version:** 1.2
-**Last updated:** 2026-03-22
+**Version:** 1.3
+**Last updated:** 2026-03-24
 **Feature location:** `~/.claude/` (entire system)
 
 ## Purpose
@@ -32,7 +32,7 @@ Canonical architecture reference for the user's Claude Code automation system. F
 | Component | Location | Authoritative Spec |
 |-----------|----------|-------------------|
 | 10 skills (3 layers) | `~/.claude/skills/{name}/` (symlinked from toolkit) | Each skill's `specs/{name}-spec.md` |
-| 14 hooks | `~/.claude/hooks/` (symlinked from toolkit) | `backup-system-spec.md` (git-sync, session-start, personal-sync), `write-guard-spec.md`, `worktree-guard-spec.md`, `statusline-spec.md` (title-update), this spec (checklist-reminder, done-sound) |
+| 16 hooks | `~/.claude/hooks/` (symlinked from toolkit) | `backup-system-spec.md` (git-sync, session-start, personal-sync), `write-guard-spec.md`, `worktree-guard-spec.md`, `statusline-spec.md` (title-update), this spec (checklist-reminder, done-sound) |
 | 7 MCP servers | Configured in `~/.claude.json`, definitions in `core/mcp-manifest.json` | `destinclaude-spec.md` (registration); individual servers documented in CLAUDE.md |
 | Statusline | `~/.claude/statusline.sh` + hooks | `statusline-spec.md` |
 | Encyclopedia system | `~/.claude/encyclopedia/` (cache), `gdrive:Claude/The Journal/System/` (source of truth) | `encyclopedia-system-spec.md` |
@@ -81,6 +81,7 @@ Local (~/.claude/)
 | `session-start.sh` | SessionStart | `startup` | Git pull, encyclopedia cache sync, inbox check, DestinTip injection | None (reads remote state) |
 | `contribution-detector.sh` | SessionStart | `startup` | Detect toolkit contributions and offer to submit upstream | None |
 | `write-guard.sh` | PreToolUse | `Write\|Edit` | Block writes when another active session owns the file | Reads `.write-registry.json` |
+| `worktree-guard.sh` | PreToolUse | `Bash` | Block git branch switches in the main plugin directory | None |
 | `tool-router.sh` | PreToolUse | `mcp__claude_ai_Gmail__\|mcp__claude_ai_Google_Calendar__` | Block Claude.ai native Gmail/Calendar MCP tools; redirect to GWS CLI equivalents | None |
 | `git-sync.sh` | PostToolUse | `Write\|Edit` | Commit to Git, debounced push, Drive archive, update write registry | Writes `.write-registry.json`, `.push-marker`, `.sync-status` |
 | `personal-sync.sh` | PostToolUse | `Write\|Edit` | Sync personal data files to Drive after edits | None |
@@ -88,6 +89,8 @@ Local (~/.claude/)
 | `todo-capture.sh` | UserPromptSubmit | `.*` | Capture task mentions from user prompts to Todoist | None |
 | `checklist-reminder.sh` | Stop | `.*` | Remind Claude to verify system change checklist if system files were modified | Reads `.write-registry.json` |
 | `done-sound.sh` | Stop | `.*` | Play a chime sound when Claude finishes | None |
+| `check-inbox.sh` | (utility) | — | Check inbox providers for items, called by session-start.sh | None |
+| `sync-encyclopedia.sh` | PostToolUse | `Write\|Edit` | Sync encyclopedia cache to Drive after edits (life layer) | None |
 | `announcement-fetch.js` | (utility) | — | Fetch broadcast announcements from GitHub repo | Writes `.announcement-cache.json` |
 | `usage-fetch.js` | (utility) | — | Retrieve and cache API usage/rate-limit data | Writes `.usage-cache.json` |
 | `statusline.sh` | (statusLine) | — | Render multi-line status bar for Claude Code | Reads topics, sync-status, caches |
@@ -176,3 +179,4 @@ See [GitHub Issues](https://github.com/itsdestin/destinclaude/issues) for known 
 |------|---------|-------------|------|-------------|---------|
 | 2026-03-15 | 1.0 | Initial spec — consolidates system architecture from overhaul design into living spec | New | — | |
 | 2026-03-20 | 1.1 | Reduced enforcement from 4 layers to 3 (removed ghost system.md reference), updated component counts, fixed stale paths, added cross-reference to docs/system-architecture.md | Revised | — | |
+| 2026-03-24 | 1.3 | Updated hook count 14→16, added worktree-guard.sh, check-inbox.sh, sync-encyclopedia.sh to hook table | Update | — | |
