@@ -33,6 +33,17 @@ Electron + React app that wraps Claude Code CLI in a GUI.
 - `npm test` — Run tests
 - `npm run build` — Build distributable
 
+## Remote Access
+
+DestinCode includes a built-in remote access server that serves the UI to any web browser.
+
+- **Config:** `~/.claude/destincode-remote.json` — port, password, Tailscale trust
+- **Set password:** Create config file with bcrypt hash, or use the settings UI
+- **Access:** Open `http://<host>:9900` in any browser
+- **Security:** Password auth + optional Tailscale network-level trust
+- **Key files:** `src/main/remote-server.ts`, `src/main/remote-config.ts`, `src/renderer/remote-shim.ts`
+- **The remote UI is the same React app** — `remote-shim.ts` replaces Electron IPC with WebSocket. No React components are changed.
+
 ## Spec
 
 See `~/.claude/specs/claude-desktop-ui-spec.md` for full design.
