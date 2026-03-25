@@ -1,7 +1,7 @@
 # DestinCode Remote Web Access — Design Spec
 
 **Date:** 2026-03-24
-**Version:** 1.0
+**Version:** 1.1
 **Status:** Approved
 
 ## Summary
@@ -108,12 +108,23 @@ Message types map 1:1 to the existing IPC channels defined in `src/shared/types.
 | `permission:respond` | `permission:respond` | request/response | invoke |
 | `skills:list` | `skills:list` | request/response | invoke |
 | `get-home-path` | `get-home-path` | request/response | invoke |
+| `transcript:read-meta` | `transcript:read-meta` | request/response | invoke (routed via WS) |
+| `github:auth` | `github:auth` | request/response | invoke (routed via WS) |
 | `pty:output` | `pty:output` | server → client | push |
 | `hook:event` | `hook:event` | server → client | push |
 | `session:created` | `session:created` | server → client | push |
 | `session:destroyed` | `session:destroyed` | server → client | push |
 | `session:renamed` | `session:renamed` | server → client | push |
 | `status:data` | `status:data` | server → client | push |
+
+**Stubbed methods** (return default values in remote UI, no WebSocket round-trip):
+
+| Method | Return Value |
+|---|---|
+| `dialog.openFile()` | `[]` |
+| `dialog.openFolder()` | `null` |
+| `dialog.saveClipboardImage()` | `null` |
+| `shell.openChangelog()` | `void` (no-op) |
 
 ### Authentication protocol
 
@@ -133,9 +144,13 @@ When a remote client connects to an already-running DestinCode instance:
 
 **Session list:** Server sends a `session:list` response immediately after auth, so the client knows what sessions exist.
 
-**Terminal buffer replay:** The server maintains a rolling buffer of the last 256KB of PTY output per session. On connect, it replays this as a burst of `pty:output` messages. The client's xterm.js renders recent terminal history.
+**Terminal buffer replay:** The server maintains a rolling buffer of the last 256KB of PTY output per session (enough for ~4000 lines of typical terminal output). On connect, it replays this as a burst of `pty:output` messages. The client's xterm.js renders recent terminal history.
 
-**Hook event replay:** The server maintains a rolling buffer of the last 500 hook events per session. On connect, it replays these so the chat view populates with recent tool calls, responses, and messages.
+**Hook event replay:** The server maintains a rolling buffer of the last 500 hook events per session (a typical Claude Code conversation generates ~50-100 hook events per exchange, so 500 covers the last 5-10 exchanges). On connect, it replays these so the chat view populates with recent tool calls, responses, and messages.
+
+Both buffer sizes are constants in `remote-server.ts` and can be adjusted if needed.
+
+**Status data:** `RemoteServer` runs its own 10-second polling interval (same logic as `ipc-handlers.ts`) to push `status:data` to connected remote clients. This avoids modifying `ipc-handlers.ts` — the Electron window and remote clients each have their own independent polling loop reading the same cache files.
 
 **Live from there:** After replay, all new events stream in real time.
 
@@ -146,8 +161,8 @@ When a remote client connects to an already-running DestinCode instance:
 - **Request/response methods** (`session.create`, `session.list`, `skills.list`, etc.): Send a message with a unique correlation `id`, return a Promise that resolves when the server sends a response with the matching `id`.
 - **Fire-and-forget methods** (`session.sendInput`, `session.resize`, `session.signalReady`): Send a message, no response expected.
 - **Event listeners** (`on.ptyOutput`, `on.hookEvent`, etc.): Register callbacks in a local map, invoke them when matching push events arrive from the server.
-- **Cleanup** (`off`, `removeAllListeners`): Remove callbacks from the local map.
-- **Dialog stubs**: Return empty/null values.
+- **Cleanup** (`off(channel, handler)`, `removeAllListeners(channel)`): Remove callbacks from the local map. Must accept the same channel string constants as the Electron preload (e.g., `'pty:output'`, `'hook:event'`) so existing components that call `window.claude.off('pty:output', handler)` work unchanged.
+- **Dialog stubs**: See "Stubbed methods" table above.
 
 **Environment detection in `index.tsx`:**
 - Check if `window.claude` exists (set by Electron's preload)
@@ -180,6 +195,16 @@ When a remote client connects to an already-running DestinCode instance:
 | `passwordHash` | string | `null` | Bcrypt hash of the user-set password |
 | `trustTailscale` | boolean | `false` | Skip auth for Tailscale IP range connections |
 
+**Password setup flow:**
+- On first launch with remote enabled, if `passwordHash` is null, the remote server starts but rejects all non-Tailscale connections. The Electron window shows a notification: "Remote access enabled but no password set. Set one in Settings or run with --set-remote-password."
+- Password can be set via:
+  1. A "Remote Access" section in the Electron app's settings/header bar (text input + save button)
+  2. A CLI flag: `destincode --set-remote-password` which prompts for the password and writes the hash to the config file
+- Changing the password invalidates all in-memory session tokens, forcing remote clients to re-authenticate.
+
+**Behavior when `passwordHash` is null and `trustTailscale` is false:**
+- Server starts and listens, but responds to all auth attempts with `{ "type": "auth:failed", "reason": "no-password-configured" }`. The browser login screen shows "Remote access is not configured. Set a password in the desktop app."
+
 ## File Changes
 
 ### New files
@@ -194,7 +219,7 @@ When a remote client connects to an already-running DestinCode instance:
 
 | File | Change |
 |---|---|
-| `src/main/main.ts` | Import `RemoteServer` and `RemoteConfig`, start server after hook relay, pass `SessionManager` + `HookRelay` instances |
+| `src/main/main.ts` | Import `RemoteServer` and `RemoteConfig`, start server after hook relay, pass `SessionManager` + `HookRelay` instances. Call `remoteServer.stop()` in `window-all-closed` handler alongside existing cleanup. |
 | `src/renderer/index.tsx` | Detect Electron vs browser, conditionally load remote shim, gate on auth state |
 | `package.json` | Add `ws` and `bcryptjs` dependencies |
 
@@ -221,6 +246,9 @@ All existing React components, `preload.ts`, `ipc-handlers.ts`, `session-manager
 - Session tokens held in server memory (expire on restart)
 - 5-second auth timeout on new connections
 - Optional Tailscale trust bypass for convenience
+- Rate limiting: max 5 failed auth attempts per IP per minute. After exceeding, connections from that IP are rejected for 60 seconds.
+
+**Tailscale IP detection:** v1 checks IPv4 CGNAT range `100.64.0.0/10` only. Also handles IPv6-mapped IPv4 addresses (`::ffff:100.64.x.x`) which Node.js may report on Windows. Tailscale IPv6 range (`fd7a:115c:a1e0::/48`) is a non-goal for v1.
 
 **Sensitive data consideration:** PTY output and hook events may contain file contents, environment variables, or API keys. The auth layer prevents unauthorized access. Users should not share their password or leave session tokens in shared environments.
 
