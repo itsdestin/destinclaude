@@ -103,8 +103,8 @@ export class RemoteServer {
     if (!hasStaticBuild) {
       this.httpServer.on('upgrade', (req, socket, head) => {
         if (req.url === '/ws') return; // handled by our WebSocketServer
-        const viteWsUrl = viteDevUrl.replace('http', 'ws');
-        const proxyUrl = new URL(req.url || '/', viteWsUrl);
+        // Use http:// URL — WebSocket upgrade is an HTTP request with Upgrade header
+        const proxyUrl = new URL(req.url || '/', viteDevUrl);
         const proxyReq = http.request(proxyUrl, {
           method: 'GET',
           headers: req.headers,
