@@ -39,10 +39,16 @@ function toolSummary(tool: ToolCallState): string {
   }
 }
 
-function PermissionButtons({ requestId, suggestions }: { requestId: string; suggestions?: string[] }) {
+function PermissionButtons({ requestId, suggestions, onResponded }: {
+  requestId: string;
+  suggestions?: string[];
+  onResponded?: () => void;
+}) {
   const [responding, setResponding] = useState(false);
   const handleRespond = async (decision: object) => {
     setResponding(true);
+    // Optimistically collapse the permission buttons immediately
+    if (onResponded) onResponded();
     try {
       await (window as any).claude.session.respondToPermission(requestId, decision);
     } catch (err) {
@@ -86,6 +92,8 @@ interface Props {
 
 export default function ToolCard({ tool }: Props) {
   const [expanded, setExpanded] = useState(false);
+  // Optimistic: hide permission buttons immediately on click, don't wait for PostToolUse
+  const [responded, setResponded] = useState(false);
   const summary = toolSummary(tool);
 
   return (
@@ -96,7 +104,7 @@ export default function ToolCard({ tool }: Props) {
         className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-800/50 transition-colors"
       >
         {/* Status indicator */}
-        {tool.status === 'running' && (
+        {(tool.status === 'running' || (tool.status === 'awaiting-approval' && responded)) && (
           <BrailleSpinner size="sm" />
         )}
         {tool.status === 'complete' && (
@@ -123,9 +131,13 @@ export default function ToolCard({ tool }: Props) {
       </button>
 
 
-      {/* Permission approval buttons */}
-      {tool.status === 'awaiting-approval' && tool.requestId && (
-        <PermissionButtons requestId={tool.requestId} suggestions={tool.permissionSuggestions} />
+      {/* Permission approval buttons — hidden once user responds */}
+      {tool.status === 'awaiting-approval' && tool.requestId && !responded && (
+        <PermissionButtons
+          requestId={tool.requestId}
+          suggestions={tool.permissionSuggestions}
+          onResponded={() => setResponded(true)}
+        />
       )}
 
       {/* Expanded details */}
