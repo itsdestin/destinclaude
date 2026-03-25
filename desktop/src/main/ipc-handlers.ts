@@ -6,6 +6,8 @@ import { SessionManager } from './session-manager';
 import { HookRelay } from './hook-relay';
 import { IPC, SkillEntry } from '../shared/types';
 import { scanSkills } from './skill-scanner';
+import { RemoteConfig } from './remote-config';
+import { RemoteServer } from './remote-server';
 
 // Max age for clipboard paste images (1 hour)
 const CLIPBOARD_MAX_AGE_MS = 60 * 60 * 1000;
@@ -15,6 +17,8 @@ export function registerIpcHandlers(
   sessionManager: SessionManager,
   mainWindow: BrowserWindow,
   hookRelay?: HookRelay,
+  remoteConfig?: RemoteConfig,
+  remoteServer?: RemoteServer,
 ) {
   const send = (channel: string, ...args: any[]) => {
     if (!mainWindow.isDestroyed()) {
@@ -130,6 +134,37 @@ export function registerIpcHandlers(
   ipcMain.handle(IPC.SKILLS_LIST, async () => {
     return scanSkills();
   });
+
+  // --- Remote access settings ---
+  if (remoteConfig) {
+    ipcMain.handle(IPC.REMOTE_GET_CONFIG, async () => {
+      return {
+        ...remoteConfig.toSafeObject(),
+        clientCount: remoteServer?.getClientCount() ?? 0,
+      };
+    });
+
+    ipcMain.handle(IPC.REMOTE_SET_PASSWORD, async (_event, password: string) => {
+      await remoteConfig.setPassword(password);
+      remoteServer?.invalidateTokens();
+      return true;
+    });
+
+    ipcMain.handle(IPC.REMOTE_SET_CONFIG, async (_event, updates: { enabled?: boolean; trustTailscale?: boolean }) => {
+      if (typeof updates.enabled === 'boolean') remoteConfig.enabled = updates.enabled;
+      if (typeof updates.trustTailscale === 'boolean') remoteConfig.trustTailscale = updates.trustTailscale;
+      remoteConfig.save();
+      return remoteConfig.toSafeObject();
+    });
+
+    ipcMain.handle(IPC.REMOTE_DETECT_TAILSCALE, async () => {
+      return RemoteConfig.detectTailscale(remoteConfig.port);
+    });
+
+    ipcMain.handle(IPC.REMOTE_GET_CLIENT_COUNT, async () => {
+      return remoteServer?.getClientCount() ?? 0;
+    });
+  }
 
   // PTY input (fire-and-forget, not request-response)
   ipcMain.on(IPC.SESSION_INPUT, (_event, sessionId: string, text: string) => {
