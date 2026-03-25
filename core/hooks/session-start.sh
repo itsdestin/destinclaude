@@ -43,6 +43,117 @@ if [[ -n "$TOOLKIT_ROOT" && -f "$TOOLKIT_ROOT/VERSION" && ! -f "$CONFIG_FILE" ]]
     echo "{\"toolkit_root\": \"$TOOLKIT_ROOT\"}" > "$CONFIG_FILE"
 fi
 
+# --- Rebuild machine-specific config (Design ref: cross-device-sync D1) ---
+# Detects platform, toolkit root, and binary availability.
+# Writes config.local.json — never synced, rebuilt every session start.
+rebuild_local_config() {
+    local local_config="$CLAUDE_DIR/toolkit-state/config.local.json"
+
+    # Detect platform
+    local platform="linux"
+    case "$(uname -s)" in
+        MINGW*|MSYS*) platform="windows" ;;
+        Darwin) platform="macos" ;;
+        Linux)
+            if [[ -d "/data/data/com.termux" || -d "/data/data/com.destin.code" ]]; then
+                platform="android"
+            fi
+            ;;
+    esac
+
+    # toolkit_root already resolved above
+    local tk_root="${TOOLKIT_ROOT:-}"
+
+    # Detect gmessages binary
+    local gmessages_bin=""
+    if command -v gmessages &>/dev/null; then
+        gmessages_bin=$(command -v gmessages)
+    elif [[ -f "$CLAUDE_DIR/mcp-servers/gmessages/gmessages.exe" ]]; then
+        gmessages_bin="$CLAUDE_DIR/mcp-servers/gmessages/gmessages.exe"
+    elif [[ -f "$CLAUDE_DIR/mcp-servers/gmessages/gmessages" ]]; then
+        gmessages_bin="$CLAUDE_DIR/mcp-servers/gmessages/gmessages"
+    fi
+
+    # Detect gcloud
+    local gcloud_installed=false
+    command -v gcloud &>/dev/null && gcloud_installed=true
+
+    # Write config.local.json
+    mkdir -p "$CLAUDE_DIR/toolkit-state"
+    if command -v node &>/dev/null; then
+        node -e "
+            const fs = require('fs');
+            const data = {
+                platform: process.argv[1],
+                toolkit_root: process.argv[2] || null,
+                gmessages_binary: process.argv[3] || null,
+                gcloud_installed: process.argv[4] === 'true'
+            };
+            fs.writeFileSync(process.argv[5], JSON.stringify(data, null, 2) + '\n');
+        " "$platform" "$tk_root" "$gmessages_bin" "$gcloud_installed" "$local_config" 2>/dev/null
+    else
+        cat > "$local_config" << LOCALEOF
+{
+  "platform": "$platform",
+  "toolkit_root": ${tk_root:+\"$tk_root\"}${tk_root:-null},
+  "gmessages_binary": ${gmessages_bin:+\"$gmessages_bin\"}${gmessages_bin:-null},
+  "gcloud_installed": $gcloud_installed
+}
+LOCALEOF
+    fi
+}
+rebuild_local_config
+
+# --- One-time migration: strip machine-specific keys from config.json ---
+# If config.json still has machine-specific keys, remove them so only portable
+# data remains. config.local.json now owns these. Also push cleaned config
+# to preferred backend so next pull doesn't re-introduce stale values.
+if [[ -f "$CONFIG_FILE" ]] && command -v node &>/dev/null; then
+    _CLEANED=$(node -e "
+        const fs = require('fs');
+        const path = process.argv[1];
+        try {
+            const c = JSON.parse(fs.readFileSync(path, 'utf8'));
+            const localKeys = ['platform', 'toolkit_root', 'gmessages_binary', 'gcloud_installed'];
+            let changed = false;
+            for (const k of localKeys) {
+                if (k in c) { delete c[k]; changed = true; }
+            }
+            if (changed) {
+                fs.writeFileSync(path, JSON.stringify(c, null, 2) + '\n');
+                console.log('cleaned');
+            }
+        } catch {}
+    " "$CONFIG_FILE" 2>/dev/null) || true
+    # If we cleaned, push to preferred backend so next pull doesn't re-introduce stale keys
+    if [[ "$_CLEANED" == "cleaned" ]]; then
+        _MIG_BACKEND=""
+        type get_primary_backend &>/dev/null && _MIG_BACKEND=$(get_primary_backend)
+        case "$_MIG_BACKEND" in
+            drive)
+                if command -v rclone &>/dev/null; then
+                    _DR=$(config_get "DRIVE_ROOT" "Claude")
+                    rclone copyto "$CONFIG_FILE" "gdrive:$_DR/Backup/personal/toolkit-state/config.json" 2>/dev/null || true
+                fi
+                ;;
+            github)
+                _MIG_REPO="$CLAUDE_DIR/toolkit-state/personal-sync-repo"
+                if [[ -d "$_MIG_REPO/.git" ]]; then
+                    mkdir -p "$_MIG_REPO/toolkit-state"
+                    cp "$CONFIG_FILE" "$_MIG_REPO/toolkit-state/config.json" 2>/dev/null || true
+                fi
+                ;;
+            icloud)
+                _MIG_ICLOUD=$(config_get "ICLOUD_PATH" "")
+                if [[ -n "$_MIG_ICLOUD" && -d "$_MIG_ICLOUD" ]]; then
+                    mkdir -p "$_MIG_ICLOUD/toolkit-state"
+                    cp "$CONFIG_FILE" "$_MIG_ICLOUD/toolkit-state/config.json" 2>/dev/null || true
+                fi
+                ;;
+        esac
+    fi
+fi
+
 # --- Read DRIVE_ROOT from config (used for encyclopedia sync and backup paths) ---
 DRIVE_ROOT="Claude"
 if [[ -f "$CONFIG_FILE" ]] && command -v node &>/dev/null; then
@@ -71,10 +182,8 @@ if [[ -f "$CLAUDE_JSON" ]] && command -v node &>/dev/null; then
         [[ -f "$MCP_CONFIG" ]] && EXISTING=$(cat "$MCP_CONFIG")
         if [[ "$EXTRACTED" != "$EXISTING" ]]; then
             echo "$EXTRACTED" > "$MCP_CONFIG"
-            # Stage and commit so git-pull doesn't conflict
-            cd "$CLAUDE_DIR"
-            git add "$MCP_CONFIG" 2>/dev/null && \
-                git commit -m "auto: mcp-config.json" --no-gpg-sign 2>/dev/null || true
+            # Note: mcp-config.json is machine-specific (contains absolute paths,
+            # platform-specific servers). NOT git-committed. See cross-device-sync design D2.
         fi
     fi
 fi
