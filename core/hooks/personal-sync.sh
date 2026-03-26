@@ -154,14 +154,14 @@ sync_drive() {
             [[ -L "${slug_dir%/}" ]] && continue
             local slug_name
             slug_name=$(basename "$slug_dir")
-            # Check if this slug has any .jsonl files
+            # Check if this slug has any real (non-symlink) .jsonl files
             local has_jsonl=false
             for f in "$slug_dir"*.jsonl; do
-                [[ -f "$f" ]] && { has_jsonl=true; break; }
+                [[ -f "$f" && ! -L "$f" ]] && { has_jsonl=true; break; }
             done
             if [[ "$has_jsonl" == true ]]; then
                 rclone copy "$slug_dir" "$REMOTE_BASE/conversations/$slug_name/" \
-                    --checksum --include '*.jsonl' 2>/dev/null || {
+                    --checksum --include '*.jsonl' --skip-links 2>/dev/null || {
                     log_backup "WARN" "Failed to sync conversations for $slug_name"
                     ERRORS=$((ERRORS + 1))
                 }
@@ -179,7 +179,7 @@ sync_drive() {
 }
 
 # --- GitHub backend ---
-sync_github() {
+sync_github() (
     if ! command -v git &>/dev/null; then
         log_backup "ERROR" "git not found in PATH — skipping GitHub sync"
         return 1
@@ -236,8 +236,6 @@ sync_github() {
                 local skill_name
                 skill_name=$(basename "$skill_dir")
                 mkdir -p "$REPO_DIR/skills/$skill_name"
-                # Note: cp -r dereferences symlinks within user skills. If a skill
-                # contains internal symlinks, the backup will contain copies instead.
                 cp -r "$skill_dir"/* "$REPO_DIR/skills/$skill_name/" 2>/dev/null || true
             fi
         done
@@ -252,11 +250,13 @@ sync_github() {
             slug_name=$(basename "$slug_dir")
             local has_jsonl=false
             for f in "$slug_dir"*.jsonl; do
-                [[ -f "$f" ]] && { has_jsonl=true; break; }
+                [[ -f "$f" && ! -L "$f" ]] && { has_jsonl=true; break; }
             done
             if [[ "$has_jsonl" == true ]]; then
                 mkdir -p "$REPO_DIR/conversations/$slug_name"
-                cp "$slug_dir"*.jsonl "$REPO_DIR/conversations/$slug_name/" 2>/dev/null || true
+                for f in "$slug_dir"*.jsonl; do
+                    [[ -f "$f" && ! -L "$f" ]] && cp "$f" "$REPO_DIR/conversations/$slug_name/" 2>/dev/null || true
+                done
             fi
         done
     fi
@@ -272,7 +272,7 @@ sync_github() {
 
     log_backup "INFO" "GitHub sync completed successfully"
     return 0
-}
+)
 
 # --- iCloud backend: local folder copy (Design ref: D5) ---
 sync_icloud() {
@@ -344,7 +344,7 @@ sync_icloud() {
         done
     fi
 
-    # Conversations — copy per-slug (Design ref: D3, D4)
+    # Conversations — copy per-slug, skip symlinks (Design ref: D3, D4)
     if [[ -d "$CLAUDE_DIR/projects" ]]; then
         for slug_dir in "$CLAUDE_DIR"/projects/*/; do
             [[ ! -d "$slug_dir" ]] && continue
@@ -353,12 +353,16 @@ sync_icloud() {
             slug_name=$(basename "$slug_dir")
             local has_jsonl=false
             for f in "$slug_dir"*.jsonl; do
-                [[ -f "$f" ]] && { has_jsonl=true; break; }
+                [[ -f "$f" && ! -L "$f" ]] && { has_jsonl=true; break; }
             done
             if [[ "$has_jsonl" == true ]]; then
                 mkdir -p "$ICLOUD_PATH/conversations/$slug_name"
-                rsync -a --update "$slug_dir"*.jsonl "$ICLOUD_PATH/conversations/$slug_name/" 2>/dev/null || \
-                    cp "$slug_dir"*.jsonl "$ICLOUD_PATH/conversations/$slug_name/" 2>/dev/null || true
+                for f in "$slug_dir"*.jsonl; do
+                    [[ -f "$f" && ! -L "$f" ]] && {
+                        rsync -a --update "$f" "$ICLOUD_PATH/conversations/$slug_name/" 2>/dev/null || \
+                            cp "$f" "$ICLOUD_PATH/conversations/$slug_name/" 2>/dev/null || true
+                    }
+                done
             fi
         done
     fi
@@ -386,6 +390,11 @@ done < <(if type get_backends &>/dev/null; then get_backends; else echo "$BACKEN
 # Write backup-meta.json after successful sync (Design ref: D7)
 if [[ $_sync_errors -eq 0 ]] && type write_backup_meta &>/dev/null; then
     write_backup_meta "$CLAUDE_DIR"
+fi
+
+# --- Surface errors in session (mandate: visible error messages) ---
+if [[ $_sync_errors -gt 0 ]]; then
+    echo "{\"hookSpecificOutput\": \"Warning: personal sync completed with $_sync_errors error(s) — check ~/.claude/backup.log\"}" >&2
 fi
 
 # --- Update debounce marker (CRITICAL: must happen after sync) ---
