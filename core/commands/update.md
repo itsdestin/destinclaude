@@ -74,7 +74,8 @@ Check for and install updates to the DestinClaude toolkit.
 
    # Skills � re-symlink all toolkit-managed skills
    ln -sf "$TOOLKIT_ROOT/core/skills/setup-wizard" ~/.claude/skills/setup-wizard
-   # Layer-specific skills based on installed_layers in config
+   ln -sf "$TOOLKIT_ROOT/core/skills/remote-setup" ~/.claude/skills/remote-setup
+   # All layer skills are symlinked by the per-layer loop above; no other skills need hardcoding
    ```
    Then skip to step 19 (final confirmation), noting that full verification can be done via `/health`.
 
