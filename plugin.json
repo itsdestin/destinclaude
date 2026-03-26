@@ -1,7 +1,7 @@
 {
   "name": "destinclaude",
   "description": "A modular toolkit that transforms Claude Code into a personal knowledge system, journal, task manager, and more",
-  "version": "2.1.4",
+  "version": "2.1.5",
   "author": {
     "name": "itsdestin"
   },

@@ -2,6 +2,41 @@
 
 All notable changes to DestinClaude will be documented in this file.
 
+## [2.1.5] - 2026-03-25
+
+### Added
+- **Remote web access** — Control DestinCode from any browser via built-in WebSocket server. Password auth, Tailscale trust, mobile-responsive UI, cross-device session sync, keep-awake mode. Settings panel with QR code for easy phone setup.
+- **Cross-device conversation sync** — Conversations pushed per-slug to all configured backends (Drive, GitHub, iCloud). Session-start pulls from preferred backend. Home-directory aggregation via symlinks for unified `/resume` across devices.
+- **`/appupdate` command** — Downloads and installs the latest DestinCode desktop app from GitHub Releases.
+- **Portable/local config split** — New `config.local.json` for machine-specific values (platform, toolkit_root, binary paths), rebuilt every session start. `config_get()` reads local-first. Eliminates cross-device config conflicts.
+- **Git repo health check** — `git-sync.sh` bails early with warning if repo dir has no `.git`; session-start warns if `GIT_REMOTE` configured but no repo exists.
+- **Legacy conversation migration** — One-time `rclone copy` from old Drive path to new per-slug layout.
+
+### Changed
+- **Backend equality** — All sync backends (Drive, GitHub, iCloud) documented as complementary with no primary/secondary hierarchy. Renamed `get_primary_backend` to `get_preferred_backend`.
+- **mcp-config.json excluded from sync** — No longer git-committed or synced. Machine-specific MCP server definitions extracted from `.claude.json` per session. Reversal of v4.2 decision.
+- **Removed claude-mobile project** — Claude Mobile rebranded to DestinCode; removed hardcoded path routing, push markers, and project discovery skip entry from backup system.
+
+### Fixed
+- **Personal sync error visibility** — Sync failures now emit `hookSpecificOutput` visible in the Claude session (mandate compliance).
+- **Duplicate conversation uploads** — Symlinked `.jsonl` files in home-slug aggregation directory are now skipped during push, preventing every conversation from uploading twice.
+- **CYGWIN platform detection** — Added `CYGWIN*` to platform detection in session-start, backup-common, and personal-sync (was only `MINGW*/MSYS*`).
+- **URL traversal defense** — Remote server now decodes percent-encoding before path traversal guard.
+- **Git pull branch detection** — Session-start detects default branch dynamically instead of hardcoding `main`.
+- **sync_github() cwd corruption** — Wrapped in subshell to prevent caller working directory mutation.
+- **Extended thinking false alarm** — PTY buffer activity resets the 60s thinking timeout.
+- **Windows dual-slug encoding** — `aggregate_conversations` handles MSYS vs native path encoding.
+- **`/update` statusline staleness** — Stale `update-status.json` cleared after merging a new version.
+
+### Documentation
+- RESTORE.md updated for conversation sync, config split, and exclusions
+- README updated with `/appupdate` command and remote access
+- Desktop CLAUDE.md updated with remote access components
+- Sync SKILL.md description expanded with conversation sync triggers
+- Spec changelogs depersonalized (owner attribution)
+- Plan docs depersonalized (generic path placeholders)
+- Backup system spec bumped to v4.3; personal sync spec to v2.3
+
 ## [2.1.4] - 2026-03-25
 
 ### Added
