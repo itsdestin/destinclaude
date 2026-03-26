@@ -10,11 +10,11 @@ interface SessionEntry {
   permissionMode: PermissionMode;
 }
 
-const MODE_CONFIG: Record<PermissionMode, { label: string; color: string; bg: string; border: string }> = {
-  normal:        { label: 'NORMAL',         color: '#9CA3AF', bg: 'rgba(156,163,175,0.15)', border: 'rgba(156,163,175,0.25)' },
-  'auto-accept': { label: 'ACCEPT CHANGES', color: '#A78BFA', bg: 'rgba(167,139,250,0.15)', border: 'rgba(167,139,250,0.25)' },
-  plan:          { label: 'PLAN MODE',      color: '#2DD4BF', bg: 'rgba(45,212,191,0.15)',  border: 'rgba(45,212,191,0.25)' },
-  bypass:        { label: 'BYPASS PERMISSIONS', color: '#FA8072', bg: 'rgba(250,128,114,0.15)', border: 'rgba(250,128,114,0.25)' },
+const MODE_CONFIG: Record<PermissionMode, { label: string; shortLabel: string; color: string; bg: string; border: string }> = {
+  normal:        { label: 'NORMAL',             shortLabel: 'NORMAL',  color: '#9CA3AF', bg: 'rgba(156,163,175,0.15)', border: 'rgba(156,163,175,0.25)' },
+  'auto-accept': { label: 'ACCEPT CHANGES',     shortLabel: 'ACCEPT',  color: '#A78BFA', bg: 'rgba(167,139,250,0.15)', border: 'rgba(167,139,250,0.25)' },
+  plan:          { label: 'PLAN MODE',           shortLabel: 'PLAN',    color: '#2DD4BF', bg: 'rgba(45,212,191,0.15)',  border: 'rgba(45,212,191,0.25)' },
+  bypass:        { label: 'BYPASS PERMISSIONS',  shortLabel: 'BYPASS',  color: '#FA8072', bg: 'rgba(250,128,114,0.15)', border: 'rgba(250,128,114,0.25)' },
 };
 
 interface Props {
@@ -32,6 +32,9 @@ interface Props {
   onCyclePermission: () => void;
   model: string | null;
   announcement: string | null;
+  settingsOpen: boolean;
+  onToggleSettings: () => void;
+  settingsBadge?: boolean;
 }
 
 export default function HeaderBar({
@@ -39,21 +42,30 @@ export default function HeaderBar({
   viewMode, onToggleView,
   gamePanelOpen, onToggleGamePanel, gameConnected,
   permissionMode, onCyclePermission, model, announcement,
+  settingsOpen, onToggleSettings, settingsBadge,
 }: Props) {
   const cfg = MODE_CONFIG[permissionMode];
 
   return (
-    <div className="flex items-center h-10 px-3 border-b border-gray-800 shrink-0">
-      {/* Left — model + permission badge + announcement */}
-      <div className="flex-1 flex items-center gap-2">
-        {model && (
-          <span className="text-[10px] text-gray-500 truncate max-w-[120px]">
-            {model}
-          </span>
-        )}
+    <div className="flex items-center h-10 px-2 sm:px-3 border-b border-gray-800 shrink-0">
+      {/* Left — settings + permission badge (model & announcement hidden on mobile) */}
+      <div className="flex-1 flex items-center gap-1 sm:gap-2 min-w-0">
+        <button
+          onClick={onToggleSettings}
+          className={`relative p-1 rounded hover:bg-gray-800 transition-colors shrink-0 ${settingsOpen ? 'text-gray-200' : 'text-gray-500'}`}
+          title="Settings"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          {settingsBadge && !settingsOpen && (
+            <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-blue-500" />
+          )}
+        </button>
         <button
           onClick={onCyclePermission}
-          className="text-[10px] font-medium px-1.5 py-0.5 rounded border transition-colors cursor-pointer hover:brightness-125"
+          className="text-[10px] font-medium px-1.5 py-0.5 rounded border transition-colors cursor-pointer hover:brightness-125 shrink-0"
           style={{
             backgroundColor: cfg.bg,
             color: cfg.color,
@@ -61,10 +73,16 @@ export default function HeaderBar({
           }}
           title="Click to cycle permission mode (Shift+Tab)"
         >
-          {cfg.label}
+          <span className="sm:hidden">{cfg.shortLabel}</span>
+          <span className="hidden sm:inline">{cfg.label}</span>
         </button>
+        {model && (
+          <span className="text-[10px] text-gray-500 truncate max-w-[120px] hidden sm:inline">
+            {model}
+          </span>
+        )}
         {announcement && (
-          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-[#FF9800]/15 text-[#FF9800] border border-[#FF9800]/25 truncate max-w-[200px]" title={announcement}>
+          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-[#FF9800]/15 text-[#FF9800] border border-[#FF9800]/25 truncate max-w-[200px] hidden sm:inline" title={announcement}>
             ★ {announcement}
           </span>
         )}
@@ -79,12 +97,12 @@ export default function HeaderBar({
         onCloseSession={onCloseSession}
       />
 
-      {/* Right — view toggles */}
-      <div className="flex-1 flex items-center justify-end gap-2">
+      {/* Right — view toggles (icon-only on mobile) */}
+      <div className="flex-1 flex items-center justify-end gap-1 sm:gap-2">
         <div className="flex bg-gray-800 rounded-md p-0.5 gap-0.5">
           <button
             onClick={() => onToggleView('chat')}
-            className={`px-2.5 py-1 rounded transition-colors flex items-center gap-1.5 ${
+            className={`px-1.5 sm:px-2.5 py-1 rounded transition-colors flex items-center gap-1.5 ${
               viewMode === 'chat'
                 ? 'bg-gray-300 text-gray-950'
                 : 'text-gray-400 hover:text-gray-300'
@@ -92,11 +110,11 @@ export default function HeaderBar({
             title="Chat"
           >
             <ChatIcon className="w-3.5 h-3.5" />
-            <span className="text-xs font-medium">Chat</span>
+            <span className="text-xs font-medium hidden sm:inline">Chat</span>
           </button>
           <button
             onClick={() => onToggleView('terminal')}
-            className={`px-2.5 py-1 rounded transition-colors flex items-center gap-1.5 ${
+            className={`px-1.5 sm:px-2.5 py-1 rounded transition-colors flex items-center gap-1.5 ${
               viewMode === 'terminal'
                 ? 'bg-gray-300 text-gray-950'
                 : 'text-gray-400 hover:text-gray-300'
@@ -104,10 +122,10 @@ export default function HeaderBar({
             title="Terminal"
           >
             <TerminalIcon className="w-3.5 h-3.5" />
-            <span className="text-xs font-medium">Terminal</span>
+            <span className="text-xs font-medium hidden sm:inline">Terminal</span>
           </button>
         </div>
-        <div className="bg-gray-800 rounded-md p-0.5">
+        <div className="bg-gray-800 rounded-md p-0.5 hidden sm:block">
           <button
             onClick={onToggleGamePanel}
             className={`px-2 py-1 rounded transition-colors flex items-center gap-1 ${

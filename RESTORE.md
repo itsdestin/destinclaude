@@ -22,16 +22,27 @@ Or use the standalone restore command on an existing install:
 |------|----------|-------------|
 | Claude Code config (.claude/) | Git repo (private) | `git-sync.sh` (PostToolUse) |
 | Memory files, CLAUDE.md | Git repo + configured backends | `personal-sync.sh` |
-| Encyclopedia source files | Google Drive (`<DRIVE_ROOT>/The Journal/System/`) | `sync-encyclopedia.sh` |
+| Conversation transcripts (.jsonl) | Configured backends (per-slug) | `personal-sync.sh` |
+| Encyclopedia source files | Google Drive (configurable path) | `session-start.sh` |
 | Toolkit state (config.json) | Git repo | `git-sync.sh` |
+
+### What Does NOT Get Backed Up
+
+| Data | Why |
+|------|-----|
+| `config.local.json` | Machine-specific (platform, binary paths). Rebuilt by `session-start.sh` every session. |
+| `mcp-config.json` | Machine-specific MCP server definitions. Extracted from `.claude.json` per session. |
+| Credentials, tokens, secrets | Security. Excluded via `.gitignore`. |
 
 ## Backup Backends
 
 Personal data can replicate to one or more of these backends (configured in `config.json`):
 
-1. **Google Drive** — via rclone (`gdrive:` remote). Files go to `<DRIVE_ROOT>/Backup/personal/`.
-2. **GitHub** — private config repo. Committed and pushed by `git-sync.sh`.
+1. **Google Drive** — via rclone (`gdrive:` remote). Files go to `<DRIVE_ROOT>/Backup/personal/` (including `conversations/<slug>/`).
+2. **GitHub** — private config repo. Committed and pushed by `git-sync.sh`. Personal data via `personal-sync.sh`.
 3. **iCloud** — via iCloud Drive folder detection. macOS: `~/Library/Mobile Documents/com~apple~CloudDocs/DestinClaude/`. Windows: `~/iCloudDrive/DestinClaude/`.
+
+All backends are complementary — no primary/secondary hierarchy. Multiple backends can be configured simultaneously.
 
 ## Architecture
 
@@ -44,8 +55,13 @@ Personal data can replicate to one or more of these backends (configured in `con
 │   └── migrations/
 │       └── v1.json             # Schema migrations
 ├── toolkit-state/
-│   ├── config.json             # Backend config, DRIVE_ROOT, installed layers
+│   ├── config.json             # Backend config, DRIVE_ROOT, installed layers (synced)
+│   ├── config.local.json       # Machine-specific config (NOT synced, rebuilt per session)
 │   └── backup-meta.json        # Schema version, last migration timestamp
+├── projects/
+│   └── <slug>/                 # Per-project conversations and memory
+│       ├── *.jsonl             # Conversation transcripts (synced per-slug)
+│       └── memory/             # Memory files (synced)
 ```
 
 ## Manual Restore

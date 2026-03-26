@@ -52,12 +52,15 @@ export default function TrustGate({ sessionId }: Props) {
     (input: string, label: string) => {
       if (!trustPrompt) return;
       window.claude.session.sendInput(sessionId, input);
-      dispatch({
-        type: 'COMPLETE_PROMPT',
+      const action = {
+        type: 'COMPLETE_PROMPT' as const,
         sessionId,
         promptId: trustPrompt.promptId,
         selection: label,
-      });
+      };
+      dispatch(action);
+      // Broadcast to other devices so their UI updates too
+      (window as any).claude?.remote?.broadcastAction(action);
     },
     [sessionId, trustPrompt, dispatch],
   );

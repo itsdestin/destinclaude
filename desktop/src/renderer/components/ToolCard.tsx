@@ -139,7 +139,9 @@ export default function ToolCard({ tool, sessionId }: Props) {
           suggestions={tool.permissionSuggestions}
           onResponded={() => {
             if (sessionId && tool.requestId) {
-              dispatch({ type: 'PERMISSION_RESPONDED', sessionId, requestId: tool.requestId });
+              const action = { type: 'PERMISSION_RESPONDED' as const, sessionId, requestId: tool.requestId };
+              dispatch(action);
+              (window as any).claude?.remote?.broadcastAction(action);
             }
           }}
         />

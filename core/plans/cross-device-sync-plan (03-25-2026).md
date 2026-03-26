@@ -250,7 +250,7 @@ With:
 ```bash
 bash ~/.claude/hooks/session-start.sh 2>&1 | head -5
 cat ~/.claude/toolkit-state/config.local.json
-# Expected: JSON with platform: "windows", toolkit_root: "/c/Users/desti/.claude/plugins/destinclaude"
+# Expected: JSON with platform: "windows", toolkit_root: "/c/Users/<username>/.claude/plugins/destinclaude"
 
 # Verify migration stripped machine-specific keys
 node -e "const c=JSON.parse(require('fs').readFileSync(process.argv[1],'utf8')); console.log('platform' in c, 'toolkit_root' in c)" ~/.claude/toolkit-state/config.json
@@ -549,9 +549,9 @@ After the skills copy block in `sync_icloud()` (around line 301, before the fina
 - [ ] **Step 5: Verify the path filter works**
 
 ```bash
-echo '{"tool_input":{"file_path":"/c/Users/desti/.claude/projects/C--Users-desti/915c4e14.jsonl"}}' | bash ~/.claude/hooks/personal-sync.sh 2>&1
+echo '{"tool_input":{"file_path":"/c/Users/<username>/.claude/projects/C--Users-<username>/<session-uuid>.jsonl"}}' | bash ~/.claude/hooks/personal-sync.sh 2>&1
 # Expected: sync attempts (or debounce skip) — NOT immediate exit
-echo '{"tool_input":{"file_path":"/c/Users/desti/.claude/toolkit-state/config.local.json"}}' | bash ~/.claude/hooks/personal-sync.sh 2>&1
+echo '{"tool_input":{"file_path":"/c/Users/<username>/.claude/toolkit-state/config.local.json"}}' | bash ~/.claude/hooks/personal-sync.sh 2>&1
 # Expected: immediate exit (no output)
 ```
 
@@ -719,7 +719,7 @@ fi
 ```bash
 # Run session-start and check for symlinks in home slug
 bash ~/.claude/hooks/session-start.sh 2>&1 | grep -i "aggregat" || echo "No aggregation output (may be zero new conversations)"
-ls -la ~/.claude/projects/C--Users-desti/*.jsonl | head -20
+ls -la ~/.claude/projects/C--Users-<username>/*.jsonl | head -20
 # Expected: mix of real files and symlinks pointing to other slug dirs
 ```
 
@@ -880,13 +880,13 @@ node -e "const c=JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'));
 
 ```bash
 source ~/.claude/plugins/destinclaude/core/hooks/lib/backup-common.sh && config_get toolkit_root
-# Expected: /c/Users/desti/.claude/plugins/destinclaude
+# Expected: /c/Users/<username>/.claude/plugins/destinclaude
 ```
 
 - [ ] **Step 4: Verify personal-sync excludes config.local.json**
 
 ```bash
-echo '{"tool_input":{"file_path":"/c/Users/desti/.claude/toolkit-state/config.local.json"}}' | bash ~/.claude/hooks/personal-sync.sh 2>&1
+echo '{"tool_input":{"file_path":"/c/Users/<username>/.claude/toolkit-state/config.local.json"}}' | bash ~/.claude/hooks/personal-sync.sh 2>&1
 # Expected: immediate exit (no output)
 ```
 
@@ -895,23 +895,23 @@ echo '{"tool_input":{"file_path":"/c/Users/desti/.claude/toolkit-state/config.lo
 ```bash
 # Trigger a manual personal-sync (reset debounce first)
 rm -f ~/.claude/toolkit-state/.personal-sync-marker
-echo '{"tool_input":{"file_path":"/c/Users/desti/.claude/projects/C--Users-desti/915c4e14-f4a3-4c01-8eb3-6ab2c3e63f49.jsonl"}}' | bash ~/.claude/hooks/personal-sync.sh 2>&1
+echo '{"tool_input":{"file_path":"/c/Users/<username>/.claude/projects/C--Users-<username>/<session-uuid>.jsonl"}}' | bash ~/.claude/hooks/personal-sync.sh 2>&1
 # Check Drive
-rclone ls "gdrive:Claude/Backup/personal/conversations/C--Users-desti/" 2>/dev/null | head -5
+rclone ls "gdrive:Claude/Backup/personal/conversations/C--Users-<username>/" 2>/dev/null | head -5
 # Expected: .jsonl files listed
 ```
 
 - [ ] **Step 6: Verify conversation aggregation**
 
 ```bash
-ls -la ~/.claude/projects/C--Users-desti/*.jsonl 2>/dev/null | grep "^l"
+ls -la ~/.claude/projects/C--Users-<username>/*.jsonl 2>/dev/null | grep "^l"
 # Expected: symlinks for any conversations from other project slugs
 ```
 
 - [ ] **Step 7: Verify git-sync bails gracefully without git repo**
 
 ```bash
-echo '{"tool_input":{"file_path":"/c/Users/desti/.claude/CLAUDE.md"}}' | bash ~/.claude/hooks/git-sync.sh 2>&1
+echo '{"tool_input":{"file_path":"/c/Users/<username>/.claude/CLAUDE.md"}}' | bash ~/.claude/hooks/git-sync.sh 2>&1
 tail -3 ~/.claude/backup.log
 # Expected: WARN log entry about not being a git repo
 ```

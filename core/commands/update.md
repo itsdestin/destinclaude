@@ -78,7 +78,10 @@ Check for and install updates to the DestinClaude toolkit.
    ```
    Then skip to step 19 (final confirmation), noting that full verification can be done via `/health`.
 
-10. **Update VERSION file.** Write the new version (strip `v` prefix from `LATEST_TAG`) to `$TOOLKIT_ROOT/VERSION`. This is handled by the skill, not the script.
+10. **Update VERSION file.** Write the new version (strip `v` prefix from `LATEST_TAG`) to `$TOOLKIT_ROOT/VERSION`. This is handled by the skill, not the script. Also update the statusline version cache so the current session reflects the new version immediately:
+    ```bash
+    echo "{\"current\": \"${LATEST_TAG#v}\", \"latest\": \"${LATEST_TAG#v}\", \"update_available\": false}" > ~/.claude/toolkit-state/update-status.json
+    ```
 
 11. **Run self-check.**
     ```bash

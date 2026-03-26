@@ -163,8 +163,8 @@ export default function InputBar({ sessionId, disabled, onOpenDrawer }: Props) {
         </div>
       )}
 
-      <div className="px-3 pb-3">
-        <form onSubmit={handleSubmit} className="flex items-center gap-2 bg-gray-800 rounded-xl px-3 py-2">
+      <div className="px-2 sm:px-3 pb-2 sm:pb-3">
+        <form onSubmit={handleSubmit} className="flex items-center gap-1.5 sm:gap-2 bg-gray-800 rounded-xl px-2 sm:px-3 py-2">
           <BrailleBurst
             onTrigger={handleAttachClick}
             disabled={disabled}

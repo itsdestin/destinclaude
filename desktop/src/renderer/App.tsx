@@ -14,6 +14,7 @@ import { useGitHubGame } from './hooks/useGitHubGame';
 import { AppIcon } from './components/Icons';
 import CommandDrawer from './components/CommandDrawer';
 import TrustGate, { useTrustGateActive } from './components/TrustGate';
+import SettingsPanel from './components/SettingsPanel';
 import type { SkillEntry, PermissionMode } from '../shared/types';
 
 type ViewMode = 'chat' | 'terminal';
@@ -44,6 +45,8 @@ function AppInner() {
   const [initializedSessions, setInitializedSessions] = useState<Set<string>>(new Set());
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerSearchMode, setDrawerSearchMode] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsBadge, setSettingsBadge] = useState(false);
   const [skills, setSkills] = useState<SkillEntry[]>([]);
 
   usePromptDetector();
@@ -54,11 +57,15 @@ function AppInner() {
 
   useEffect(() => {
     const createdHandler = window.claude.on.sessionCreated((info) => {
-      setSessions((prev) => [...prev, info]);
-      setSessionId(info.id);
-      setViewModes((prev) => new Map(prev).set(info.id, 'chat'));
-      setPermissionModes((prev) => new Map(prev).set(info.id, info.permissionMode || 'normal'));
-      dispatch({ type: 'SESSION_INIT', sessionId: info.id });
+      setSessions((prev) => {
+        // Deduplicate — replay buffers resend session:created for existing sessions
+        if (prev.some((s) => s.id === info.id)) return prev;
+        dispatch({ type: 'SESSION_INIT', sessionId: info.id });
+        return [...prev, info];
+      });
+      setSessionId((prev) => prev ?? info.id);
+      setViewModes((prev) => prev.has(info.id) ? prev : new Map(prev).set(info.id, 'chat'));
+      setPermissionModes((prev) => prev.has(info.id) ? prev : new Map(prev).set(info.id, info.permissionMode || 'normal'));
     });
 
     const destroyedHandler = window.claude.on.sessionDestroyed((id) => {
@@ -101,6 +108,8 @@ function AppInner() {
           if (prev.has(event.sessionId)) return prev;
           const next = new Set(prev);
           next.add(event.sessionId);
+          // Broadcast so other devices transition out of Initializing too
+          (window as any).claude?.remote?.broadcastAction({ type: '_SESSION_INITIALIZED', sessionId: event.sessionId });
           return next;
         });
       }
@@ -142,6 +151,22 @@ function AppInner() {
       }));
     });
 
+    // UI action sync — receive actions broadcast from other devices
+    const uiActionHandler = (window.claude.on as any).uiAction?.((action: any) => {
+      if (!action?.type) return;
+      // Handle session initialization sync (not a chat reducer action)
+      if (action.type === '_SESSION_INITIALIZED' && action.sessionId) {
+        setInitializedSessions((prev) => {
+          if (prev.has(action.sessionId)) return prev;
+          const next = new Set(prev);
+          next.add(action.sessionId);
+          return next;
+        });
+        return;
+      }
+      dispatch(action);
+    });
+
     return () => {
       window.claude.off('session:created', createdHandler);
       window.claude.off('session:destroyed', destroyedHandler);
@@ -149,12 +174,56 @@ function AppInner() {
       window.claude.off('session:renamed', renamedHandler);
       window.claude.off('pty:output', ptyModeHandler);
       window.claude.off('status:data', statusHandler);
+      if (uiActionHandler) window.claude.off('ui:action:received', uiActionHandler);
     };
+  }, [dispatch]);
+
+  // Fetch session list on mount — catches sessions that existed before event handlers were registered
+  // (e.g., remote browser reconnecting after the replay buffer events already fired)
+  useEffect(() => {
+    window.claude.session.list().then((list: any[]) => {
+      if (!list || list.length === 0) return;
+      setSessions((prev) => {
+        const existingIds = new Set(prev.map((s) => s.id));
+        const newSessions = list.filter((s) => !existingIds.has(s.id));
+        if (newSessions.length === 0) return prev;
+        for (const s of newSessions) {
+          dispatch({ type: 'SESSION_INIT', sessionId: s.id });
+          setViewModes((vm) => vm.has(s.id) ? vm : new Map(vm).set(s.id, 'chat'));
+          setPermissionModes((pm) => pm.has(s.id) ? pm : new Map(pm).set(s.id, s.permissionMode || 'normal'));
+        }
+        return [...prev, ...newSessions];
+      });
+      setSessionId((prev) => prev ?? list[0].id);
+      // Mark all existing sessions as initialized — they're already running,
+      // so skip the "Initializing" overlay (which waits for first hook event)
+      setInitializedSessions((prev) => {
+        const next = new Set(prev);
+        for (const s of list) next.add(s.id);
+        return next;
+      });
+    }).catch(() => {});
   }, [dispatch]);
 
   // Load skills once on mount
   useEffect(() => {
     window.claude.skills.list().then(setSkills).catch(console.error);
+  }, []);
+
+  // Check if remote setup banner is active (show badge on gear icon)
+  // Badge shows whenever the blue "Set Up Remote Access" banner would be visible
+  // in the settings panel — i.e., no remote clients are connected
+  useEffect(() => {
+    const claude = (window as any).claude;
+    if (!claude?.remote) return;
+    const check = () => {
+      claude.remote.getClientCount().then((count: number) => {
+        setSettingsBadge(count === 0);
+      }).catch(() => {});
+    };
+    check();
+    const interval = setInterval(check, 10000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleOpenDrawer = useCallback((searchMode: boolean) => {
@@ -222,6 +291,7 @@ function AppInner() {
         if (prev.has(sessionId)) return prev;
         const next = new Set(prev);
         next.add(sessionId);
+        (window as any).claude?.remote?.broadcastAction({ type: '_SESSION_INITIALIZED', sessionId });
         return next;
       });
     }
@@ -233,7 +303,7 @@ function AppInner() {
   const announcementText = statusData.announcement?.message || null;
 
   return (
-    <div className="flex w-screen h-screen bg-gray-950 text-gray-200">
+    <div className="flex w-screen h-full bg-gray-950 text-gray-200">
       {/* Main area */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {sessions.length > 0 && sessionId && currentSession ? (
@@ -253,6 +323,9 @@ function AppInner() {
               onCyclePermission={cyclePermission}
               model={statusData.model}
               announcement={announcementText}
+              settingsOpen={settingsOpen}
+              onToggleSettings={() => setSettingsOpen(prev => !prev)}
+              settingsBadge={settingsBadge}
             />
             <div className="flex-1 overflow-hidden relative">
               {sessions.map((s) => (
@@ -326,6 +399,17 @@ function AppInner() {
           <GamePanel connection={gameConnection} />
         </ErrorBoundary>
       )}
+      <SettingsPanel
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        onSendInput={(text) => {
+          if (sessionId) {
+            const claude = (window as any).claude;
+            claude.session.sendInput(sessionId, text + '\r');
+          }
+        }}
+        hasActiveSession={!!sessionId}
+      />
     </div>
   );
 }

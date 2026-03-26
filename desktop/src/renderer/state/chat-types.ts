@@ -115,6 +115,10 @@ export type ChatAction =
       type: 'PERMISSION_RESPONDED';
       sessionId: string;
       requestId: string;
+    }
+  | {
+      type: 'TERMINAL_ACTIVITY';
+      sessionId: string;
     };
 
 export type ChatState = Map<string, SessionChatState>;

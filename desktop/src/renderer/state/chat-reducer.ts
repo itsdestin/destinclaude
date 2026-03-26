@@ -246,6 +246,13 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
       return next;
     }
 
+    case 'TERMINAL_ACTIVITY': {
+      const session = next.get(action.sessionId);
+      if (!session || !session.isThinking) return state;
+      next.set(action.sessionId, { ...session, lastActivityAt: Date.now() });
+      return next;
+    }
+
     case 'PERMISSION_REQUEST': {
       const session = next.get(action.sessionId);
       if (!session) return state;

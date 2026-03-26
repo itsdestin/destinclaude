@@ -74,7 +74,7 @@ export default function SessionSelector({ sessions, activeSessionId, onSelectSes
         onClick={() => setOpen(!open)}
         className="flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-gray-800 transition-colors"
       >
-        <span className="text-sm font-medium text-gray-200 truncate max-w-[350px]">
+        <span className="text-sm font-medium text-gray-200 truncate max-w-[120px] sm:max-w-[350px]">
           {displayName}
         </span>
         <svg

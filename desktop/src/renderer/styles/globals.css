@@ -29,6 +29,12 @@
   --font-mono: 'Cascadia Mono', 'Cascadia Code', 'Fira Code', monospace;
 }
 
+/* Use dynamic viewport height on mobile — prevents content from scrolling behind browser chrome */
+html, body, #root {
+  height: 100dvh;
+  overflow: hidden;
+}
+
 /* xterm.js needs explicit height to fill its container */
 .xterm {
   height: 100%;
@@ -42,10 +48,26 @@
   height: 100%;
 }
 
-/* Custom scrollbars to match the dark UI */
+/* Hide scrollbars on horizontal scroll containers (quick chips, etc.) */
+.overflow-x-auto::-webkit-scrollbar {
+  display: none;
+}
+.overflow-x-auto {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Custom scrollbars to match the dark UI — thinner on mobile */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 4px;
+  height: 4px;
+}
+
+@media (min-width: 640px) {
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
 }
 
 ::-webkit-scrollbar-track {

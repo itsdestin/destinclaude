@@ -54,8 +54,9 @@ claude
 - **Session hooks** — Auto-sync, statusline, write guards, git backup, worktree guard
 - **Specs system** — Structured documentation that persists across conversations
 - **Memory templates** — Organized persistent memory for Claude
-- **Commands** — `/setup-wizard`, `/update`, `/health`, `/sync`, `/restore`, `/contribute`, `/toolkit-uninstall`
+- **Commands** — `/setup-wizard`, `/update`, `/appupdate`, `/health`, `/sync`, `/restore`, `/contribute`, `/toolkit-uninstall`
 - **Contribution detector** — Notices your improvements, offers to share them upstream
+- **DestinCode desktop app** — Electron GUI wrapper with built-in remote access — control Claude Code from any browser on your network
 
 ### Life (Personal Knowledge)
 - **Journaling assistant** — Conversational daily journaling with Socratic prompts

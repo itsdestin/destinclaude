@@ -93,62 +93,60 @@ export default function StatusBar({ statusData, onRunSync }: Props) {
   const warnings = parseSyncWarnings(syncWarnings);
 
   return (
-    <div className="flex items-center justify-between px-3 py-1 text-[10px] text-gray-500 border-t border-gray-800/50">
-      {/* Left — rate limits + sync warnings */}
-      <div className="flex items-center gap-2">
-        {usage?.five_hour != null && (
-          <span className="flex items-center gap-1.5 px-1.5 py-0.5 rounded bg-gray-900 border border-gray-700/50">
-            <span>5h:</span>
-            <span className={utilizationColor(usage.five_hour.utilization)}>
-              {usage.five_hour.utilization}%
-            </span>
-            <span className="text-gray-600">{format5hReset(usage.five_hour.resets_at)}</span>
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-2 sm:px-3 py-1 text-[10px] text-gray-500 border-t border-gray-800/50">
+      {/* Rate limits */}
+      {usage?.five_hour != null && (
+        <span className="flex items-center gap-1 sm:gap-1.5 px-1.5 py-0.5 rounded bg-gray-900 border border-gray-700/50">
+          <span>5h:</span>
+          <span className={utilizationColor(usage.five_hour.utilization)}>
+            {usage.five_hour.utilization}%
           </span>
-        )}
-        {usage?.seven_day != null && (
-          <span className="flex items-center gap-1.5 px-1.5 py-0.5 rounded bg-gray-900 border border-gray-700/50">
-            <span>7d:</span>
-            <span className={utilizationColor(usage.seven_day.utilization)}>
-              {usage.seven_day.utilization}%
-            </span>
-            <span className="text-gray-600">{format7dReset(usage.seven_day.resets_at)}</span>
+          <span className="text-gray-600 hidden sm:inline">{format5hReset(usage.five_hour.resets_at)}</span>
+        </span>
+      )}
+      {usage?.seven_day != null && (
+        <span className="flex items-center gap-1 sm:gap-1.5 px-1.5 py-0.5 rounded bg-gray-900 border border-gray-700/50">
+          <span>7d:</span>
+          <span className={utilizationColor(usage.seven_day.utilization)}>
+            {usage.seven_day.utilization}%
           </span>
-        )}
-        {warnings.map((w, i) => (
-          <button
-            key={i}
-            onClick={onRunSync}
-            className={`px-1.5 py-0.5 rounded border ${warnStyles[w.level]} ${onRunSync ? 'cursor-pointer hover:brightness-125 transition-all' : ''}`}
-          >
-            {w.text}
-          </button>
-        ))}
-      </div>
+          <span className="text-gray-600 hidden sm:inline">{format7dReset(usage.seven_day.resets_at)}</span>
+        </span>
+      )}
 
-      {/* Center — context */}
-      <div className="flex items-center gap-2">
-        {contextPercent != null && (
-          <span>
-            Context:{' '}
-            <span className={contextColor(contextPercent)}>
-              {contextPercent}%
-            </span>
+      {/* Context */}
+      {contextPercent != null && (
+        <span>
+          Ctx:{' '}
+          <span className={contextColor(contextPercent)}>
+            {contextPercent}%
           </span>
-        )}
-      </div>
+        </span>
+      )}
 
-      {/* Right — version (click opens changelog) */}
+      {/* Sync warnings */}
+      {warnings.map((w, i) => (
+        <button
+          key={i}
+          onClick={onRunSync}
+          className={`px-1.5 py-0.5 rounded border text-[9px] sm:text-[10px] ${warnStyles[w.level]} ${onRunSync ? 'cursor-pointer hover:brightness-125 transition-all' : ''}`}
+        >
+          {w.text}
+        </button>
+      ))}
+
+      {/* Version — pushed to end, hidden on very narrow screens */}
       {updateStatus && (
         <button
           onClick={() => window.claude.shell.openChangelog()}
-          className="px-1.5 py-0.5 rounded bg-gray-900 border border-gray-700/50 cursor-pointer hover:bg-gray-800 transition-colors"
+          className="px-1.5 py-0.5 rounded bg-gray-900 border border-gray-700/50 cursor-pointer hover:bg-gray-800 transition-colors ml-auto hidden sm:inline-flex"
         >
           {updateStatus.update_available ? (
             <span className="text-[#FF9800]">
-              DestinClaude v{updateStatus.current} → v{updateStatus.latest}
+              v{updateStatus.current} → v{updateStatus.latest}
             </span>
           ) : (
-            <span>DestinClaude v{updateStatus.current}</span>
+            <span>v{updateStatus.current}</span>
           )}
         </button>
       )}

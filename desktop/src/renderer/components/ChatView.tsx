@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useChatState, useChatDispatch } from '../state/chat-context';
+import { onBufferReady } from '../hooks/terminal-registry';
 import UserMessage from './UserMessage';
 import AssistantMessage from './AssistantMessage';
 import ToolGroup from './ToolGroup';
@@ -50,6 +51,21 @@ export default function ChatView({ sessionId, visible }: Props) {
       if (thinkingTimerRef.current) clearTimeout(thinkingTimerRef.current);
     };
   }, [state.isThinking, state.lastActivityAt, hasAwaitingApproval, sessionId, dispatch]);
+
+  // Reset the thinking timer when the terminal buffer receives output.
+  // During extended thinking, Claude's CLI renders a spinner/timer in the PTY
+  // but fires no hook events, so lastActivityAt goes stale.  Listening to
+  // buffer writes keeps the timeout from triggering prematurely.
+  const isThinkingRef = useRef(state.isThinking);
+  isThinkingRef.current = state.isThinking;
+
+  useEffect(() => {
+    return onBufferReady((sid) => {
+      if (sid === sessionId && isThinkingRef.current) {
+        dispatch({ type: 'TERMINAL_ACTIVITY', sessionId });
+      }
+    });
+  }, [sessionId, dispatch]);
 
   // Track whether user is scrolled to bottom
   useEffect(() => {

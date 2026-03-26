@@ -194,5 +194,12 @@
     "category": "work",
     "prompt": "search the web for",
     "source": "plugin"
+  },
+  "remote-setup": {
+    "displayName": "Remote Setup",
+    "description": "Set up remote access — installs Tailscale, configures your password, and gets your phone connected",
+    "category": "admin",
+    "prompt": "/remote-setup",
+    "source": "destinclaude"
   }
 }

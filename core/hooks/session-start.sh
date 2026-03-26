@@ -52,7 +52,7 @@ rebuild_local_config() {
     # Detect platform
     local platform="linux"
     case "$(uname -s)" in
-        MINGW*|MSYS*) platform="windows" ;;
+        MINGW*|MSYS*|CYGWIN*) platform="windows" ;;
         Darwin) platform="macos" ;;
         Linux)
             if [[ -d "/data/data/com.termux" || -d "/data/data/com.destin.code" ]]; then
@@ -191,7 +191,9 @@ fi
 # --- Git pull (cross-device sync) ---
 cd "$CLAUDE_DIR"
 if git remote get-url origin &>/dev/null; then
-    if ! git pull --rebase origin main 2>/dev/null; then
+    _GIT_DEFAULT=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's|refs/remotes/origin/||') || true
+    [[ -z "$_GIT_DEFAULT" ]] && _GIT_DEFAULT="main"
+    if ! git pull --rebase origin "$_GIT_DEFAULT" 2>/dev/null; then
         git rebase --abort 2>/dev/null || true
         echo '{"hookSpecificOutput": "Warning: Git pull failed on session start. Working with local state."}' >&2
     fi
@@ -273,7 +275,8 @@ fi
 # --- Encyclopedia cache sync ---
 mkdir -p "$ENCYCLOPEDIA_DIR"
 if command -v rclone &>/dev/null; then
-    rclone sync "gdrive:$DRIVE_ROOT/The Journal/System/" "$ENCYCLOPEDIA_DIR/" 2>/dev/null || \
+    _ENCY_PATH=$(config_get "ENCYCLOPEDIA_DRIVE_PATH" "The Journal/System")
+    rclone sync "gdrive:$DRIVE_ROOT/$_ENCY_PATH/" "$ENCYCLOPEDIA_DIR/" 2>/dev/null || \
         echo '{"hookSpecificOutput": "Warning: Encyclopedia cache sync failed. Skills will use stale cache."}' >&2
 fi
 
@@ -598,7 +601,7 @@ if git rev-parse --is-inside-work-tree &>/dev/null 2>&1; then
     fi
     if [[ -n "$_CURRENT_BRANCH" && "$_CURRENT_BRANCH" != "$_DEFAULT_BRANCH" ]]; then
         _REPO_NAME=$(basename "$(git rev-parse --show-toplevel 2>/dev/null)")
-        echo "{\"hookSpecificOutput\": {\"hookEventName\": \"SessionStart\", \"additionalContext\": \"WARNING: You are on branch '$_CURRENT_BRANCH' in repo '$_REPO_NAME', NOT the default branch '$_DEFAULT_BRANCH'. Switch to '$_DEFAULT_BRANCH' before making changes unless Destin explicitly asked for this branch.\"}}"
+        echo "{\"hookSpecificOutput\": {\"hookEventName\": \"SessionStart\", \"additionalContext\": \"WARNING: You are on branch '$_CURRENT_BRANCH' in repo '$_REPO_NAME', NOT the default branch '$_DEFAULT_BRANCH'. Switch to '$_DEFAULT_BRANCH' before making changes unless you intentionally checked out this branch.\"}}"
     fi
 fi
 

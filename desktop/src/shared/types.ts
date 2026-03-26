@@ -79,4 +79,14 @@ export const IPC = {
   READ_TRANSCRIPT_META: 'transcript:read-meta',
   OPEN_CHANGELOG: 'shell:open-changelog',
   PERMISSION_RESPOND: 'permission:respond',
+  // Remote settings
+  REMOTE_GET_CONFIG: 'remote:get-config',
+  REMOTE_SET_PASSWORD: 'remote:set-password',
+  REMOTE_SET_CONFIG: 'remote:set-config',
+  REMOTE_DETECT_TAILSCALE: 'remote:detect-tailscale',
+  REMOTE_GET_CLIENT_COUNT: 'remote:get-client-count',
+  REMOTE_GET_CLIENT_LIST: 'remote:get-client-list',
+  REMOTE_DISCONNECT_CLIENT: 'remote:disconnect-client',
+  UI_ACTION_BROADCAST: 'ui:action:broadcast',
+  UI_ACTION_RECEIVED: 'ui:action:received',
 } as const;

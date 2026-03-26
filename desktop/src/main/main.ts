@@ -6,6 +6,9 @@ import { promisify } from 'util';
 import { SessionManager } from './session-manager';
 import { HookRelay } from './hook-relay';
 import { registerIpcHandlers } from './ipc-handlers';
+import { RemoteServer } from './remote-server';
+import { RemoteConfig } from './remote-config';
+import { scanSkills } from './skill-scanner';
 import { IPC } from '../shared/types';
 
 // macOS Electron apps launched from Finder/Dock inherit a minimal PATH from
@@ -41,6 +44,8 @@ const pipeName = process.platform === 'win32'
   : path.join(os.tmpdir(), `claude-desktop-hooks-${process.pid}.sock`);
 sessionManager.setPipeName(pipeName);
 const hookRelay = new HookRelay(pipeName);
+const remoteConfig = new RemoteConfig();
+const remoteServer = new RemoteServer(sessionManager, hookRelay, remoteConfig, scanSkills);
 
 // Dev server URL — configurable via env var, defaults to Vite's default
 const DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL || 'http://localhost:5173';
@@ -66,7 +71,7 @@ function createWindow() {
     mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
   }
 
-  cleanupIpcHandlers = registerIpcHandlers(ipcMain, sessionManager, mainWindow, hookRelay);
+  cleanupIpcHandlers = registerIpcHandlers(ipcMain, sessionManager, mainWindow, hookRelay, remoteConfig, remoteServer);
 
   // Forward hook events to renderer
   hookRelay.on('hook-event', (event) => {
@@ -103,6 +108,12 @@ app.whenReady().then(async () => {
     console.error('Failed to start hook relay:', e);
   }
 
+  try {
+    await remoteServer.start();
+  } catch (e) {
+    console.error('Failed to start remote server:', e);
+  }
+
   ipcMain.handle('github:auth', async () => {
     try {
       const { stdout: token } = await execFileAsync(ghPath, ['auth', 'token']);
@@ -134,5 +145,6 @@ app.on('window-all-closed', () => {
   if (cleanupIpcHandlers) cleanupIpcHandlers();
   sessionManager.destroyAll();
   hookRelay.stop();
+  remoteServer.stop();
   app.quit();
 });

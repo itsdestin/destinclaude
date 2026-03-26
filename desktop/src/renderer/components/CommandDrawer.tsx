@@ -121,7 +121,7 @@ export default function CommandDrawer({ open, searchMode, skills, onSelect, onCl
                   <h3 className="text-[10px] font-medium text-gray-500 tracking-wider mb-2">
                     {categoryLabels[cat]}
                   </h3>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {items.map((skill) => (
                       <SkillCard key={skill.id} skill={skill} onClick={onSelect} />
                     ))}
@@ -131,7 +131,7 @@ export default function CommandDrawer({ open, searchMode, skills, onSelect, onCl
             })
           ) : (
             // Flat search results
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {filtered.map((skill) => (
                 <SkillCard key={skill.id} skill={skill} onClick={onSelect} />
               ))}
