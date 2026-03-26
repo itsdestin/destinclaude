@@ -150,12 +150,12 @@ Aggregation is one-directional: all slugs → home slug. Project-specific direct
 ├── skills/                     # existing
 ├── backup-meta.json            # existing
 └── conversations/              # NEW
-    ├── C--Users-desti/
+    ├── C--Users-alice/
     │   ├── 915c4e14-....jsonl
     │   └── 06ef9649-....jsonl
-    ├── C--Users-desti-destincode/
+    ├── C--Users-alice-myproject/
     │   └── ecfe89a9-....jsonl
-    └── C--Users-desti-destinclaude-desktop/
+    └── C--Users-alice-destinclaude-desktop/
         ├── 239eedf3-....jsonl
         └── 078d7e44-....jsonl
 ```
