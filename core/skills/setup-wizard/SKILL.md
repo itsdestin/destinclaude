@@ -1410,6 +1410,22 @@ If no, skip — they can always install later.
 
 ---
 
+## Phase 5c: Remote Access (Optional)
+
+If the DestinCode desktop app was installed (Phase 5b), offer remote access setup:
+
+> "Would you like to set up remote access? This lets you use DestinCode from your phone or any other device using Tailscale — a free, secure private network."
+>
+> 1. Yes — set it up now
+> 2. No — I'll do this later (you can run `/remote-setup` anytime)
+
+If the user chooses **1**, invoke the remote-setup skill by saying: "Let me run the remote setup skill."
+Then use the Skill tool to invoke `remote-setup`.
+
+If the user chooses **2**, continue to Phase 6.
+
+---
+
 ## Phase 6: Verification
 
 Run a health check on everything that was installed.
