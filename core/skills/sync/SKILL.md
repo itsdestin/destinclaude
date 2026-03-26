@@ -1,6 +1,6 @@
 ---
 name: sync
-description: Show sync status dashboard and resolve warnings. Use when user says "/sync", "sync status", "check sync", "backup status", "force sync", "backup now", when the statusline shows sync warnings, or when a session-start hook reports unsynced projects/skills.
+description: Show sync status dashboard and resolve warnings. Use when user says "/sync", "sync status", "check sync", "backup status", "force sync", "backup now", "conversation sync", "sync my conversations", "cross-device resume", when the statusline shows sync warnings, or when a session-start hook reports unsynced projects/skills.
 ---
 
 # /sync — Sync Status & Data Protection
