@@ -8,6 +8,9 @@ rm -f "$CLAUDE_DIR"/.unsynced-warned-* 2>/dev/null
 ENCYCLOPEDIA_DIR="$CLAUDE_DIR/encyclopedia"
 CONFIG_FILE="$CLAUDE_DIR/toolkit-state/config.json"
 MCP_CONFIG="$CLAUDE_DIR/mcp-servers/mcp-config.json"
+SYNC_STATUS_FILE="$CLAUDE_DIR/toolkit-state/.session-sync-status"
+SYNC_DEBOUNCE_MARKER="$CLAUDE_DIR/toolkit-state/.session-sync-marker"
+SYNC_DEBOUNCE_MINUTES=10
 CLAUDE_JSON="$HOME/.claude.json"
 # Source shared backup utilities
 HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
