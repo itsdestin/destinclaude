@@ -282,6 +282,364 @@ fi
 # causing rclone to retry 3x (~20s wasted). Deduplicated per optimization design D3.
 mkdir -p "$ENCYCLOPEDIA_DIR"
 
+# ===========================================================================
+# Phase 2: Background network sync function
+# Design ref: session-start-optimization-design D1, D2
+# All network operations are grouped here and run in a single background
+# process. Independent operations launch in parallel; sequential post-pull
+# operations (slug rewriting, aggregation, migrations) run after all
+# parallel work completes.
+# ===========================================================================
+_session_sync_background() {
+    # Signal that sync is in progress
+    echo "syncing $(date +%s)" > "$SYNC_STATUS_FILE" 2>/dev/null
+
+    # --- Sub-function: Git pull (cross-device sync) ---
+    _bg_git_pull() {
+        cd "$CLAUDE_DIR"
+        if git remote get-url origin &>/dev/null; then
+            _GIT_DEFAULT=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's|refs/remotes/origin/||') || true
+            [[ -z "$_GIT_DEFAULT" ]] && _GIT_DEFAULT="main"
+            if ! git pull --rebase origin "$_GIT_DEFAULT" 2>/dev/null; then
+                git rebase --abort 2>/dev/null || true
+                log_backup "WARN" "Git pull failed on session start. Working with local state."
+            fi
+        fi
+    }
+
+    # --- Sub-function: Personal data pull (Design ref: D6) ---
+    _bg_personal_data_pull() {
+        local _PULL_BACKEND=""
+        if type get_preferred_backend &>/dev/null; then
+            _PULL_BACKEND=$(get_preferred_backend)
+        fi
+
+        if [[ -n "$_PULL_BACKEND" ]]; then
+            case "$_PULL_BACKEND" in
+                drive)
+                    local _DR
+                    _DR=$(config_get "DRIVE_ROOT" "Claude")
+                    local DRIVE_SOURCE="gdrive:$_DR/Backup/personal"
+                    if command -v rclone &>/dev/null; then
+                        # Memory files — iterate per project key so files land in
+                        # projects/{key}/memory/ (not at the project root).
+                        # Uses rclone copy, NOT sync — sync deletes local files
+                        # like conversation .jsonl that don't exist on the remote.
+                        while IFS= read -r _mem_key; do
+                            _mem_key="${_mem_key%/}"
+                            [[ -z "$_mem_key" ]] && continue
+                            mkdir -p "$CLAUDE_DIR/projects/$_mem_key/memory"
+                            rclone copy "$DRIVE_SOURCE/memory/$_mem_key/" \
+                                "$CLAUDE_DIR/projects/$_mem_key/memory/" \
+                                --update --exclude '.DS_Store' 2>/dev/null || \
+                                log_backup "WARN" "Drive pull (memory/$_mem_key) failed"
+                        done < <(rclone lsf "$DRIVE_SOURCE/memory/" --dirs-only 2>/dev/null)
+
+                        # Parallel rclone calls for independent data categories
+                        rclone copy "$DRIVE_SOURCE/CLAUDE.md" "$CLAUDE_DIR/" \
+                            --update 2>/dev/null &
+                        rclone copy "$DRIVE_SOURCE/toolkit-state/config.json" "$CLAUDE_DIR/toolkit-state/" \
+                            --update 2>/dev/null &
+                        rclone sync "$DRIVE_SOURCE/encyclopedia/" "$CLAUDE_DIR/encyclopedia/" \
+                            --update --exclude '.DS_Store' 2>/dev/null &
+                        # Conversations — pull per-slug (Design ref: D3)
+                        {
+                            log_backup "INFO" "Pulling conversations from Drive..."
+                            rclone copy "$DRIVE_SOURCE/conversations/" "$CLAUDE_DIR/projects/" \
+                                --checksum --include '*.jsonl' 2>/dev/null || \
+                                log_backup "WARN" "Drive pull (conversations) failed"
+                        } &
+                        wait
+                    fi
+                    ;;
+                github)
+                    local SYNC_REPO REPO_DIR
+                    SYNC_REPO=$(config_get "PERSONAL_SYNC_REPO" "")
+                    REPO_DIR="$CLAUDE_DIR/toolkit-state/personal-sync-repo"
+                    if [[ -n "$SYNC_REPO" && -d "$REPO_DIR/.git" ]]; then
+                        (cd "$REPO_DIR" && git pull personal-sync main 2>/dev/null) || true
+                        # Copy restored files to live locations
+                        [[ -d "$REPO_DIR/memory" ]] && rsync -a --update "$REPO_DIR/memory/" "$CLAUDE_DIR/projects/" 2>/dev/null || true
+                        [[ -f "$REPO_DIR/CLAUDE.md" ]] && rsync -a --update "$REPO_DIR/CLAUDE.md" "$CLAUDE_DIR/" 2>/dev/null || true
+                        [[ -f "$REPO_DIR/toolkit-state/config.json" ]] && rsync -a --update "$REPO_DIR/toolkit-state/config.json" "$CLAUDE_DIR/toolkit-state/" 2>/dev/null || true
+                        [[ -d "$REPO_DIR/encyclopedia" ]] && rsync -a --update "$REPO_DIR/encyclopedia/" "$CLAUDE_DIR/encyclopedia/" 2>/dev/null || true
+                        # Conversations
+                        if [[ -d "$REPO_DIR/conversations" ]]; then
+                            local _conv_slug _cs_name
+                            for _conv_slug in "$REPO_DIR/conversations"/*/; do
+                                [[ ! -d "$_conv_slug" ]] && continue
+                                _cs_name=$(basename "$_conv_slug")
+                                mkdir -p "$CLAUDE_DIR/projects/$_cs_name"
+                                cp -n "$_conv_slug"*.jsonl "$CLAUDE_DIR/projects/$_cs_name/" 2>/dev/null || true
+                            done
+                        fi
+                    fi
+                    ;;
+                icloud)
+                    local ICLOUD_PATH
+                    ICLOUD_PATH=$(config_get "ICLOUD_PATH" "")
+                    # Auto-detect if not configured
+                    if [[ -z "$ICLOUD_PATH" ]]; then
+                        local _try
+                        for _try in "$HOME/Library/Mobile Documents/com~apple~CloudDocs/DestinClaude" \
+                                    "$HOME/iCloudDrive/DestinClaude" \
+                                    "$HOME/Apple/CloudDocs/DestinClaude"; do
+                            [[ -d "$_try" ]] && { ICLOUD_PATH="$_try"; break; }
+                        done
+                    fi
+                    if [[ -n "$ICLOUD_PATH" && -d "$ICLOUD_PATH" ]]; then
+                        [[ -d "$ICLOUD_PATH/memory" ]] && rsync -a --update "$ICLOUD_PATH/memory/" "$CLAUDE_DIR/projects/" 2>/dev/null || true
+                        [[ -f "$ICLOUD_PATH/CLAUDE.md" ]] && rsync -a --update "$ICLOUD_PATH/CLAUDE.md" "$CLAUDE_DIR/" 2>/dev/null || true
+                        [[ -f "$ICLOUD_PATH/toolkit-state/config.json" ]] && rsync -a --update "$ICLOUD_PATH/toolkit-state/config.json" "$CLAUDE_DIR/toolkit-state/" 2>/dev/null || true
+                        [[ -d "$ICLOUD_PATH/encyclopedia" ]] && rsync -a --update "$ICLOUD_PATH/encyclopedia/" "$CLAUDE_DIR/encyclopedia/" 2>/dev/null || true
+                        # Conversations
+                        if [[ -d "$ICLOUD_PATH/conversations" ]]; then
+                            local _conv_slug _cs_name
+                            for _conv_slug in "$ICLOUD_PATH/conversations"/*/; do
+                                [[ ! -d "$_conv_slug" ]] && continue
+                                _cs_name=$(basename "$_conv_slug")
+                                mkdir -p "$CLAUDE_DIR/projects/$_cs_name"
+                                rsync -a --update "$_conv_slug"*.jsonl "$CLAUDE_DIR/projects/$_cs_name/" 2>/dev/null || \
+                                    cp -n "$_conv_slug"*.jsonl "$CLAUDE_DIR/projects/$_cs_name/" 2>/dev/null || true
+                            done
+                        fi
+                    fi
+                    ;;
+            esac
+        fi
+    }
+
+    # --- Sub-function: Legacy conversation migration (Design ref: D9) ---
+    _bg_legacy_migration() {
+        local _LEGACY_MARKER="$CLAUDE_DIR/toolkit-state/.legacy-conversations-migrated"
+        if [[ ! -f "$_LEGACY_MARKER" ]] && command -v rclone &>/dev/null; then
+            local _DR
+            _DR=$(config_get "DRIVE_ROOT" "Claude")
+            local _LEGACY_PATH="gdrive:$_DR/Backup/conversations/"
+            # Check if legacy path exists
+            if rclone lsd "$_LEGACY_PATH" &>/dev/null; then
+                log_backup "INFO" "Migrating legacy conversations from $_LEGACY_PATH..."
+                rclone copy "$_LEGACY_PATH" "gdrive:$_DR/Backup/personal/conversations/" \
+                    --checksum 2>/dev/null && {
+                    date +%s > "$_LEGACY_MARKER"
+                    log_backup "INFO" "Legacy conversation migration complete"
+                } || log_backup "WARN" "Legacy conversation migration failed (will retry next session)"
+            else
+                # No legacy path — mark as done
+                date +%s > "$_LEGACY_MARKER"
+            fi
+        fi
+    }
+
+    # --- Sub-function: Sync health check ---
+    _bg_sync_health() {
+        local WARNINGS_FILE="$CLAUDE_DIR/.sync-warnings"
+        > "$WARNINGS_FILE" 2>/dev/null  # reset each session
+
+        # 0. Internet connectivity (DNS lookup via node — fast, no HTTP overhead)
+        local dns_check='require("dns").lookup("github.com",e=>{process.exit(e?1:0)})'
+        local dns_ok=true
+        if command -v timeout &>/dev/null; then
+            timeout 5 node -e "$dns_check" 2>/dev/null || dns_ok=false
+        else
+            node -e "setTimeout(()=>{process.exit(1)},5000);$dns_check" 2>/dev/null || dns_ok=false
+        fi
+        if ! "$dns_ok"; then
+            echo "OFFLINE" >> "$WARNINGS_FILE"
+        fi
+
+        # 1. Personal data sync status
+        local _PS_BACKEND=""
+        if [[ -f "$CONFIG_FILE" ]] && command -v node &>/dev/null; then
+            _PS_BACKEND=$(node -e "try{const c=JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'));console.log(c.PERSONAL_SYNC_BACKEND||'none')}catch{console.log('none')}" "$CONFIG_FILE" 2>/dev/null) || _PS_BACKEND="none"
+        fi
+        # Auto-detect backend: if flag is unset but a known sync provider works, self-heal the config
+        if [[ -z "$_PS_BACKEND" || "$_PS_BACKEND" == "none" ]]; then
+            local _DETECTED=""
+            # Check Google Drive (rclone + gdrive remote)
+            if [[ -z "$_DETECTED" ]] && command -v rclone &>/dev/null && rclone lsd "gdrive:$DRIVE_ROOT/Backup/" &>/dev/null; then
+                _DETECTED="drive"
+            fi
+            # Check iCloud Drive (macOS: ~/Library/Mobile Documents/com~apple~CloudDocs/)
+            if [[ -z "$_DETECTED" ]]; then
+                local _ICLOUD="$HOME/Library/Mobile Documents/com~apple~CloudDocs"
+                if [[ -d "$_ICLOUD" ]]; then
+                    # Look for an existing Claude backup folder, or the iCloud root itself
+                    if [[ -d "$_ICLOUD/Claude/Backup" ]] || [[ -d "$_ICLOUD/Claude" ]]; then
+                        _DETECTED="icloud"
+                    fi
+                fi
+            fi
+            # Self-heal: write detected backend so this check doesn't repeat every session
+            if [[ -n "$_DETECTED" ]]; then
+                _PS_BACKEND="$_DETECTED"
+                if [[ -f "$CONFIG_FILE" ]] && command -v node &>/dev/null; then
+                    node -e "const fs=require('fs');try{const c=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));c.PERSONAL_SYNC_BACKEND=process.argv[2];fs.writeFileSync(process.argv[1],JSON.stringify(c,null,2)+'\n')}catch{}" "$CONFIG_FILE" "$_DETECTED" 2>/dev/null
+                fi
+            fi
+        fi
+        if [[ -z "$_PS_BACKEND" || "$_PS_BACKEND" == "none" ]]; then
+            echo "PERSONAL:NOT_CONFIGURED" >> "$WARNINGS_FILE"
+        else
+            # Check if last sync is stale (>24 hours)
+            local _PS_MARKER="$CLAUDE_DIR/toolkit-state/.personal-sync-marker"
+            if [[ -f "$_PS_MARKER" ]]; then
+                local _PS_LAST _PS_NOW _PS_AGE
+                _PS_LAST=$(cat "$_PS_MARKER" 2>/dev/null || echo 0)
+                _PS_NOW=$(date +%s)
+                _PS_AGE=$((_PS_NOW - _PS_LAST))
+                if [[ $_PS_AGE -ge 86400 ]]; then
+                    echo "PERSONAL:STALE" >> "$WARNINGS_FILE"
+                fi
+            fi
+        fi
+
+        # 1b. Git repo health (Design ref: D8)
+        local _GIT_REMOTE=""
+        if type config_get &>/dev/null; then
+            _GIT_REMOTE=$(config_get "GIT_REMOTE" "")
+        fi
+        if [[ -n "$_GIT_REMOTE" && "$_GIT_REMOTE" != "none" && ! -d "$CLAUDE_DIR/.git" ]]; then
+            echo "GIT:NOT_INITIALIZED" >> "$WARNINGS_FILE"
+        fi
+
+        # 2. Unbackedup user skills (not toolkit symlinks, not in a git-tracked backup)
+        local _UNBACKEDUP_SKILLS=""
+        if [[ -d "$CLAUDE_DIR/skills" ]]; then
+            local _SKILL_DIR _SKILL_NAME _IS_TOOLKIT_COPY _LAYER_DIR
+            for _SKILL_DIR in "$CLAUDE_DIR"/skills/*/; do
+                [[ ! -d "$_SKILL_DIR" ]] && continue
+                _SKILL_NAME=$(basename "$_SKILL_DIR")
+                # Skip toolkit-managed skills (symlinks OR copies from the toolkit repo)
+                if [[ -L "$_SKILL_DIR" ]] || [[ -L "${_SKILL_DIR%/}" ]]; then
+                    continue
+                fi
+                if [[ -n "$TOOLKIT_ROOT" && -d "$TOOLKIT_ROOT" ]]; then
+                    _IS_TOOLKIT_COPY=false
+                    for _LAYER_DIR in "$TOOLKIT_ROOT"/core/skills "$TOOLKIT_ROOT"/productivity/skills "$TOOLKIT_ROOT"/life/skills; do
+                        if [[ -d "$_LAYER_DIR/$_SKILL_NAME" ]]; then
+                            _IS_TOOLKIT_COPY=true
+                            break
+                        fi
+                    done
+                    if [[ "$_IS_TOOLKIT_COPY" == "true" ]]; then
+                        continue  # copy from toolkit repo — canonical source is the repo itself
+                    fi
+                fi
+                # Check if the skill directory is inside the ~/.claude/ git repo (backed up by git-sync)
+                if git -C "$CLAUDE_DIR" ls-files --error-unmatch "$_SKILL_DIR/SKILL.md" &>/dev/null 2>&1; then
+                    continue  # tracked by git — will be backed up
+                fi
+                # Not a symlink and not git-tracked — unbackedup
+                _UNBACKEDUP_SKILLS="${_UNBACKEDUP_SKILLS:+$_UNBACKEDUP_SKILLS,}$_SKILL_NAME"
+            done
+        fi
+        if [[ -n "$_UNBACKEDUP_SKILLS" ]]; then
+            echo "SKILLS:$_UNBACKEDUP_SKILLS" >> "$WARNINGS_FILE"
+        fi
+
+        # 3. Unsynced projects — discover git repos not tracked by git-sync or registered
+        if type discover_projects &>/dev/null; then
+            local _DISCOVERED
+            _DISCOVERED=$(discover_projects 2>/dev/null) || {
+                _DISCOVERED=""
+                log_backup "WARN" "discover_projects() failed — project discovery skipped"
+            }
+            if [[ -n "$_DISCOVERED" ]]; then
+                # Write discovered paths for the /sync skill to consume
+                echo "$_DISCOVERED" | sort -u > "$CLAUDE_DIR/.unsynced-projects"
+                local _UP_COUNT
+                _UP_COUNT=$(echo "$_DISCOVERED" | wc -l | tr -d ' ')
+                [[ "$_UP_COUNT" -gt 0 ]] && echo "PROJECTS:$_UP_COUNT" >> "$WARNINGS_FILE"
+            else
+                rm -f "$CLAUDE_DIR/.unsynced-projects" 2>/dev/null
+            fi
+        fi
+
+        # Remove warnings file if empty (no warnings = no statusline clutter)
+        [[ ! -s "$WARNINGS_FILE" ]] && rm -f "$WARNINGS_FILE" 2>/dev/null
+    }
+
+    # --- Sub-function: Toolkit version check ---
+    _bg_version_check() {
+        if [[ -n "$TOOLKIT_ROOT" && -f "$TOOLKIT_ROOT/VERSION" ]]; then
+            local STATE_DIR="$CLAUDE_DIR/toolkit-state"
+            mkdir -p "$STATE_DIR"
+            local CURRENT
+            CURRENT=$(cat "$TOOLKIT_ROOT/VERSION" 2>/dev/null | tr -d '[:space:]')
+            # Fallback: if VERSION file is stale/missing, use git describe for the real version
+            if [[ -z "$CURRENT" ]] || ! (cd "$TOOLKIT_ROOT" && git describe --tags --exact-match "HEAD" 2>/dev/null | grep -q "v${CURRENT}$"); then
+                local _GIT_VER
+                _GIT_VER=$(cd "$TOOLKIT_ROOT" && git describe --tags --abbrev=0 HEAD 2>/dev/null) || _GIT_VER=""
+                if [[ -n "$_GIT_VER" ]]; then
+                    CURRENT="${_GIT_VER#v}"
+                    # Self-heal: update the VERSION file so future reads are correct
+                    echo "$CURRENT" > "$TOOLKIT_ROOT/VERSION" 2>/dev/null || true
+                fi
+            fi
+            local CURRENT_TAG="v${CURRENT}"
+
+            # Fetch tags silently (fail silently if offline)
+            (cd "$TOOLKIT_ROOT" && git fetch --tags origin 2>/dev/null) || true
+
+            local LATEST_TAG LATEST
+            LATEST_TAG=$(cd "$TOOLKIT_ROOT" && git tag --sort=-v:refname 2>/dev/null | head -1)
+            LATEST=${LATEST_TAG#v}
+
+            # Semver-aware comparison: only flag update if LATEST is strictly newer than CURRENT
+            # Uses node for portable semver compare (sort -V is GNU-only, fails on macOS stock)
+            local UPDATE_AVAILABLE=false
+            if [[ -n "$LATEST" && "$CURRENT" != "$LATEST" ]]; then
+                local _IS_NEWER
+                _IS_NEWER=$(node -e "const[a,b]=[process.argv[1],process.argv[2]].map(v=>v.split('.').map(Number));console.log((a[0]-b[0]||a[1]-b[1]||a[2]-b[2])<0?'yes':'no')" "$CURRENT" "$LATEST" 2>/dev/null) || _IS_NEWER="no"
+                if [[ "$_IS_NEWER" == "yes" ]]; then
+                    UPDATE_AVAILABLE=true
+                fi
+            fi
+
+            cat > "$STATE_DIR/update-status.json" << VEREOF
+{"current": "${CURRENT:-unknown}", "latest": "${LATEST:-unknown}", "update_available": ${UPDATE_AVAILABLE}}
+VEREOF
+        fi
+    }
+
+    # -----------------------------------------------------------------------
+    # Launch all independent network operations in parallel
+    # -----------------------------------------------------------------------
+    _bg_git_pull &
+    _bg_personal_data_pull &
+    _bg_legacy_migration &
+    _bg_sync_health &
+    _bg_version_check &
+    wait
+
+    # -----------------------------------------------------------------------
+    # Sequential post-pull operations (depend on data pulled above)
+    # -----------------------------------------------------------------------
+
+    # Cross-device project slug rewriting (after pull)
+    if type rewrite_project_slugs &>/dev/null; then
+        rewrite_project_slugs "$CLAUDE_DIR/projects"
+    fi
+
+    # Home-directory conversation aggregation (Design ref: D5)
+    if type aggregate_conversations &>/dev/null; then
+        aggregate_conversations "$CLAUDE_DIR/projects"
+    fi
+
+    # Migration check (Design ref: D7)
+    if type run_migrations &>/dev/null && [[ -f "$CLAUDE_DIR/backup-meta.json" ]]; then
+        run_migrations "$CLAUDE_DIR" || \
+            log_backup "WARN" "Backup migration failed. Some restored data may be in an old format."
+    fi
+
+    # -----------------------------------------------------------------------
+    # Mark sync complete
+    # -----------------------------------------------------------------------
+    debounce_touch "$SYNC_DEBOUNCE_MARKER" 2>/dev/null || true
+    echo "done $(date +%s)" > "$SYNC_STATUS_FILE" 2>/dev/null
+}
+
 # --- Personal data pull from configured backend (Design ref: D6) ---
 # Pull from the first (preferred) configured backend only.
 _PULL_BACKEND=""
