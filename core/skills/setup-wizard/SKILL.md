@@ -1085,6 +1085,7 @@ mkdir -p ~/.claude/skills
 
 # Core skills (always)
 ln -sf "$TOOLKIT_ROOT/core/skills/setup-wizard" ~/.claude/skills/setup-wizard
+ln -sf "$TOOLKIT_ROOT/core/skills/remote-setup" ~/.claude/skills/remote-setup
 
 # Life skills (if Life layer selected)
 for skill in encyclopedia-compile encyclopedia-interviewer encyclopedia-librarian encyclopedia-update fork-file google-drive journaling-assistant; do
