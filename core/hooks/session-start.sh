@@ -283,6 +283,11 @@ _session_sync_background() {
     # Signal that sync is in progress
     echo "syncing $(date +%s)" > "$SYNC_STATUS_FILE" 2>/dev/null
 
+    # Sync errors file — parallel sub-functions write failure warnings here.
+    # _bg_sync_health merges these into .sync-warnings after all parallel work completes.
+    local SYNC_ERRORS_FILE="$CLAUDE_DIR/toolkit-state/.session-sync-errors"
+    > "$SYNC_ERRORS_FILE" 2>/dev/null
+
     # --- Sub-function: Git pull (cross-device sync) ---
     _bg_git_pull() {
         cd "$CLAUDE_DIR"
@@ -292,6 +297,7 @@ _session_sync_background() {
             if ! git pull --rebase origin "$_GIT_DEFAULT" 2>/dev/null; then
                 git rebase --abort 2>/dev/null || true
                 log_backup "WARN" "Git pull failed on session start. Working with local state."
+                echo "GIT:PULL_FAILED" >> "$SYNC_ERRORS_FILE"
             fi
         fi
     }
@@ -310,6 +316,7 @@ _session_sync_background() {
                     _DR=$(config_get "DRIVE_ROOT" "Claude")
                     local DRIVE_SOURCE="gdrive:$_DR/Backup/personal"
                     if command -v rclone &>/dev/null; then
+                        local _drive_pull_ok=true
                         # Memory files — iterate per project key so files land in
                         # projects/{key}/memory/ (not at the project root).
                         # Uses rclone copy, NOT sync — sync deletes local files
@@ -320,8 +327,10 @@ _session_sync_background() {
                             mkdir -p "$CLAUDE_DIR/projects/$_mem_key/memory"
                             rclone copy "$DRIVE_SOURCE/memory/$_mem_key/" \
                                 "$CLAUDE_DIR/projects/$_mem_key/memory/" \
-                                --update --exclude '.DS_Store' 2>/dev/null || \
+                                --update --exclude '.DS_Store' 2>/dev/null || {
                                 log_backup "WARN" "Drive pull (memory/$_mem_key) failed"
+                                _drive_pull_ok=false
+                            }
                         done < <(rclone lsf "$DRIVE_SOURCE/memory/" --dirs-only 2>/dev/null)
 
                         # Parallel rclone calls for independent data categories
@@ -335,10 +344,15 @@ _session_sync_background() {
                         {
                             log_backup "INFO" "Pulling conversations from Drive..."
                             rclone copy "$DRIVE_SOURCE/conversations/" "$CLAUDE_DIR/projects/" \
-                                --checksum --include '*.jsonl' 2>/dev/null || \
+                                --checksum --include '*.jsonl' 2>/dev/null || {
                                 log_backup "WARN" "Drive pull (conversations) failed"
+                                _drive_pull_ok=false
+                            }
                         } &
                         wait
+                        if [[ "$_drive_pull_ok" == false ]]; then
+                            echo "PERSONAL:PULL_FAILED:drive" >> "$SYNC_ERRORS_FILE"
+                        fi
                     fi
                     ;;
                 github)
@@ -346,7 +360,10 @@ _session_sync_background() {
                     SYNC_REPO=$(config_get "PERSONAL_SYNC_REPO" "")
                     REPO_DIR="$CLAUDE_DIR/toolkit-state/personal-sync-repo"
                     if [[ -n "$SYNC_REPO" && -d "$REPO_DIR/.git" ]]; then
-                        (cd "$REPO_DIR" && git pull personal-sync main 2>/dev/null) || true
+                        if ! (cd "$REPO_DIR" && git pull personal-sync main 2>/dev/null); then
+                            log_backup "WARN" "GitHub personal-sync pull failed"
+                            echo "PERSONAL:PULL_FAILED:github" >> "$SYNC_ERRORS_FILE"
+                        fi
                         # Copy restored files to live locations
                         [[ -d "$REPO_DIR/memory" ]] && rsync -a --update "$REPO_DIR/memory/" "$CLAUDE_DIR/projects/" 2>/dev/null || true
                         [[ -f "$REPO_DIR/CLAUDE.md" ]] && rsync -a --update "$REPO_DIR/CLAUDE.md" "$CLAUDE_DIR/" 2>/dev/null || true
@@ -545,6 +562,13 @@ _session_sync_background() {
             fi
         fi
 
+        # Merge sync errors from parallel network operations (B1 mandate compliance)
+        local _ERRORS_FILE="$CLAUDE_DIR/toolkit-state/.session-sync-errors"
+        if [[ -s "$_ERRORS_FILE" ]]; then
+            cat "$_ERRORS_FILE" >> "$WARNINGS_FILE" 2>/dev/null
+            rm -f "$_ERRORS_FILE" 2>/dev/null
+        fi
+
         # Remove warnings file if empty (no warnings = no statusline clutter)
         [[ ! -s "$WARNINGS_FILE" ]] && rm -f "$WARNINGS_FILE" 2>/dev/null
     }
@@ -593,14 +617,20 @@ VEREOF
     }
 
     # -----------------------------------------------------------------------
-    # Launch all independent network operations in parallel
+    # Launch network operations in parallel
     # -----------------------------------------------------------------------
     _bg_git_pull &
     _bg_personal_data_pull &
     _bg_legacy_migration &
-    _bg_sync_health &
     _bg_version_check &
     wait
+
+    # -----------------------------------------------------------------------
+    # Sync health check runs AFTER network operations so it can merge
+    # failure warnings from git pull, personal data pull, and migrations
+    # into .sync-warnings for statusline and /sync visibility.
+    # -----------------------------------------------------------------------
+    _bg_sync_health
 
     # -----------------------------------------------------------------------
     # Sequential post-pull operations (depend on data pulled above)
@@ -618,8 +648,10 @@ VEREOF
 
     # Migration check (Design ref: D7)
     if type run_migrations &>/dev/null && [[ -f "$CLAUDE_DIR/backup-meta.json" ]]; then
-        run_migrations "$CLAUDE_DIR" || \
+        run_migrations "$CLAUDE_DIR" || {
             log_backup "WARN" "Backup migration failed. Some restored data may be in an old format."
+            echo "MIGRATION:FAILED" >> "$SYNC_ERRORS_FILE"
+        }
     fi
 
     # -----------------------------------------------------------------------
@@ -650,7 +682,7 @@ if command -v node &>/dev/null; then
         ANNOUNCEMENT_FETCH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/announcement-fetch.js"
     fi
     if [[ -f "$ANNOUNCEMENT_FETCH" ]]; then
-        nohup node "$ANNOUNCEMENT_FETCH" >/dev/null 2>&1 &
+        node "$ANNOUNCEMENT_FETCH" >/dev/null 2>&1 & disown
     fi
 fi
 
