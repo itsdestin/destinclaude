@@ -109,7 +109,7 @@ export class RemoteConfig {
       if (tsPath === 'tailscale') {
         const fs = require('fs');
         const candidates = process.platform === 'win32'
-          ? ['C:\\Program Files\\Tailscale\\tailscale.exe']
+          ? ['C:\\Program Files\\Tailscale\\tailscale.exe', `${process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)'}\\Tailscale\\tailscale.exe`]
           : process.platform === 'darwin'
             ? ['/Applications/Tailscale.app/Contents/MacOS/Tailscale', '/usr/local/bin/tailscale', '/opt/homebrew/bin/tailscale']
             : ['/usr/bin/tailscale', '/usr/local/bin/tailscale'];
