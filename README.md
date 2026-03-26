@@ -57,6 +57,7 @@ claude
 - **Commands** — `/setup-wizard`, `/update`, `/appupdate`, `/health`, `/sync`, `/restore`, `/contribute`, `/toolkit-uninstall`
 - **Contribution detector** — Notices your improvements, offers to share them upstream
 - **DestinCode desktop app** — Electron GUI wrapper with built-in remote access — control Claude Code from any browser on your network
+- **Remote setup** — Guided `/remote-setup` skill configures Tailscale and remote access for phone/tablet use
 
 ### Life (Personal Knowledge)
 - **Journaling assistant** — Conversational daily journaling with Socratic prompts

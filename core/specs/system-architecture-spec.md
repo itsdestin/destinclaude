@@ -1,7 +1,7 @@
 # System Design — Spec
 
-**Version:** 1.3
-**Last updated:** 2026-03-24
+**Version:** 1.4
+**Last updated:** 2026-03-26
 **Feature location:** `~/.claude/` (entire system)
 
 ## Purpose
@@ -100,11 +100,13 @@ Local (~/.claude/)
 ### 4. Session Lifecycle
 
 **Start:**
-1. `session-start.sh` fires → `git pull --rebase` (cross-device sync)
-2. `rclone sync` encyclopedia cache from Drive
+1. `session-start.sh` fires → local-only setup (config rebuild, integrity check, symlink repair)
+2. Background network sync dispatched (debounced, 10-min interval): git pull, personal data pull, encyclopedia cache sync, sync health check, version check, slug rewriting, migrations — all run asynchronously and do not block the session
 3. `check-inbox.sh` → checks configured inbox providers for items, injects prompt for claudes-inbox skill
 4. CLAUDE.md loaded into context (always)
 5. MEMORY.md loaded into context (always)
+
+**Note:** Network sync failures are written to `.sync-warnings` (e.g., `GIT:PULL_FAILED`, `PERSONAL:PULL_FAILED`) and surfaced via the statusline and `/sync` skill rather than blocking session start.
 
 **During:**
 - Every Write|Edit → `write-guard.sh` (PreToolUse) checks for conflicts → `git-sync.sh` (PostToolUse) commits + debounced push
@@ -180,3 +182,4 @@ See [GitHub Issues](https://github.com/itsdestin/destinclaude/issues) for known 
 | 2026-03-15 | 1.0 | Initial spec — consolidates system architecture from overhaul design into living spec | New | — | |
 | 2026-03-20 | 1.1 | Reduced enforcement from 4 layers to 3 (removed ghost system.md reference), updated component counts, fixed stale paths, added cross-reference to docs/system-architecture.md | Revised | — | |
 | 2026-03-24 | 1.3 | Updated hook count 14→16, added worktree-guard.sh, check-inbox.sh, sync-encyclopedia.sh to hook table | Update | — | |
+| 2026-03-26 | 1.4 | Session lifecycle updated: network operations now run as debounced background process instead of blocking session start. Sync failures surfaced via .sync-warnings | Update | owner | |
