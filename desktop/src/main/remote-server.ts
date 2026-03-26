@@ -283,8 +283,9 @@ export class RemoteServer {
     if (url === '/' || url === '/index.html') {
       filePath = path.join(staticDir, 'index.html');
     } else {
-      // Prevent directory traversal
-      const safePath = path.normalize(url).replace(/^(\.\.[\/\\])+/, '');
+      // Prevent directory traversal — decode percent-encoding first
+      const decoded = decodeURIComponent(url);
+      const safePath = path.normalize(decoded).replace(/^(\.\.[\/\\])+/, '');
       filePath = path.join(staticDir, safePath);
     }
 
