@@ -115,6 +115,59 @@ function AppInner() {
       }
     });
 
+    const transcriptHandler = (window.claude.on as any).transcriptEvent?.((event: any) => {
+      if (!event?.type || !event?.sessionId) return;
+
+      switch (event.type) {
+        case 'user-message':
+          dispatch({
+            type: 'TRANSCRIPT_USER_MESSAGE',
+            sessionId: event.sessionId,
+            uuid: event.uuid,
+            text: event.data.text,
+            timestamp: event.timestamp,
+          });
+          break;
+        case 'assistant-text':
+          dispatch({
+            type: 'TRANSCRIPT_ASSISTANT_TEXT',
+            sessionId: event.sessionId,
+            uuid: event.uuid,
+            text: event.data.text,
+            timestamp: event.timestamp,
+          });
+          break;
+        case 'tool-use':
+          dispatch({
+            type: 'TRANSCRIPT_TOOL_USE',
+            sessionId: event.sessionId,
+            uuid: event.uuid,
+            toolUseId: event.data.toolUseId,
+            toolName: event.data.toolName,
+            toolInput: event.data.toolInput || {},
+          });
+          break;
+        case 'tool-result':
+          dispatch({
+            type: 'TRANSCRIPT_TOOL_RESULT',
+            sessionId: event.sessionId,
+            uuid: event.uuid,
+            toolUseId: event.data.toolUseId,
+            result: event.data.toolResult || '',
+            isError: event.data.isError || false,
+          });
+          break;
+        case 'turn-complete':
+          dispatch({
+            type: 'TRANSCRIPT_TURN_COMPLETE',
+            sessionId: event.sessionId,
+            uuid: event.uuid,
+            timestamp: event.timestamp,
+          });
+          break;
+      }
+    });
+
     const renamedHandler = window.claude.on.sessionRenamed((sid, name) => {
       setSessions((prev) =>
         prev.map((s) => (s.id === sid ? { ...s, name } : s)),
@@ -174,6 +227,7 @@ function AppInner() {
       window.claude.off('session:renamed', renamedHandler);
       window.claude.off('pty:output', ptyModeHandler);
       window.claude.off('status:data', statusHandler);
+      if (transcriptHandler) window.claude.off('transcript:event', transcriptHandler);
       if (uiActionHandler) window.claude.off('ui:action:received', uiActionHandler);
     };
   }, [dispatch]);
