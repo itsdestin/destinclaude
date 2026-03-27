@@ -17,6 +17,33 @@ export interface HookEvent {
   timestamp: number;
 }
 
+// --- Transcript watcher types ---
+
+export type TranscriptEventType =
+  | 'user-message'
+  | 'assistant-text'
+  | 'tool-use'
+  | 'tool-result'
+  | 'thinking'
+  | 'turn-complete';
+
+export interface TranscriptEvent {
+  type: TranscriptEventType;
+  sessionId: string; // desktop session ID
+  /** The JSONL line's uuid — used for deduplication */
+  uuid: string;
+  timestamp: number;
+  data: {
+    text?: string;
+    toolUseId?: string;
+    toolName?: string;
+    toolInput?: Record<string, unknown>;
+    toolResult?: string;
+    isError?: boolean;
+    stopReason?: string;
+  };
+}
+
 // --- Chat view types ---
 
 export type ToolCallStatus = 'running' | 'complete' | 'failed' | 'awaiting-approval';
@@ -89,4 +116,5 @@ export const IPC = {
   REMOTE_DISCONNECT_CLIENT: 'remote:disconnect-client',
   UI_ACTION_BROADCAST: 'ui:action:broadcast',
   UI_ACTION_RECEIVED: 'ui:action:received',
+  TRANSCRIPT_EVENT: 'transcript:event',
 } as const;
