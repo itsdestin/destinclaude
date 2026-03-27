@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useGameState, useGameDispatch } from '../../state/game-context';
 import BrailleSpinner from '../BrailleSpinner';
+import { GameConnection } from '../../state/game-types';
 
 interface LeaderboardEntry {
   username: string;
@@ -9,18 +10,7 @@ interface LeaderboardEntry {
 }
 
 interface Props {
-  connection: {
-    register: (username: string, password: string) => Promise<{ ok: boolean; error?: string }>;
-    authenticate: (username: string, password: string) => void;
-    createGame: () => void;
-    joinGame: (code: string) => void;
-    makeMove: (column: number) => void;
-    sendChat: (text: string) => void;
-    requestRematch: () => void;
-    leaveGame: () => void;
-    challengePlayer: (target: string) => void;
-    respondToChallenge: (from: string, accept: boolean) => void;
-  };
+  connection: GameConnection;
 }
 
 function ErrorScreen() {
@@ -40,6 +30,21 @@ function LobbyScreen({ connection }: Props) {
   const state = useGameState();
   const dispatch = useGameDispatch();
   const [joinCode, setJoinCode] = useState('');
+  const [favorites, setFavorites] = useState<string[]>([]);
+
+  useEffect(() => {
+    (window as any).claude?.getFavorites?.().then((favs: string[]) => {
+      if (favs) setFavorites(favs);
+    });
+  }, []);
+
+  const toggleFavorite = (username: string) => {
+    const updated = favorites.includes(username)
+      ? favorites.filter(f => f !== username)
+      : [...favorites, username];
+    setFavorites(updated);
+    (window as any).claude?.setFavorites?.(updated);
+  };
 
   return (
     <div className="flex flex-col gap-0">
@@ -112,33 +117,62 @@ function LobbyScreen({ connection }: Props) {
       </div>
 
       {/* Online users */}
-      <div className="px-3 py-2 border-b border-gray-800">
-        <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-2">
-          Online ({state.onlineUsers.length})
-        </div>
-        {state.onlineUsers.length === 0 ? (
-          <p className="text-xs text-gray-600 italic">No one else online yet</p>
-        ) : (
-          <ul className="flex flex-col gap-1">
-            {state.onlineUsers.filter((u) => u.username !== state.username).map((user) => (
-              <li key={user.username} className="flex items-center gap-2">
-                <span className={`w-2 h-2 rounded-full shrink-0 ${user.status === 'idle' ? 'bg-green-400' : 'bg-yellow-400'}`} />
-                <span className="text-sm text-gray-300 truncate flex-1">{user.username}</span>
-                {user.status === 'in-game' ? (
-                  <span className="text-[10px] text-yellow-500 ml-auto">in game</span>
-                ) : (
-                  <button
-                    onClick={() => connection.challengePlayer(user.username)}
-                    className="text-[10px] text-[#66AAFF] hover:text-[#88CCFF] ml-auto transition-colors"
-                  >
-                    Challenge
-                  </button>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+      {(() => {
+        const otherUsers = state.onlineUsers.filter(u => u.username !== state.username);
+        const onlineFavorites = otherUsers.filter(u => favorites.includes(u.username));
+        const onlineNonFavorites = otherUsers.filter(u => !favorites.includes(u.username));
+        const offlineFavorites = favorites
+          .filter(f => f !== state.username && !otherUsers.some(u => u.username === f))
+          .map(f => ({ username: f, status: 'offline' as const }));
+        const sortedUsers = [...onlineFavorites, ...onlineNonFavorites, ...offlineFavorites];
+        return (
+          <div className="px-3 py-2 border-b border-gray-800">
+            <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-2">
+              Players ({otherUsers.length} online{offlineFavorites.length > 0 ? `, ${offlineFavorites.length} favorite offline` : ''})
+            </div>
+            {sortedUsers.length === 0 ? (
+              <p className="text-xs text-gray-600 italic">No one else online yet</p>
+            ) : (
+              <ul className="flex flex-col gap-1">
+                {sortedUsers.map((user) => {
+                  const isOnline = user.status !== 'offline';
+                  const isFav = favorites.includes(user.username);
+                  return (
+                    <li key={user.username} className="flex items-center gap-2">
+                      <button
+                        onClick={() => toggleFavorite(user.username)}
+                        className={`text-xs shrink-0 transition-colors ${isFav ? 'text-yellow-400' : 'text-gray-600 hover:text-gray-400'}`}
+                        title={isFav ? 'Remove from favorites' : 'Add to favorites'}
+                      >
+                        {isFav ? '★' : '☆'}
+                      </button>
+                      <span className={`w-2 h-2 rounded-full shrink-0 ${
+                        !isOnline ? 'bg-gray-600' :
+                        user.status === 'idle' ? 'bg-green-400' : 'bg-yellow-400'
+                      }`} />
+                      <span className={`text-sm truncate flex-1 ${isOnline ? 'text-gray-300' : 'text-gray-600'}`}>
+                        {user.username}
+                      </span>
+                      {isOnline && user.status === 'in-game' ? (
+                        <span className="text-[10px] text-yellow-500 ml-auto">in game</span>
+                      ) : isOnline ? (
+                        <button
+                          onClick={() => connection.challengePlayer(user.username)}
+                          className="text-[10px] text-[#66AAFF] hover:text-[#88CCFF] ml-auto transition-colors"
+                        >
+                          Challenge
+                        </button>
+                      ) : (
+                        <span className="text-[10px] text-gray-600 ml-auto">offline</span>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Leaderboard preview */}
       <div className="px-3 py-2">

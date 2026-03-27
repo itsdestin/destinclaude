@@ -1,19 +1,9 @@
 import React from 'react';
 import { useGameState, useGameDispatch } from '../../state/game-context';
+import { GameConnection } from '../../state/game-types';
 
 interface Props {
-  connection: {
-    register: (username: string, password: string) => Promise<{ ok: boolean; error?: string }>;
-    authenticate: (username: string, password: string) => void;
-    createGame: () => void;
-    joinGame: (code: string) => void;
-    makeMove: (column: number) => void;
-    sendChat: (text: string) => void;
-    requestRematch: () => void;
-    leaveGame: () => void;
-    challengePlayer: (target: string) => void;
-    respondToChallenge: (from: string, accept: boolean) => void;
-  };
+  connection: GameConnection;
 }
 
 export default function GameOverlay({ connection }: Props) {

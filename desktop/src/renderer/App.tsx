@@ -10,7 +10,8 @@ import { ChatProvider, useChatDispatch, useChatState, useChatStateMap } from './
 import { GameProvider, useGameState, useGameDispatch } from './state/game-context';
 import { hookEventToAction } from './state/hook-dispatcher';
 import { usePromptDetector } from './hooks/usePromptDetector';
-import { useGitHubGame } from './hooks/useGitHubGame';
+import { usePartyLobby } from './hooks/usePartyLobby';
+import { usePartyGame } from './hooks/usePartyGame';
 import { AppIcon, WelcomeAppIcon } from './components/Icons';
 import CommandDrawer from './components/CommandDrawer';
 import TrustGate, { useTrustGateActive } from './components/TrustGate';
@@ -56,7 +57,19 @@ function AppInner() {
   const chatStateMap = useChatStateMap();
   const gameState = useGameState();
   const gameDispatch = useGameDispatch();
-  const gameConnection = useGitHubGame();
+  const lobby = usePartyLobby();
+  const game = usePartyGame(lobby.updateStatus, lobby.challengePlayer);
+
+  const gameConnection = {
+    createGame: game.createGame,
+    joinGame: game.joinGame,
+    makeMove: game.makeMove,
+    sendChat: game.sendChat,
+    requestRematch: game.requestRematch,
+    leaveGame: game.leaveGame,
+    challengePlayer: game.challengePlayer,
+    respondToChallenge: lobby.respondToChallenge,
+  };
 
   // Derive session status colors for status dots
   const sessionStatuses = React.useMemo(() => {

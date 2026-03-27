@@ -11,13 +11,6 @@ export interface Issue {
   updated_at: string;
 }
 
-export interface Comment {
-  id: number;
-  body: string;
-  user: { login: string };
-  created_at: string;
-}
-
 // Default timeout for API requests (15 seconds)
 const FETCH_TIMEOUT_MS = 15_000;
 
@@ -100,39 +93,4 @@ export class GitHubAPI {
     return await this.safeJson<Issue>(res);
   }
 
-  /** Add a comment to an issue. Any GitHub user can do this on public repos. */
-  async addComment(issueNumber: number, body: string): Promise<Comment | null> {
-    const res = await this.safeFetch(`${this.apiBase}/issues/${issueNumber}/comments`, {
-      method: 'POST',
-      headers: this.headers(),
-      body: JSON.stringify({ body }),
-    });
-    if (!res.ok) return null;
-    return await this.safeJson<Comment>(res);
-  }
-
-  /** Get all comments on an issue. */
-  async getComments(issueNumber: number): Promise<Comment[]> {
-    const res = await this.safeFetch(
-      `${this.apiBase}/issues/${issueNumber}/comments?per_page=100&sort=created&direction=asc`,
-      { headers: this.headers() },
-    );
-    if (!res.ok) return [];
-    return (await this.safeJson<Comment[]>(res)) || [];
-  }
-
-  /** Get comments added after a certain count (for incremental polling). */
-  async getCommentsSince(issueNumber: number, afterCount: number): Promise<Comment[]> {
-    // GitHub doesn't support "after comment N" natively, so fetch page by page
-    // For our use case (Connect 4 with ~42 max moves), one page is always enough
-    const page = Math.floor(afterCount / 100) + 1;
-    const res = await this.safeFetch(
-      `${this.apiBase}/issues/${issueNumber}/comments?per_page=100&page=${page}&sort=created&direction=asc`,
-      { headers: this.headers() },
-    );
-    if (!res.ok) return [];
-    const all = (await this.safeJson<Comment[]>(res)) || [];
-    const offset = afterCount % 100;
-    return all.slice(offset);
-  }
 }
