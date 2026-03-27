@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import StatusDot, { SessionStatusColor } from './StatusDot';
 
 interface SessionEntry {
   id: string;
@@ -13,9 +14,10 @@ interface Props {
   onSelectSession: (id: string) => void;
   onCreateSession: (cwd: string, dangerous: boolean) => void;
   onCloseSession: (id: string) => void;
+  sessionStatuses?: Map<string, SessionStatusColor>;
 }
 
-export default function SessionSelector({ sessions, activeSessionId, onSelectSession, onCreateSession, onCloseSession }: Props) {
+export default function SessionSelector({ sessions, activeSessionId, onSelectSession, onCreateSession, onCloseSession, sessionStatuses }: Props) {
   const [open, setOpen] = useState(false);
   const [showNewForm, setShowNewForm] = useState(false);
   const [newCwd, setNewCwd] = useState('');
@@ -74,6 +76,9 @@ export default function SessionSelector({ sessions, activeSessionId, onSelectSes
         onClick={() => setOpen(!open)}
         className="flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-gray-800 transition-colors"
       >
+        {activeSessionId && sessionStatuses && (
+          <StatusDot color={sessionStatuses.get(activeSessionId) || 'gray'} />
+        )}
         <span className="text-sm font-medium text-gray-200 truncate max-w-[120px] sm:max-w-[350px]">
           {displayName}
         </span>
@@ -104,6 +109,9 @@ export default function SessionSelector({ sessions, activeSessionId, onSelectSes
                     onClick={() => handleSelect(s.id)}
                     className="flex-1 text-left px-3 py-2 flex items-center gap-2 min-w-0"
                   >
+                    {sessionStatuses && (
+                      <StatusDot color={sessionStatuses.get(s.id) || 'gray'} />
+                    )}
                     <span className="text-sm truncate flex-1">{s.name}</span>
                     {s.permissionMode === 'bypass' && (
                       <span className="text-[9px] font-medium px-1 py-0.5 rounded bg-[#DD4444]/20 text-[#DD4444]">

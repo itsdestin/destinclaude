@@ -1,6 +1,7 @@
 import React from 'react';
 import { ChatIcon, TerminalIcon, GamepadIcon } from './Icons';
 import SessionSelector from './SessionSelector';
+import StatusDot, { SessionStatusColor } from './StatusDot';
 import type { PermissionMode } from '../../shared/types';
 
 interface SessionEntry {
@@ -35,6 +36,7 @@ interface Props {
   settingsOpen: boolean;
   onToggleSettings: () => void;
   settingsBadge?: boolean;
+  sessionStatuses?: Map<string, SessionStatusColor>;
 }
 
 export default function HeaderBar({
@@ -42,7 +44,7 @@ export default function HeaderBar({
   viewMode, onToggleView,
   gamePanelOpen, onToggleGamePanel, gameConnected,
   permissionMode, onCyclePermission, model, announcement,
-  settingsOpen, onToggleSettings, settingsBadge,
+  settingsOpen, onToggleSettings, settingsBadge, sessionStatuses,
 }: Props) {
   const cfg = MODE_CONFIG[permissionMode];
 
@@ -95,6 +97,7 @@ export default function HeaderBar({
         onSelectSession={onSelectSession}
         onCreateSession={onCreateSession}
         onCloseSession={onCloseSession}
+        sessionStatuses={sessionStatuses}
       />
 
       {/* Right — view toggles (icon-only on mobile) */}

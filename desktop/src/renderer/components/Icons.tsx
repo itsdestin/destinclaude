@@ -91,6 +91,38 @@ export function CompassIcon({ className = 'w-4 h-4' }: IconProps) {
   );
 }
 
+/** Status: complete — subtle rounded check */
+export function CheckIcon({ className = 'w-4 h-4' }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" opacity="0.6">
+      <circle cx="12" cy="12" r="9" strokeWidth="1.5" />
+      <path d="M8 12.5 L11 15.5 L16.5 9" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+/** Status: failed — subtle rounded X */
+export function FailIcon({ className = 'w-4 h-4' }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" opacity="0.6">
+      <circle cx="12" cy="12" r="9" strokeWidth="1.5" />
+      <path d="M9 9 L15 15 M15 9 L9 15" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+/** Chevron — used for expand/collapse toggles */
+export function ChevronIcon({ className = 'w-3.5 h-3.5', expanded = false }: IconProps & { expanded?: boolean }) {
+  return (
+    <svg
+      className={`${className} transition-transform ${expanded ? 'rotate-180' : ''}`}
+      viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" opacity="0.4"
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+    </svg>
+  );
+}
+
 /** App mascot variant — inquisitive expression with wide round eyes */
 export function InquisitiveAppIcon({ className = 'w-6 h-6' }: IconProps) {
   return (
@@ -110,6 +142,53 @@ export function InquisitiveAppIcon({ className = 'w-6 h-6' }: IconProps) {
       {/* Left leg */}
       <rect x="7.2" y="17" width="3.5" height="4" rx="1.2" />
       {/* Right leg */}
+      <rect x="13.3" y="17" width="3.5" height="4" rx="1.2" />
+    </svg>
+  );
+}
+
+/** App mascot — chibi welcome variant with sparkle eyes, tilted smile, waving */
+export function WelcomeAppIcon({ className = 'w-6 h-6' }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+      <defs>
+        {/* Layered swirl gradients for eye backgrounds */}
+        <radialGradient id="eye-swirl-a" cx="25%" cy="30%" r="60%">
+          <stop offset="0%" stopColor="#2a3040" stopOpacity="1" />
+          <stop offset="100%" stopColor="#2a3040" stopOpacity="0" />
+        </radialGradient>
+        <radialGradient id="eye-swirl-b" cx="70%" cy="65%" r="55%">
+          <stop offset="0%" stopColor="#2a2535" stopOpacity="1" />
+          <stop offset="100%" stopColor="#2a2535" stopOpacity="0" />
+        </radialGradient>
+      </defs>
+      {/* Eye backgrounds — navy base with blue-gray + plum swirls */}
+      <ellipse cx="9.3" cy="9.55" rx="1.6" ry="2.2" fill="#1e2636" />
+      <ellipse cx="9.3" cy="9.55" rx="1.6" ry="2.2" fill="url(#eye-swirl-a)" />
+      <ellipse cx="9.3" cy="9.55" rx="1.6" ry="2.2" fill="url(#eye-swirl-b)" />
+      <ellipse cx="14.7" cy="9.25" rx="1.6" ry="2.2" fill="#1e2636" />
+      <ellipse cx="14.7" cy="9.25" rx="1.6" ry="2.2" fill="url(#eye-swirl-a)" />
+      <ellipse cx="14.7" cy="9.25" rx="1.6" ry="2.2" fill="url(#eye-swirl-b)" />
+      {/* Body with eye cutouts (left slightly lower, right slightly higher) */}
+      <path
+        fillRule="evenodd"
+        d="M9 4 L15 4 A4 4 0 0 1 19 8 L19 12 A4 4 0 0 1 15 16 L9 16 A4 4 0 0 1 5 12 L5 8 A4 4 0 0 1 9 4 Z M9.3 7.35 A1.6 2.2 0 1 0 9.3 11.75 A1.6 2.2 0 1 0 9.3 7.35 Z M14.7 7.05 A1.6 2.2 0 1 0 14.7 11.45 A1.6 2.2 0 1 0 14.7 7.05 Z"
+      />
+      {/* Eye sparkles — scattered cluster, bottom-right of each eye */}
+      <circle cx="10" cy="10.25" r="0.25" />
+      <circle cx="9.4" cy="10.85" r="0.18" />
+      <circle cx="10.3" cy="10.85" r="0.13" />
+      <circle cx="15.4" cy="9.95" r="0.25" />
+      <circle cx="14.8" cy="10.55" r="0.18" />
+      <circle cx="15.7" cy="10.55" r="0.13" />
+      {/* Half-circle smile, tilted -2° */}
+      <g transform="rotate(-2 12 13.3)"><path d="M10.8 13.3 Q10.8 13 12 13 Q13.2 13 13.2 13.3 A1.1 1 0 0 1 10.8 13.3 Z" fill="#222030" /></g>
+      {/* Left arm (tilted slightly clockwise, lowered) */}
+      <g transform="translate(0.3 1.0) rotate(-10 2.5 11)"><path d="M1.8 9 L3.2 9 A0.8 0.8 0 0 1 4 9.8 L4 12.2 A0.8 0.8 0 0 1 3.2 13 L1.8 13 A0.8 0.8 0 0 1 1 12.2 L1 9.8 A0.8 0.8 0 0 1 1.8 9 Z" /></g>
+      {/* Right arm (waving, rotated near head corner) */}
+      <g transform="translate(-0.1 0.8) rotate(-20 19.5 6)"><path d="M20.8 2.5 L22.2 2.5 A0.8 0.8 0 0 1 23 3.3 L23 5.7 A0.8 0.8 0 0 1 22.2 6.5 L20.8 6.5 A0.8 0.8 0 0 1 20 5.7 L20 3.3 A0.8 0.8 0 0 1 20.8 2.5 Z" /></g>
+      {/* Legs */}
+      <rect x="7.2" y="17" width="3.5" height="4" rx="1.2" />
       <rect x="13.3" y="17" width="3.5" height="4" rx="1.2" />
     </svg>
   );
