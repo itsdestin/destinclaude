@@ -30,7 +30,7 @@ function ErrorScreen() {
       <div className="w-16 h-16 rounded-full bg-red-900/30 flex items-center justify-center">
         <span className="text-2xl">!</span>
       </div>
-      <p className="text-sm text-red-400 text-center">{state.githubError}</p>
+      <p className="text-sm text-red-400 text-center">{state.partyError}</p>
       <p className="text-xs text-gray-500 text-center">Make sure GitHub CLI is installed and authenticated: gh auth login</p>
     </div>
   );
@@ -201,7 +201,7 @@ function WaitingScreen({ connection }: Props) {
 
 export default function GameLobby({ connection }: Props) {
   const state = useGameState();
-  if (state.githubError) return <ErrorScreen />;
+  if (state.partyError) return <ErrorScreen />;
   if (state.screen === 'waiting') return <WaitingScreen connection={connection} />;
   return <LobbyScreen connection={connection} />;
 }

@@ -1,3 +1,4 @@
+// @ts-nocheck — deprecated; will be deleted in Task 12 (replaced by usePartyLobby + usePartyGame)
 import { useEffect, useRef, useCallback } from 'react';
 import { useGameDispatch, useGameState } from '../state/game-context';
 import { GitHubAPI } from '../game/github-api';

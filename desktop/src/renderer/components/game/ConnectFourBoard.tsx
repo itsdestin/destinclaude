@@ -36,7 +36,7 @@ export default function ConnectFourBoard({ connection }: Props) {
 
   const isMyTurn = state.myColor !== null && state.turn === state.myColor;
   const isPlaying = state.screen === 'playing';
-  const canMove = isMyTurn && isPlaying && !state.movePending;
+  const canMove = isMyTurn && isPlaying;
 
   const handleColClick = (col: number) => {
     if (!canMove) return;

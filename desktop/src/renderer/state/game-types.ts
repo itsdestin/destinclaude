@@ -14,7 +14,7 @@ export interface ChatMessage {
 
 export interface GameState {
   connected: boolean;
-  githubError: string | null;
+  partyError: string | null;
   username: string | null;
   onlineUsers: OnlineUser[];
   screen: GameScreen;
@@ -32,22 +32,20 @@ export interface GameState {
   challengeFrom: string | null;
   /** Outgoing challenge was declined */
   challengeDeclinedBy: string | null;
-  /** Monotonic version — total action count from GitHub comments */
-  actionCount: number;
-  /** True while a move API call is in flight — blocks clicks and polls */
-  movePending: boolean;
 }
 
 export type GameAction =
-  | { type: 'GITHUB_READY'; username: string }
-  | { type: 'GITHUB_ERROR'; message: string }
-  | { type: 'CONNECTION_STATUS'; connected: boolean }
+  | { type: 'PARTY_CONNECTED'; username: string }
+  | { type: 'PARTY_DISCONNECTED' }
+  | { type: 'PARTY_ERROR'; message: string }
   | { type: 'PRESENCE_UPDATE'; online: OnlineUser[] }
+  | { type: 'USER_JOINED'; username: string; status: string }
+  | { type: 'USER_LEFT'; username: string }
+  | { type: 'USER_STATUS'; username: string; status: string }
   | { type: 'ROOM_CREATED'; code: string; color: PlayerColor }
-  | { type: 'GAME_START'; board: number[][]; you: PlayerColor; opponent: string; actionCount: number }
-  | { type: 'GAME_STATE'; board: number[][]; turn: PlayerColor; lastMove: { col: number; row: number }; actionCount: number; winner?: PlayerColor | 'draw'; winLine?: [number, number][] }
+  | { type: 'GAME_START'; board: number[][]; you: PlayerColor; opponent: string }
+  | { type: 'GAME_STATE'; board: number[][]; turn: PlayerColor; lastMove: { col: number; row: number }; winner?: PlayerColor | 'draw'; winLine?: [number, number][] }
   | { type: 'GAME_OVER'; winner: PlayerColor | 'draw'; line?: [number, number][] }
-  | { type: 'MOVE_PENDING'; pending: boolean }
   | { type: 'CHAT_MESSAGE'; from: string; text: string }
   | { type: 'OPPONENT_DISCONNECTED' }
   | { type: 'TOGGLE_PANEL' }
@@ -57,10 +55,21 @@ export type GameAction =
   | { type: 'CHALLENGE_DECLINED'; by: string }
   | { type: 'CLEAR_CHALLENGE' };
 
+export interface GameConnection {
+  createGame: () => void;
+  joinGame: (code: string) => void;
+  makeMove: (column: number) => void;
+  sendChat: (text: string) => void;
+  requestRematch: () => void;
+  leaveGame: () => void;
+  challengePlayer: (target: string) => void;
+  respondToChallenge: (from: string, accept: boolean) => void;
+}
+
 export function createInitialGameState(): GameState {
   return {
     connected: false,
-    githubError: null,
+    partyError: null,
     username: null,
     onlineUsers: [],
     screen: 'setup',
@@ -76,7 +85,5 @@ export function createInitialGameState(): GameState {
     panelOpen: false,
     challengeFrom: null,
     challengeDeclinedBy: null,
-    actionCount: 0,
-    movePending: false,
   };
 }
