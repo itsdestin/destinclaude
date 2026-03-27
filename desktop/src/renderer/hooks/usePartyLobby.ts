@@ -12,7 +12,7 @@ export function usePartyLobby() {
     const w = window as any;
 
     w.claude?.getGitHubAuth?.()
-      .then((auth: { token: string; username: string } | null) => {
+      .then((auth: { username: string } | null) => {
         if (cancelled) return;
         if (!auth) {
           dispatch({ type: 'PARTY_ERROR', message: 'GitHub CLI not authenticated. Run: gh auth login' });

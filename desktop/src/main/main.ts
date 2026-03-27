@@ -137,9 +137,8 @@ app.whenReady().then(async () => {
 
   ipcMain.handle('github:auth', async () => {
     try {
-      const { stdout: token } = await execFileAsync(ghPath, ['auth', 'token']);
       const { stdout: username } = await execFileAsync(ghPath, ['api', 'user', '--jq', '.login']);
-      return { token: token.trim(), username: username.trim() };
+      return { username: username.trim() };
     } catch (err: any) {
       // Log specific failure reason for debugging
       if (err.code === 'ENOENT') {

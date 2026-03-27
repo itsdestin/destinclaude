@@ -572,9 +572,10 @@ export class RemoteServer {
           const execFileAsync = promisify(execFile);
           let ghPath = 'gh';
           try { const w = require('which'); ghPath = w.sync('gh'); } catch { /* use bare 'gh' */ }
-          const { stdout: token } = await execFileAsync(ghPath, ['auth', 'token']);
           const { stdout: username } = await execFileAsync(ghPath, ['api', 'user', '--jq', '.login']);
-          this.respond(client.ws, type, id, { token: token.trim(), username: username.trim() });
+          console.log(`[remote] github:auth — username '${username.trim()}' requested by ${client.ws._socket?.remoteAddress || 'unknown'}`);
+          // Return username only — raw token is not forwarded to remote clients
+          this.respond(client.ws, type, id, { username: username.trim() });
         } catch {
           this.respond(client.ws, type, id, null);
         }
