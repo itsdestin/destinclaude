@@ -136,6 +136,9 @@ function handleMessage(data: string): void {
     case 'ui:action':
       dispatchEvent('ui:action', payload);
       break;
+    case 'transcript:event':
+      dispatchEvent('transcript:event', payload);
+      break;
   }
 }
 
@@ -242,6 +245,7 @@ export function installShim(): void {
       statusData: (cb: Callback) => addListener('status:data', cb),
       sessionRenamed: (cb: Callback) => addListener('session:renamed', cb),
       uiAction: (cb: Callback) => addListener('ui:action', cb),
+      transcriptEvent: (cb: Callback) => addListener('transcript:event', cb),
     },
     skills: {
       list: () => invoke('skills:list'),
