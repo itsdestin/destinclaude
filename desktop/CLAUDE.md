@@ -75,7 +75,7 @@ DestinCode includes a multiplayer game system (currently Connect 4) powered by P
 - **Connection wrapper:** `src/renderer/game/party-client.ts` — typed wrapper around `partysocket`, host configured via `PARTYKIT_HOST`
 - **Game logic:** `src/renderer/game/connect-four.ts` — pure functions (`dropPiece`, `checkWin`, `checkDraw`), runs client-side only
 - **State:** `src/renderer/state/game-types.ts` — `GameState`, `GameAction`, `GameConnection` interface
-- **Persistent stats:** GitHub Issues (`itsdestin/destinclaude-games` repo) via `src/renderer/game/github-api.ts` — leaderboard/stats only (not yet wired to UI)
+- **Persistent stats:** Planned via PartyKit server-side storage (not yet implemented)
 - **Favorites:** Local file `~/.claude/destinclaude-favorites.json`, read/written via IPC (`favorites:get`, `favorites:set`)
 - **Identity:** GitHub username via `gh auth token` IPC
 - **Spec:** `docs/superpowers/specs/2026-03-27-partykit-game-backend-design.md`
