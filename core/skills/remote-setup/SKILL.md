@@ -7,6 +7,8 @@ description: Set up remote access for DestinCode — installs Tailscale, configu
 
 You are setting up remote access for DestinCode so the user can access it from their phone or any other device. Be conversational and explain things simply — the user may not be technical.
 
+**IMPORTANT:** Never tell the user to run a command themselves or in a separate window. Always run commands directly using the Bash tool. The only user action should be signing in via a browser window that pops up automatically.
+
 **Goal:** By the end, the user will have:
 1. Tailscale installed and authenticated
 2. A remote access password set
@@ -18,8 +20,10 @@ You are setting up remote access for DestinCode so the user can access it from t
 
 Before doing anything, check what's already set up:
 
+On Windows, Tailscale is NOT on the Git Bash PATH. Use the full path: `"/c/Program Files/Tailscale/tailscale.exe"`. On macOS/Linux, just use `tailscale`.
+
 ```bash
-# Check if Tailscale is installed
+# Check if Tailscale is installed (use full path on Windows)
 tailscale version 2>/dev/null && echo "TAILSCALE_INSTALLED=true" || echo "TAILSCALE_INSTALLED=false"
 
 # Check if Tailscale is connected
@@ -75,13 +79,21 @@ tailscale version
 
 ## Step 3: Connect Tailscale
 
+**IMPORTANT:** Never ask the user to run a command themselves. Always run commands directly using the Bash tool.
+
+On Windows, Tailscale installs to `C:\Program Files\Tailscale\` and is NOT on the Git Bash PATH. Use the full path for all Tailscale commands:
+
 ```bash
+# Windows
+"/c/Program Files/Tailscale/tailscale.exe" up
+
+# macOS / Linux
 tailscale up
 ```
 
-This will output a URL. Tell the user:
+Run this command yourself. It will either open a browser window automatically or print a login URL. Tell the user:
 
-> "Tailscale needs you to log in to create your private network. It just opened a link in your browser (or printed one above). Sign in with Google, Microsoft, GitHub, or Apple — whichever you prefer. This is a one-time step."
+> "A browser window should have popped up for Tailscale sign-in — the Tailscale installation may have also opened its own sign-in window, either one works. Sign in with Google, Microsoft, GitHub, or Apple — whichever you prefer. This is a one-time step. Let me know once you've signed in."
 
 Wait for them to confirm they've authenticated, then verify:
 
@@ -107,16 +119,18 @@ Ask the user to choose a password. Then set it:
 
 ```bash
 node -e "
-const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const password = process.argv[1];
-const hash = bcrypt.hashSync(password, 10);
+const salt = crypto.randomBytes(16).toString('hex');
+const hash = crypto.scryptSync(password, salt, 64).toString('hex');
+const stored = salt + ':' + hash;
 const configPath = path.join(os.homedir(), '.claude', 'destincode-remote.json');
 let config = { enabled: true, port: 9900, passwordHash: null, trustTailscale: true };
 try { config = JSON.parse(fs.readFileSync(configPath, 'utf8')); } catch {}
-config.passwordHash = hash;
+config.passwordHash = stored;
 config.enabled = true;
 config.trustTailscale = true;
 fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
