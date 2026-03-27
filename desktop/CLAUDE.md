@@ -60,6 +60,28 @@ DestinCode includes a built-in remote access server that serves the UI to any we
 - **Key files:** `src/main/remote-server.ts`, `src/main/remote-config.ts`, `src/renderer/remote-shim.ts`
 - **The remote UI is the same React app** — `remote-shim.ts` replaces Electron IPC with WebSocket. No React components are changed.
 
-## Spec
+## Multiplayer Games
+
+DestinCode includes a multiplayer game system (currently Connect 4) powered by PartyKit (Cloudflare Durable Objects).
+
+- **Server:** `partykit/` — separate deployable project with per-game room classes
+  - `LobbyRoom` (`src/lobby-room.ts`) — global presence, online users, challenge relay
+  - `ConnectFourRoom` (`src/connect-four-room.ts`) — two-player message relay for a game session
+  - Deploy: `cd partykit && npx partykit deploy`
+  - Dev: `cd partykit && npx partykit dev` (localhost:1999)
+- **Client hooks:**
+  - `usePartyLobby` (`src/renderer/hooks/usePartyLobby.ts`) — connects to LobbyRoom on app launch, handles presence + challenges
+  - `usePartyGame` (`src/renderer/hooks/usePartyGame.ts`) — connects to a game room during gameplay, handles moves/chat/rematch
+- **Connection wrapper:** `src/renderer/game/party-client.ts` — typed wrapper around `partysocket`, host configured via `PARTYKIT_HOST`
+- **Game logic:** `src/renderer/game/connect-four.ts` — pure functions (`dropPiece`, `checkWin`, `checkDraw`), runs client-side only
+- **State:** `src/renderer/state/game-types.ts` — `GameState`, `GameAction`, `GameConnection` interface
+- **Persistent stats:** GitHub Issues (`itsdestin/destinclaude-games` repo) via `src/renderer/game/github-api.ts` — leaderboard/stats only (not yet wired to UI)
+- **Favorites:** Local file `~/.claude/destinclaude-favorites.json`, read/written via IPC (`favorites:get`, `favorites:set`)
+- **Identity:** GitHub username via `gh auth token` IPC
+- **Spec:** `docs/superpowers/specs/2026-03-27-partykit-game-backend-design.md`
+
+Adding a new game requires: a new room class in `partykit/src/`, new client game logic, and new UI components. The lobby and favorites system are game-agnostic.
+
+## Specs
 
 See `desktop/docs/` for design documents and implementation plans.

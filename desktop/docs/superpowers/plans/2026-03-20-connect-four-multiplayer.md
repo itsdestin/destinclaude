@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Status:** Superseded (WebSocket architecture replaced by GitHub-backed architecture — see `2026-03-21-github-backend-connect4.md`)
+**Status:** Superseded (WebSocket → GitHub Issues → PartyKit. Current: `specs/2026-03-27-partykit-game-backend-design.md`)
 
 **Goal:** Add multiplayer Connect 4 with game chat, leaderboard, and online presence to the destinclaude desktop app.
 
