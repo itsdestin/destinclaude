@@ -2,6 +2,20 @@
 
 All notable changes to DestinClaude will be documented in this file.
 
+## [2.1.6] - 2026-03-26
+
+### Added
+- **Remote setup skill** — `/remote-setup` guides you through configuring Tailscale and remote access for phone/tablet use. The setup wizard now offers this as an optional step after desktop app installation.
+- **Sync failure warnings** — Background sync now surfaces specific failures (`GIT:PULL_FAILED`, `PERSONAL:PULL_FAILED`, `MIGRATION:FAILED`) in the statusline and `/sync` dashboard instead of silently logging them.
+
+### Changed
+- **Faster session start** — Network operations (git pull, personal data sync, encyclopedia cache, health checks, version check) now run in the background instead of blocking session start. Debounced to run at most once per 10 minutes across rapid session restarts.
+- **Inbox skill consolidation** — `inbox-processor` removed; `claudes-inbox` is now the sole inbox skill.
+
+### Fixed
+- **Encyclopedia sync timeout** — Removed a standalone sync step that used a non-existent default path, causing ~20s of wasted rclone retries on session start.
+- **Windows compatibility** — Replaced `nohup` (unavailable in Git Bash) with portable `disown` for background dispatch.
+
 ## [2.1.5] - 2026-03-25
 
 ### Added

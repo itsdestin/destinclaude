@@ -6,8 +6,9 @@ All feature specifications. Skill specs live in their skill folder; system specs
 |---------|------|--------------|---------|
 | Specs System | system | core/specs/specs-system-spec.md | 3.0 |
 | DestinClaude Toolkit | system | core/specs/destinclaude-spec.md | 2.7 |
-| System Architecture | system | core/specs/system-architecture-spec.md | 1.3 |
-| Backup & Sync | system | core/specs/backup-system-spec.md | 4.0 |
+| System Architecture | system | core/specs/system-architecture-spec.md | 1.4 |
+| Backup & Sync | system | core/specs/backup-system-spec.md | 4.4 |
+| Remote Access | system | core/specs/remote-access-spec.md | 1.0 |
 | Write Guard | system | core/specs/write-guard-spec.md | 1.2 |
 | Worktree Guard | system | core/specs/worktree-guard-spec.md | 1.0 |
 | Memory System | system | core/specs/memory-system-spec.md | 1.1 |

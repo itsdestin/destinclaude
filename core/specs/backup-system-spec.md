@@ -1,7 +1,7 @@
 # Backup & Sync -- Spec
 
-**Version:** 4.3
-**Last updated:** 2026-03-25
+**Version:** 4.4
+**Last updated:** 2026-03-26
 **Feature location:** `core/hooks/git-sync.sh`, `core/hooks/personal-sync.sh`, `core/hooks/lib/backup-common.sh`, `core/skills/sync/SKILL.md`
 
 ## Purpose
@@ -10,7 +10,7 @@ The Backup & Sync system keeps Claude Code's configuration, memory, skills, and 
 
 ## User Mandates
 
-- (2026-03-13) Failures MUST be logged to `~/.claude/backup.log` AND produce an explicit error message visible in the Claude session -- silent failures are not acceptable.
+- (2026-03-13, revised 2026-03-26) Failures MUST be logged to `~/.claude/backup.log` AND be surfaced to the user via `.sync-warnings` (statusline + `/sync` skill). Session-start network operations run in background and write failure-specific warnings (e.g., `GIT:PULL_FAILED`, `PERSONAL:PULL_FAILED`, `MIGRATION:FAILED`) to `.sync-warnings` for visibility. Silent failures with no visibility path are not acceptable.
 - (2026-03-13) `RESTORE.md` MUST be kept in the Git repository root and MUST be updated whenever the backup structure changes.
 - (2026-03-13) Specs are NEVER modified without the user's explicit approval of the specific changes.
 - (2026-03-13) User Mandates in a spec are inviolable. If a proposed change conflicts with a mandate, stop and ask the user for approval to revise the mandate before proceeding.
@@ -177,6 +177,7 @@ See [GitHub Issues](https://github.com/itsdestin/destinclaude/issues) for known 
 
 | Date | Version | What changed | Type | Approved by |
 |------|---------|-------------|------|-------------|
+| 2026-03-26 | 4.4 | Revised error visibility mandate: session-start network operations now run in background with failure-specific warnings (GIT:PULL_FAILED, PERSONAL:PULL_FAILED, MIGRATION:FAILED) surfaced via .sync-warnings instead of hookSpecificOutput. Statusline and /sync skill provide the visibility path. | Update | owner |
 | 2026-03-25 | 4.3 | Cross-device sync: portable/local config split (D1), mcp-config.json excluded from sync (D2, reversal of v4.2), conversations added to personal-sync scope, home-directory conversation aggregation via symlinks, git repo health check (D8), renamed get_primary_backend to get_preferred_backend. All backends now documented as complementary (no primary/secondary hierarchy). See cross-device-sync-design (03-25-2026). Removed Claude Mobile (`~/claude-mobile/`) as a tracked project — git-sync.sh now only tracks `~/.claude/`. Removed associated state files and project discovery skip entry. | Update | owner |
 | 2026-03-24 | 4.2 | Added `/sync` skill and project discovery. `discover_projects()` in backup-common.sh scans common directories for untracked git repos; session-start.sh now actively writes `.unsynced-projects`. The `/sync` skill provides status dashboard, warning resolution, project onboarding, and force sync — fulfilling the manual backup mandate (line 19). New state files: `.unsynced-projects`, `tracked-projects.json`. New design decisions: project discovery, `/sync` as resolution layer. | Update | owner |
 | 2026-03-24 | 4.1 | Critical fix: session-start Drive pull used `rclone sync` for memory, which deletes local files (including conversation .jsonl) not present on the remote. Changed to `rclone copy --update`. This was silently destroying conversation history on every session start when Drive backend was configured. | Bugfix | owner |

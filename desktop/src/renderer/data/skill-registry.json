@@ -6,9 +6,9 @@
     "prompt": "let's journal",
     "source": "destinclaude"
   },
-  "inbox-processor": {
+  "claudes-inbox": {
     "displayName": "Inbox",
-    "description": "Process notes and screenshots captured from your phone",
+    "description": "Process notes and screenshots from Todoist, Drive, Gmail, and more",
     "category": "personal",
     "prompt": "check my inbox",
     "source": "destinclaude"
