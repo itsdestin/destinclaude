@@ -56,7 +56,7 @@ DestinCode includes a built-in remote access server that serves the UI to any we
 - **Config:** `~/.claude/destincode-remote.json` — port, password, Tailscale trust
 - **Set password:** Create config file with bcrypt hash, or use the settings UI
 - **Access:** Open `http://<host>:9900` in any browser
-- **Security:** Password auth + optional Tailscale network-level trust
+- **Security:** Password auth + optional Tailscale network-level trust. **Privacy note:** Remote access transmits full conversation content (transcript events) over WebSocket. The connection is NOT TLS-encrypted — use Tailscale (which provides WireGuard encryption) rather than plain network access for sensitive conversations.
 - **Key files:** `src/main/remote-server.ts`, `src/main/remote-config.ts`, `src/renderer/remote-shim.ts`
 - **The remote UI is the same React app** — `remote-shim.ts` replaces Electron IPC with WebSocket. No React components are changed.
 
