@@ -12,15 +12,27 @@ Electron + React app that wraps Claude Code CLI in a GUI.
 ## Key Concepts
 
 - **SessionManager** (`src/main/session-manager.ts`) — PTY pool, spawns/kills Claude Code processes
-- **HookRelay** (`src/main/hook-relay.ts`) — Named pipe server receiving hook events from relay.js
+- **TranscriptWatcher** (`src/main/transcript-watcher.ts`) — Watches Claude Code's JSONL transcript files via `fs.watch` with byte-offset reading. Parses new lines into `TranscriptEvent` objects and emits them to the renderer. This is the **primary source of chat timeline state** — user messages, assistant text (including intermediate messages between tool calls), tool calls, and tool results all come from here. See `docs/transcript-watcher-spec.md` for full spec.
+- **HookRelay** (`src/main/hook-relay.ts`) — Named pipe server receiving hook events from relay.js. Now used **only for permission flow** (`PermissionRequest`/`PermissionExpired`) and session initialization detection. All other chat state comes from the TranscriptWatcher.
+- **HookDispatcher** (`src/renderer/state/hook-dispatcher.ts`) — Maps hook events to chat actions. Only handles `PermissionRequest` and `PermissionExpired` — all other hook types return null (chat state comes from transcript events instead).
 - **IPC** — Electron contextBridge connects main process to React renderer
 - **Preload** (`src/main/preload.ts`) — IPC channel constants are inlined (not imported) because Electron's sandboxed preload cannot resolve relative imports
 - **TerminalRegistry** (`src/renderer/hooks/terminal-registry.ts`) — Coordinates xterm.js instances, screen buffer reads, and write-completion notifications. Permission prompt detection depends on the write-callback pub/sub here — do not bypass it by reading the buffer on raw `pty:output` events
 - **PermissionMode** (`src/shared/types.ts`) — `'normal' | 'auto-accept' | 'plan' | 'bypass'`. The HeaderBar badge cycles through these on click by sending Shift+Tab (`\x1b[Z`) to the PTY. Bypass mode only appears in sessions created with `skipPermissions: true`
-- **RemoteServer** (`src/main/remote-server.ts`) — HTTP + WebSocket server for remote browser access. Handles auth tokens, PTY buffer replay, hook event relay, and cross-device session sync
+- **RemoteServer** (`src/main/remote-server.ts`) — HTTP + WebSocket server for remote browser access. Handles auth tokens, PTY buffer replay, hook event relay, transcript event relay, and cross-device session sync
 - **RemoteConfig** (`src/main/remote-config.ts`) — Reads/writes `~/.claude/destincode-remote.json` for port, password hash, and Tailscale trust settings
 - **SkillScanner** (`src/main/skill-scanner.ts`) — Scans installed skills and exposes them to the remote UI's command drawer
 - **SettingsPanel** (`src/renderer/components/SettingsPanel.tsx`) — Settings UI for remote access config (password, Tailscale trust, QR code, connected clients)
+
+## Chat View Data Flow
+
+The Chat View timeline is built from three event sources:
+
+1. **TranscriptWatcher** (primary) — `transcript:event` IPC → `TRANSCRIPT_*` reducer actions. Provides user messages, assistant text, tool calls, tool results, turn completion. Intermediate assistant messages (text between tool calls) appear as chat bubbles in real-time.
+2. **HookRelay** (permissions only) — `hook:event` IPC → `PERMISSION_REQUEST`/`PERMISSION_EXPIRED` reducer actions. Transitions tool cards to approval state with Yes/No buttons.
+3. **InputBar** (optimistic) — `USER_PROMPT` reducer action dispatched immediately when user sends a message, before the transcript watcher catches up. The `TRANSCRIPT_USER_MESSAGE` action deduplicates against this.
+
+**Permission race:** The hook relay is faster than the file watcher. If `PERMISSION_REQUEST` arrives before `TRANSCRIPT_TOOL_USE`, the reducer creates a synthetic tool entry from the permission payload. See spec for details.
 
 ## Node.js vs Browser Boundary
 
