@@ -1,0 +1,7 @@
+{
+  "name": "destinclaude-games",
+  "main": "src/lobby-room.ts",
+  "parties": {
+    "connect-four": "src/connect-four-room.ts"
+  }
+}
