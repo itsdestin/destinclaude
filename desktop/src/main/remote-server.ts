@@ -539,6 +539,13 @@ export class RemoteServer {
       }
       case 'transcript:read-meta': {
         const transcriptPath = payload.path || payload;
+        // Validate path is within ~/.claude/projects/ to prevent arbitrary file reads
+        const claudeProjects = path.join(os.homedir(), '.claude', 'projects');
+        const resolvedPath = path.resolve(transcriptPath);
+        if (!resolvedPath.startsWith(claudeProjects)) {
+          this.respond(client.ws, type, id, null);
+          break;
+        }
         try {
           const content = fs.readFileSync(transcriptPath, 'utf8');
           const lines = content.trim().split('\n');

@@ -106,6 +106,12 @@ export function registerIpcHandlers(
   // Read model + context from a transcript JSONL file
   ipcMain.handle(IPC.READ_TRANSCRIPT_META, async (_event, transcriptPath: string) => {
     try {
+      // Validate path is within ~/.claude/projects/ to prevent arbitrary file reads
+      const claudeProjects = path.join(os.homedir(), '.claude', 'projects');
+      const resolved = path.resolve(transcriptPath);
+      if (!resolved.startsWith(claudeProjects)) {
+        return null;
+      }
       const content = fs.readFileSync(transcriptPath, 'utf8');
       const lines = content.trim().split('\n');
       let model = 'unknown';
