@@ -253,6 +253,169 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
       return next;
     }
 
+    // --- Transcript watcher actions ---
+
+    case 'TRANSCRIPT_USER_MESSAGE': {
+      const session = next.get(action.sessionId);
+      if (!session) return state;
+
+      // Dedup by uuid
+      if (session.seenUuids.has(action.uuid)) return state;
+      const seenUuids = new Set(session.seenUuids);
+      seenUuids.add(action.uuid);
+
+      // Dedup against last timeline entry (optimistic USER_PROMPT)
+      const lastEntry = session.timeline[session.timeline.length - 1];
+      if (
+        lastEntry &&
+        lastEntry.kind === 'user' &&
+        lastEntry.message.content === action.text
+      ) {
+        // Already showing this message — just ensure isThinking is set
+        if (!session.isThinking) {
+          next.set(action.sessionId, { ...session, isThinking: true, currentGroupId: null, seenUuids });
+          return next;
+        }
+        next.set(action.sessionId, { ...session, seenUuids });
+        return next;
+      }
+
+      const message = {
+        id: nextMessageId(),
+        role: 'user' as const,
+        content: action.text,
+        timestamp: action.timestamp,
+      };
+
+      next.set(action.sessionId, {
+        ...session,
+        timeline: [...session.timeline, { kind: 'user', message }],
+        isThinking: true,
+        currentGroupId: null,
+        seenUuids,
+      });
+      return next;
+    }
+
+    case 'TRANSCRIPT_ASSISTANT_TEXT': {
+      const session = next.get(action.sessionId);
+      if (!session) return state;
+
+      // Dedup by uuid
+      if (session.seenUuids.has(action.uuid)) return state;
+      const seenUuids = new Set(session.seenUuids);
+      seenUuids.add(action.uuid);
+
+      const message = {
+        id: nextMessageId(),
+        role: 'assistant' as const,
+        content: action.text,
+        timestamp: action.timestamp,
+      };
+
+      next.set(action.sessionId, {
+        ...session,
+        timeline: [...session.timeline, { kind: 'assistant', message }],
+        currentGroupId: null, // Critical: next tool_use creates a new group
+        seenUuids,
+      });
+      return next;
+    }
+
+    case 'TRANSCRIPT_TOOL_USE': {
+      const session = next.get(action.sessionId);
+      if (!session) return state;
+
+      // Dedup by uuid
+      if (session.seenUuids.has(action.uuid)) return state;
+      const seenUuids = new Set(session.seenUuids);
+      seenUuids.add(action.uuid);
+
+      const toolCalls = new Map(session.toolCalls);
+      toolCalls.set(action.toolUseId, {
+        toolUseId: action.toolUseId,
+        toolName: action.toolName,
+        input: action.toolInput,
+        status: 'running',
+      });
+
+      const toolGroups = new Map(session.toolGroups);
+      let timeline = session.timeline;
+      let currentGroupId = session.currentGroupId;
+
+      if (currentGroupId && toolGroups.has(currentGroupId)) {
+        // Add to existing group
+        const group = toolGroups.get(currentGroupId)!;
+        toolGroups.set(currentGroupId, {
+          ...group,
+          toolIds: [...group.toolIds, action.toolUseId],
+        });
+      } else {
+        // Create new group and add to timeline
+        currentGroupId = nextGroupId();
+        toolGroups.set(currentGroupId, {
+          id: currentGroupId,
+          toolIds: [action.toolUseId],
+        });
+        timeline = [...timeline, { kind: 'tool-group', groupId: currentGroupId }];
+      }
+
+      next.set(action.sessionId, {
+        ...session, toolCalls, toolGroups, timeline, currentGroupId,
+        lastActivityAt: Date.now(),
+        seenUuids,
+      });
+      return next;
+    }
+
+    case 'TRANSCRIPT_TOOL_RESULT': {
+      const session = next.get(action.sessionId);
+      if (!session) return state;
+
+      // Dedup by uuid
+      if (session.seenUuids.has(action.uuid)) return state;
+      const seenUuids = new Set(session.seenUuids);
+      seenUuids.add(action.uuid);
+
+      const toolCalls = new Map(session.toolCalls);
+      const existing = toolCalls.get(action.toolUseId);
+      if (existing) {
+        if (action.isError) {
+          toolCalls.set(action.toolUseId, {
+            ...existing, status: 'failed', error: action.result,
+          });
+        } else {
+          toolCalls.set(action.toolUseId, {
+            ...existing, status: 'complete', response: action.result,
+          });
+        }
+      }
+
+      next.set(action.sessionId, {
+        ...session, toolCalls, lastActivityAt: Date.now(), seenUuids,
+      });
+      return next;
+    }
+
+    case 'TRANSCRIPT_TURN_COMPLETE': {
+      const session = next.get(action.sessionId);
+      if (!session) return state;
+
+      // Dedup by uuid
+      if (session.seenUuids.has(action.uuid)) return state;
+      const seenUuids = new Set(session.seenUuids);
+      seenUuids.add(action.uuid);
+
+      next.set(action.sessionId, {
+        ...session,
+        isThinking: false,
+        streamingText: '',
+        currentGroupId: null,
+        seenUuids,
+      });
+      return next;
+    }
+
     case 'PERMISSION_REQUEST': {
       const session = next.get(action.sessionId);
       if (!session) return state;

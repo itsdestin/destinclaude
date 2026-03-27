@@ -23,6 +23,8 @@ export interface SessionChatState {
   currentGroupId: string | null;
   /** Timestamp of last activity from Claude — used to reset the thinking timeout */
   lastActivityAt: number;
+  /** UUIDs of transcript events already processed — prevents duplicate entries */
+  seenUuids: Set<string>;
 }
 
 export function createSessionChatState(): SessionChatState {
@@ -34,6 +36,7 @@ export function createSessionChatState(): SessionChatState {
     streamingText: '',
     currentGroupId: null,
     lastActivityAt: 0,
+    seenUuids: new Set(),
   };
 }
 
@@ -119,6 +122,42 @@ export type ChatAction =
   | {
       type: 'TERMINAL_ACTIVITY';
       sessionId: string;
+    }
+  | {
+      type: 'TRANSCRIPT_USER_MESSAGE';
+      sessionId: string;
+      uuid: string;
+      text: string;
+      timestamp: number;
+    }
+  | {
+      type: 'TRANSCRIPT_ASSISTANT_TEXT';
+      sessionId: string;
+      uuid: string;
+      text: string;
+      timestamp: number;
+    }
+  | {
+      type: 'TRANSCRIPT_TOOL_USE';
+      sessionId: string;
+      uuid: string;
+      toolUseId: string;
+      toolName: string;
+      toolInput: Record<string, unknown>;
+    }
+  | {
+      type: 'TRANSCRIPT_TOOL_RESULT';
+      sessionId: string;
+      uuid: string;
+      toolUseId: string;
+      result: string;
+      isError: boolean;
+    }
+  | {
+      type: 'TRANSCRIPT_TURN_COMPLETE';
+      sessionId: string;
+      uuid: string;
+      timestamp: number;
     };
 
 export type ChatState = Map<string, SessionChatState>;
