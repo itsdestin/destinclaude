@@ -2,17 +2,35 @@ import { GameState, GameAction, createInitialGameState } from './game-types';
 
 export function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
-    case 'GITHUB_READY':
-      return { ...state, connected: true, username: action.username, screen: 'lobby', githubError: null };
+    case 'PARTY_CONNECTED':
+      return { ...state, connected: true, username: action.username, screen: 'lobby', partyError: null };
 
-    case 'GITHUB_ERROR':
-      return { ...state, connected: false, githubError: action.message };
+    case 'PARTY_DISCONNECTED':
+      return { ...state, connected: false };
 
-    case 'CONNECTION_STATUS':
-      return { ...state, connected: action.connected };
+    case 'PARTY_ERROR':
+      return { ...state, connected: false, partyError: action.message };
 
     case 'PRESENCE_UPDATE':
       return { ...state, onlineUsers: action.online };
+
+    case 'USER_JOINED':
+      return {
+        ...state,
+        onlineUsers: [...state.onlineUsers.filter(u => u.username !== action.username), { username: action.username, status: action.status as 'idle' | 'in-game' }],
+      };
+
+    case 'USER_LEFT':
+      return {
+        ...state,
+        onlineUsers: state.onlineUsers.filter(u => u.username !== action.username),
+      };
+
+    case 'USER_STATUS':
+      return {
+        ...state,
+        onlineUsers: state.onlineUsers.map(u => u.username === action.username ? { ...u, status: action.status as 'idle' | 'in-game' } : u),
+      };
 
     case 'ROOM_CREATED':
       return {
@@ -34,21 +52,16 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         winLine: null,
         chatMessages: [],
         lastMove: null,
-        actionCount: action.actionCount,
-        movePending: false,
+        rematchRequested: false,
       };
 
     case 'GAME_STATE': {
-      // Reject stale poll data — only apply if remote has more actions than we know about
-      if (action.actionCount <= state.actionCount) return state;
       const next: GameState = {
         ...state,
         board: action.board,
         turn: action.turn,
         lastMove: action.lastMove,
-        actionCount: action.actionCount,
       };
-      // Handle game-over atomically (no flicker frame between board update and overlay)
       if (action.winner) {
         return { ...next, winner: action.winner, winLine: action.winLine ?? null, screen: 'game-over' };
       }
@@ -62,9 +75,6 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         winLine: action.line ?? null,
         screen: 'game-over',
       };
-
-    case 'MOVE_PENDING':
-      return { ...state, movePending: action.pending };
 
     case 'CHAT_MESSAGE':
       return {
@@ -93,18 +103,21 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         winLine: null,
         chatMessages: [],
         lastMove: null,
-        actionCount: 0,
-        movePending: false,
+        challengeCode: null,
+        rematchRequested: false,
       };
 
     case 'CHALLENGE_RECEIVED':
-      return { ...state, challengeFrom: action.from, panelOpen: true };
+      return { ...state, challengeFrom: action.from, challengeCode: action.code, panelOpen: true };
 
     case 'CHALLENGE_DECLINED':
       return { ...state, challengeDeclinedBy: action.by };
 
     case 'CLEAR_CHALLENGE':
-      return { ...state, challengeFrom: null, challengeDeclinedBy: null };
+      return { ...state, challengeFrom: null, challengeCode: null, challengeDeclinedBy: null };
+
+    case 'REMATCH_REQUESTED':
+      return { ...state, rematchRequested: true };
 
     case 'RESET':
       return createInitialGameState();

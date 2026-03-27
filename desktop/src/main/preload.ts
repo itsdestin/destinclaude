@@ -31,6 +31,7 @@ const IPC = {
   REMOTE_DISCONNECT_CLIENT: 'remote:disconnect-client',
   UI_ACTION_BROADCAST: 'ui:action:broadcast',
   UI_ACTION_RECEIVED: 'ui:action:received',
+  TRANSCRIPT_EVENT: 'transcript:event',
 } as const;
 
 contextBridge.exposeInMainWorld('claude', {
@@ -85,6 +86,11 @@ contextBridge.exposeInMainWorld('claude', {
       ipcRenderer.on(IPC.UI_ACTION_RECEIVED, handler);
       return handler;
     },
+    transcriptEvent: (cb: (event: any) => void) => {
+      const handler = (_e: IpcRendererEvent, event: any) => cb(event);
+      ipcRenderer.on(IPC.TRANSCRIPT_EVENT, handler);
+      return handler;
+    },
   },
   skills: {
     list: (): Promise<any[]> => ipcRenderer.invoke(IPC.SKILLS_LIST),
@@ -118,6 +124,8 @@ contextBridge.exposeInMainWorld('claude', {
     ipcRenderer.removeListener(channel, handler),
   removeAllListeners: (channel: string) =>
     ipcRenderer.removeAllListeners(channel),
+  getFavorites: () => ipcRenderer.invoke('favorites:get'),
+  setFavorites: (favorites: string[]) => ipcRenderer.invoke('favorites:set', favorites),
   getGitHubAuth: () => ipcRenderer.invoke('github:auth'),
   // Async IPC — renderer must await this (was sendSync before v2.2.0)
   getHomePath: (): Promise<string> => ipcRenderer.invoke('get-home-path'),

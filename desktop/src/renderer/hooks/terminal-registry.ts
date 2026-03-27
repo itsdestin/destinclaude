@@ -24,8 +24,28 @@ export function onBufferReady(cb: BufferReadyCallback): () => void {
   return () => bufferReadyListeners.delete(cb);
 }
 
+// Batch buffer-ready notifications via requestAnimationFrame — during heavy PTY
+// output, xterm.write completions fire many times per frame.  Without batching,
+// each completion triggers a full terminal-buffer scan in the prompt detector
+// and a TERMINAL_ACTIVITY dispatch, overwhelming the main thread.
+const dirtySessions = new Set<string>();
+let rafPending = false;
+
+function flushBufferReady() {
+  rafPending = false;
+  const sessions = Array.from(dirtySessions);
+  dirtySessions.clear();
+  for (const sid of sessions) {
+    bufferReadyListeners.forEach((cb) => cb(sid));
+  }
+}
+
 export function notifyBufferReady(sessionId: string) {
-  bufferReadyListeners.forEach((cb) => cb(sessionId));
+  dirtySessions.add(sessionId);
+  if (!rafPending) {
+    rafPending = true;
+    requestAnimationFrame(flushBufferReady);
+  }
 }
 
 export function registerTerminal(sessionId: string, terminal: Terminal) {

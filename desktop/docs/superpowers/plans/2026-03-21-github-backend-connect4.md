@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+**Status:** Superseded (replaced by PartyKit architecture — see `specs/2026-03-27-partykit-game-backend-design.md`)
+
 **Goal:** Replace the WebSocket relay + leaderboard servers with a GitHub repo as the backend, so multiplayer Connect 4 works across the internet with zero infrastructure.
 
 **Architecture:** A single GitHub repo stores all game state as JSON files. The Electron main process provides the GitHub auth token (via `gh auth token`). The renderer makes GitHub API calls directly via `fetch` to `api.github.com`. Polling replaces real-time WebSocket. Identity = GitHub username (no registration needed).

@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain, Menu, nativeImage } from 'electron';
 import path from 'path';
 import os from 'os';
+import fs from 'fs';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
 import { SessionManager } from './session-manager';
@@ -114,11 +115,30 @@ app.whenReady().then(async () => {
     console.error('Failed to start remote server:', e);
   }
 
+  const FAVORITES_PATH = path.join(os.homedir(), '.claude', 'destinclaude-favorites.json');
+
+  ipcMain.handle('favorites:get', async () => {
+    try {
+      const data = JSON.parse(fs.readFileSync(FAVORITES_PATH, 'utf8'));
+      return data.favorites ?? [];
+    } catch {
+      return [];
+    }
+  });
+
+  ipcMain.handle('favorites:set', async (_event, favorites: string[]) => {
+    try {
+      fs.writeFileSync(FAVORITES_PATH, JSON.stringify({ favorites }, null, 2));
+      return true;
+    } catch {
+      return false;
+    }
+  });
+
   ipcMain.handle('github:auth', async () => {
     try {
-      const { stdout: token } = await execFileAsync(ghPath, ['auth', 'token']);
       const { stdout: username } = await execFileAsync(ghPath, ['api', 'user', '--jq', '.login']);
-      return { token: token.trim(), username: username.trim() };
+      return { username: username.trim() };
     } catch (err: any) {
       // Log specific failure reason for debugging
       if (err.code === 'ENOENT') {

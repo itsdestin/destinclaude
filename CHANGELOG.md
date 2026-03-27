@@ -2,6 +2,29 @@
 
 All notable changes to DestinClaude will be documented in this file.
 
+## [2.1.7] - 2026-03-27
+
+### Added
+- **TranscriptWatcher** — New engine that reads Claude Code's JSONL transcript files to build the chat timeline. Replaces the hook-based approach for user messages, assistant text, tool calls, and tool results. The hook relay is now used only for permission flow.
+- **PartyKit multiplayer backend** — Connect 4 multiplayer now uses PartyKit (Cloudflare Durable Objects) instead of GitHub Issues. Adds LobbyRoom for presence/challenges and ConnectFourRoom for game sessions. Deployable PartyKit server project at `desktop/partykit/`.
+- **Turn-grouped chat bubbles** — Assistant messages between tool calls now appear as chat bubbles in real-time, with tool groups visually separated by intermediate text.
+- **UI polish** — Custom SVG icons for tool cards, status dots for session state, chibi mascot on the welcome screen, improved prompt cards and markdown rendering.
+- **"Never direct user to run commands" mandate** — New spec mandate requiring Claude to run all commands via the Bash tool. Users should only interact with GUI elements (e.g., browser sign-in windows).
+
+### Changed
+- **`/update` version check** — Now verifies both the VERSION string and git ancestry (`git merge-base --is-ancestor`), preventing false "up to date" when the VERSION file is inflated after `git fetch --tags`.
+- **GitHub auth** — The `github:auth` IPC handler now returns only the GitHub username, not the raw personal access token. Remote clients no longer receive credentials.
+- **Remote access security** — `transcript:read-meta` handler now validates that the requested file path is within `~/.claude/projects/` before reading.
+
+### Fixed
+- **Desktop input lag** — Fixed text selection, input wrapping, and responsiveness in the InputBar component.
+- **post-update.sh orphan detector** — Fixed call to undefined `_get_installed_layers` function (now uses `INSTALLED_LAYERS` array).
+- **Windows app update path** — Removed unnecessary manual uninstaller step; NSIS handles closing and overwriting natively.
+- **Dead GitHub game code** — Removed orphaned `github-api.ts` and test files left behind by the PartyKit migration.
+
+### Removed
+- **GitHub Issues game backend** — Replaced by PartyKit. `github-game.ts` and `useGitHubGame.ts` deleted.
+
 ## [2.1.6] - 2026-03-26
 
 ### Added

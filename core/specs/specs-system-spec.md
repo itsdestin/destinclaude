@@ -1,7 +1,7 @@
 # Specs System — Spec
 
-**Version:** 3.0
-**Last updated:** 2026-03-23
+**Version:** 3.1
+**Last updated:** 2026-03-26
 **Feature location:** `~/.claude/specs/` (system specs), `~/.claude/skills/{name}/specs/{name}-spec.md` (skill specs), `~/.claude/plans/` (system plans/designs), `~/.claude/skills/{name}/plans/` (skill plans/designs)
 
 ## Purpose
@@ -28,6 +28,7 @@ A living specification system for every feature in the user's Claude automation 
 - Plans use `{topic}-plan (MM-DD-YYYY).md` naming — implementation checklists (2026-03-16)
 - Plans and designs live in separate `plans/` directories, never mixed with specs: `~/.claude/plans/` for system-level, `~/.claude/skills/{name}/plans/` for skill-level (2026-03-16)
 - Skill specs use `{name}-spec.md` naming (not generic `spec.md`) for grep-ability across the system (2026-03-16)
+- Skills must NEVER direct the user to run a command in a separate window or terminal. Claude must always run commands itself using the Bash tool. The only user action should be interacting with GUI elements (e.g., signing in via a browser window that opens automatically). (2026-03-26)
 
 ## Design Decisions
 
@@ -90,3 +91,4 @@ See [GitHub Issues](https://github.com/itsdestin/destinclaude/issues) for known 
 | 2026-03-16 | 2.3 | Added "Known Bugs / Issues" as a standard section in the spec template (between Dependencies and Planned Updates). Added to all 25 existing specs. | Revised | — | |
 | 2026-03-16 | 2.4 | Added naming convention mandates for specs/designs/plans, separate plans/ directories, revised ephemeral design docs policy to preserve in plans/, updated skill spec naming to {name}-spec.md | Architecture | — | |
 | 2026-03-23 | 3.0 | Migrated Planned Updates and Known Bugs tracking to GitHub Issues. Specs now contain a pointer section instead of inline content. Updated mandate, design decision, and template description. | Architecture | — | |
+| 2026-03-26 | 3.1 | Added mandate: skills must never direct users to run commands — Claude runs all commands via Bash tool | Mandate | — | |

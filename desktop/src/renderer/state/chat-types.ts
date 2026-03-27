@@ -7,20 +7,33 @@ export interface InteractivePrompt {
   completed?: string; // label of the selected option, if completed
 }
 
+// --- Assistant turn types ---
+
+export type AssistantTurnSegment =
+  | { type: 'text'; content: string; messageId: string }
+  | { type: 'tool-group'; groupId: string };
+
+export interface AssistantTurn {
+  id: string;
+  segments: AssistantTurnSegment[];
+}
+
 export type TimelineEntry =
   | { kind: 'user'; message: ChatMessage }
-  | { kind: 'assistant'; message: ChatMessage }
-  | { kind: 'tool-group'; groupId: string }
+  | { kind: 'assistant-turn'; turnId: string }
   | { kind: 'prompt'; prompt: InteractivePrompt };
 
 export interface SessionChatState {
   timeline: TimelineEntry[];
   toolCalls: Map<string, ToolCallState>;
   toolGroups: Map<string, ToolGroupState>;
+  assistantTurns: Map<string, AssistantTurn>;
   isThinking: boolean;
   streamingText: string;
   /** ID of the current tool group (tools are appended here until next message) */
   currentGroupId: string | null;
+  /** ID of the current assistant turn (text + tool groups accumulate here) */
+  currentTurnId: string | null;
   /** Timestamp of last activity from Claude — used to reset the thinking timeout */
   lastActivityAt: number;
 }
@@ -30,9 +43,11 @@ export function createSessionChatState(): SessionChatState {
     timeline: [],
     toolCalls: new Map(),
     toolGroups: new Map(),
+    assistantTurns: new Map(),
     isThinking: false,
     streamingText: '',
     currentGroupId: null,
+    currentTurnId: null,
     lastActivityAt: 0,
   };
 }
@@ -45,36 +60,6 @@ export type ChatAction =
       sessionId: string;
       content: string;
       timestamp: number;
-    }
-  | {
-      type: 'PRE_TOOL_USE';
-      sessionId: string;
-      toolUseId: string;
-      toolName: string;
-      input: Record<string, unknown>;
-    }
-  | {
-      type: 'POST_TOOL_USE';
-      sessionId: string;
-      toolUseId: string;
-      response?: string;
-    }
-  | {
-      type: 'POST_TOOL_USE_FAILURE';
-      sessionId: string;
-      toolUseId: string;
-      error?: string;
-    }
-  | {
-      type: 'STOP';
-      sessionId: string;
-      lastAssistantMessage: string;
-      timestamp: number;
-    }
-  | {
-      type: 'UPDATE_STREAMING';
-      sessionId: string;
-      text: string;
     }
   | {
       type: 'SHOW_PROMPT';
@@ -119,6 +104,42 @@ export type ChatAction =
   | {
       type: 'TERMINAL_ACTIVITY';
       sessionId: string;
+    }
+  | {
+      type: 'TRANSCRIPT_USER_MESSAGE';
+      sessionId: string;
+      uuid: string;
+      text: string;
+      timestamp: number;
+    }
+  | {
+      type: 'TRANSCRIPT_ASSISTANT_TEXT';
+      sessionId: string;
+      uuid: string;
+      text: string;
+      timestamp: number;
+    }
+  | {
+      type: 'TRANSCRIPT_TOOL_USE';
+      sessionId: string;
+      uuid: string;
+      toolUseId: string;
+      toolName: string;
+      toolInput: Record<string, unknown>;
+    }
+  | {
+      type: 'TRANSCRIPT_TOOL_RESULT';
+      sessionId: string;
+      uuid: string;
+      toolUseId: string;
+      result: string;
+      isError: boolean;
+    }
+  | {
+      type: 'TRANSCRIPT_TURN_COMPLETE';
+      sessionId: string;
+      uuid: string;
+      timestamp: number;
     };
 
 export type ChatState = Map<string, SessionChatState>;

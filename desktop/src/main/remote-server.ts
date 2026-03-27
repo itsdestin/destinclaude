@@ -37,6 +37,7 @@ export class RemoteServer {
   private tokensPath: string;
   private ptyBuffers = new Map<string, string>(); // sessionId → rolling PTY output
   private hookBuffers = new Map<string, any[]>(); // sessionId → rolling hook events
+  private transcriptBuffers = new Map<string, any[]>();
   private statusInterval: ReturnType<typeof setInterval> | null = null;
   private failedAttempts = new Map<string, { count: number; resetAt: number }>();
   // Topic file watcher for session:renamed events
@@ -183,6 +184,7 @@ export class RemoteServer {
     if (this.topicInterval) clearInterval(this.topicInterval);
     this.sessionIdMap.clear();
     this.lastTopics.clear();
+    this.transcriptBuffers.clear();
     this.sessionManager.off('pty-output', this.onPtyOutput);
     this.hookRelay.off('hook-event', this.onHookEvent);
     this.sessionManager.off('session-exit', this.onSessionExit);
@@ -271,8 +273,19 @@ export class RemoteServer {
   private onSessionExit = (sessionId: string) => {
     this.ptyBuffers.delete(sessionId);
     this.hookBuffers.delete(sessionId);
+    this.transcriptBuffers.delete(sessionId);
     this.broadcast({ type: 'session:destroyed', payload: { sessionId } });
   };
+
+  bufferTranscriptEvent(event: any): void {
+    const sessionId = event.sessionId || '';
+    let buf = this.transcriptBuffers.get(sessionId) || [];
+    buf.push(event);
+    if (buf.length > HOOK_BUFFER_SIZE) {
+      buf = buf.slice(buf.length - HOOK_BUFFER_SIZE);
+    }
+    this.transcriptBuffers.set(sessionId, buf);
+  }
 
   // --- HTTP static file serving ---
 
@@ -466,6 +479,13 @@ export class RemoteServer {
           ws.send(JSON.stringify({ type: 'hook:event', payload: event }));
         }
       }
+
+      // Transcript event buffers
+      for (const [_sessionId, events] of this.transcriptBuffers) {
+        for (const event of events) {
+          ws.send(JSON.stringify({ type: 'transcript:event', payload: event }));
+        }
+      }
     }, 500); // 500ms gives React time to render App and register SESSION_INIT
   }
 
@@ -519,6 +539,13 @@ export class RemoteServer {
       }
       case 'transcript:read-meta': {
         const transcriptPath = payload.path || payload;
+        // Validate path is within ~/.claude/projects/ to prevent arbitrary file reads
+        const claudeProjects = path.join(os.homedir(), '.claude', 'projects');
+        const resolvedPath = path.resolve(transcriptPath);
+        if (!resolvedPath.startsWith(claudeProjects)) {
+          this.respond(client.ws, type, id, null);
+          break;
+        }
         try {
           const content = fs.readFileSync(transcriptPath, 'utf8');
           const lines = content.trim().split('\n');
@@ -545,9 +572,10 @@ export class RemoteServer {
           const execFileAsync = promisify(execFile);
           let ghPath = 'gh';
           try { const w = require('which'); ghPath = w.sync('gh'); } catch { /* use bare 'gh' */ }
-          const { stdout: token } = await execFileAsync(ghPath, ['auth', 'token']);
           const { stdout: username } = await execFileAsync(ghPath, ['api', 'user', '--jq', '.login']);
-          this.respond(client.ws, type, id, { token: token.trim(), username: username.trim() });
+          console.log(`[remote] github:auth — username '${username.trim()}' requested by ${(client.ws as any)._socket?.remoteAddress || 'unknown'}`);
+          // Return username only — raw token is not forwarded to remote clients
+          this.respond(client.ws, type, id, { username: username.trim() });
         } catch {
           this.respond(client.ws, type, id, null);
         }

@@ -139,6 +139,10 @@ export default function TerminalView({ sessionId, visible }: Props) {
         // prevents xterm from initializing properly — the prompt detector
         // then reads an empty buffer and can't detect Ink select menus.
         visibility: visible ? 'visible' : 'hidden',
+        // Prevent the hidden terminal from capturing pointer events —
+        // xterm.js registers mousedown/mousemove handlers that block
+        // text selection in the ChatView sitting underneath.
+        pointerEvents: visible ? 'auto' : 'none',
       }}
     />
   );

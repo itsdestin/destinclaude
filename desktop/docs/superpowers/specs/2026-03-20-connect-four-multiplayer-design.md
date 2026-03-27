@@ -1,7 +1,7 @@
 # Connect 4 Multiplayer — Design Document
 
 **Date:** 2026-03-20
-**Status:** Superseded (replaced by GitHub-backed architecture — see `plans/2026-03-21-github-backend-connect4.md`)
+**Status:** Superseded (replaced by PartyKit architecture — see `specs/2026-03-27-partykit-game-backend-design.md`)
 **Project:** destinclaude-desktop
 
 ## Overview

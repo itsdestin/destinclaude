@@ -3,9 +3,9 @@ import ReactMarkdown from 'react-markdown';
 import rehypeHighlight from 'rehype-highlight';
 import remarkGfm from 'remark-gfm';
 
-interface Props {
-  content: string;
-}
+// Stable plugin arrays — avoids re-creating on every render
+const remarkPluginsStable = [remarkGfm];
+const rehypePluginsStable = [rehypeHighlight];
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
@@ -26,133 +26,138 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
-export default function MarkdownContent({ content }: Props) {
+// Stable component overrides — defined at module scope so ReactMarkdown
+// receives the same object reference on every render, preventing unnecessary
+// reconciliation of the entire markdown tree.
+const mdComponents = {
+  h1({ children, ...props }: any) {
+    return <h1 className="text-xl font-bold mt-5 mb-2 text-gray-100" {...props}>{children}</h1>;
+  },
+  h2({ children, ...props }: any) {
+    return <h2 className="text-lg font-bold mt-4 mb-2 text-gray-100" {...props}>{children}</h2>;
+  },
+  h3({ children, ...props }: any) {
+    return <h3 className="text-base font-bold mt-3 mb-1.5 text-gray-200" {...props}>{children}</h3>;
+  },
+  h4({ children, ...props }: any) {
+    return <h4 className="text-sm font-bold mt-3 mb-1 text-gray-200" {...props}>{children}</h4>;
+  },
+  p({ children, ...props }: any) {
+    return <p className="mb-2 leading-relaxed" {...props}>{children}</p>;
+  },
+  ol({ children, ...props }: any) {
+    return <ol className="list-decimal pl-6 mb-2 space-y-1" {...props}>{children}</ol>;
+  },
+  ul({ children, ...props }: any) {
+    return <ul className="list-disc pl-6 mb-2 space-y-1" {...props}>{children}</ul>;
+  },
+  li({ children, ...props }: any) {
+    return <li className="leading-relaxed" {...props}>{children}</li>;
+  },
+  hr({ ...props }: any) {
+    return <hr className="border-gray-600 my-3" {...props} />;
+  },
+  blockquote({ children, ...props }: any) {
+    return (
+      <blockquote className="border-l-2 border-gray-500 pl-3 my-2 text-gray-400 italic" {...props}>
+        {children}
+      </blockquote>
+    );
+  },
+  strong({ children, ...props }: any) {
+    return <strong className="font-bold text-gray-100" {...props}>{children}</strong>;
+  },
+  em({ children, ...props }: any) {
+    return <em className="italic text-gray-300" {...props}>{children}</em>;
+  },
+  pre({ children, ...props }: any) {
+    let codeText = '';
+    React.Children.forEach(children, (child) => {
+      if (React.isValidElement(child) && child.props) {
+        const c = child as React.ReactElement<{ children?: React.ReactNode }>;
+        if (typeof c.props.children === 'string') {
+          codeText = c.props.children;
+        }
+      }
+    });
+    return (
+      <div className="relative group my-2">
+        <pre className="rounded-md bg-gray-900 p-3 overflow-x-auto text-sm" {...props}>
+          {children}
+        </pre>
+        {codeText && <CopyButton text={codeText} />}
+      </div>
+    );
+  },
+  code({ className, children, ...props }: any) {
+    const isInline = !className;
+    if (isInline) {
+      return (
+        <code className="bg-gray-800 rounded px-1.5 py-0.5 text-sm text-gray-300" {...props}>
+          {children}
+        </code>
+      );
+    }
+    return (
+      <code className={className} {...props}>
+        {children}
+      </code>
+    );
+  },
+  a({ href, children, ...props }: any) {
+    const isSafeHref = href && /^(https?:|mailto:)/.test(href);
+    if (!isSafeHref) {
+      return <span className="text-[#66AAFF]">{children}</span>;
+    }
+    return (
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-[#66AAFF] hover:text-[#88CCFF] underline"
+        {...props}
+      >
+        {children}
+      </a>
+    );
+  },
+  table({ children, ...props }: any) {
+    return (
+      <div className="overflow-x-auto my-2">
+        <table className="border-collapse border border-gray-700 text-sm" {...props}>
+          {children}
+        </table>
+      </div>
+    );
+  },
+  th({ children, ...props }: any) {
+    return (
+      <th className="border border-gray-700 px-3 py-1.5 bg-gray-800 text-left font-medium" {...props}>
+        {children}
+      </th>
+    );
+  },
+  td({ children, ...props }: any) {
+    return (
+      <td className="border border-gray-700 px-3 py-1.5" {...props}>
+        {children}
+      </td>
+    );
+  },
+};
+
+interface Props {
+  content: string;
+}
+
+export default React.memo(function MarkdownContent({ content }: Props) {
   return (
     <ReactMarkdown
-      remarkPlugins={[remarkGfm]}
-      rehypePlugins={[rehypeHighlight]}
-      components={{
-        // -- Block elements: headings, paragraphs, lists, rules --
-        h1({ children, ...props }) {
-          return <h1 className="text-xl font-bold mt-5 mb-2 text-gray-100" {...props}>{children}</h1>;
-        },
-        h2({ children, ...props }) {
-          return <h2 className="text-lg font-bold mt-4 mb-2 text-gray-100" {...props}>{children}</h2>;
-        },
-        h3({ children, ...props }) {
-          return <h3 className="text-base font-bold mt-3 mb-1.5 text-gray-200" {...props}>{children}</h3>;
-        },
-        h4({ children, ...props }) {
-          return <h4 className="text-sm font-bold mt-3 mb-1 text-gray-200" {...props}>{children}</h4>;
-        },
-        p({ children, ...props }) {
-          return <p className="mb-2 leading-relaxed" {...props}>{children}</p>;
-        },
-        ol({ children, ...props }) {
-          return <ol className="list-decimal pl-6 mb-2 space-y-1" {...props}>{children}</ol>;
-        },
-        ul({ children, ...props }) {
-          return <ul className="list-disc pl-6 mb-2 space-y-1" {...props}>{children}</ul>;
-        },
-        li({ children, ...props }) {
-          return <li className="leading-relaxed" {...props}>{children}</li>;
-        },
-        hr({ ...props }) {
-          return <hr className="border-gray-600 my-3" {...props} />;
-        },
-        blockquote({ children, ...props }) {
-          return (
-            <blockquote className="border-l-2 border-gray-500 pl-3 my-2 text-gray-400 italic" {...props}>
-              {children}
-            </blockquote>
-          );
-        },
-        strong({ children, ...props }) {
-          return <strong className="font-bold text-gray-100" {...props}>{children}</strong>;
-        },
-        em({ children, ...props }) {
-          return <em className="italic text-gray-300" {...props}>{children}</em>;
-        },
-        // -- Code blocks --
-        pre({ children, ...props }) {
-          // Extract code text for copy button
-          let codeText = '';
-          React.Children.forEach(children, (child) => {
-            if (React.isValidElement(child) && child.props) {
-              const c = child as React.ReactElement<{ children?: React.ReactNode }>;
-              if (typeof c.props.children === 'string') {
-                codeText = c.props.children;
-              }
-            }
-          });
-          return (
-            <div className="relative group my-2">
-              <pre className="rounded-md bg-gray-900 p-3 overflow-x-auto text-sm" {...props}>
-                {children}
-              </pre>
-              {codeText && <CopyButton text={codeText} />}
-            </div>
-          );
-        },
-        code({ className, children, ...props }) {
-          const isInline = !className;
-          if (isInline) {
-            return (
-              <code className="bg-gray-800 rounded px-1.5 py-0.5 text-sm text-gray-300" {...props}>
-                {children}
-              </code>
-            );
-          }
-          return (
-            <code className={className} {...props}>
-              {children}
-            </code>
-          );
-        },
-        // -- Inline & table elements --
-        a({ href, children, ...props }) {
-          const isSafeHref = href && /^(https?:|mailto:)/.test(href);
-          if (!isSafeHref) {
-            return <span className="text-[#66AAFF]">{children}</span>;
-          }
-          return (
-            <a
-              href={href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[#66AAFF] hover:text-[#88CCFF] underline"
-              {...props}
-            >
-              {children}
-            </a>
-          );
-        },
-        table({ children, ...props }) {
-          return (
-            <div className="overflow-x-auto my-2">
-              <table className="border-collapse border border-gray-700 text-sm" {...props}>
-                {children}
-              </table>
-            </div>
-          );
-        },
-        th({ children, ...props }) {
-          return (
-            <th className="border border-gray-700 px-3 py-1.5 bg-gray-800 text-left font-medium" {...props}>
-              {children}
-            </th>
-          );
-        },
-        td({ children, ...props }) {
-          return (
-            <td className="border border-gray-700 px-3 py-1.5" {...props}>
-              {children}
-            </td>
-          );
-        },
-      }}
+      remarkPlugins={remarkPluginsStable}
+      rehypePlugins={rehypePluginsStable}
+      components={mdComponents}
     >
       {content}
     </ReactMarkdown>
   );
-}
+});

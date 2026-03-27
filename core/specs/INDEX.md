@@ -4,9 +4,9 @@ All feature specifications. Skill specs live in their skill folder; system specs
 
 | Feature | Type | Spec Location | Version |
 |---------|------|--------------|---------|
-| Specs System | system | core/specs/specs-system-spec.md | 3.0 |
+| Specs System | system | core/specs/specs-system-spec.md | 3.1 |
 | DestinClaude Toolkit | system | core/specs/destinclaude-spec.md | 2.7 |
-| System Architecture | system | core/specs/system-architecture-spec.md | 1.4 |
+| System Architecture | system | core/specs/system-architecture-spec.md | 1.5 |
 | Backup & Sync | system | core/specs/backup-system-spec.md | 4.4 |
 | Remote Access | system | core/specs/remote-access-spec.md | 1.0 |
 | Write Guard | system | core/specs/write-guard-spec.md | 1.2 |
@@ -27,6 +27,8 @@ All feature specifications. Skill specs live in their skill folder; system specs
 | Claude's Inbox | skill | productivity/skills/claudes-inbox/specs/claudes-inbox-spec.md | 3.0 |
 | Fork File | skill | life/skills/fork-file/specs/fork-file-spec.md | 1.0 |
 | Setup Wizard | skill | core/skills/setup-wizard/specs/setup-wizard-spec.md | 1.1 |
+| Claude Desktop UI | desktop | desktop/docs/claude-desktop-ui-spec.md | 1.4 |
+| Transcript Watcher | desktop | desktop/docs/transcript-watcher-spec.md | 1.0 |
 
 ## External Admin Tooling
 

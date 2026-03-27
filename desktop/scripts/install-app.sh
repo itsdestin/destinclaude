@@ -83,14 +83,9 @@ download() {
   curl -sL -o "$WORK_DIR/$(basename "$asset_url")" "$asset_url"
 }
 
-# Close running DestinCode instances
+# Close running DestinCode instances (macOS/Linux only — NSIS handles this on Windows)
 close_running_app() {
   case "$PLATFORM" in
-    windows)
-      # taskkill returns non-zero if process not found — that's fine
-      taskkill //IM "DestinCode.exe" //F 2>/dev/null || true
-      sleep 1
-      ;;
     macos)
       if pgrep -x "DestinCode" >/dev/null 2>&1; then
         echo "  Closing running DestinCode..."
@@ -121,25 +116,19 @@ case "$PLATFORM" in
       exit 1
     fi
 
-    # Close running app so the installer can replace files
-    close_running_app
-
-    # Uninstall previous version to avoid NSIS same-version skip.
-    # electron-builder installs to $LOCALAPPDATA/Programs/DestinCode
-    UNINSTALLER="$LOCALAPPDATA/Programs/DestinCode/Uninstall DestinCode.exe"
-    if [[ -f "$UNINSTALLER" ]]; then
-      echo "  Removing previous version..."
-      "$UNINSTALLER" /S 2>/dev/null || true
-      # Wait for uninstaller to finish
-      sleep 3
-    fi
-
     echo "  Running installer..."
-    # NSIS installer — /S for silent, creates Start Menu shortcuts automatically
+    # NSIS installer handles closing the running app and overwriting in place
     "$INSTALLER" /S
 
-    # NSIS /S forks to background on Windows — wait for it to finish
-    sleep 5
+    # NSIS /S forks to background — wait for the installer process to exit
+    echo "  Waiting for installer to finish..."
+    sleep 2
+    for i in $(seq 1 60); do
+      if ! tasklist 2>/dev/null | grep -qi "DestinCode.Setup"; then
+        break
+      fi
+      sleep 1
+    done
 
     echo ""
     echo "  DestinCode $TAG installed!"
@@ -214,11 +203,10 @@ esac
 echo ""
 case "$PLATFORM" in
   windows)
-    if [[ -d "$LOCALAPPDATA/Programs/DestinCode" ]]; then
+    if [[ -f "$LOCALAPPDATA/Programs/DestinCode/DestinCode.exe" ]]; then
       echo "  Verified: DestinCode installed at $LOCALAPPDATA/Programs/DestinCode"
     else
-      echo "  WARNING: Installation directory not found. The installer may still be running." >&2
-      echo "  Check Start Menu for DestinCode in a few seconds." >&2
+      echo "  WARNING: DestinCode.exe not found. The installer may have failed." >&2
     fi
     ;;
   macos)

@@ -562,7 +562,7 @@ phase_orphans() {
   if [ -d "$CLAUDE_HOME/skills" ]; then
     local known_skills=""
     local layer
-    for layer in $(_get_installed_layers); do
+    for layer in "${INSTALLED_LAYERS[@]}"; do
       local skill_dir="$TOOLKIT_ROOT/$layer/skills"
       if [ -d "$skill_dir" ]; then
         local s

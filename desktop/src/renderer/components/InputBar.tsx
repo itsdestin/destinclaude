@@ -30,7 +30,7 @@ function fileNameFromPath(p: string): string {
 export default function InputBar({ sessionId, disabled, onOpenDrawer }: Props) {
   const [text, setText] = useState('');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const dispatch = useChatDispatch();
 
   useEffect(() => {
@@ -75,10 +75,25 @@ export default function InputBar({ sessionId, disabled, onOpenDrawer }: Props) {
     [sessionId, disabled, dispatch],
   );
 
+  // Auto-resize textarea to fit content, up to 3 lines then scroll
+  const autoResize = useCallback(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    const lineHeight = parseInt(getComputedStyle(el).lineHeight) || 21;
+    el.style.height = `${Math.min(el.scrollHeight, lineHeight * 3)}px`;
+  }, []);
+
+  useEffect(() => {
+    autoResize();
+  }, [text, autoResize]);
+
   const send = useCallback(() => {
     sendMessage(text, attachments);
     setText('');
     setAttachments([]);
+    // Reset height after clearing
+    if (inputRef.current) inputRef.current.style.height = 'auto';
   }, [text, attachments, sendMessage]);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -181,10 +196,10 @@ export default function InputBar({ sessionId, disabled, onOpenDrawer }: Props) {
           >
             <CompassIcon className="w-5 h-5" />
           </BrailleBurst>
-          <input
+          <textarea
             ref={inputRef}
-            type="text"
             value={text}
+            rows={1}
             onChange={(e) => {
               const val = e.target.value;
               // Detect "/" typed as first character — open drawer in search mode
@@ -194,11 +209,18 @@ export default function InputBar({ sessionId, disabled, onOpenDrawer }: Props) {
               }
               setText(val);
             }}
+            onKeyDown={(e) => {
+              // Enter sends, Shift+Enter inserts newline
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                send();
+              }
+            }}
             onPaste={handlePaste}
             placeholder={disabled ? 'Waiting for approval...' : 'Message Claude...'}
             disabled={disabled}
             autoFocus
-            className="flex-1 bg-transparent text-sm text-gray-200 placeholder-gray-500 outline-none disabled:opacity-50"
+            className="flex-1 bg-transparent text-sm text-gray-200 placeholder-gray-500 outline-none disabled:opacity-50 resize-none overflow-y-auto leading-snug"
           />
           <button
             type="submit"
