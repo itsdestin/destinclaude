@@ -1,6 +1,6 @@
 # System Design — Spec
 
-**Version:** 1.4
+**Version:** 1.5
 **Last updated:** 2026-03-26
 **Feature location:** `~/.claude/` (entire system)
 
@@ -13,6 +13,7 @@ Canonical architecture reference for the user's Claude Code automation system. F
 - (2026-03-15) System Change Protocol is mandatory — the checklist in `docs/system-architecture.md` must be followed whenever a system feature is added, removed, or significantly changed.
 - (2026-03-15) Spec-creation threshold: any feature with behavior or workflow logic that a future session would need to understand to modify correctly must have a spec. A "feature" is a logical unit that may span multiple files.
 - (2026-03-15) All three enforcement layers (CLAUDE.md hard gate, skill SKILL.md spec-reminder comments, Stop hook) must remain active.
+- (2026-03-26) Claude must NEVER direct the user to run a command in a separate window or terminal. All commands must be run directly via the Bash tool. The only acceptable user actions are GUI interactions (e.g., signing in via a browser window that opens automatically).
 
 ## Design Decisions
 
@@ -183,3 +184,4 @@ See [GitHub Issues](https://github.com/itsdestin/destinclaude/issues) for known 
 | 2026-03-20 | 1.1 | Reduced enforcement from 4 layers to 3 (removed ghost system.md reference), updated component counts, fixed stale paths, added cross-reference to docs/system-architecture.md | Revised | — | |
 | 2026-03-24 | 1.3 | Updated hook count 14→16, added worktree-guard.sh, check-inbox.sh, sync-encyclopedia.sh to hook table | Update | — | |
 | 2026-03-26 | 1.4 | Session lifecycle updated: network operations now run as debounced background process instead of blocking session start. Sync failures surfaced via .sync-warnings | Update | owner | |
+| 2026-03-26 | 1.5 | Added mandate: Claude must never direct users to run commands — all commands run via Bash tool; only GUI interactions (e.g., browser sign-in) are acceptable user actions | Mandate | owner | |
