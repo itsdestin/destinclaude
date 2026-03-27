@@ -154,3 +154,7 @@ The watcher depends on Claude Code's internal JSONL transcript format. Key assum
 3. **Hooks preserved for permissions only.** Rather than replacing the entire hook system, we kept it for `PermissionRequest`/`PermissionExpired`. Rationale: the blocking socket protocol is essential for permissions and cannot be replicated via file watching.
 
 4. **Synthetic tool entries for early permissions.** When a permission request arrives before the corresponding transcript tool_use event, the reducer creates a synthetic tool entry. Rationale: the hook relay is faster than the file watcher, so this race is common. Silently dropping the permission request would break the approval flow.
+
+## Known Issues & Planned Updates
+
+See [GitHub Issues](https://github.com/itsdestin/destinclaude/issues) for known issues and planned updates.
