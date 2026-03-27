@@ -20,7 +20,14 @@ Check for and install updates to the DestinClaude toolkit.
    ```
    Store as `LATEST_TAG`. If no tags exist: "No releases found. You're running a development version."
 
-4. **Compare versions.** If `CURRENT_VERSION` matches `LATEST_TAG` (strip leading `v`): "You're on the latest version (CURRENT_VERSION)." — stop.
+4. **Compare versions.** Check TWO things — both must pass to be truly up to date:
+   a. Version string: `CURRENT_VERSION` matches `LATEST_TAG` (strip leading `v`)
+   b. Tag is in local history:
+      ```bash
+      git merge-base --is-ancestor "$LATEST_TAG" HEAD
+      ```
+   If both pass: "You're on the latest version (CURRENT_VERSION)." — stop.
+   If the version strings match but the tag is NOT an ancestor of HEAD, the VERSION file is wrong — the local code hasn't actually been updated. Warn the user: "VERSION file says CURRENT_VERSION, but the v{VERSION} release hasn't been applied to your local repo. Running update now." Then continue to step 5.
 
 5. **Show what changed.**
    ```bash

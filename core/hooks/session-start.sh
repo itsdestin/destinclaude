@@ -580,16 +580,11 @@ _session_sync_background() {
             mkdir -p "$STATE_DIR"
             local CURRENT
             CURRENT=$(cat "$TOOLKIT_ROOT/VERSION" 2>/dev/null | tr -d '[:space:]')
-            # Fallback: if VERSION file is stale/missing, use git describe for the real version
-            if [[ -z "$CURRENT" ]] || ! (cd "$TOOLKIT_ROOT" && git describe --tags --exact-match "HEAD" 2>/dev/null | grep -q "v${CURRENT}$"); then
-                local _GIT_VER
-                _GIT_VER=$(cd "$TOOLKIT_ROOT" && git describe --tags --abbrev=0 HEAD 2>/dev/null) || _GIT_VER=""
-                if [[ -n "$_GIT_VER" ]]; then
-                    CURRENT="${_GIT_VER#v}"
-                    # Self-heal: update the VERSION file so future reads are correct
-                    echo "$CURRENT" > "$TOOLKIT_ROOT/VERSION" 2>/dev/null || true
-                fi
-            fi
+            # VERSION is a git-tracked file set by release.sh and updated by
+            # /update's merge step. Never overwrite it here — doing so can
+            # inflate the version after git fetch --tags, making /update think
+            # the user is already up to date when they aren't.
+            [[ -z "$CURRENT" ]] && return 0
             local CURRENT_TAG="v${CURRENT}"
 
             # Fetch tags silently (fail silently if offline)
