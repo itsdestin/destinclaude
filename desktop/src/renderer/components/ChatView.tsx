@@ -2,8 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useChatState, useChatDispatch } from '../state/chat-context';
 import { onBufferReady } from '../hooks/terminal-registry';
 import UserMessage from './UserMessage';
-import AssistantMessage from './AssistantMessage';
-import ToolGroup from './ToolGroup';
+import AssistantTurnBubble from './AssistantTurnBubble';
 import ToolCard from './ToolCard';
 import PromptCard from './PromptCard';
 import ThinkingIndicator from './ThinkingIndicator';
@@ -132,48 +131,21 @@ export default function ChatView({ sessionId, visible }: Props) {
           </div>
         ) : (
           <>
-            {state.timeline.map((entry, i) => {
+            {state.timeline.map((entry) => {
               switch (entry.kind) {
                 case 'user':
                   return <UserMessage key={entry.message.id} message={entry.message} />;
-                case 'assistant':
-                  return <AssistantMessage key={entry.message.id} message={entry.message} />;
-                case 'tool-group': {
-                  const group = state.toolGroups.get(entry.groupId);
-                  if (!group || group.toolIds.length === 0) return null;
-
-                  // Pull awaiting-approval tools out of the group and render
-                  // them as standalone cards so they're always visible — not
-                  // hidden inside a collapsed tool group.
-                  const pendingIds = group.toolIds.filter((id) => {
-                    const t = state.toolCalls.get(id);
-                    return t?.status === 'awaiting-approval';
-                  });
-                  const restIds = group.toolIds.filter((id) => !pendingIds.includes(id));
-
-                  const restGroup = restIds.length > 0
-                    ? { ...group, toolIds: restIds }
-                    : null;
-
+                case 'assistant-turn': {
+                  const turn = state.assistantTurns.get(entry.turnId);
+                  if (!turn || turn.segments.length === 0) return null;
                   return (
-                    <React.Fragment key={entry.groupId}>
-                      {restGroup && (
-                        <ToolGroup
-                          group={restGroup}
-                          toolCalls={state.toolCalls}
-                          sessionId={sessionId}
-                        />
-                      )}
-                      {pendingIds.map((id) => {
-                        const tool = state.toolCalls.get(id);
-                        if (!tool) return null;
-                        return (
-                          <div key={id} className="px-4 py-1">
-                            <ToolCard tool={tool} sessionId={sessionId} />
-                          </div>
-                        );
-                      })}
-                    </React.Fragment>
+                    <AssistantTurnBubble
+                      key={entry.turnId}
+                      turn={turn}
+                      toolGroups={state.toolGroups}
+                      toolCalls={state.toolCalls}
+                      sessionId={sessionId}
+                    />
                   );
                 }
                 case 'prompt':
@@ -187,7 +159,22 @@ export default function ChatView({ sessionId, visible }: Props) {
                   );
               }
             })}
-            {state.isThinking && <ThinkingIndicator />}
+            {/* Awaiting-approval tools pop out as standalone bubbles at the bottom */}
+            {[...state.toolCalls.values()]
+              .filter((t) => t.status === 'awaiting-approval')
+              .map((tool) => (
+                <div key={tool.toolUseId} className="flex justify-start px-4 py-1">
+                  <div className="max-w-[85%] rounded-2xl rounded-bl-sm bg-gray-800 px-2 py-1">
+                    <ToolCard tool={tool} sessionId={sessionId} />
+                  </div>
+                </div>
+              ))}
+            {/* Only show thinking when Claude is between tool completion and next text —
+                not when tools are still running or awaiting approval */}
+            {state.isThinking
+              && !hasAwaitingApproval
+              && ![...state.toolCalls.values()].some((t) => t.status === 'running')
+              && <ThinkingIndicator />}
           </>
         )}
         <div ref={bottomRef} className="h-1" />

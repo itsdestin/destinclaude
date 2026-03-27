@@ -1,4 +1,11 @@
-import { ChatAction, ChatState, createSessionChatState } from './chat-types';
+import {
+  AssistantTurn,
+  ChatAction,
+  ChatState,
+  SessionChatState,
+  TimelineEntry,
+  createSessionChatState,
+} from './chat-types';
 
 let messageCounter = 0;
 function nextMessageId(): string {
@@ -8,6 +15,34 @@ function nextMessageId(): string {
 let groupCounter = 0;
 function nextGroupId(): string {
   return `group-${++groupCounter}`;
+}
+
+let turnCounter = 0;
+function nextTurnId(): string {
+  return `turn-${++turnCounter}`;
+}
+
+/**
+ * Returns the current assistant turn (or creates a new one).
+ * All assistant text and tool groups within a single turn accumulate here.
+ */
+function getOrCreateTurn(session: SessionChatState): {
+  assistantTurns: Map<string, AssistantTurn>;
+  timeline: TimelineEntry[];
+  currentTurnId: string;
+} {
+  const assistantTurns = new Map(session.assistantTurns);
+  let timeline = session.timeline;
+  let currentTurnId = session.currentTurnId;
+
+  if (currentTurnId && assistantTurns.has(currentTurnId)) {
+    return { assistantTurns, timeline, currentTurnId };
+  }
+
+  currentTurnId = nextTurnId();
+  assistantTurns.set(currentTurnId, { id: currentTurnId, segments: [] });
+  timeline = [...timeline, { kind: 'assistant-turn' as const, turnId: currentTurnId }];
+  return { assistantTurns, timeline, currentTurnId };
 }
 
 export function chatReducer(state: ChatState, action: ChatAction): ChatState {
@@ -38,9 +73,10 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
         lastEntry.kind === 'user' &&
         lastEntry.message.content === action.content
       ) {
-        // Already showing this message — just ensure isThinking is set
         if (!session.isThinking) {
-          next.set(action.sessionId, { ...session, isThinking: true, currentGroupId: null });
+          next.set(action.sessionId, {
+            ...session, isThinking: true, currentGroupId: null, currentTurnId: null,
+          });
           return next;
         }
         return state;
@@ -58,6 +94,7 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
         timeline: [...session.timeline, { kind: 'user', message }],
         isThinking: true,
         currentGroupId: null,
+        currentTurnId: null,
       });
       return next;
     }
@@ -69,7 +106,6 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
         next.set(action.sessionId, session);
       }
 
-      // Remove existing prompt with same ID to avoid duplicates
       const timeline = session.timeline.filter(
         (e) => !(e.kind === 'prompt' && e.prompt.promptId === action.promptId),
       );
@@ -117,19 +153,22 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
       const session = next.get(action.sessionId);
       if (!session || !session.isThinking) return state;
 
-      const message = {
-        id: nextMessageId(),
-        role: 'assistant' as const,
-        content: '_Response may have arrived — check the Terminal view._',
-        timestamp: Date.now(),
-      };
+      const { assistantTurns, timeline, currentTurnId } = getOrCreateTurn(session);
+      const turn = assistantTurns.get(currentTurnId)!;
+      assistantTurns.set(currentTurnId, {
+        ...turn,
+        segments: [
+          ...turn.segments,
+          { type: 'text', content: '_Response may have arrived — check the Terminal view._', messageId: nextMessageId() },
+        ],
+      });
 
       next.set(action.sessionId, {
-        ...session,
-        timeline: [...session.timeline, { kind: 'assistant', message }],
+        ...session, assistantTurns, timeline,
         isThinking: false,
         streamingText: '',
         currentGroupId: null,
+        currentTurnId: null,
       });
       return next;
     }
@@ -154,9 +193,10 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
         lastEntry.kind === 'user' &&
         lastEntry.message.content === action.text
       ) {
-        // Already showing this message — just ensure isThinking is set
         if (!session.isThinking) {
-          next.set(action.sessionId, { ...session, isThinking: true, currentGroupId: null });
+          next.set(action.sessionId, {
+            ...session, isThinking: true, currentGroupId: null, currentTurnId: null,
+          });
           return next;
         }
         return state;
@@ -174,6 +214,7 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
         timeline: [...session.timeline, { kind: 'user', message }],
         isThinking: true,
         currentGroupId: null,
+        currentTurnId: null,
       });
       return next;
     }
@@ -182,17 +223,19 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
       const session = next.get(action.sessionId);
       if (!session) return state;
 
-      const message = {
-        id: nextMessageId(),
-        role: 'assistant' as const,
-        content: action.text,
-        timestamp: action.timestamp,
-      };
+      const { assistantTurns, timeline, currentTurnId } = getOrCreateTurn(session);
+      const turn = assistantTurns.get(currentTurnId)!;
+      assistantTurns.set(currentTurnId, {
+        ...turn,
+        segments: [
+          ...turn.segments,
+          { type: 'text', content: action.text, messageId: nextMessageId() },
+        ],
+      });
 
       next.set(action.sessionId, {
-        ...session,
-        timeline: [...session.timeline, { kind: 'assistant', message }],
-        currentGroupId: null, // Critical: next tool_use creates a new group
+        ...session, assistantTurns, timeline, currentTurnId,
+        currentGroupId: null, // next tool_use creates a new group
       });
       return next;
     }
@@ -209,29 +252,32 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
         status: 'running',
       });
 
+      const { assistantTurns, timeline, currentTurnId } = getOrCreateTurn(session);
       const toolGroups = new Map(session.toolGroups);
-      let timeline = session.timeline;
       let currentGroupId = session.currentGroupId;
 
       if (currentGroupId && toolGroups.has(currentGroupId)) {
-        // Add to existing group
+        // Add to existing group (no new segment needed)
         const group = toolGroups.get(currentGroupId)!;
         toolGroups.set(currentGroupId, {
           ...group,
           toolIds: [...group.toolIds, action.toolUseId],
         });
       } else {
-        // Create new group and add to timeline
+        // Create new group and add as segment to current turn
         currentGroupId = nextGroupId();
-        toolGroups.set(currentGroupId, {
-          id: currentGroupId,
-          toolIds: [action.toolUseId],
+        toolGroups.set(currentGroupId, { id: currentGroupId, toolIds: [action.toolUseId] });
+
+        const turn = assistantTurns.get(currentTurnId)!;
+        assistantTurns.set(currentTurnId, {
+          ...turn,
+          segments: [...turn.segments, { type: 'tool-group', groupId: currentGroupId }],
         });
-        timeline = [...timeline, { kind: 'tool-group', groupId: currentGroupId }];
       }
 
       next.set(action.sessionId, {
-        ...session, toolCalls, toolGroups, timeline, currentGroupId,
+        ...session, toolCalls, toolGroups, assistantTurns, timeline,
+        currentGroupId, currentTurnId,
         lastActivityAt: Date.now(),
       });
       return next;
@@ -270,6 +316,7 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
         isThinking: false,
         streamingText: '',
         currentGroupId: null,
+        currentTurnId: null,
       });
       return next;
     }
@@ -295,7 +342,7 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
       }
 
       if (!found) {
-        // Permission hook arrived before transcript watcher — create the tool entry
+        // Permission hook arrived before transcript watcher — create synthetic tool entry
         const syntheticId = `perm-${action.requestId}`;
         toolCalls.set(syntheticId, {
           toolUseId: syntheticId,
@@ -310,18 +357,27 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
         const toolGroups = new Map(session.toolGroups);
         toolGroups.set(groupId, { id: groupId, toolIds: [syntheticId] });
 
-        const timeline = session.timeline.filter(
+        // Place the synthetic tool group inside an assistant turn
+        const filteredTimeline = session.timeline.filter(
           (e) => !(e.kind === 'prompt' && !e.prompt.completed),
         );
-        timeline.push({ kind: 'tool-group', groupId });
+        const { assistantTurns, timeline, currentTurnId } = getOrCreateTurn({
+          ...session, timeline: filteredTimeline,
+        });
+        const turn = assistantTurns.get(currentTurnId)!;
+        assistantTurns.set(currentTurnId, {
+          ...turn,
+          segments: [...turn.segments, { type: 'tool-group', groupId }],
+        });
 
-        next.set(action.sessionId, { ...session, toolCalls, toolGroups, timeline });
+        next.set(action.sessionId, {
+          ...session, toolCalls, toolGroups, assistantTurns,
+          timeline, currentTurnId,
+        });
         return next;
       }
 
-      // Dismiss any parser-detected PromptCards for this session — the hook-based
-      // ToolCard is now handling the permission flow. This prevents duplicate
-      // prompts when the parser fires before the hook event arrives.
+      // Dismiss any parser-detected PromptCards
       const timeline = session.timeline.filter(
         (e) => !(e.kind === 'prompt' && !e.prompt.completed),
       );
@@ -335,10 +391,6 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
       const session = next.get(action.sessionId);
       if (!session) return state;
 
-      // Transition the tool from awaiting-approval back to running.
-      // PERMISSION_RESPONDED: user clicked Yes/Always Allow/No — merge
-      //   the tool back into its group immediately.
-      // PERMISSION_EXPIRED: relay socket closed (timeout) — clear dead buttons.
       const toolCalls = new Map(session.toolCalls);
       for (const [id, tool] of toolCalls) {
         if (tool.status === 'awaiting-approval' && tool.requestId === action.requestId) {

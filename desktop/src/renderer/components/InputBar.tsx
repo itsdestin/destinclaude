@@ -179,11 +179,11 @@ export default function InputBar({ sessionId, disabled, onOpenDrawer }: Props) {
       )}
 
       <div className="px-2 sm:px-3 pb-2 sm:pb-3">
-        <form onSubmit={handleSubmit} className="flex items-end gap-1.5 sm:gap-2 bg-gray-800 rounded-xl px-2 sm:px-3 py-2">
+        <form onSubmit={handleSubmit} className="flex items-center gap-1.5 sm:gap-2 bg-gray-800 rounded-xl px-2 sm:px-3 py-2">
           <BrailleBurst
             onTrigger={handleAttachClick}
             disabled={disabled}
-            className="shrink-0 mb-0.5 text-gray-400 hover:text-gray-200 disabled:opacity-30 transition-colors"
+            className="shrink-0 text-gray-400 hover:text-gray-200 disabled:opacity-30 transition-colors"
             title="Attach file"
           >
             <AttachIcon className="w-5 h-5" />
@@ -191,7 +191,7 @@ export default function InputBar({ sessionId, disabled, onOpenDrawer }: Props) {
           <BrailleBurst
             onTrigger={() => onOpenDrawer?.(false)}
             disabled={disabled}
-            className="shrink-0 mb-0.5 text-gray-400 hover:text-gray-200 disabled:opacity-30 transition-colors"
+            className="shrink-0 text-gray-400 hover:text-gray-200 disabled:opacity-30 transition-colors"
             title="Browse skills"
           >
             <CompassIcon className="w-5 h-5" />
@@ -225,7 +225,7 @@ export default function InputBar({ sessionId, disabled, onOpenDrawer }: Props) {
           <button
             type="submit"
             disabled={disabled || (!text.trim() && attachments.length === 0)}
-            className="shrink-0 mb-0.5 w-7 h-7 flex items-center justify-center rounded-lg bg-gray-300 hover:bg-gray-200 disabled:opacity-30 disabled:hover:bg-gray-300 transition-colors"
+            className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg bg-gray-300 hover:bg-gray-200 disabled:opacity-30 disabled:hover:bg-gray-300 transition-colors"
           >
             <svg className="w-4 h-4 text-gray-950" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M12 5l7 7-7 7" />

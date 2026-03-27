@@ -54,11 +54,43 @@ export function parseTranscriptLine(line: string, sessionId: string): Transcript
   if (parsed.type === 'user') {
     const content = message.content;
 
-    // User-typed prompt: must have a promptId
+    // Skip system-injected content (skills, CLAUDE.md, system reminders).
+    // These have isMeta: true and should never appear in the chat timeline.
+    if (parsed.isMeta) {
+      return [];
+    }
+
+    // Tool results are wrapped in user messages and also carry a promptId,
+    // so check for tool_result blocks BEFORE the user-text branch.
+    if (Array.isArray(content)) {
+      const hasToolResult = content.some((b: any) => b.type === 'tool_result');
+      if (hasToolResult) {
+        for (const block of content) {
+          if (block.type === 'tool_result') {
+            events.push({
+              type: 'tool-result',
+              sessionId,
+              uuid,
+              timestamp,
+              data: {
+                toolUseId: block.tool_use_id,
+                toolResult: extractToolResultContent(block.content),
+                isError: block.is_error ?? false,
+              },
+            });
+          }
+        }
+        return events;
+      }
+    }
+
+    // User-typed prompt: has a promptId and text content (not tool results)
     if (parsed.promptId) {
       const text = typeof content === 'string'
         ? content
         : extractTextFromBlocks(content);
+      // Skip empty messages (e.g. interrupted tool use placeholders)
+      if (!text.trim()) return [];
       events.push({
         type: 'user-message',
         sessionId,
@@ -67,26 +99,6 @@ export function parseTranscriptLine(line: string, sessionId: string): Transcript
         data: { text },
       });
       return events;
-    }
-
-    // Tool results wrapped in user messages (no promptId)
-    if (Array.isArray(content)) {
-      for (const block of content) {
-        if (block.type === 'tool_result') {
-          events.push({
-            type: 'tool-result',
-            sessionId,
-            uuid,
-            timestamp,
-            data: {
-              toolUseId: block.tool_use_id,
-              toolResult: extractToolResultContent(block.content),
-              isError: block.is_error ?? false,
-            },
-          });
-        }
-        // Skip images and other block types
-      }
     }
 
     return events;
