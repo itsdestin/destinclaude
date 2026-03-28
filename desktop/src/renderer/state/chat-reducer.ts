@@ -459,6 +459,16 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
         });
       }
 
+      // When replacing history (hasMore=false), remove old history entries and expand button
+      const existingTimeline = action.hasMore
+        ? session.timeline
+        : session.timeline.filter((e) => {
+            if (e.kind === 'prompt' && e.prompt.promptId === '_history_expand') return false;
+            if (e.kind === 'user' && e.message.id.startsWith('hist-')) return false;
+            if (e.kind === 'assistant-turn' && e.turnId.startsWith('hist-')) return false;
+            return true;
+          });
+
       for (const msg of action.messages) {
         const id = `hist-${++historyMsgCounter}`;
         if (msg.role === 'user') {
@@ -480,7 +490,7 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
       // Prepend history before existing timeline
       next.set(action.sessionId, {
         ...session,
-        timeline: [...historyTimeline, ...session.timeline],
+        timeline: [...historyTimeline, ...existingTimeline],
         assistantTurns: historyTurns,
       });
       return next;

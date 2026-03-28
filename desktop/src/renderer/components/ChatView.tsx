@@ -10,9 +10,52 @@ import ThinkingIndicator from './ThinkingIndicator';
 interface Props {
   sessionId: string;
   visible: boolean;
+  resumeInfo?: Map<string, { claudeSessionId: string; projectSlug: string }>;
 }
 
-export default function ChatView({ sessionId, visible }: Props) {
+function HistoryExpandButton({ sessionId, resumeInfo }: {
+  sessionId: string;
+  resumeInfo?: Map<string, { claudeSessionId: string; projectSlug: string }>;
+}) {
+  const dispatch = useChatDispatch();
+  const [loading, setLoading] = useState(false);
+
+  const handleExpand = async () => {
+    const info = resumeInfo?.get(sessionId);
+    if (!info) return;
+    setLoading(true);
+    try {
+      const allMessages = await (window as any).claude.session.loadHistory(
+        info.claudeSessionId, info.projectSlug, 0, true
+      );
+      if (allMessages.length > 0) {
+        dispatch({
+          type: 'HISTORY_LOADED',
+          sessionId,
+          messages: allMessages,
+          hasMore: false,
+        });
+      }
+    } catch {
+      // Ignore
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div className="flex justify-center py-3">
+      <button
+        onClick={handleExpand}
+        disabled={loading}
+        className="text-xs text-gray-500 hover:text-gray-300 transition-colors disabled:opacity-50"
+      >
+        {loading ? 'Loading...' : '\u2191 See previous messages'}
+      </button>
+    </div>
+  );
+}
+
+export default function ChatView({ sessionId, visible, resumeInfo }: Props) {
   const state = useChatState(sessionId);
   const dispatch = useChatDispatch();
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -149,6 +192,15 @@ export default function ChatView({ sessionId, visible }: Props) {
                   );
                 }
                 case 'prompt':
+                  if (entry.prompt.promptId === '_history_expand' && !entry.prompt.completed) {
+                    return (
+                      <HistoryExpandButton
+                        key={entry.prompt.promptId}
+                        sessionId={sessionId}
+                        resumeInfo={resumeInfo}
+                      />
+                    );
+                  }
                   return (
                     <PromptCard
                       key={entry.prompt.promptId}

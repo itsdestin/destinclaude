@@ -51,6 +51,7 @@ function AppInner() {
   const [skills, setSkills] = useState<SkillEntry[]>([]);
   // Track which sessions the user has "seen" (switched to after activity completed)
   const [viewedSessions, setViewedSessions] = useState<Set<string>>(new Set());
+  const [resumeInfo, setResumeInfo] = useState<Map<string, { claudeSessionId: string; projectSlug: string }>>(new Map());
 
   usePromptDetector();
   const dispatch = useChatDispatch();
@@ -392,6 +393,8 @@ function AppInner() {
       const latestSession = sessions[sessions.length - 1];
       if (!latestSession) return;
 
+      setResumeInfo((prev) => new Map(prev).set(latestSession.id, { claudeSessionId, projectSlug }));
+
       window.claude.session.sendInput(latestSession.id, `/resume ${claudeSessionId}\r`);
 
       // Load recent history into chat view
@@ -492,6 +495,7 @@ function AppInner() {
                     <ChatView
                       sessionId={s.id}
                       visible={s.id === sessionId && (viewModes.get(s.id) || 'chat') === 'chat'}
+                      resumeInfo={resumeInfo}
                     />
                   </ErrorBoundary>
                   <ErrorBoundary name="Terminal">
