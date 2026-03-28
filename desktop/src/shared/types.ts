@@ -83,6 +83,27 @@ export interface SkillEntry {
   pluginName?: string;
 }
 
+export interface PastSession {
+  /** Claude Code's internal session ID (JSONL filename without extension) */
+  sessionId: string;
+  /** Human-readable name from topic file, or 'Untitled' */
+  name: string;
+  /** Project directory slug (e.g. 'C--Users-desti') */
+  projectSlug: string;
+  /** Display-friendly project path derived from slug */
+  projectPath: string;
+  /** Last modified timestamp (epoch ms) */
+  lastModified: number;
+  /** File size in bytes — proxy for conversation length */
+  size: number;
+}
+
+export interface HistoryMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: number;
+}
+
 // IPC channel names
 export const IPC = {
   // Renderer -> Main
@@ -117,4 +138,8 @@ export const IPC = {
   UI_ACTION_BROADCAST: 'ui:action:broadcast',
   UI_ACTION_RECEIVED: 'ui:action:received',
   TRANSCRIPT_EVENT: 'transcript:event',
+  // Session browser
+  SESSION_BROWSE: 'session:browse',
+  SESSION_HISTORY: 'session:history',
+  SESSION_RESUME: 'session:resume',
 } as const;
