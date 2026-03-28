@@ -1,14 +1,14 @@
 import React from 'react';
 import { ChatIcon, TerminalIcon, GamepadIcon } from './Icons';
-import SessionSelector from './SessionSelector';
-import StatusDot, { SessionStatusColor } from './StatusDot';
+import SessionStrip from './SessionStrip';
+import type { SessionStatusColor } from './StatusDot';
 import type { PermissionMode } from '../../shared/types';
 
 interface SessionEntry {
   id: string;
   name: string;
   cwd: string;
-  permissionMode: PermissionMode;
+  permissionMode: string;
 }
 
 const MODE_CONFIG: Record<PermissionMode, { label: string; shortLabel: string; color: string; bg: string; border: string }> = {
@@ -37,6 +37,7 @@ interface Props {
   onToggleSettings: () => void;
   settingsBadge?: boolean;
   sessionStatuses?: Map<string, SessionStatusColor>;
+  onResumeSession: (sessionId: string, projectSlug: string) => void;
 }
 
 export default function HeaderBar({
@@ -44,13 +45,13 @@ export default function HeaderBar({
   viewMode, onToggleView,
   gamePanelOpen, onToggleGamePanel, gameConnected,
   permissionMode, onCyclePermission, model, announcement,
-  settingsOpen, onToggleSettings, settingsBadge, sessionStatuses,
+  settingsOpen, onToggleSettings, settingsBadge, sessionStatuses, onResumeSession,
 }: Props) {
   const cfg = MODE_CONFIG[permissionMode];
 
   return (
     <div className="flex items-center h-10 px-2 sm:px-3 border-b border-gray-800 shrink-0">
-      {/* Left — settings + permission badge (model & announcement hidden on mobile) */}
+      {/* Left — settings + permission badge */}
       <div className="flex-1 flex items-center gap-1 sm:gap-2 min-w-0">
         <button
           onClick={onToggleSettings}
@@ -90,17 +91,18 @@ export default function HeaderBar({
         )}
       </div>
 
-      {/* Center — session selector */}
-      <SessionSelector
+      {/* Center — session strip */}
+      <SessionStrip
         sessions={sessions}
         activeSessionId={activeSessionId}
         onSelectSession={onSelectSession}
         onCreateSession={onCreateSession}
         onCloseSession={onCloseSession}
         sessionStatuses={sessionStatuses}
+        onResumeSession={onResumeSession}
       />
 
-      {/* Right — view toggles (icon-only on mobile) */}
+      {/* Right — view toggles */}
       <div className="flex-1 flex items-center justify-end gap-1 sm:gap-2">
         <div className="flex bg-gray-800 rounded-md p-0.5 gap-0.5">
           <button
