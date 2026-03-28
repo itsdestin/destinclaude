@@ -9,6 +9,7 @@ import { scanSkills } from './skill-scanner';
 import { RemoteConfig } from './remote-config';
 import { RemoteServer } from './remote-server';
 import { TranscriptWatcher } from './transcript-watcher';
+import { listPastSessions, loadHistory } from './session-browser';
 
 // Max age for clipboard paste images (1 hour)
 const CLIPBOARD_MAX_AGE_MS = 60 * 60 * 1000;
@@ -225,6 +226,27 @@ export function registerIpcHandlers(
       send(IPC.UI_ACTION_RECEIVED, action);
     });
   }
+
+  // --- Session browser (resume) ---
+  ipcMain.handle(IPC.SESSION_BROWSE, async () => {
+    // Collect active Claude Code session IDs so we can exclude them
+    const activeIds = new Set<string>();
+    // sessionIdMap is already defined in this scope — maps desktop ID → Claude ID
+    for (const claudeId of sessionIdMap.values()) {
+      activeIds.add(claudeId);
+    }
+    return listPastSessions(activeIds);
+  });
+
+  ipcMain.handle(IPC.SESSION_HISTORY, async (
+    _event,
+    sessionId: string,
+    projectSlug: string,
+    count: number,
+    all: boolean,
+  ) => {
+    return loadHistory(sessionId, projectSlug, count, all);
+  });
 
   // PTY input (fire-and-forget, not request-response)
   ipcMain.on(IPC.SESSION_INPUT, (_event, sessionId: string, text: string) => {
