@@ -32,6 +32,8 @@ const IPC = {
   UI_ACTION_BROADCAST: 'ui:action:broadcast',
   UI_ACTION_RECEIVED: 'ui:action:received',
   TRANSCRIPT_EVENT: 'transcript:event',
+  SESSION_BROWSE: 'session:browse',
+  SESSION_HISTORY: 'session:history',
 } as const;
 
 contextBridge.exposeInMainWorld('claude', {
@@ -49,6 +51,10 @@ contextBridge.exposeInMainWorld('claude', {
       ipcRenderer.send(IPC.TERMINAL_READY, sessionId),
     respondToPermission: (requestId: string, decision: object) =>
       ipcRenderer.invoke(IPC.PERMISSION_RESPOND, requestId, decision),
+    browse: (): Promise<any[]> =>
+      ipcRenderer.invoke(IPC.SESSION_BROWSE),
+    loadHistory: (sessionId: string, projectSlug: string, count?: number, all?: boolean): Promise<any[]> =>
+      ipcRenderer.invoke(IPC.SESSION_HISTORY, sessionId, projectSlug, count || 10, all || false),
   },
   on: {
     sessionCreated: (cb: (info: any) => void) => {
