@@ -7,6 +7,8 @@ const CLAUDE_DIR = path.join(os.homedir(), '.claude');
 const PROJECTS_DIR = path.join(CLAUDE_DIR, 'projects');
 const TOPICS_DIR = path.join(CLAUDE_DIR, 'topics');
 
+const SAFE_ID_RE = /^[a-zA-Z0-9_-]+$/;
+
 /**
  * Converts a project slug back to a display-friendly path.
  * e.g. 'C--Users-desti' → 'C:/Users/desti'
@@ -91,6 +93,7 @@ export function loadHistory(
   count: number = 10,
   all: boolean = false,
 ): HistoryMessage[] {
+  if (!SAFE_ID_RE.test(projectSlug) || !SAFE_ID_RE.test(sessionId)) return [];
   const jsonlPath = path.join(PROJECTS_DIR, projectSlug, `${sessionId}.jsonl`);
 
   let content: string;
