@@ -87,6 +87,11 @@ html, body, #root {
   background: transparent;
 }
 
+@keyframes breathe {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
 @keyframes braille-burst {
   0% {
     transform: translate(-50%, -50%) translate(0, 0);

@@ -109,15 +109,18 @@ export function parseTranscriptLine(line: string, sessionId: string): Transcript
   if (Array.isArray(content)) {
     for (const block of content) {
       switch (block.type) {
-        case 'text':
+        case 'text': {
+          const cleaned = stripSystemTags(block.text);
+          if (!cleaned) break; // Skip blocks that were entirely system tags
           events.push({
             type: 'assistant-text',
             sessionId,
             uuid,
             timestamp,
-            data: { text: block.text },
+            data: { text: cleaned },
           });
           break;
+        }
 
         case 'tool_use':
           events.push({
@@ -139,13 +142,16 @@ export function parseTranscriptLine(line: string, sessionId: string): Transcript
       }
     }
   } else if (typeof content === 'string') {
-    events.push({
-      type: 'assistant-text',
-      sessionId,
-      uuid,
-      timestamp,
-      data: { text: content },
-    });
+    const cleaned = stripSystemTags(content);
+    if (cleaned) {
+      events.push({
+        type: 'assistant-text',
+        sessionId,
+        uuid,
+        timestamp,
+        data: { text: cleaned },
+      });
+    }
   }
 
   // Emit turn-complete if stop_reason is end_turn
@@ -173,6 +179,17 @@ function extractTextFromBlocks(content: any): string {
     .filter((b: any) => b.type === 'text')
     .map((b: any) => b.text)
     .join('\n');
+}
+
+/**
+ * Strips system XML tags that should never appear in the chat timeline.
+ * These are injected by Claude Code's harness and aren't part of the
+ * assistant's actual response.
+ */
+const SYSTEM_TAG_RE = /<(task-notification|system-reminder|antml_thinking|command-name)>[\s\S]*?<\/\1>/g;
+
+function stripSystemTags(text: string): string {
+  return text.replace(SYSTEM_TAG_RE, '').trim();
 }
 
 function extractToolResultContent(content: any): string {
@@ -300,6 +317,11 @@ export class TranscriptWatcher extends EventEmitter {
         }
         this.startPolling(session);
       });
+      // Safety-net poll alongside fs.watch — on Windows, fs.watch can
+      // silently miss change notifications. A 2s poll catches stragglers
+      // without adding meaningful overhead (readNewLines is a no-op when
+      // the file hasn't grown).
+      this.startPolling(session);
     } catch {
       // fs.watch can throw on some platforms — fall back to polling
       this.startPolling(session);
@@ -309,15 +331,15 @@ export class TranscriptWatcher extends EventEmitter {
   private startPolling(session: WatchedSession): void {
     if (session.pollTimer) return;
     session.pollTimer = setInterval(() => {
-      // If file now exists, read it and upgrade to fs.watch
       if (fs.existsSync(session.jsonlPath)) {
         this.readNewLines(session);
+        // If fs.watch isn't attached yet, upgrade from poll-only to watch+poll
         if (!session.watcher) {
           this.stopPolling(session);
           this.attachFsWatch(session);
         }
       }
-    }, 1000);
+    }, session.watcher ? 2000 : 1000);
   }
 
   private stopPolling(session: WatchedSession): void {
@@ -379,13 +401,23 @@ export class TranscriptWatcher extends EventEmitter {
       const events = parseTranscriptLine(trimmed, session.desktopSessionId);
       if (events.length === 0) continue;
 
-      // Deduplicate by uuid at the line level — Claude writes incremental
-      // updates with the same uuid, so skip all events from a repeated uuid.
+      // Deduplicate by uuid — Claude writes incremental updates with the
+      // same uuid as the assistant message grows. For repeated UUIDs:
+      //
+      // - assistant-text: SKIP (would create duplicate text segments;
+      //   the first write's text is already in the timeline)
+      // - tool-use: EMIT (may be new; reducer Map.set deduplicates by
+      //   toolUseId so re-emitting an existing one is harmless)
+      // - tool-result: EMIT (reducer Map.set deduplicates by toolUseId)
+      // - turn-complete: EMIT (only appears on the final write;
+      //   critical for clearing the "thinking" state)
+      // - user-message: EMIT (reducer has its own text-based dedup)
       const lineUuid = events[0].uuid;
-      if (lineUuid && session.seenUuids.has(lineUuid)) continue;
+      const isRepeat = lineUuid && session.seenUuids.has(lineUuid);
       if (lineUuid) session.seenUuids.add(lineUuid);
 
       for (const event of events) {
+        if (isRepeat && event.type === 'assistant-text') continue;
         this.emit('transcript-event', event);
       }
     }

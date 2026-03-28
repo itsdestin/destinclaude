@@ -41,21 +41,29 @@ function toolSummary(tool: ToolCallState): string {
   }
 }
 
-function PermissionButtons({ requestId, suggestions, onResponded }: {
+function PermissionButtons({ requestId, suggestions, onResponded, onFailed }: {
   requestId: string;
   suggestions?: string[];
   onResponded?: () => void;
+  onFailed?: () => void;
 }) {
   const [responding, setResponding] = useState(false);
   const handleRespond = async (decision: object) => {
     setResponding(true);
-    // Optimistically collapse the permission buttons immediately
-    if (onResponded) onResponded();
     try {
-      await (window as any).claude.session.respondToPermission(requestId, decision);
+      const delivered = await (window as any).claude.session.respondToPermission(requestId, decision);
+      if (delivered === false) {
+        // Socket was already closed (timeout or Claude Code killed the hook)
+        console.warn('Permission response not delivered — socket already closed');
+        setResponding(false);
+        if (onFailed) onFailed();
+        return;
+      }
+      if (onResponded) onResponded();
     } catch (err) {
       console.error('Failed to respond to permission:', err);
       setResponding(false);
+      if (onFailed) onFailed();
     }
   };
 
@@ -132,6 +140,13 @@ export default function ToolCard({ tool, sessionId }: Props) {
           onResponded={() => {
             if (sessionId && tool.requestId) {
               const action = { type: 'PERMISSION_RESPONDED' as const, sessionId, requestId: tool.requestId };
+              dispatch(action);
+              (window as any).claude?.remote?.broadcastAction(action);
+            }
+          }}
+          onFailed={() => {
+            if (sessionId && tool.requestId) {
+              const action = { type: 'PERMISSION_EXPIRED' as const, sessionId, requestId: tool.requestId };
               dispatch(action);
               (window as any).claude?.remote?.broadcastAction(action);
             }

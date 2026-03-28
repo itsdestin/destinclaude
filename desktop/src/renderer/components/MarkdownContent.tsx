@@ -31,41 +31,41 @@ function CopyButton({ text }: { text: string }) {
 // reconciliation of the entire markdown tree.
 const mdComponents = {
   h1({ children, ...props }: any) {
-    return <h1 className="text-xl font-bold mt-5 mb-2 text-gray-100" {...props}>{children}</h1>;
+    return <h1 className="text-xl font-bold mt-6 mb-3 pb-1.5 text-white border-b border-gray-600" {...props}>{children}</h1>;
   },
   h2({ children, ...props }: any) {
-    return <h2 className="text-lg font-bold mt-4 mb-2 text-gray-100" {...props}>{children}</h2>;
+    return <h2 className="text-lg font-bold mt-6 mb-3 pb-1 text-white border-b border-gray-700" {...props}>{children}</h2>;
   },
   h3({ children, ...props }: any) {
-    return <h3 className="text-base font-bold mt-3 mb-1.5 text-gray-200" {...props}>{children}</h3>;
+    return <h3 className="text-base font-bold mt-5 mb-2 text-gray-100" {...props}>{children}</h3>;
   },
   h4({ children, ...props }: any) {
-    return <h4 className="text-sm font-bold mt-3 mb-1 text-gray-200" {...props}>{children}</h4>;
+    return <h4 className="text-sm font-bold mt-4 mb-1.5 text-gray-100" {...props}>{children}</h4>;
   },
   p({ children, ...props }: any) {
-    return <p className="mb-2 leading-relaxed" {...props}>{children}</p>;
+    return <p className="mb-3 leading-relaxed" {...props}>{children}</p>;
   },
   ol({ children, ...props }: any) {
-    return <ol className="list-decimal pl-6 mb-2 space-y-1" {...props}>{children}</ol>;
+    return <ol className="list-decimal pl-6 mb-3 space-y-1.5" {...props}>{children}</ol>;
   },
   ul({ children, ...props }: any) {
-    return <ul className="list-disc pl-6 mb-2 space-y-1" {...props}>{children}</ul>;
+    return <ul className="list-disc pl-6 mb-3 space-y-1.5" {...props}>{children}</ul>;
   },
   li({ children, ...props }: any) {
     return <li className="leading-relaxed" {...props}>{children}</li>;
   },
   hr({ ...props }: any) {
-    return <hr className="border-gray-600 my-3" {...props} />;
+    return <hr className="border-gray-500 my-5" {...props} />;
   },
   blockquote({ children, ...props }: any) {
     return (
-      <blockquote className="border-l-2 border-gray-500 pl-3 my-2 text-gray-400 italic" {...props}>
+      <blockquote className="border-l-2 border-gray-500 pl-3 my-3 text-gray-400 italic" {...props}>
         {children}
       </blockquote>
     );
   },
   strong({ children, ...props }: any) {
-    return <strong className="font-bold text-gray-100" {...props}>{children}</strong>;
+    return <strong className="font-bold text-white" {...props}>{children}</strong>;
   },
   em({ children, ...props }: any) {
     return <em className="italic text-gray-300" {...props}>{children}</em>;
@@ -81,8 +81,8 @@ const mdComponents = {
       }
     });
     return (
-      <div className="relative group my-2">
-        <pre className="rounded-md bg-gray-900 p-3 overflow-x-auto text-sm" {...props}>
+      <div className="relative group my-3">
+        <pre className="rounded-md bg-gray-950 border border-gray-700 p-3 overflow-x-auto text-sm" {...props}>
           {children}
         </pre>
         {codeText && <CopyButton text={codeText} />}
@@ -93,7 +93,7 @@ const mdComponents = {
     const isInline = !className;
     if (isInline) {
       return (
-        <code className="bg-gray-800 rounded px-1.5 py-0.5 text-sm text-gray-300" {...props}>
+        <code className="bg-[#1a1810] border border-[#33301a] rounded px-1.5 py-0.5 text-sm text-[#ccbb88]" {...props}>
           {children}
         </code>
       );
@@ -123,8 +123,8 @@ const mdComponents = {
   },
   table({ children, ...props }: any) {
     return (
-      <div className="overflow-x-auto my-2">
-        <table className="border-collapse border border-gray-700 text-sm" {...props}>
+      <div className="overflow-x-auto my-3">
+        <table className="border-collapse border border-gray-600 text-sm w-full" {...props}>
           {children}
         </table>
       </div>
@@ -132,14 +132,14 @@ const mdComponents = {
   },
   th({ children, ...props }: any) {
     return (
-      <th className="border border-gray-700 px-3 py-1.5 bg-gray-800 text-left font-medium" {...props}>
+      <th className="border border-gray-600 px-3 py-2 bg-gray-900 text-left font-bold text-gray-100" {...props}>
         {children}
       </th>
     );
   },
   td({ children, ...props }: any) {
     return (
-      <td className="border border-gray-700 px-3 py-1.5" {...props}>
+      <td className="border border-gray-600 px-3 py-2" {...props}>
         {children}
       </td>
     );

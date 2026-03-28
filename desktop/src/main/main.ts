@@ -76,6 +76,18 @@ function createWindow() {
 
   // Forward hook events to renderer
   hookRelay.on('hook-event', (event) => {
+    // Auto-approve permission requests for skip-permissions (dangerous mode) sessions
+    if (event.type === 'PermissionRequest') {
+      const sessionInfo = sessionManager.getSession(event.sessionId);
+      if (sessionInfo?.skipPermissions) {
+        const requestId = event.payload?._requestId as string;
+        if (requestId) {
+          hookRelay.respond(requestId, { decision: { behavior: 'allow' } });
+          return;
+        }
+      }
+    }
+
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send(IPC.HOOK_EVENT, event);
     }
