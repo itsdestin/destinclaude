@@ -85,14 +85,14 @@ function AppInner() {
         statuses.set(s.id, 'red');
       } else if (chatState.isThinking || hasRunning) {
         statuses.set(s.id, 'green');
-      } else if (chatState.timeline.length > 0 && !viewedSessions.has(s.id)) {
+      } else if (chatState.timeline.length > 0 && !viewedSessions.has(s.id) && s.id !== sessionId) {
         statuses.set(s.id, 'blue');
       } else {
         statuses.set(s.id, 'gray');
       }
     }
     return statuses;
-  }, [sessions, chatStateMap, viewedSessions]);
+  }, [sessions, chatStateMap, viewedSessions, sessionId]);
 
   useEffect(() => {
     const createdHandler = window.claude.on.sessionCreated((info) => {
@@ -100,9 +100,10 @@ function AppInner() {
         // Deduplicate — replay buffers resend session:created for existing sessions
         if (prev.some((s) => s.id === info.id)) return prev;
         dispatch({ type: 'SESSION_INIT', sessionId: info.id });
+        // Only auto-focus genuinely new sessions (not replayed ones)
+        setSessionId(info.id);
         return [...prev, info];
       });
-      setSessionId((prev) => prev ?? info.id);
       setViewModes((prev) => prev.has(info.id) ? prev : new Map(prev).set(info.id, 'chat'));
       setPermissionModes((prev) => prev.has(info.id) ? prev : new Map(prev).set(info.id, info.permissionMode || 'normal'));
     });
@@ -447,6 +448,7 @@ function AppInner() {
               onToggleSettings={() => setSettingsOpen(prev => !prev)}
               settingsBadge={settingsBadge}
               sessionStatuses={sessionStatuses}
+              onResumeSession={() => {}}
             />
             <div className="flex-1 overflow-hidden relative">
               {sessions.map((s) => (
