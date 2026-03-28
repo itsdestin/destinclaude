@@ -6,7 +6,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return { ...state, connected: true, username: action.username, screen: 'lobby', partyError: null };
 
     case 'PARTY_DISCONNECTED':
-      return { ...state, connected: false };
+      return { ...state, connected: false, partyError: 'Disconnected from game server — reconnecting...' };
 
     case 'PARTY_ERROR':
       return { ...state, connected: false, partyError: action.message };
