@@ -375,6 +375,41 @@ function AppInner() {
     });
   }, []);
 
+  const handleResumeSession = useCallback(async (claudeSessionId: string, projectSlug: string) => {
+    // Derive the project path from the slug
+    const slugToPath = (s: string) => {
+      if (/^[A-Z]--/.test(s)) return s.replace(/^([A-Z])--/, '$1:\\').replace(/-/g, '\\');
+      return '/' + s.replace(/-/g, '/');
+    };
+    const cwd = slugToPath(projectSlug);
+
+    // Create a new session in that project directory
+    await window.claude.session.create({ name: 'Resuming...', cwd, skipPermissions: false });
+
+    // Small delay for session initialization, then send /resume command
+    setTimeout(() => {
+      // Find the session that was just created (most recent)
+      const latestSession = sessions[sessions.length - 1];
+      if (!latestSession) return;
+
+      window.claude.session.sendInput(latestSession.id, `/resume ${claudeSessionId}\r`);
+
+      // Load recent history into chat view
+      (window as any).claude.session.loadHistory(claudeSessionId, projectSlug, 10, false)
+        .then((messages: any[]) => {
+          if (messages.length > 0) {
+            dispatch({
+              type: 'HISTORY_LOADED',
+              sessionId: latestSession.id,
+              messages,
+              hasMore: true,
+            });
+          }
+        })
+        .catch(console.error);
+    }, 500);
+  }, [sessions, dispatch]);
+
   const currentViewMode = sessionId ? (viewModes.get(sessionId) || 'chat') : 'chat';
 
   const handleToggleView = useCallback(
@@ -448,7 +483,7 @@ function AppInner() {
               onToggleSettings={() => setSettingsOpen(prev => !prev)}
               settingsBadge={settingsBadge}
               sessionStatuses={sessionStatuses}
-              onResumeSession={() => {}}
+              onResumeSession={handleResumeSession}
             />
             <div className="flex-1 overflow-hidden relative">
               {sessions.map((s) => (
