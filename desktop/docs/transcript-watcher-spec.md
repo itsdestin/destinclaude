@@ -1,7 +1,7 @@
 ---
 name: Transcript Watcher
 description: Real-time JSONL transcript file watcher that provides structured chat state for the desktop app's Chat View
-version: 1.0
+version: 1.1
 created: 2026-03-27
 ---
 
@@ -64,9 +64,17 @@ An `EventEmitter` in the main process that manages watching one transcript file 
 
 - `startWatching(desktopSessionId, claudeSessionId, cwd)` — Computes the transcript path, reads existing content (catch-up), then attaches `fs.watch`. Falls back to 1-second polling if the file doesn't exist yet.
 
-- `readNewLines(session)` — Reads new bytes from the file starting at the stored byte offset. Splits on newlines, handles partial lines across reads, parses complete lines, deduplicates by UUID (per-line, not per-event), and emits `transcript-event` for each new event.
+- `readNewLines(session)` — Reads new bytes from the file starting at the stored byte offset. Splits on newlines, handles partial lines across reads, parses complete lines, deduplicates by UUID with selective per-event-type filtering, and emits `transcript-event` for each new event.
 
-**Deduplication:** Claude Code writes incremental updates to the transcript — the same message UUID appears in multiple JSONL lines as content blocks stream in. The watcher deduplicates at the line level: once a UUID is seen, all subsequent lines with that UUID are skipped. This is the only dedup layer — the reducer does not duplicate this logic.
+**Deduplication:** Claude Code writes incremental updates to the transcript — the same message UUID appears in multiple JSONL lines as content blocks stream in. The watcher tracks seen UUIDs and applies selective filtering on repeated UUIDs:
+
+- `assistant-text` — **SKIP** on repeat (would create duplicate text segments; the first write's text is already in the timeline)
+- `tool-use` — **EMIT** on repeat (may be new; reducer `Map.set` deduplicates by `toolUseId` so re-emitting is harmless)
+- `tool-result` — **EMIT** on repeat (reducer `Map.set` deduplicates by `toolUseId`)
+- `turn-complete` — **EMIT** on repeat (only appears on the final write; critical for clearing the "thinking" state)
+- `user-message` — **EMIT** on repeat (reducer has its own text-based dedup)
+
+This selective approach ensures the watcher does not drop sibling events from a repeated UUID while still preventing duplicate text segments. The reducer relies on its own `Map.set` semantics for tool-use/tool-result dedup and text-matching for user-message dedup.
 
 **Lifecycle:** Started when the first hook event for a session arrives (which provides the Claude session ID needed to locate the transcript file). Stopped when the session exits.
 
@@ -149,11 +157,15 @@ The watcher depends on Claude Code's internal JSONL transcript format. Key assum
 
 1. **File watching over hook enhancement.** We chose to read Claude Code's existing transcript files rather than requesting new hook events from Anthropic. Rationale: the transcript already contains all the data we need, the approach works today without upstream changes, and it's more complete (full tool results, correct ordering, user messages with images).
 
-2. **Watcher-level dedup only.** Deduplication by UUID happens in the TranscriptWatcher, not the reducer. Rationale: a single JSONL line can produce multiple events (e.g., `assistant-text` + `turn-complete`), and reducer-level UUID dedup would drop sibling events. The watcher deduplicates at the line level, which is the correct granularity.
+2. **Selective watcher-level dedup.** Deduplication by UUID happens in the TranscriptWatcher with per-event-type filtering. On repeated UUIDs, only `assistant-text` is skipped — `tool-use`, `tool-result`, `turn-complete`, and `user-message` are emitted because the reducer has its own dedup for those types (`Map.set` by `toolUseId`, text-matching for user messages). Rationale: the original line-level dedup (skip all events from a repeated UUID) was too aggressive — it dropped `turn-complete` events on the final JSONL write, leaving the "thinking" indicator stuck, and prevented tool-use events from being emitted when they shared a UUID with earlier assistant text.
 
 3. **Hooks preserved for permissions only.** Rather than replacing the entire hook system, we kept it for `PermissionRequest`/`PermissionExpired`. Rationale: the blocking socket protocol is essential for permissions and cannot be replicated via file watching.
 
 4. **Synthetic tool entries for early permissions.** When a permission request arrives before the corresponding transcript tool_use event, the reducer creates a synthetic tool entry. Rationale: the hook relay is faster than the file watcher, so this race is common. Silently dropping the permission request would break the approval flow.
+
+## Change Log
+
+- **v1.1** (2026-03-27): Updated dedup description and Design Decision #2 to reflect selective per-event-type filtering (assistant-text only skipped on repeat UUIDs; other event types emitted). Added `stripSystemTags` and safety-net polling as implementation details.
 
 ## Known Issues & Planned Updates
 
