@@ -132,6 +132,11 @@ export default function InputBar({ sessionId, disabled, onOpenDrawer, onResumeCo
   const handlePaste = useCallback(async (e: React.ClipboardEvent) => {
     const items = e.clipboardData?.items;
     if (!items) return;
+    // Only treat as image paste if there's no text content — copying from
+    // web pages often includes both text/plain and image/png items, and
+    // we don't want to block the text paste in that case.
+    const hasText = Array.from(items).some((item) => item.type.startsWith('text/'));
+    if (hasText) return;
     for (const item of Array.from(items)) {
       if (item.type.startsWith('image/')) {
         e.preventDefault();
