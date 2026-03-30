@@ -134,7 +134,7 @@ function handleMessage(data: string): void {
       dispatchEvent('status:data', payload);
       break;
     case 'ui:action':
-      dispatchEvent('ui:action', payload);
+      dispatchEvent('ui:action:received', payload);
       break;
     case 'transcript:event':
       dispatchEvent('transcript:event', payload);
@@ -247,7 +247,7 @@ export function installShim(): void {
       hookEvent: (cb: Callback) => addListener('hook:event', cb),
       statusData: (cb: Callback) => addListener('status:data', cb),
       sessionRenamed: (cb: Callback) => addListener('session:renamed', cb),
-      uiAction: (cb: Callback) => addListener('ui:action', cb),
+      uiAction: (cb: Callback) => addListener('ui:action:received', cb),
       transcriptEvent: (cb: Callback) => addListener('transcript:event', cb),
     },
     skills: {
