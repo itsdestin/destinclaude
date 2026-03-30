@@ -15,15 +15,39 @@ CONFIG_FILE="$CLAUDE_DIR/toolkit-state/config.json"
 LOCAL_CONFIG_FILE="$CLAUDE_DIR/toolkit-state/config.local.json"
 
 # --- Logging ---
+# log_backup LEVEL MSG [OP] [EXTRA_JSON]
+# Backwards-compatible: existing 2-arg calls produce plaintext.
+# New 3-4 arg calls produce structured JSON for machine-parseable analysis.
 log_backup() {
-    local level="$1" msg="$2"
+    local level="$1" msg="$2" op="${3:-}" extra="${4:-}"
     local ts
     ts=$(date '+%Y-%m-%d %H:%M:%S')
-    echo "[$ts] [$level] $msg" >> "$BACKUP_LOG"
+    if command -v node &>/dev/null && [[ -n "$op" ]]; then
+        node -e "
+            var e={ts:'$ts',level:'$level',op:'$op',sid:(process.env.CLAUDE_SESSION_ID||'').slice(0,8),msg:process.argv[1]};
+            if ('$extra') try{Object.assign(e,JSON.parse('$extra'))}catch(x){}
+            console.log(JSON.stringify(e));
+        " "$msg" >> "$BACKUP_LOG"
+    else
+        echo "[$ts] [$level] $msg" >> "$BACKUP_LOG"
+    fi
     if [[ "$level" == "ERROR" ]]; then
         echo "{\"hookSpecificOutput\": \"Backup: $msg\"}" >&2
     fi
 }
+
+# --- Atomic file write ---
+# Uses same-directory temp file for rename(2) atomicity.
+# IMPORTANT: Do NOT refactor to use mktemp ($TMPDIR may be on a different
+# mount, breaking rename(2) atomicity). Same-directory temp is intentional.
+if ! declare -f atomic_write &>/dev/null; then
+    atomic_write() {
+        local _target="$1" _content="$2"
+        local _tmp="${_target}.tmp.$$"
+        echo "$_content" > "$_tmp"
+        mv -f "$_tmp" "$_target"
+    }
+fi
 
 # --- Config reading ---
 # Read a key from config.local.json (machine-specific, takes precedence),
