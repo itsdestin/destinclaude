@@ -215,7 +215,7 @@ Three GitHub Actions workflows handle versioning, releases, and builds:
 | `release.yml` | Push of a `v*` tag | Extracts the matching section from `CHANGELOG.md` and creates a GitHub Release |
 | `build.yml` | Push of a `v*` tag | Builds cross-platform DestinCode desktop app installers (Windows `.exe`, macOS `.dmg`, Linux `.AppImage`) |
 
-**Release flow:** Bump the `version` field in `plugin.json` → push to master → `auto-tag.yml` creates the tag → tag push triggers `release.yml` → GitHub Release published with changelog notes. No manual tagging needed.
+**Release flow:** The `/release` skill orchestrates the full release process — 7 parallel review agents validate changes, then it bumps `VERSION`, `plugin.json`, and `desktop/package.json`, generates the CHANGELOG entry, captures the Claude Code version, triggers a build verification, commits, tags, and pushes. From there, `auto-tag.yml` creates the tag → tag push triggers `release.yml` → GitHub Release published with changelog notes → `build.yml` builds and attaches desktop installers.
 
 **Versioning policy** (documented in CHANGELOG.md):
 - **Major (X.0.0)** — Breaking changes requiring `/setup-wizard` re-run or manual migration
@@ -223,6 +223,8 @@ Three GitHub Actions workflows handle versioning, releases, and builds:
 - **Patch (1.0.X)** — Bug fixes, doc/copy updates, hook corrections
 
 The `VERSION` file and `plugin.json` version field must stay in sync. The `/update` command and statusline both read from `VERSION` to determine the installed version and check for updates via git tags.
+
+The `/release` skill (in `destinclaude-admin`) is the sole release mechanism. `scripts/release.sh` was removed in v2.1.9 — all release logic now lives in the skill.
 
 ## Building on Top
 

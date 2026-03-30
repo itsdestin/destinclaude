@@ -103,7 +103,7 @@ Framing: rounded rect with accent-color border + subtle horizontal accent lines 
 - Positioned between prerequisites and the install step
 - Intro text: "DestinClaude integrates with the services you already use."
 - Center-justified flexbox row of integration tags (pill-shaped), each with:
-  - Icon (via Wikimedia Commons SVGs for Google/Apple services, Simple Icons CDN for others, Google Favicons as fallback)
+  - Icon (self-hosted SVGs in `docs/icons/`, originally sourced from Wikimedia Commons and Simple Icons)
   - Service name
   - `data-desc` attribute with expandable description (click/tap to toggle)
   - Descriptions use consistent "DestinClaude can..." phrasing
