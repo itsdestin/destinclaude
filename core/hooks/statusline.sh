@@ -90,6 +90,10 @@ if [[ -f "$WARNINGS_FILE" ]]; then
             PERSONAL:STALE) WARN_PARTS="${WARN_PARTS:+$WARN_PARTS${_SEP_W}}${YELLOW}WARN: No Recent Personal Sync (>24h)${RESET}" ;;
             SKILLS:*) WARN_PARTS="${WARN_PARTS:+$WARN_PARTS${_SEP_D}}${RED}DANGER: Unsynced Skills${RESET}" ;;
             PROJECTS:*) WARN_PARTS="${WARN_PARTS:+$WARN_PARTS${_SEP_D}}${RED}DANGER: Projects Excluded From Sync${RESET}" ;;
+            GIT:PULL_FAILED) WARN_PARTS="${WARN_PARTS:+$WARN_PARTS${_SEP_W}}${YELLOW}WARN: Git Pull Failed${RESET}" ;;
+            GIT:NOT_INITIALIZED) WARN_PARTS="${WARN_PARTS:+$WARN_PARTS${_SEP_W}}${YELLOW}WARN: Git Not Initialized${RESET}" ;;
+            PERSONAL:PULL_FAILED:*) WARN_PARTS="${WARN_PARTS:+$WARN_PARTS${_SEP_W}}${YELLOW}WARN: Personal Pull Failed (${_LINE##*:})${RESET}" ;;
+            MIGRATION:FAILED) WARN_PARTS="${WARN_PARTS:+$WARN_PARTS${_SEP_D}}${RED}DANGER: Migration Failed${RESET}" ;;
         esac
     done < "$WARNINGS_FILE"
 fi
