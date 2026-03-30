@@ -3,6 +3,10 @@
 set -euo pipefail
 
 CLAUDE_DIR="${CLAUDE_DIR:-$HOME/.claude}"
+# Source shared infrastructure (trap handlers, error capture, rotation)
+HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+[[ -f "$HOOK_DIR/lib/hook-preamble.sh" ]] && source "$HOOK_DIR/lib/hook-preamble.sh"
+
 # Clean up session-scoped detection markers from previous sessions
 rm -f "$CLAUDE_DIR"/.unsynced-warned-* 2>/dev/null
 ENCYCLOPEDIA_DIR="$CLAUDE_DIR/encyclopedia"
@@ -13,7 +17,6 @@ SYNC_DEBOUNCE_MARKER="$CLAUDE_DIR/toolkit-state/.session-sync-marker"
 SYNC_DEBOUNCE_MINUTES=10
 CLAUDE_JSON="$HOME/.claude.json"
 # Source shared backup utilities
-HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if [[ -f "$HOOK_DIR/lib/backup-common.sh" ]]; then
     source "$HOOK_DIR/lib/backup-common.sh"
 fi
@@ -251,6 +254,10 @@ if [[ -n "$TOOLKIT_ROOT" && -d "$TOOLKIT_ROOT/core/hooks" ]]; then
                     if diff -rq "${_skill_link%/}" "$_skill_source" >/dev/null 2>&1; then
                         rm -rf "${_skill_link%/}"
                         ln -sf "$_skill_source" "${_skill_link%/}" 2>/dev/null && _REPAIRED="$_REPAIRED skill:$_skill_name"
+                        # B1 fix: clean git index for files that were inside the now-symlinked directory
+                        if git -C "$CLAUDE_DIR" ls-files --error-unmatch "${_skill_link%/}" &>/dev/null 2>&1; then
+                            git -C "$CLAUDE_DIR" rm -r --cached "${_skill_link%/}" 2>/dev/null || true
+                        fi
                     else
                         _MODIFIED="$_MODIFIED skill:$_skill_name"
                     fi
@@ -290,15 +297,28 @@ _session_sync_background() {
 
     # --- Sub-function: Git pull (cross-device sync) ---
     _bg_git_pull() {
-        cd "$CLAUDE_DIR"
-        if git remote get-url origin &>/dev/null; then
-            _GIT_DEFAULT=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's|refs/remotes/origin/||') || true
-            [[ -z "$_GIT_DEFAULT" ]] && _GIT_DEFAULT="main"
-            if ! git pull --rebase origin "$_GIT_DEFAULT" 2>/dev/null; then
-                git rebase --abort 2>/dev/null || true
-                log_backup "WARN" "Git pull failed on session start. Working with local state."
-                echo "GIT:PULL_FAILED" >> "$SYNC_ERRORS_FILE"
-            fi
+        cd "$CLAUDE_DIR" || return
+        if ! git remote get-url origin &>/dev/null; then return; fi
+
+        _GIT_DEFAULT=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's|refs/remotes/origin/||') || true
+        [[ -z "$_GIT_DEFAULT" ]] && _GIT_DEFAULT="main"
+
+        # Stash dirty files before pull (defense-in-depth alongside .gitignore migration)
+        local _stashed=false
+        if ! git diff --quiet 2>/dev/null || ! git diff --cached --quiet 2>/dev/null; then
+            git stash push -q -m "session-start: auto-stash before pull" 2>/dev/null \
+                && _stashed=true
+        fi
+
+        if ! git pull --rebase origin "$_GIT_DEFAULT" 2>/dev/null; then
+            git rebase --abort 2>/dev/null || true
+            log_backup "WARN" "Git pull failed on session start" "sync.pull.git"
+            echo "GIT:PULL_FAILED" >> "$SYNC_ERRORS_FILE"
+        fi
+
+        if [[ "$_stashed" == "true" ]]; then
+            git stash pop -q 2>/dev/null || \
+                log_backup "WARN" "Stash pop failed after session-start pull" "sync.pull.git"
         fi
     }
 
@@ -343,15 +363,19 @@ _session_sync_background() {
                         rclone copy "$DRIVE_SOURCE/encyclopedia/" "$CLAUDE_DIR/encyclopedia/" \
                             --update --max-depth 1 --include "*.md" 2>/dev/null &
                         # Conversations — pull per-slug (Design ref: D3)
-                        {
-                            log_backup "INFO" "Pulling conversations from Drive..."
-                            rclone copy "$DRIVE_SOURCE/conversations/" "$CLAUDE_DIR/projects/" \
-                                --checksum --include '*.jsonl' 2>/dev/null || {
-                                log_backup "WARN" "Drive pull (conversations) failed"
-                                _drive_pull_ok=false
-                            }
-                        } &
+                        # Use --ignore-existing to prevent overwriting local files
+                        # with older Drive versions (direction-aware: local is authoritative)
+                        log_backup "INFO" "Pulling conversations from Drive..." "sync.pull.drive"
+                        rclone copy "$DRIVE_SOURCE/conversations/" "$CLAUDE_DIR/projects/" \
+                            --checksum --include '*.jsonl' --ignore-existing 2>/dev/null &
+                        local _conv_pull_pid=$!
                         wait
+                        # Capture conversation pull exit code atomically
+                        # (fixes A3: subshell variable scoping bug)
+                        wait $_conv_pull_pid 2>/dev/null || {
+                            log_backup "WARN" "Drive pull (conversations) failed" "sync.pull.drive"
+                            _drive_pull_ok=false
+                        }
                         if [[ "$_drive_pull_ok" == false ]]; then
                             echo "PERSONAL:PULL_FAILED:drive" >> "$SYNC_ERRORS_FILE"
                         fi
@@ -649,6 +673,20 @@ VEREOF
             log_backup "WARN" "Backup migration failed. Some restored data may be in an old format."
             echo "MIGRATION:FAILED" >> "$SYNC_ERRORS_FILE"
         }
+    fi
+
+    # -----------------------------------------------------------------------
+    # Self-heal missing symlinks (e.g., after git pull removes tracked
+    # symlinks before the user runs /update on this device)
+    # -----------------------------------------------------------------------
+    if [[ -n "${TOOLKIT_ROOT:-}" && -d "$TOOLKIT_ROOT/scripts" ]]; then
+        local _cmd_count _skill_count
+        _cmd_count=$(find "$CLAUDE_DIR/commands/" -maxdepth 1 -name '*.md' 2>/dev/null | wc -l)
+        _skill_count=$(find "$CLAUDE_DIR/skills/" -maxdepth 1 -type l 2>/dev/null | wc -l)
+        if (( _cmd_count == 0 || _skill_count == 0 )); then
+            log_backup "WARN" "Missing symlinks detected — running auto-refresh" "sync.selfheal"
+            bash "$TOOLKIT_ROOT/scripts/post-update.sh" refresh >> "$BACKUP_LOG" 2>&1 || true
+        fi
     fi
 
     # -----------------------------------------------------------------------
