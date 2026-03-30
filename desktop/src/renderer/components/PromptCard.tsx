@@ -32,7 +32,7 @@ export default function PromptCard({ prompt, sessionId, onSelect }: Props) {
     return (
       <div className="flex justify-start px-4 py-1">
         <div className="max-w-[85%] rounded-2xl rounded-bl-sm bg-gray-800 px-2 py-1">
-          <div className="border border-gray-700 rounded-lg bg-gray-850 px-3 py-2 flex items-center gap-1.5">
+          <div className="border border-gray-700 rounded-lg px-3 py-2 flex items-center gap-1.5">
             <CheckIcon className="w-3.5 h-3.5 shrink-0 text-gray-400" />
             <span className="text-gray-600 text-xs select-none">|</span>
             <span className="text-xs font-medium text-gray-300">{prompt.title}:</span>
@@ -46,7 +46,7 @@ export default function PromptCard({ prompt, sessionId, onSelect }: Props) {
   return (
     <div className="flex justify-start px-4 py-1">
       <div className="max-w-[85%] rounded-2xl rounded-bl-sm bg-gray-800 px-2 py-1">
-        <div className="border border-gray-700 rounded-lg bg-gray-850 overflow-hidden">
+        <div className="border border-gray-700 rounded-lg overflow-hidden">
           {/* Header — matches ToolCard style with | separator */}
           <div className="flex items-center gap-1.5 px-3 py-2">
             <span className="text-gray-600 text-xs select-none">|</span>

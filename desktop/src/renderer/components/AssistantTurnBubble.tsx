@@ -53,7 +53,7 @@ function CollapsedToolGroup({ tools, sessionId }: { tools: ToolCallState[]; sess
         <ChevronIcon className="w-3.5 h-3.5 shrink-0 text-gray-500" expanded={expanded} />
       </button>
       {expanded && (
-        <div className="px-2 pb-2 space-y-1">
+        <div className="px-2 pb-2 space-y-1 bg-gray-850 rounded-b-lg">
           {tools.map((tool) => (
             <ToolCard key={tool.toolUseId} tool={tool} sessionId={sessionId} />
           ))}

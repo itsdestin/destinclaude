@@ -107,7 +107,7 @@ export default function ToolCard({ tool, sessionId }: Props) {
   const summary = toolSummary(tool);
 
   return (
-    <div className="border border-gray-700 rounded-lg bg-gray-850 overflow-hidden">
+    <div className="border border-gray-700 rounded-lg overflow-hidden">
       {/* Header */}
       <button
         onClick={() => setExpanded(!expanded)}
