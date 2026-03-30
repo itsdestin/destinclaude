@@ -511,6 +511,14 @@ function AppInner() {
               onSelectSession={setSessionId}
               onCreateSession={createSession}
               onCloseSession={(id) => window.claude.session.destroy(id)}
+              onReorderSessions={(fromIndex: number, toIndex: number) => {
+                setSessions(prev => {
+                  const next = [...prev];
+                  const [moved] = next.splice(fromIndex, 1);
+                  next.splice(toIndex, 0, moved);
+                  return next;
+                });
+              }}
               viewMode={currentViewMode}
               onToggleView={handleToggleView}
               gamePanelOpen={gameState.panelOpen}
