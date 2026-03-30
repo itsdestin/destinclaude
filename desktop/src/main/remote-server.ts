@@ -8,6 +8,7 @@ import { EventEmitter } from 'events';
 import type { SessionManager } from './session-manager';
 import type { HookRelay } from './hook-relay';
 import type { RemoteConfig } from './remote-config';
+import { readTranscriptMeta } from './transcript-utils';
 
 const PTY_BUFFER_SIZE = 4 * 1024 * 1024; // 4MB per session — enough for full conversation replay
 const HOOK_BUFFER_SIZE = 10_000; // ~10MB max, covers full conversations without excessive memory
@@ -539,7 +540,6 @@ export class RemoteServer {
       }
       case 'transcript:read-meta': {
         const transcriptPath = payload.path || payload;
-        // Validate path is within ~/.claude/projects/ to prevent arbitrary file reads
         const claudeProjects = path.join(os.homedir(), '.claude', 'projects');
         const resolvedPath = path.resolve(transcriptPath);
         if (!resolvedPath.startsWith(claudeProjects)) {
@@ -547,19 +547,8 @@ export class RemoteServer {
           break;
         }
         try {
-          const content = fs.readFileSync(transcriptPath, 'utf8');
-          const lines = content.trim().split('\n');
-          let model = 'unknown';
-          let contextPercent = 100;
-          for (const line of lines) {
-            try {
-              const obj = JSON.parse(line);
-              if (obj.model) model = obj.model.display_name || obj.model.id || obj.model;
-              if (obj.costInfo?.contextRemaining != null) contextPercent = Math.round(obj.costInfo.contextRemaining * 100);
-              if (obj.context_window?.remaining_percentage != null) contextPercent = Math.round(obj.context_window.remaining_percentage);
-            } catch { /* skip non-JSON lines */ }
-          }
-          this.respond(client.ws, type, id, { model, contextPercent });
+          const meta = await readTranscriptMeta(transcriptPath);
+          this.respond(client.ws, type, id, meta);
         } catch {
           this.respond(client.ws, type, id, null);
         }
