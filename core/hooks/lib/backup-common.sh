@@ -96,23 +96,31 @@ config_get() {
 }
 
 # --- Symlink ownership detection (Design ref: D2) ---
-# Returns 0 if the file is a symlink pointing into TOOLKIT_ROOT (toolkit-owned).
-# Returns 1 otherwise (user-owned or not a symlink).
+# Returns 0 if the file or any of its parent directories is a symlink
+# pointing into TOOLKIT_ROOT (toolkit-owned).
+# Returns 1 otherwise (user-owned or no symlink chain into toolkit).
 is_toolkit_owned() {
     local filepath="$1"
     [[ -z "$TOOLKIT_ROOT" ]] && return 1
-    [[ ! -L "$filepath" ]] && return 1
-    local target
-    target=$(realpath "$filepath" 2>/dev/null \
-        || readlink -f "$filepath" 2>/dev/null \
-        || python3 -c "import os,sys; print(os.path.realpath(sys.argv[1]))" "$filepath" 2>/dev/null \
-        || readlink "$filepath" 2>/dev/null) || return 1
+
     local resolved_root
     resolved_root=$(realpath "$TOOLKIT_ROOT" 2>/dev/null \
         || readlink -f "$TOOLKIT_ROOT" 2>/dev/null \
-        || python3 -c "import os,sys; print(os.path.realpath(sys.argv[1]))" "$TOOLKIT_ROOT" 2>/dev/null \
-        || echo "$TOOLKIT_ROOT") || return 1
-    [[ "$target" == "$resolved_root/"* || "$target" == "$resolved_root" ]]
+        || echo "$TOOLKIT_ROOT")
+
+    # Walk up the directory tree checking for symlinks into TOOLKIT_ROOT
+    local check_path="$filepath"
+    while [[ "$check_path" != "/" && "$check_path" != "." && -n "$check_path" ]]; do
+        if [[ -L "$check_path" ]]; then
+            local target
+            target=$(realpath "$check_path" 2>/dev/null \
+                || readlink -f "$check_path" 2>/dev/null) || return 1
+            [[ "$target" == "$resolved_root/"* || "$target" == "$resolved_root" ]] && return 0
+        fi
+        check_path=$(dirname "$check_path")
+    done
+
+    return 1
 }
 
 # --- Debounce ---

@@ -28,6 +28,9 @@ if [[ -f "$HOOK_DIR/lib/migrate.sh" ]]; then
     source "$HOOK_DIR/lib/migrate.sh"
 fi
 
+# Ensure is_toolkit_owned() has TOOLKIT_ROOT to check against
+TOOLKIT_ROOT=$(config_get "toolkit_root" "")
+
 # --- Path filter: only sync personal data files ---
 CLAUDE_DIR="${CLAUDE_DIR:-$HOME/.claude}"
 
