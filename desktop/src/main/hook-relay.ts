@@ -5,6 +5,7 @@ import os from 'os';
 import path from 'path';
 import { EventEmitter } from 'events';
 import { HookEvent } from '../shared/types';
+import { log } from './logger';
 
 const DEFAULT_PIPE_NAME = process.platform === 'win32'
   ? '\\\\.\\pipe\\claude-desktop-hooks'
@@ -40,7 +41,7 @@ export class HookRelay extends EventEmitter {
 
       socket.on('error', (err) => {
         // Log connection-level errors for debugging (ECONNRESET, EPIPE, etc.)
-        console.warn('[HookRelay] Socket error:', err.message);
+        log('WARN', 'HookRelay', 'Socket error', { error: String(err.message) });
       });
 
       const processPayload = (payload: string) => {
@@ -71,7 +72,7 @@ export class HookRelay extends EventEmitter {
             socket.end();
           }
         } catch (err: any) {
-          console.warn('[HookRelay] Invalid hook payload:', err.message);
+          log('WARN', 'HookRelay', 'Invalid hook payload', { error: String(err.message) });
           socket.end();
         }
       };

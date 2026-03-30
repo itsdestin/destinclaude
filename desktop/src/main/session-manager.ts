@@ -6,6 +6,7 @@ import os from 'os';
 import { app } from 'electron';
 import { SessionInfo } from '../shared/types';
 import { EventEmitter } from 'events';
+import { log } from './logger';
 
 // Optional — which may not be installed; fall back to bare command name
 let whichSync: ((cmd: string) => string) | null = null;
@@ -58,7 +59,7 @@ export class SessionManager extends EventEmitter {
       if (fs.existsSync(unpackedPath)) {
         workerPath = unpackedPath;
       } else {
-        console.error(`[SessionManager] Unpacked worker not found at ${unpackedPath}, using asar path`);
+        log('ERROR', 'SessionManager', 'Unpacked worker not found, using asar path', { path: unpackedPath });
       }
     }
     // Always use system Node.js — Electron's binary can't load node-pty.
@@ -87,7 +88,7 @@ export class SessionManager extends EventEmitter {
     // Handle spawn failure (e.g., node not on PATH) — without this,
     // the unhandled 'error' event would crash the Electron main process.
     worker.on('error', (err) => {
-      console.error(`[SessionManager] Worker spawn failed for session ${id}:`, err);
+      log('ERROR', 'SessionManager', 'Worker spawn failed', { sessionId: id, error: String(err) });
       if (this.sessions.has(id)) {
         this.sessions.get(id)!.info.status = 'destroyed';
         this.sessions.delete(id);
@@ -97,7 +98,7 @@ export class SessionManager extends EventEmitter {
 
     // Drain stderr so the pipe buffer doesn't fill up and cause backpressure.
     worker.stderr?.on('data', (chunk: Buffer) => {
-      console.error(`[SessionManager] Worker [${id}]:`, chunk.toString());
+      log('ERROR', 'SessionManager', 'Worker stderr', { sessionId: id, output: chunk.toString() });
     });
 
     worker.on('message', (msg: any) => {

@@ -11,6 +11,7 @@ import { RemoteServer } from './remote-server';
 import { RemoteConfig } from './remote-config';
 import { scanSkills } from './skill-scanner';
 import { IPC } from '../shared/types';
+import { log, rotateLog } from './logger';
 
 // macOS Electron apps launched from Finder/Dock inherit a minimal PATH from
 // launchd (just /usr/bin:/bin:/usr/sbin:/sbin). Homebrew and nvm paths are
@@ -107,24 +108,26 @@ function createWindow() {
 }
 
 app.whenReady().then(async () => {
+  await rotateLog();
+
   // Install hook relay entries in Claude Code settings
   try {
     const installScript = path.join(__dirname, '../../scripts/install-hooks.js');
     require(installScript);
   } catch (e) {
-    console.error('Failed to install hooks:', e);
+    log('ERROR', 'Main', 'Failed to install hooks', { error: String(e) });
   }
 
   try {
     await hookRelay.start();
   } catch (e) {
-    console.error('Failed to start hook relay:', e);
+    log('ERROR', 'Main', 'Failed to start hook relay', { error: String(e) });
   }
 
   try {
     await remoteServer.start();
   } catch (e) {
-    console.error('Failed to start remote server:', e);
+    log('ERROR', 'Main', 'Failed to start remote server', { error: String(e) });
   }
 
   const FAVORITES_PATH = path.join(os.homedir(), '.claude', 'destinclaude-favorites.json');
@@ -154,11 +157,11 @@ app.whenReady().then(async () => {
     } catch (err: any) {
       // Log specific failure reason for debugging
       if (err.code === 'ENOENT') {
-        console.warn('[GitHub Auth] gh CLI not found on PATH');
+        log('WARN', 'GitHubAuth', 'gh CLI not found on PATH');
       } else if (err.stderr?.includes('not logged in')) {
-        console.warn('[GitHub Auth] gh CLI not authenticated');
+        log('WARN', 'GitHubAuth', 'gh CLI not authenticated');
       } else {
-        console.warn('[GitHub Auth] Failed:', err.message || err);
+        log('WARN', 'GitHubAuth', 'Failed', { error: String(err.message || err) });
       }
       return null;
     }
