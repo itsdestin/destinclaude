@@ -8,6 +8,7 @@ type Callback = (...args: any[]) => void;
 interface PendingRequest {
   resolve: (value: any) => void;
   reject: (reason: any) => void;
+  timeout: ReturnType<typeof setTimeout>;
 }
 
 export type RemoteConnectionState = 'disconnected' | 'connecting' | 'authenticating' | 'connected';
@@ -49,15 +50,14 @@ function send(msg: any): void {
 function invoke(type: string, payload?: any): Promise<any> {
   return new Promise((resolve, reject) => {
     const id = `msg-${++messageId}`;
-    pending.set(id, { resolve, reject });
-    send({ type, id, payload });
-    // Timeout after 30 seconds
-    setTimeout(() => {
+    const timeout = setTimeout(() => {
       if (pending.has(id)) {
         pending.delete(id);
         reject(new Error(`Request ${type} timed out`));
       }
     }, 30_000);
+    pending.set(id, { resolve, reject, timeout });
+    send({ type, id, payload });
   });
 }
 
@@ -107,9 +107,10 @@ function handleMessage(data: string): void {
 
   // Response to a pending request
   if (type?.endsWith(':response') && id && pending.has(id)) {
-    const { resolve } = pending.get(id)!;
+    const entry = pending.get(id)!;
+    clearTimeout(entry.timeout);
     pending.delete(id);
-    resolve(payload);
+    entry.resolve(payload);
     return;
   }
 
