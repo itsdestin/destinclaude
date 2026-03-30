@@ -585,8 +585,13 @@ phase_orphans() {
       local skill_name
       skill_name="$(basename "$skill")"
       if ! printf '%b' "$known_skills" | grep -qxF "$skill_name"; then
-        emit "ORPHAN" "skills/$skill_name" "not in toolkit manifest"
-        orphan_count=$((orphan_count + 1))
+        if [ -L "$skill" ]; then
+          # Symlink not in manifest = stale toolkit artifact
+          emit "ORPHAN" "skills/$skill_name" "stale symlink — not in toolkit manifest"
+          orphan_count=$((orphan_count + 1))
+        else
+          emit "SKIP" "skills/$skill_name" "user-managed skill (not a toolkit symlink)"
+        fi
       fi
     done
   fi
