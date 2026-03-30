@@ -690,6 +690,21 @@ VEREOF
     fi
 
     # -----------------------------------------------------------------------
+    # Staleness catch-up: if personal sync hasn't run in 24h, trigger it
+    # -----------------------------------------------------------------------
+    local _personal_marker="$CLAUDE_DIR/toolkit-state/.personal-sync-marker"
+    if [[ -f "$_personal_marker" ]]; then
+        local _last_sync _stale_age
+        _last_sync=$(cat "$_personal_marker" 2>/dev/null || echo 0)
+        _stale_age=$(( $(date +%s) - _last_sync ))
+        if (( _stale_age > 86400 )); then
+            log_backup "INFO" "Personal sync stale (${_stale_age}s) — triggering catch-up" "sync.stale"
+            bash "$CLAUDE_DIR/hooks/personal-sync.sh" \
+                <<< '{"tool_input":{"file_path":"'"$CLAUDE_DIR/CLAUDE.md"'"}}' &
+        fi
+    fi
+
+    # -----------------------------------------------------------------------
     # Mark sync complete
     # -----------------------------------------------------------------------
     debounce_touch "$SYNC_DEBOUNCE_MARKER" 2>/dev/null || true
