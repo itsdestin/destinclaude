@@ -582,7 +582,7 @@ _session_sync_background() {
             mkdir -p "$STATE_DIR"
             local CURRENT
             CURRENT=$(cat "$TOOLKIT_ROOT/VERSION" 2>/dev/null | tr -d '[:space:]')
-            # VERSION is a git-tracked file set by release.sh and updated by
+            # VERSION is a git-tracked file set by the /release skill and updated by
             # /update's merge step. Never overwrite it here — doing so can
             # inflate the version after git fetch --tags, making /update think
             # the user is already up to date when they aren't.

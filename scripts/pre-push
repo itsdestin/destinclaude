@@ -14,7 +14,7 @@ while read local_ref local_sha remote_ref remote_sha; do
         TAG_VER="${local_ref#refs/tags/v}"
         if [[ "$TAG_VER" != "$CURRENT" ]]; then
             echo "ERROR: Tag v$TAG_VER does not match VERSION file ($CURRENT)."
-            echo "Use ./scripts/release.sh $TAG_VER to release properly."
+            echo "Use the /release skill to release properly."
             exit 1
         fi
     fi
