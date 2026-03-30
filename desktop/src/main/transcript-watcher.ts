@@ -414,7 +414,14 @@ export class TranscriptWatcher extends EventEmitter {
       // - user-message: EMIT (reducer has its own text-based dedup)
       const lineUuid = events[0].uuid;
       const isRepeat = lineUuid && session.seenUuids.has(lineUuid);
-      if (lineUuid) session.seenUuids.add(lineUuid);
+      if (lineUuid) {
+        session.seenUuids.add(lineUuid);
+        // Sliding window: prune to last 500 UUIDs to prevent unbounded memory growth
+        if (session.seenUuids.size > 500) {
+          const entries = [...session.seenUuids];
+          session.seenUuids = new Set(entries.slice(-500));
+        }
+      }
 
       for (const event of events) {
         if (isRepeat && event.type === 'assistant-text') continue;
