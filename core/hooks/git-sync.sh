@@ -104,7 +104,7 @@ if [[ -n "$PPID" ]]; then
         console.log(JSON.stringify(reg, null, 2));
     " "$REG_CONTENT" "$NORM_PATH" "$PPID" "$TIMESTAMP" "$CONTENT_HASH" 2>/dev/null) || true
 
-    echo "$REG_CONTENT" > "$REGISTRY"
+    atomic_write "$REGISTRY" "$REG_CONTENT"
 fi
 
 # --- Debounced push (every 15 min) ---
