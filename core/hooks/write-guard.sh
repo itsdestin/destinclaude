@@ -3,6 +3,10 @@
 # Claude session last modified the file (same-machine concurrency guard).
 set -euo pipefail
 
+# Source shared infrastructure (trap handlers, error capture, rotation)
+HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+[[ -f "$HOOK_DIR/lib/hook-preamble.sh" ]] && source "$HOOK_DIR/lib/hook-preamble.sh"
+
 LOG="$HOME/.claude/backup.log"
 # Use Windows-native path for Node.js compatibility (Git Bash $HOME = /c/Users/... which Node misreads)
 REGISTRY="$HOME/.claude/.write-registry.json"
@@ -13,7 +17,7 @@ FILE_PATH=$(echo "$STDIN_JSON" | node -e "
   let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{
     try{const j=JSON.parse(d);const p=j.tool_input&&j.tool_input.file_path||'';
     console.log(p.split(String.fromCharCode(92)).join('/'))}catch{console.log('')}
-  })" 2>/dev/null)
+  })" 2>>"$LOG")
 
 # If FILE_PATH is empty, allow (not a file write)
 if [ -z "$FILE_PATH" ]; then
@@ -65,8 +69,8 @@ try {
     const e = reg[process.argv[2]];
     if (e) console.log(JSON.stringify(e));
     else console.log('');
-} catch { console.log(''); }
-" "$REGISTRY" "$FILE_PATH" 2>/dev/null)
+} catch(e) { console.error('write-guard: registry read failed: ' + e.message); console.log(''); }
+" "$REGISTRY" "$FILE_PATH" 2>>"$LOG")
 
 # No registry entry for this file — allow
 if [ -z "$ENTRY" ]; then

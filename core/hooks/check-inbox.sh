@@ -3,6 +3,10 @@
 # Outputs a systemMessage if items are found, silent otherwise
 set -euo pipefail
 
+# Source shared infrastructure (trap handlers, error capture, rotation)
+HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+[[ -f "$HOOK_DIR/lib/hook-preamble.sh" ]] && source "$HOOK_DIR/lib/hook-preamble.sh"
+
 CONFIG_FILE="$HOME/.claude/toolkit-state/config.json"
 INBOX_DIR="$HOME/.claude/inbox"
 PLATFORM="$(uname -s | tr '[:upper:]' '[:lower:]')"
@@ -45,11 +49,7 @@ for provider in $providers; do
     google-drive)
       if command -v rclone &>/dev/null; then
         drive_path=$(cat "$CONFIG_FILE" | jq -r '.inbox_provider_config["google-drive"].inbox_path // "Claude/Inbox"' 2>/dev/null)
-        if command -v timeout &>/dev/null; then
-          drive_count=$(timeout 5 rclone lsf "gdrive:$drive_path" 2>/dev/null | wc -l | tr -d ' ' || echo 0)
-        else
-          drive_count=$(rclone lsf "gdrive:$drive_path" 2>/dev/null | wc -l | tr -d ' ' || echo 0)
-        fi
+        drive_count=$(_with_timeout 5 rclone lsf "gdrive:$drive_path" 2>/dev/null | wc -l | tr -d ' ' || echo 0)
         count=$((count + drive_count))
       fi
       ;;
@@ -60,11 +60,7 @@ for provider in $providers; do
       if [[ "$PLATFORM" == "darwin" ]]; then
         notes_folder=$(cat "$CONFIG_FILE" | jq -r '.inbox_provider_config["apple-notes"].folder // "Claude"' 2>/dev/null)
         sanitized_folder=$(printf '%s' "$notes_folder" | sed 's/\\/\\\\/g; s/"/\\"/g')
-        if command -v timeout &>/dev/null; then
-          notes_count=$(timeout 5 osascript -e "tell application \"Notes\" to count notes of folder \"$sanitized_folder\"" 2>/dev/null || echo 0)
-        else
-          notes_count=$(osascript -e "tell application \"Notes\" to count notes of folder \"$sanitized_folder\"" 2>/dev/null || echo 0)
-        fi
+        notes_count=$(_with_timeout 5 osascript -e "tell application \"Notes\" to count notes of folder \"$sanitized_folder\"" 2>/dev/null || echo 0)
         count=$((count + notes_count))
       fi
       ;;
@@ -72,11 +68,7 @@ for provider in $providers; do
       if [[ "$PLATFORM" == "darwin" ]]; then
         reminders_list=$(cat "$CONFIG_FILE" | jq -r '.inbox_provider_config["apple-reminders"].list // "Claude"' 2>/dev/null)
         sanitized_list=$(printf '%s' "$reminders_list" | sed 's/\\/\\\\/g; s/"/\\"/g')
-        if command -v timeout &>/dev/null; then
-          reminders_count=$(timeout 5 osascript -e "tell application \"Reminders\" to count (reminders of list \"$sanitized_list\" whose completed is false)" 2>/dev/null || echo 0)
-        else
-          reminders_count=$(osascript -e "tell application \"Reminders\" to count (reminders of list \"$sanitized_list\" whose completed is false)" 2>/dev/null || echo 0)
-        fi
+        reminders_count=$(_with_timeout 5 osascript -e "tell application \"Reminders\" to count (reminders of list \"$sanitized_list\" whose completed is false)" 2>/dev/null || echo 0)
         count=$((count + reminders_count))
       fi
       ;;

@@ -3,6 +3,10 @@
 # Outputs CONTRIBUTION_AVAILABLE context if new meaningful changes are found
 set -euo pipefail
 
+# Source shared infrastructure (trap handlers, error capture, rotation)
+HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+[[ -f "$HOOK_DIR/lib/hook-preamble.sh" ]] && source "$HOOK_DIR/lib/hook-preamble.sh"
+
 CLAUDE_DIR="${CLAUDE_DIR:-$HOME/.claude}"
 STATE_DIR="$CLAUDE_DIR/toolkit-state"
 TRACKER="$STATE_DIR/contribution-tracker.json"
@@ -119,14 +123,14 @@ if command -v node &>/dev/null; then
         });
     " "$TODAY" 2>/dev/null) || CHANGES_JSON="{}"
 
-    node -e "
+    _capture_err "contribution-detector: update tracker" node -e "
         const fs = require('fs');
         const t = JSON.parse(fs.readFileSync(process.argv[1], 'utf8'));
         const newChanges = JSON.parse(process.argv[2]);
         t.suggested = { ...t.suggested, ...newChanges };
         t.installed_version = process.argv[3];
         fs.writeFileSync(process.argv[1], JSON.stringify(t, null, 2));
-    " "$TRACKER" "$CHANGES_JSON" "$INSTALLED_TAG" 2>/dev/null || true
+    " "$TRACKER" "$CHANGES_JSON" "$INSTALLED_TAG" || true
 fi
 
 # --- Output context for Claude session ---

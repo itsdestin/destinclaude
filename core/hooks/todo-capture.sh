@@ -2,6 +2,10 @@
 # Hook: UserPromptSubmit — capture /todo notes to local inbox
 set -euo pipefail
 
+# Source shared infrastructure (trap handlers, error capture, rotation)
+HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+[[ -f "$HOOK_DIR/lib/hook-preamble.sh" ]] && source "$HOOK_DIR/lib/hook-preamble.sh"
+
 if ! command -v jq &>/dev/null; then
   exit 0
 fi
@@ -27,7 +31,7 @@ mkdir -p "$inbox_dir"
 timestamp=$(date +%Y-%m-%dT%H-%M-%S)
 filename="${timestamp}_todo.md"
 
-cat > "$inbox_dir/$filename" << ENDOFFILE
+if cat > "$inbox_dir/$filename" << ENDOFFILE
 ---
 source: local
 captured: $(date +%Y-%m-%dT%H:%M:%S%z)
@@ -35,5 +39,8 @@ origin: todo
 ---
 $note
 ENDOFFILE
-
-echo '{"systemMessage": "[Todo] Note captured to local inbox. Briefly confirm, then continue your previous task."}'
+then
+  echo '{"systemMessage": "[Todo] Note captured to local inbox. Briefly confirm, then continue your previous task."}'
+else
+  echo '{"systemMessage": "[Todo] ERROR: Failed to write note to inbox. Check disk space and permissions for ~/.claude/inbox/."}'
+fi

@@ -9,6 +9,10 @@
 #   mcp__claude_ai_Google_Calendar__gcal_create_event   → gws calendar events insert
 #   mcp__claude_ai_Google_Calendar__gcal_list_events    → gws calendar events list
 
+# Source shared infrastructure (trap handlers, error capture, rotation)
+HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+[[ -f "$HOOK_DIR/lib/hook-preamble.sh" ]] && source "$HOOK_DIR/lib/hook-preamble.sh"
+
 STDIN_JSON=$(cat)
 TOOL_NAME=$(echo "$STDIN_JSON" | node -e "
   let d='';

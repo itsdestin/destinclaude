@@ -4,11 +4,15 @@
 # The main plugin dir must stay on master. Feature work uses worktrees.
 set -euo pipefail
 
+# Source shared infrastructure (trap handlers, error capture, rotation)
+HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+[[ -f "$HOOK_DIR/lib/hook-preamble.sh" ]] && source "$HOOK_DIR/lib/hook-preamble.sh"
+
 INPUT=$(cat)
 COMMAND=$(echo "$INPUT" | node -e "
   let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{
     try{const j=JSON.parse(d);console.log(j.tool_input&&j.tool_input.command||'')}catch{console.log('')}
-  })" 2>/dev/null)
+  })" 2>>"$HOME/.claude/backup.log")
 
 [[ -z "$COMMAND" ]] && exit 0
 
