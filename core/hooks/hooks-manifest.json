@@ -1,0 +1,75 @@
+{
+  "_comment": "Desired-state declaration for settings.json hooks. Used by phase_settings_migrate() during /update. Timeout values are in SECONDS (matching Claude Code convention). Reconciliation: new hooks are added; missing properties are added; for timeouts, MAX(user, manifest) is enforced.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "command": "bash ~/.claude/hooks/session-start.sh",
+        "timeout": 120,
+        "required": true
+      },
+      {
+        "command": "bash ~/.claude/hooks/contribution-detector.sh",
+        "timeout": 30,
+        "required": false
+      }
+    ],
+    "PreToolUse": [
+      {
+        "command": "bash ~/.claude/hooks/write-guard.sh",
+        "matcher": "Write|Edit",
+        "timeout": 10,
+        "required": true
+      },
+      {
+        "command": "bash ~/.claude/hooks/worktree-guard.sh",
+        "matcher": "Bash|Agent",
+        "timeout": 10,
+        "required": true
+      },
+      {
+        "command": "bash ~/.claude/hooks/tool-router.sh",
+        "matcher": "mcp__claude_ai_Gmail.*|mcp__claude_ai_Google_Calendar.*",
+        "timeout": 10,
+        "required": false
+      }
+    ],
+    "PostToolUse": [
+      {
+        "command": "bash ~/.claude/hooks/git-sync.sh",
+        "matcher": "Write|Edit",
+        "timeout": 30,
+        "required": true
+      },
+      {
+        "command": "bash ~/.claude/hooks/personal-sync.sh",
+        "matcher": "Write|Edit",
+        "timeout": 120,
+        "required": true
+      },
+      {
+        "command": "bash ~/.claude/hooks/title-update.sh",
+        "timeout": 10,
+        "required": true
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "command": "bash ~/.claude/hooks/todo-capture.sh",
+        "timeout": 10,
+        "required": false
+      }
+    ],
+    "Stop": [
+      {
+        "command": "bash ~/.claude/hooks/checklist-reminder.sh",
+        "timeout": 10,
+        "required": false
+      },
+      {
+        "command": "bash ~/.claude/hooks/done-sound.sh",
+        "timeout": 5,
+        "required": false
+      }
+    ]
+  }
+}
