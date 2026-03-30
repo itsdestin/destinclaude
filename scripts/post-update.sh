@@ -740,29 +740,51 @@ phase_verify() {
     emit "FAIL" "settings.json" "file not found"
     fail_count=$((fail_count + 1))
   else
-    local node_settings
+    local node_settings node_manifest_path
     node_settings="$(to_node_path "$settings_file")"
+    node_manifest_path="$(to_node_path "$TOOLKIT_ROOT/core/hooks/hooks-manifest.json")"
 
     # Use node to check all expected hook registrations in one call.
     # Output: one line per check, format: OK|FAIL <tab> trigger <tab> hookname <tab> detail
     local node_output
     node_output="$(node -e "
       var fs = require('fs');
-      var settings = JSON.parse(fs.readFileSync('${node_settings}', 'utf8'));
+      var settingsPath = process.argv[1];
+      var manifestPath = process.argv[2];
+      var settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
       var hooks = settings.hooks || {};
 
-      // Expected registrations: [trigger, matcher, hookFilename]
-      var expected = [
-        ['SessionStart',      'startup',    'session-start.sh'],
-        ['PreToolUse',        'Write|Edit', 'write-guard.sh'],
-        ['PreToolUse',        'Bash|Agent', 'worktree-guard.sh'],
-        ['PostToolUse',       'Write|Edit', 'git-sync.sh'],
-        ['PostToolUse',       'Write|Edit', 'personal-sync.sh'],
-        ['PostToolUse',       '.*',         'title-update.sh'],
-        ['UserPromptSubmit',  '.*',         'todo-capture.sh'],
-        ['Stop',              '.*',         'checklist-reminder.sh'],
-        ['Stop',              '.*',         'done-sound.sh']
-      ];
+      // Build expected registrations from hooks manifest, with hardcoded fallback
+      var manifest;
+      try {
+        manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+      } catch(e) {
+        manifest = null;
+      }
+
+      var expected = [];
+      if (manifest) {
+        for (var trigger in manifest.hooks) {
+          manifest.hooks[trigger].forEach(function(h) {
+            if (!h.required) return; // Skip optional hooks
+            var file = h.command.split('/').pop();
+            expected.push([trigger, h.matcher || '.*', file]);
+          });
+        }
+      } else {
+        // Legacy fallback — keep the existing hardcoded list
+        expected = [
+          ['SessionStart',      'startup',    'session-start.sh'],
+          ['PreToolUse',        'Write|Edit', 'write-guard.sh'],
+          ['PreToolUse',        'Bash|Agent', 'worktree-guard.sh'],
+          ['PostToolUse',       'Write|Edit', 'git-sync.sh'],
+          ['PostToolUse',       'Write|Edit', 'personal-sync.sh'],
+          ['PostToolUse',       '.*',         'title-update.sh'],
+          ['UserPromptSubmit',  '.*',         'todo-capture.sh'],
+          ['Stop',              '.*',         'checklist-reminder.sh'],
+          ['Stop',              '.*',         'done-sound.sh']
+        ];
+      }
 
       expected.forEach(function(row) {
         var trigger = row[0];
@@ -812,7 +834,7 @@ phase_verify() {
       } else {
         console.log('FAIL\tstatusLine\tstatusLine\tnot configured in settings.json');
       }
-    " 2>/dev/null || echo "FAIL	settings.json	node	settings verification script failed")"
+    " "$node_settings" "$node_manifest_path" 2>/dev/null || echo "FAIL	settings.json	node	settings verification script failed")"
 
     # Parse node output and emit results
     while IFS= read -r line; do
