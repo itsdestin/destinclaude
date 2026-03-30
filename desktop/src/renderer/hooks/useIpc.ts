@@ -12,6 +12,8 @@ declare global {
         resize: (sessionId: string, cols: number, rows: number) => void;
         signalReady: (sessionId: string) => void;
         respondToPermission: (requestId: string, decision: object) => Promise<boolean>;
+        browse: () => Promise<any[]>;
+        loadHistory: (sessionId: string, projectSlug: string, count?: number, all?: boolean) => Promise<any>;
       };
       skills: {
         list: () => Promise<import('../../shared/types').SkillEntry[]>;
@@ -23,6 +25,8 @@ declare global {
         hookEvent: (cb: (event: any) => void) => (...args: any[]) => void;
         statusData: (cb: (data: any) => void) => (...args: any[]) => void;
         sessionRenamed: (cb: (sessionId: string, name: string) => void) => (...args: any[]) => void;
+        uiAction: (cb: (action: any) => void) => () => void;
+        transcriptEvent: (cb: (event: any) => void) => () => void;
       };
       dialog: {
         openFile: () => Promise<string[]>;
@@ -33,10 +37,22 @@ declare global {
       shell: {
         openChangelog: () => Promise<void>;
       };
+      remote: {
+        getConfig: () => Promise<any>;
+        setPassword: (pw: string) => Promise<void>;
+        setConfig: (config: any) => Promise<void>;
+        detectTailscale: () => Promise<any>;
+        getClientCount: () => Promise<number>;
+        getClientList: () => Promise<any[]>;
+        disconnectClient: (id: string) => Promise<void>;
+        broadcastAction: (action: any) => void;
+      };
       off: (channel: string, handler: (...args: any[]) => void) => void;
       removeAllListeners: (channel: string) => void;
       getGitHubAuth: () => Promise<{ username: string } | null>;
       getHomePath: () => Promise<string>;
+      getFavorites: () => Promise<any>;
+      setFavorites: (favorites: any) => Promise<void>;
     };
   }
 }
