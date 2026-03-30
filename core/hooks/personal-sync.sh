@@ -56,16 +56,9 @@ if type config_get &>/dev/null; then
     DRIVE_ROOT=$(config_get "DRIVE_ROOT" "Claude")
     SYNC_REPO=$(config_get "PERSONAL_SYNC_REPO" "")
 elif command -v node &>/dev/null; then
-    read -r BACKEND DRIVE_ROOT SYNC_REPO < <(node -e "
-        const fs = require('fs');
-        try {
-            const c = JSON.parse(fs.readFileSync(process.argv[1], 'utf8'));
-            const b = c.PERSONAL_SYNC_BACKEND || 'none';
-            const d = c.DRIVE_ROOT || 'Claude';
-            const r = c.PERSONAL_SYNC_REPO || '';
-            process.stdout.write(b + ' ' + d + ' ' + r);
-        } catch { process.stdout.write('none Claude '); }
-    " "$CONFIG_FILE" 2>/dev/null) || true
+    BACKEND=$(node -e "try{const c=JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'));console.log(c.PERSONAL_SYNC_BACKEND||'none')}catch{console.log('none')}" "$CONFIG_FILE" 2>/dev/null) || BACKEND="none"
+    DRIVE_ROOT=$(node -e "try{const c=JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'));console.log(c.DRIVE_ROOT||'Claude')}catch{console.log('Claude')}" "$CONFIG_FILE" 2>/dev/null) || DRIVE_ROOT="Claude"
+    SYNC_REPO=$(node -e "try{const c=JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'));console.log(c.PERSONAL_SYNC_REPO||'')}catch{console.log('')}" "$CONFIG_FILE" 2>/dev/null) || SYNC_REPO=""
 else
     BACKEND=$(grep -o '"PERSONAL_SYNC_BACKEND"[[:space:]]*:[[:space:]]*"[^"]*"' "$CONFIG_FILE" 2>/dev/null | head -1 | sed 's/.*"PERSONAL_SYNC_BACKEND"[[:space:]]*:[[:space:]]*"//' | sed 's/"$//' || echo "none")
     DRIVE_ROOT=$(grep -o '"DRIVE_ROOT"[[:space:]]*:[[:space:]]*"[^"]*"' "$CONFIG_FILE" 2>/dev/null | head -1 | sed 's/.*"DRIVE_ROOT"[[:space:]]*:[[:space:]]*"//' | sed 's/"$//' || echo "Claude")
