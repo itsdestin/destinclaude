@@ -277,7 +277,7 @@ sync_github() (
         done
     fi
 
-    # Conversations — copy per-slug (Design ref: D3, D4)
+    # Conversations — copy per-slug with recursive discovery (Design ref: D3, D4)
     if [[ -d "$CLAUDE_DIR/projects" ]]; then
         for slug_dir in "$CLAUDE_DIR"/projects/*/; do
             [[ ! -d "$slug_dir" ]] && continue
@@ -289,9 +289,10 @@ sync_github() (
                 [[ -f "$f" && ! -L "$f" ]] && { has_jsonl=true; break; }
             done
             if [[ "$has_jsonl" == true ]]; then
-                mkdir -p "$REPO_DIR/conversations/$slug_name"
-                for f in "$slug_dir"*.jsonl; do
-                    [[ -f "$f" && ! -L "$f" ]] && cp "$f" "$REPO_DIR/conversations/$slug_name/" 2>/dev/null || true
+                find "$slug_dir" -name '*.jsonl' -not -type l 2>/dev/null | while IFS= read -r _f; do
+                    local _rel="${_f#$slug_dir}"
+                    mkdir -p "$REPO_DIR/conversations/$slug_name/$(dirname "$_rel")"
+                    cp "$_f" "$REPO_DIR/conversations/$slug_name/$_rel" 2>/dev/null
                 done
             fi
         done
@@ -380,7 +381,7 @@ sync_icloud() {
         done
     fi
 
-    # Conversations — copy per-slug, skip symlinks (Design ref: D3, D4)
+    # Conversations — copy per-slug with recursive discovery, skip symlinks (Design ref: D3, D4)
     if [[ -d "$CLAUDE_DIR/projects" ]]; then
         for slug_dir in "$CLAUDE_DIR"/projects/*/; do
             [[ ! -d "$slug_dir" ]] && continue
@@ -392,12 +393,11 @@ sync_icloud() {
                 [[ -f "$f" && ! -L "$f" ]] && { has_jsonl=true; break; }
             done
             if [[ "$has_jsonl" == true ]]; then
-                mkdir -p "$ICLOUD_PATH/conversations/$slug_name"
-                for f in "$slug_dir"*.jsonl; do
-                    [[ -f "$f" && ! -L "$f" ]] && {
-                        rsync -a --update "$f" "$ICLOUD_PATH/conversations/$slug_name/" 2>/dev/null || \
-                            cp "$f" "$ICLOUD_PATH/conversations/$slug_name/" 2>/dev/null || true
-                    }
+                find "$slug_dir" -name '*.jsonl' -not -type l 2>/dev/null | while IFS= read -r _f; do
+                    local _rel="${_f#$slug_dir}"
+                    mkdir -p "$ICLOUD_PATH/conversations/$slug_name/$(dirname "$_rel")"
+                    rsync -a --update "$_f" "$ICLOUD_PATH/conversations/$slug_name/$_rel" 2>/dev/null || \
+                        cp "$_f" "$ICLOUD_PATH/conversations/$slug_name/$_rel" 2>/dev/null || true
                 done
             fi
         done
