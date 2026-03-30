@@ -101,13 +101,22 @@ interface Props {
   sessionId?: string;
 }
 
+// Unified status-based coloring for tool bubbles — shared with CollapsedToolGroup
+export const STATUS_STYLES: Record<string, { border: string; icon: string }> = {
+  'running':            { border: 'border-gray-600',              icon: '' },
+  'complete':           { border: 'border-gray-700',              icon: 'text-[#4CAF50]' },
+  'failed':             { border: 'border-[#DD4444]/40',          icon: 'text-[#DD4444]' },
+  'awaiting-approval':  { border: 'border-[#FF9800]/40',          icon: 'text-[#FF9800]' },
+};
+
 export default function ToolCard({ tool, sessionId }: Props) {
   const [expanded, setExpanded] = useState(false);
   const dispatch = useChatDispatch();
   const summary = toolSummary(tool);
+  const styles = STATUS_STYLES[tool.status] || STATUS_STYLES['complete'];
 
   return (
-    <div className="border border-gray-700 rounded-lg bg-gray-850 overflow-hidden">
+    <div className={`border ${styles.border} rounded-lg bg-gray-850 overflow-hidden`}>
       {/* Header */}
       <button
         onClick={() => setExpanded(!expanded)}
@@ -118,10 +127,13 @@ export default function ToolCard({ tool, sessionId }: Props) {
           <BrailleSpinner size="sm" />
         )}
         {tool.status === 'complete' && (
-          <CheckIcon className="w-3.5 h-3.5 shrink-0 text-gray-400" />
+          <CheckIcon className={`w-3.5 h-3.5 shrink-0 ${styles.icon}`} />
         )}
         {tool.status === 'failed' && (
-          <FailIcon className="w-3.5 h-3.5 shrink-0 text-gray-400" />
+          <FailIcon className={`w-3.5 h-3.5 shrink-0 ${styles.icon}`} />
+        )}
+        {tool.status === 'awaiting-approval' && (
+          <span className={`text-sm leading-none shrink-0 ${styles.icon}`}>?</span>
         )}
         <span className="text-gray-600 text-xs select-none">|</span>
         <span className="text-xs font-medium text-gray-300">{toolLabel(tool.toolName)}</span>

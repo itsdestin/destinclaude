@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { AssistantTurn } from '../state/chat-types';
 import { ToolCallState, ToolGroupState } from '../../shared/types';
 import MarkdownContent from './MarkdownContent';
-import ToolCard from './ToolCard';
+import ToolCard, { STATUS_STYLES } from './ToolCard';
 import { CheckIcon, FailIcon, ChevronIcon } from './Icons';
 import BrailleSpinner from './BrailleSpinner';
 
@@ -21,6 +21,10 @@ function CollapsedToolGroup({ tools, sessionId }: { tools: ToolCallState[]; sess
   const completedCount = tools.filter((t) => t.status === 'complete').length;
   const failedCount = tools.filter((t) => t.status === 'failed').length;
 
+  // Derive aggregate status for consistent coloring
+  const aggregateStatus = runningCount > 0 ? 'running' : failedCount > 0 ? 'failed' : 'complete';
+  const styles = STATUS_STYLES[aggregateStatus] || STATUS_STYLES['complete'];
+
   // Build name summary: "Read, Grep, Grep" → "Read, Grep ×2"
   const nameCounts = new Map<string, number>();
   for (const t of tools) {
@@ -31,7 +35,7 @@ function CollapsedToolGroup({ tools, sessionId }: { tools: ToolCallState[]; sess
     .join(', ');
 
   return (
-    <div className="border border-gray-700 rounded-lg overflow-hidden">
+    <div className={`border ${styles.border} rounded-lg bg-gray-850 overflow-hidden`}>
       <button
         onClick={() => setExpanded(!expanded)}
         className="w-full flex items-center gap-1.5 px-3 py-2 text-left hover:bg-gray-800/50 transition-colors"
@@ -39,9 +43,9 @@ function CollapsedToolGroup({ tools, sessionId }: { tools: ToolCallState[]; sess
         {runningCount > 0 ? (
           <BrailleSpinner size="sm" />
         ) : failedCount > 0 ? (
-          <FailIcon className="w-3.5 h-3.5 shrink-0 text-gray-400" />
+          <FailIcon className={`w-3.5 h-3.5 shrink-0 ${styles.icon}`} />
         ) : (
-          <CheckIcon className="w-3.5 h-3.5 shrink-0 text-gray-400" />
+          <CheckIcon className={`w-3.5 h-3.5 shrink-0 ${styles.icon}`} />
         )}
         <span className="text-gray-600 text-xs select-none">|</span>
         <span className="text-xs text-gray-400 flex-1">

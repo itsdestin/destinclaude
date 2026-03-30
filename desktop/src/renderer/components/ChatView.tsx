@@ -216,7 +216,7 @@ export default function ChatView({ sessionId, visible, resumeInfo }: Props) {
               .filter((t) => t.status === 'awaiting-approval')
               .map((tool) => (
                 <div key={tool.toolUseId} className="flex justify-start px-4 py-1">
-                  <div className="max-w-[85%] rounded-2xl rounded-bl-sm bg-gray-800 px-2 py-1">
+                  <div className="max-w-[85%] rounded-2xl rounded-bl-sm bg-gray-800 border border-[#FF9800]/30 px-2 py-1">
                     <ToolCard tool={tool} sessionId={sessionId} />
                   </div>
                 </div>
