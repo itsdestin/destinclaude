@@ -46,6 +46,16 @@ function getOrCreateTurn(session: SessionChatState): {
 }
 
 export function chatReducer(state: ChatState, action: ChatAction): ChatState {
+  // Fast path: the two highest-frequency no-op patterns exit before cloning.
+  // TERMINAL_ACTIVITY fires on every rAF during output; default catches unknown types.
+  if (action.type === 'TERMINAL_ACTIVITY') {
+    const session = state.get(action.sessionId);
+    if (!session || !session.isThinking) return state;
+    const next = new Map(state);
+    next.set(action.sessionId, { ...session, lastActivityAt: Date.now() });
+    return next;
+  }
+
   const next = new Map(state);
 
   switch (action.type) {
@@ -173,12 +183,7 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
       return next;
     }
 
-    case 'TERMINAL_ACTIVITY': {
-      const session = next.get(action.sessionId);
-      if (!session || !session.isThinking) return state;
-      next.set(action.sessionId, { ...session, lastActivityAt: Date.now() });
-      return next;
-    }
+    // TERMINAL_ACTIVITY handled in fast path above (before Map clone)
 
     // --- Transcript watcher actions ---
 
