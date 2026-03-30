@@ -10,6 +10,7 @@ import { RemoteConfig } from './remote-config';
 import { RemoteServer } from './remote-server';
 import { TranscriptWatcher } from './transcript-watcher';
 import { listPastSessions, loadHistory } from './session-browser';
+import { readTranscriptMeta } from './transcript-utils';
 
 // Max age for clipboard paste images (1 hour)
 const CLIPBOARD_MAX_AGE_MS = 60 * 60 * 1000;
@@ -71,31 +72,38 @@ export function registerIpcHandlers(
     return result.canceled ? null : result.filePaths[0];
   });
 
-  // Save clipboard image to temp file (with cleanup of stale files)
+  // Save clipboard image to temp file (async I/O, cleanup on timer)
+  const clipboardTmpDir = path.join(os.tmpdir(), 'claude-desktop-attachments');
+  let clipboardCleanupScheduled = false;
+
+  async function cleanupClipboardTemp(): Promise<void> {
+    try {
+      const files = await fs.promises.readdir(clipboardTmpDir);
+      const now = Date.now();
+      for (const file of files) {
+        if (!file.startsWith('paste-')) continue;
+        try {
+          const stat = await fs.promises.stat(path.join(clipboardTmpDir, file));
+          if (now - stat.mtimeMs > CLIPBOARD_MAX_AGE_MS) {
+            await fs.promises.unlink(path.join(clipboardTmpDir, file));
+          }
+        } catch {}
+      }
+    } catch {}
+  }
+
   ipcMain.handle(IPC.CLIPBOARD_SAVE_IMAGE, async () => {
     const img = clipboard.readImage();
     if (img.isEmpty()) return null;
-    const tmpDir = path.join(os.tmpdir(), 'claude-desktop-attachments');
-    fs.mkdirSync(tmpDir, { recursive: true });
+    await fs.promises.mkdir(clipboardTmpDir, { recursive: true });
 
-    // Clean up stale paste files older than 1 hour
-    try {
-      const now = Date.now();
-      for (const file of fs.readdirSync(tmpDir)) {
-        if (!file.startsWith('paste-')) continue;
-        const filePath = path.join(tmpDir, file);
-        try {
-          const stat = fs.statSync(filePath);
-          if (now - stat.mtimeMs > CLIPBOARD_MAX_AGE_MS) {
-            fs.unlinkSync(filePath);
-          }
-        } catch { /* ignore individual file errors */ }
-      }
-    } catch { /* ignore cleanup errors */ }
+    if (!clipboardCleanupScheduled) {
+      clipboardCleanupScheduled = true;
+      setInterval(cleanupClipboardTemp, 3600_000);
+    }
 
-    const filename = `paste-${Date.now()}.png`;
-    const filePath = path.join(tmpDir, filename);
-    fs.writeFileSync(filePath, img.toPNG());
+    const filePath = path.join(clipboardTmpDir, `paste-${Date.now()}.png`);
+    await fs.promises.writeFile(filePath, img.toPNG());
     return filePath;
   });
 
@@ -104,35 +112,13 @@ export function registerIpcHandlers(
     await shell.openExternal('https://github.com/itsdestin/destinclaude/blob/master/CHANGELOG.md');
   });
 
-  // Read model + context from a transcript JSONL file
+  // Read model + context from a transcript JSONL file (async, first/last byte-range reads)
   ipcMain.handle(IPC.READ_TRANSCRIPT_META, async (_event, transcriptPath: string) => {
     try {
-      // Validate path is within ~/.claude/projects/ to prevent arbitrary file reads
       const claudeProjects = path.join(os.homedir(), '.claude', 'projects');
       const resolved = path.resolve(transcriptPath);
-      if (!resolved.startsWith(claudeProjects)) {
-        return null;
-      }
-      const content = fs.readFileSync(transcriptPath, 'utf8');
-      const lines = content.trim().split('\n');
-      let model = 'unknown';
-      let contextPercent = 100;
-      // Scan lines for model info — typically in the first few entries
-      for (const line of lines) {
-        try {
-          const obj = JSON.parse(line);
-          if (obj.model) {
-            model = obj.model.display_name || obj.model.id || obj.model;
-          }
-          if (obj.costInfo?.contextRemaining != null) {
-            contextPercent = Math.round(obj.costInfo.contextRemaining * 100);
-          }
-          if (obj.context_window?.remaining_percentage != null) {
-            contextPercent = Math.round(obj.context_window.remaining_percentage);
-          }
-        } catch {}
-      }
-      return { model, contextPercent };
+      if (!resolved.startsWith(claudeProjects)) return null;
+      return await readTranscriptMeta(transcriptPath);
     } catch {
       return null;
     }
