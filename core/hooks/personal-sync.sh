@@ -81,6 +81,19 @@ fi
 
 [[ -z "$BACKEND" || "$BACKEND" == "none" ]] && exit 0
 
+# --- Mutex: prevent concurrent personal-sync instances ---
+LOCK_DIR="$CLAUDE_DIR/toolkit-state/.personal-sync-lock"
+if ! mkdir "$LOCK_DIR" 2>/dev/null; then
+    _lock_pid=$(cat "$LOCK_DIR/pid" 2>/dev/null || echo 0)
+    if kill -0 "$_lock_pid" 2>/dev/null; then
+        exit 0  # Another sync is running
+    fi
+    rm -rf "$LOCK_DIR"
+    mkdir "$LOCK_DIR" 2>/dev/null || exit 0
+fi
+echo $$ > "$LOCK_DIR/pid"
+register_cleanup "rm -rf '$LOCK_DIR'"
+
 # --- Debounce: 15 minutes ---
 MARKER_FILE="$CLAUDE_DIR/toolkit-state/.personal-sync-marker"
 
