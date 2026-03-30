@@ -350,6 +350,21 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
           if (!fallbackId) fallbackId = id;
         }
       }
+      // Prefer matching by requestId over the arbitrary first-running-tool fallback
+      if (!found && action.requestId) {
+        for (const [id, tool] of toolCalls) {
+          if (tool.status === 'running' && tool.requestId === action.requestId) {
+            toolCalls.set(id, {
+              ...tool,
+              status: 'awaiting-approval',
+              requestId: action.requestId,
+              permissionSuggestions: action.permissionSuggestions,
+            });
+            found = true;
+            break;
+          }
+        }
+      }
       if (!found && fallbackId) {
         const tool = toolCalls.get(fallbackId)!;
         toolCalls.set(fallbackId, {
