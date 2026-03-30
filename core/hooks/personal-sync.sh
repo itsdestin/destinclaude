@@ -17,6 +17,10 @@ FILE_PATH=$(echo "$INPUT" | node -e "
 
 # Source shared backup utilities
 HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Source shared infrastructure (trap handlers, error capture, rotation)
+[[ -f "$HOOK_DIR/lib/hook-preamble.sh" ]] && source "$HOOK_DIR/lib/hook-preamble.sh"
+
 if [[ -f "$HOOK_DIR/lib/backup-common.sh" ]]; then
     source "$HOOK_DIR/lib/backup-common.sh"
 fi
@@ -106,10 +110,11 @@ sync_drive() {
             [[ ! -d "$MEMORY_DIR" ]] && continue
             local PROJECT_KEY
             PROJECT_KEY=$(basename "$PROJECT_DIR")
-            rclone copy "$MEMORY_DIR/" "$REMOTE_BASE/memory/$PROJECT_KEY/" --update 2>/dev/null || {
-                log_backup "WARN" "Failed to sync memory for project $PROJECT_KEY"
+            if ! _capture_err "rclone push memory/$PROJECT_KEY" \
+                rclone copy "$MEMORY_DIR/" "$REMOTE_BASE/memory/$PROJECT_KEY/" --update ; then
+                log_backup "WARN" "Failed to sync memory for project $PROJECT_KEY" "sync.push.memory"
                 ERRORS=$((ERRORS + 1))
-            }
+            fi
         done
     fi
 
@@ -174,11 +179,12 @@ sync_drive() {
                 [[ -f "$f" && ! -L "$f" ]] && { has_jsonl=true; break; }
             done
             if [[ "$has_jsonl" == true ]]; then
-                rclone copy "$slug_dir" "$REMOTE_BASE/conversations/$slug_name/" \
-                    --checksum --include '*.jsonl' --skip-links 2>/dev/null || {
-                    log_backup "WARN" "Failed to sync conversations for $slug_name"
+                if ! _capture_err "rclone push conversations/$slug_name" \
+                    rclone copy "$slug_dir" "$REMOTE_BASE/conversations/$slug_name/" \
+                    --checksum --include '*.jsonl' --skip-links ; then
+                    log_backup "WARN" "Failed to sync conversations for $slug_name" "sync.push.drive"
                     ERRORS=$((ERRORS + 1))
-                }
+                fi
             fi
         done
     fi
