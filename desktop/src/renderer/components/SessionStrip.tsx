@@ -271,13 +271,7 @@ export default function SessionStrip({
                 >
                   {s.name}
                 </span>
-                {/* Active indicator bar */}
-                {isActive && (
-                  <span
-                    className="absolute bottom-0 left-1.5 right-1.5 h-0.5 rounded-full"
-                    style={{ background: `linear-gradient(90deg, transparent, ${INDICATOR_COLOR[color]}, transparent)` }}
-                  />
-                )}
+                {/* Active indicator bar — removed; dot is sufficient */}
               </button>
               {/* Insertion line — rendered after the pill */}
               {isOver && dragIdx !== null && idx > dragIdx && (
