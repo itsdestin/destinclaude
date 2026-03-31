@@ -61,7 +61,7 @@ Check for and install updates to the DestinClaude toolkit.
 
    # Shared libraries
    mkdir -p ~/.claude/hooks/lib
-   for lib in backup-common.sh migrate.sh; do
+   for lib in hook-preamble.sh backup-common.sh migrate.sh; do
      [ -f "$TOOLKIT_ROOT/core/hooks/lib/$lib" ] && ln -sf "$TOOLKIT_ROOT/core/hooks/lib/$lib" ~/.claude/hooks/lib/$lib
    done
 

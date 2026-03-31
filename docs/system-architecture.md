@@ -42,7 +42,9 @@ Hooks are bash scripts that run automatically in response to Claude Code events.
 | `usage-fetch.js` | PostToolUse | Tracks API usage statistics |
 | `announcement-fetch.js` | SessionStart | Fetches announcements from GitHub, caches to `~/.claude/.announcement-cache.json` |
 | `personal-sync.sh` | PostToolUse | Backs up personal data (memory, CLAUDE.md, config, encyclopedia, skills) to all configured backends: Drive, GitHub, iCloud (15-min debounce) |
+| `session-end-sync.sh` | SessionEnd | Ensures all conversation JSONL files are backed up on session exit (bypasses debounce) |
 | `done-sound.sh` | Stop | Plays audio notification when Claude finishes a task (cross-platform) |
+| `lib/hook-preamble.sh` | (sourced library) | Shared hook infrastructure: trap handlers, cleanup registration, error capture, portable timeout, log rotation, atomic writes |
 | `lib/backup-common.sh` | (sourced library) | Shared utilities: debounce, logging, config reading, symlink ownership detection |
 | `lib/migrate.sh` | (sourced library) | Backup schema migration runner — reads backup-meta.json, runs sequential vN-to-vN+1 scripts |
 
@@ -50,7 +52,9 @@ Hooks are bash scripts that run automatically in response to Claude Code events.
 
 The life layer adds `sync-encyclopedia.sh` (rclone-based Google Drive sync for encyclopedia files).
 
-**Shared libraries:** `core/hooks/lib/` contains sourced utilities (`backup-common.sh`, `migrate.sh`) that are not hooks themselves but are loaded by hooks at runtime. `core/hooks/migrations/` contains schema migration scripts and the v1 baseline definition.
+**Hook settings manifest:** `core/hooks/hooks-manifest.json` declares the desired state for all hook registrations in `settings.json`. The `/update` command's `settings-migrate` phase reconciles the user's settings against this manifest — adding new hooks, updating properties, and enforcing minimum timeouts (MAX of user value and manifest value).
+
+**Shared libraries:** `core/hooks/lib/` contains sourced utilities (`hook-preamble.sh`, `backup-common.sh`, `migrate.sh`) that are not hooks themselves but are loaded by hooks at runtime. `core/hooks/migrations/` contains schema migration scripts and the v1 baseline definition.
 
 **File permissions:** All `.sh` hook scripts must be committed with the execute bit set (`100755` in git). Without this, macOS and Linux users get "Permission denied" errors when Claude Code invokes the hooks. Windows git does not enforce file permissions, so this is invisible during development on Windows — always verify with `git ls-files -s core/hooks/*.sh` before releasing. Use `git update-index --chmod=+x <file>` on Windows to set the bit.
 
@@ -167,6 +171,7 @@ Registration happens in Phase 5 (Step 5f) of the setup wizard. The setup wizard 
 | `/toolkit` | Full reference card — all features, trigger phrases, hooks, and commands |
 | `/health` | Quick health check — verifies hooks, symlinks, MCP servers, and marketplace plugins |
 | `/restore` | Ad-hoc personal data restore from any configured backend, with migration support and CLAUDE.md merge options |
+| `/diagnose` | Full system diagnostic — sync health, git status, Drive connectivity, file integrity, debounce state, active sessions, recent errors |
 
 Commands are markdown files in `commands/` directories. They contain instructions that Claude follows conversationally — no executable code, just structured prompts.
 
@@ -187,7 +192,7 @@ Personal data is protected through multiple layers:
 
 An Electron + React GUI that wraps Claude Code CLI. Located at `desktop/` in the toolkit repo.
 
-- **Main process** (`desktop/src/main/`) — SessionManager (PTY pool, multi-session), TranscriptWatcher (JSONL file watcher, primary chat state source), HookRelay (permissions only — named pipe server for permission request/response flow), IPC handlers
+- **Main process** (`desktop/src/main/`) — SessionManager (PTY pool, multi-session), TranscriptWatcher (JSONL file watcher, primary chat state source), HookRelay (permissions only — named pipe server for permission request/response flow), IPC handlers, StatusPoller (centralized async status file polling), structured logger (`logger.ts`), shared transcript reader (`transcript-utils.ts`)
 - **Renderer** (`desktop/src/renderer/`) — Terminal view (xterm.js), chat view (message bubbles, tool cards), command drawer (skill discovery), PartyKit-powered Connect 4 multiplayer game
 - **Hook scripts** (`desktop/hook-scripts/`) — Relay scripts that forward Claude Code hook events to the desktop app via named pipe. Includes `relay-blocking.js` for bidirectional permission hooks (holds socket open for approve/deny response, 300s timeout, fail-closed)
 - **Permission hooks** — Blocking permission relay: when Claude Code requests tool approval, the desktop app shows Yes/Always Allow/No buttons on a ToolCard. The relay holds the hook socket open until the user responds or the 300s timeout expires (auto-deny). Design doc at `docs/superpowers/specs/2026-03-23-blocking-permission-hooks-design.md`
