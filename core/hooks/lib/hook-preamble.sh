@@ -35,7 +35,7 @@ trap _run_cleanup EXIT SIGTERM SIGINT
 _capture_err() {
     local cmd_name="$1"; shift
     local _tmp_err
-    _tmp_err=$(mktemp 2>/dev/null || echo "/tmp/_capture_err_$$")
+    _tmp_err=$(mktemp 2>/dev/null || echo "${TMPDIR:-/tmp}/_capture_err_$$")
     register_cleanup "rm -f '$_tmp_err'"
     if "$@" 2>"$_tmp_err"; then
         rm -f "$_tmp_err"
