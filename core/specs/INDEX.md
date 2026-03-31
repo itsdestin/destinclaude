@@ -28,7 +28,7 @@ All feature specifications. Skill specs live in their skill folder; system specs
 | Fork File | skill | life/skills/fork-file/specs/fork-file-spec.md | 1.0 |
 | Setup Wizard | skill | core/skills/setup-wizard/specs/setup-wizard-spec.md | 1.1 |
 | Claude Desktop UI | desktop | desktop/docs/claude-desktop-ui-spec.md | 1.4 |
-| Transcript Watcher | desktop | desktop/docs/transcript-watcher-spec.md | 1.0 |
+| Transcript Watcher | desktop | desktop/docs/transcript-watcher-spec.md | 1.2 |
 
 ## External Admin Tooling
 
