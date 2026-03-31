@@ -13,22 +13,23 @@ import { scanSkills } from './skill-scanner';
 import { IPC } from '../shared/types';
 import { log, rotateLog } from './logger';
 
-// macOS Electron apps launched from Finder/Dock inherit a minimal PATH from
-// launchd (just /usr/bin:/bin:/usr/sbin:/sbin). Homebrew and nvm paths are
-// missing, so 'node' and 'claude' can't be found. Prepend common locations.
-// NOTE: Linux desktop environments typically inherit the user's shell PATH,
-// but some (Snap, Flatpak, certain DEs) may also strip it. If Linux users
-// report 'command not found' errors, extend this block to include linux.
-if (process.platform === 'darwin') {
+// macOS and Linux Electron apps may inherit a minimal PATH that's missing
+// common tool locations (Homebrew, nvm, Volta, pipx, cargo). macOS Finder/Dock
+// only provides /usr/bin:/bin:/usr/sbin:/sbin. Linux Snap/Flatpak/some DEs may
+// also strip user paths. Prepend common locations on both platforms.
+// Windows is not affected — which.sync() resolves executables independently.
+if (process.platform === 'darwin' || process.platform === 'linux') {
   const home = os.homedir();
   const extraPaths = [
-    '/opt/homebrew/bin',          // Homebrew (Apple Silicon)
-    '/usr/local/bin',             // Homebrew (Intel) / system-wide installs
+    `${home}/.local/bin`,         // pipx, cargo, etc.
     `${home}/.nvm/current/bin`,   // nvm
     `${home}/.volta/bin`,         // Volta
-    `${home}/.local/bin`,         // pipx, cargo, etc.
     `${home}/.npm-global/bin`,    // npm global installs
+    '/usr/local/bin',             // system-wide installs / Homebrew (Intel)
   ];
+  if (process.platform === 'darwin') {
+    extraPaths.unshift('/opt/homebrew/bin');  // Homebrew (Apple Silicon)
+  }
   process.env.PATH = `${extraPaths.join(path.delimiter)}${path.delimiter}${process.env.PATH}`;
 }
 
