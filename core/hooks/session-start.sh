@@ -535,8 +535,9 @@ _session_sync_background() {
             echo "GIT:NOT_INITIALIZED" >> "$WARNINGS_FILE"
         fi
 
-        # 2. Unbackedup user skills (not toolkit symlinks, not in a git-tracked backup)
-        local _UNBACKEDUP_SKILLS=""
+        # 2. Unrouted user skills (not toolkit symlinks, not git-tracked, not in skill-routes.json)
+        local _UNROUTED_SKILLS=""
+        local _SKILL_ROUTES_FILE="$CLAUDE_DIR/toolkit-state/skill-routes.json"
         if [[ -d "$CLAUDE_DIR/skills" ]]; then
             local _SKILL_DIR _SKILL_NAME _IS_TOOLKIT_COPY _LAYER_DIR
             for _SKILL_DIR in "$CLAUDE_DIR"/skills/*/; do
@@ -562,12 +563,21 @@ _session_sync_background() {
                 if git -C "$CLAUDE_DIR" ls-files --error-unmatch "$_SKILL_DIR/SKILL.md" &>/dev/null 2>&1; then
                     continue  # tracked by git — will be backed up
                 fi
-                # Not a symlink and not git-tracked — unbackedup
-                _UNBACKEDUP_SKILLS="${_UNBACKEDUP_SKILLS:+$_UNBACKEDUP_SKILLS,}$_SKILL_NAME"
+                # Check skill-routes.json — any route means the skill is accounted for
+                if [[ -f "$_SKILL_ROUTES_FILE" ]] && command -v node &>/dev/null; then
+                    local _ROUTE=""
+                    _ROUTE=$(_capture_err "skill-routes lookup: $_SKILL_NAME" \
+                        node -e "try{const r=JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'));
+                        console.log((r[process.argv[2]]||{}).route||'')}catch{}" \
+                        "$_SKILL_ROUTES_FILE" "$_SKILL_NAME") || true
+                    [[ -n "$_ROUTE" ]] && continue
+                fi
+                # Not routed — flag for user attention
+                _UNROUTED_SKILLS="${_UNROUTED_SKILLS:+$_UNROUTED_SKILLS,}$_SKILL_NAME"
             done
         fi
-        if [[ -n "$_UNBACKEDUP_SKILLS" ]]; then
-            echo "SKILLS:$_UNBACKEDUP_SKILLS" >> "$WARNINGS_FILE"
+        if [[ -n "$_UNROUTED_SKILLS" ]]; then
+            echo "SKILLS:unrouted:$_UNROUTED_SKILLS" >> "$WARNINGS_FILE"
         fi
 
         # 3. Unsynced projects — discover git repos not tracked by git-sync or registered

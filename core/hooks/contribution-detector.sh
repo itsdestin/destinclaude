@@ -60,6 +60,11 @@ if [[ -f "$TOOLKIT_ROOT/.private-manifest" ]]; then
     PRIVATE_PATTERNS=$(grep -v '^#' "$TOOLKIT_ROOT/.private-manifest" | grep -v '^$' | tr -d '\r')
 fi
 
+# --- Read skill routes for filtering (§8 support) ---
+_SKILL_ROUTES=""
+[[ -f "$STATE_DIR/skill-routes.json" ]] && \
+    _SKILL_ROUTES=$(cat "$STATE_DIR/skill-routes.json" 2>/dev/null)
+
 # --- Filter and check each changed file ---
 NEW_CHANGES=()
 while IFS= read -r filepath; do
@@ -87,6 +92,22 @@ while IFS= read -r filepath; do
     fi
 
     [[ "$SKIP" == "true" ]] && continue
+
+    # Skip skill files already routed as "contribute" or "none" in skill-routes.json
+    if [[ -n "$_SKILL_ROUTES" ]] && command -v node &>/dev/null; then
+        case "$filepath" in
+            */skills/*/*)
+                _skill_name=$(echo "$filepath" | sed -n 's|.*/skills/\([^/]*\)/.*|\1|p')
+                if [[ -n "$_skill_name" ]]; then
+                    _skill_route=$(node -e "try{const r=JSON.parse(process.argv[1]);
+                        const rt=(r[process.argv[2]]||{}).route||'';
+                        console.log(rt)}catch{}" \
+                        "$_SKILL_ROUTES" "$_skill_name" 2>/dev/null) || true
+                    [[ "$_skill_route" == "contribute" || "$_skill_route" == "none" ]] && continue
+                fi
+                ;;
+        esac
+    fi
 
     # Check if already suggested, declined, or contributed
     if command -v node &>/dev/null; then

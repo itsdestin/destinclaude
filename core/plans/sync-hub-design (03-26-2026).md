@@ -1,8 +1,9 @@
 ---
 title: "/sync Skill Enhancement — Unified Interactive Hub"
-version: 1.0
+version: 1.1
 status: approved
 date: 2026-03-26
+updated: 2026-03-31
 affects:
   - skills/sync/SKILL.md
   - core/hooks/session-start.sh
@@ -10,6 +11,10 @@ affects:
   - core/hooks/contribution-detector.sh
   - skill-creator skill (external, at ~/.claude/skills/skill-creator/)
   - ~/.claude/toolkit-state/skill-routes.json (new)
+changelog:
+  - version: 1.1
+    date: 2026-03-31
+    summary: "Reconcile with Infrastructure Safety sprint (PR #99) — account for hook-preamble, mutex, _capture_err, stash-before-pull, --skip-links, and config parsing changes"
 ---
 
 # /sync Skill Enhancement — Unified Interactive Hub
@@ -39,6 +44,75 @@ routes accordingly.
    until user is done
 
 The dashboard becomes a hub, not a one-shot report.
+
+---
+
+## Post-Draft Infrastructure Changes (PR #99, 2026-03-27 – 2026-03-31)
+
+Since this plan was approved, the Infrastructure Safety sprint landed significant
+hardening across all three target hooks. None of the plan's features were
+implemented, but the hooks now have new patterns that implementations must use.
+
+### New shared infrastructure: `hook-preamble.sh`
+
+All three hooks now source `lib/hook-preamble.sh` as their first action. This
+provides:
+- **`register_cleanup "cmd"`** — registers shell commands to run on EXIT/SIGTERM/SIGINT
+- **`_capture_err "label" cmd args...`** — replaces `2>/dev/null || true` with
+  logged error capture; logs to `backup.log` on failure
+
+**Implementation impact:** Any new code in these hooks must use `_capture_err`
+instead of `2>/dev/null` for error-prone operations (e.g., reading/writing
+`skill-routes.json`). Temp files must use `register_cleanup` instead of manual
+`rm` in traps.
+
+### `personal-sync.sh` — new mutex and config parsing
+
+- **Mutex lock** (`~/.claude/toolkit-state/.personal-sync-lock/`) prevents
+  concurrent sync instances. Uses `mkdir` atomic lock with PID tracking and
+  `register_cleanup` for release.
+- **`TOOLKIT_ROOT`** is now read from config via `config_get` early in the
+  script, so `is_toolkit_owned()` works correctly for skill filtering.
+- **Config parsing** was split from a single `read -r` with multivalue node
+  output into three separate `node -e` calls (one per variable: `BACKEND`,
+  `DRIVE_ROOT`, `SYNC_REPO`). This fixes a bug with spaces in `DRIVE_ROOT`.
+- **`--skip-links`** added to rclone memory sync to prevent following aggregation
+  symlinks.
+- **`_capture_err`** wraps rclone calls instead of `2>/dev/null || { ... }`.
+
+**Implementation impact:** The §8 `skill-routes.json` check in personal-sync
+should be placed **after** the mutex acquisition (line ~88) but **before** the
+debounce check, so that the route lookup happens once per sync cycle. The
+skill-loop at lines 164–175 already filters by `is_toolkit_owned`; the
+`skill-routes.json` lookup should be an additional filter inside that same loop.
+
+### `session-start.sh` — stash-before-pull and git index repair
+
+- **Stash-before-pull** in `_bg_git_pull()`: dirty working tree is stashed
+  before `git pull --rebase` and popped after.
+- **Git index auto-repair**: when symlink repair replaces a directory with a
+  symlink, the old directory's files are removed from the git index via
+  `git rm -r --cached`.
+- **`--skip-links`** added to rclone memory pulls.
+
+**Implementation impact:** The skill detection loop (lines 540–570) that emits
+`SKILLS:name1,name2` warnings is the exact code that needs modification for
+`skill-routes.json`. Currently it checks: (1) is symlink → skip, (2) is toolkit
+copy → skip, (3) is git-tracked → skip, (4) else → unbackedup. The plan's
+`SKILLS:unrouted:name` format needs to replace step 4 with a `skill-routes.json`
+lookup. The existing `_UNBACKEDUP_SKILLS` variable and `SKILLS:` prefix should
+be replaced with `_UNROUTED_SKILLS` and `SKILLS:unrouted:`.
+
+### `contribution-detector.sh` — minor
+
+- Sources `hook-preamble.sh`
+- Wraps tracker update in `_capture_err`
+- No structural changes relevant to §8
+
+**Implementation impact:** The plan's change (skip skills already routed as
+`"contribute"` or `"none"`) can be added by reading `skill-routes.json` in the
+file-filtering loop (lines 64–109), filtering out any file under
+`skills/<name>/` where `<name>` has a route of `"contribute"` or `"none"`.
 
 ---
 
@@ -73,6 +147,15 @@ Users should not need to re-run the setup wizard to swap a backend.
 - On success → update `config.json` `PERSONAL_SYNC_BACKEND` list, confirm
 - On failure → show actionable error, offer to retry or skip
 
+**Note (v1.1):** `personal-sync.sh` now reads config via three separate
+`node -e` calls (one per variable) instead of a single multivalue read. When
+§7 updates `config.json`, the individual-variable parsing will pick up the
+change correctly on the next sync cycle — no special reload needed. Also note
+that `config.local.json` now holds machine-specific keys (`platform`,
+`toolkit_root`, `gmessages_binary`, `gcloud_installed`) and is excluded from
+sync (`personal-sync.sh` line 38). §7 must only modify `config.json`, never
+`config.local.json`.
+
 #### Removing a backend
 
 - Confirm removal ("your data on this backend won't be deleted, just no longer synced to")
@@ -83,6 +166,12 @@ Users should not need to re-run the setup wizard to swap a backend.
 - Round-trip test on each configured backend
 - Report per-backend: write ✓/✗, read ✓/✗, delete ✓/✗, latency
 - Actionable errors for failures (e.g., "rclone auth expired — run `rclone config reconnect gdrive:`")
+
+**Note (v1.1):** Use `_capture_err` (from `hook-preamble.sh`) for test
+operations so failures are logged to `backup.log` with detail. The personal-sync
+mutex should be respected — if a sync is running (lock dir exists with live PID),
+warn the user and offer to wait or skip the test. The `--skip-links` flag must
+be included in any rclone test operations to match the current sync behavior.
 
 ---
 
@@ -155,23 +244,89 @@ skill be backed up?" with the same three options and writes the choice to
 
 ### `session-start.sh`
 
-Add unrouted skill detection alongside existing unsynced project detection.
-Scan `~/.claude/skills/` dirs against `skill-routes.json`, emit
-`SKILLS:unrouted:name` warnings.
+**Current state (post-PR #99):** The skill detection loop at lines 540–570
+iterates `~/.claude/skills/*/`, skips symlinks and toolkit copies, checks git
+tracking, and emits `SKILLS:name1,name2` to `.sync-warnings`.
+
+**Required change:** Replace the unbackedup-skill detection with unrouted-skill
+detection. After the existing symlink/toolkit/git-tracked checks, add a
+`skill-routes.json` lookup. A skill that passes all existing skip conditions
+AND is not present in `skill-routes.json` is "unrouted."
+
+```bash
+# After the existing git-tracked check (line ~564), add:
+# Check skill-routes.json — if present with any route, skip
+if [[ -f "$SKILL_ROUTES_FILE" ]] && command -v node &>/dev/null; then
+    _ROUTE=$(node -e "
+        try{const r=JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'));
+        console.log((r[process.argv[2]]||{}).route||'')}catch{}" \
+        "$SKILL_ROUTES_FILE" "$_SKILL_NAME" 2>/dev/null) || true
+    [[ -n "$_ROUTE" ]] && continue
+fi
+# Not routed — add to unrouted list
+_UNROUTED_SKILLS="${_UNROUTED_SKILLS:+$_UNROUTED_SKILLS,}$_SKILL_NAME"
+```
+
+Change the warning format from `SKILLS:name1,name2` to
+`SKILLS:unrouted:name1,name2`. Add `SKILL_ROUTES_FILE` variable near the top
+of `_bg_sync_health()`.
+
+**Use `_capture_err`** for the node call to `skill-routes.json` since the file
+may not exist or may be malformed.
 
 ### `personal-sync.sh`
 
-Before syncing a skill directory, check `skill-routes.json`:
-- `"none"` → skip
-- `"contribute"` → still personal-sync (safety net until PR merged)
-- `"personal"` → sync as today
-- Not in manifest → sync as today (backwards compatible)
+**Current state (post-PR #99):** The skill sync loop at lines 164–175 iterates
+`~/.claude/skills/*/`, skips symlinks and toolkit-owned dirs via
+`is_toolkit_owned()` (which now works correctly thanks to the `TOOLKIT_ROOT`
+fix), and syncs everything else.
+
+**Required change:** Inside the skill loop, after the `is_toolkit_owned` check,
+read `skill-routes.json` for the skill's route:
+- `"none"` → `continue` (skip sync)
+- `"contribute"` → still sync (safety net, per D3)
+- `"personal"` or absent → sync as today (backwards compatible)
+
+Place the `skill-routes.json` read **outside** the loop (read once, reuse):
+```bash
+local _ROUTES_JSON=""
+local _ROUTES_FILE="$CLAUDE_DIR/toolkit-state/skill-routes.json"
+[[ -f "$_ROUTES_FILE" ]] && _ROUTES_JSON=$(cat "$_ROUTES_FILE" 2>/dev/null)
+```
+
+Inside the loop, use a lightweight node lookup:
+```bash
+if [[ -n "$_ROUTES_JSON" ]] && command -v node &>/dev/null; then
+    local _route
+    _route=$(node -e "try{const r=JSON.parse(process.argv[1]);
+        console.log((r[process.argv[2]]||{}).route||'')}catch{}" \
+        "$_ROUTES_JSON" "$skill_name" 2>/dev/null) || true
+    [[ "$_route" == "none" ]] && continue
+fi
+```
+
+**Note:** The mutex (lines 77–88) ensures this runs atomically — no risk of
+concurrent reads/writes to `skill-routes.json` from overlapping sync instances.
 
 ### `contribution-detector.sh`
 
-Read `skill-routes.json` for skills. Skip suggesting skills already routed as
-`"contribute"` or `"none"`. Only suggest skills routed as `"personal"` or
-unrouted.
+**Current state (post-PR #99):** Scans `core/`, `life/`, `productivity/`,
+`modules/` for changed files since the installed version tag. Filters against
+`.private-manifest` and `contribution-tracker.json`. Uses `_capture_err` for
+tracker updates.
+
+**Required change:** In the file-filtering loop (lines 64–109), when a changed
+file matches `skills/<name>/*`, extract `<name>` and check
+`skill-routes.json`. Skip if route is `"contribute"` (already contributed) or
+`"none"` (explicitly opted out). Only suggest skills routed as `"personal"` or
+not present in the manifest.
+
+Read `skill-routes.json` once before the loop:
+```bash
+_SKILL_ROUTES=""
+[[ -f "$STATE_DIR/skill-routes.json" ]] && \
+    _SKILL_ROUTES=$(cat "$STATE_DIR/skill-routes.json" 2>/dev/null)
+```
 
 ### `skill-creator` skill
 
@@ -201,14 +356,19 @@ continues to track non-skill file contributions (hook improvements, etc.).
 
 ---
 
-## What's NOT Changing
+## What's NOT Changing (for this plan)
 
 - No new hooks or scripts
 - No new commands or skills
 - §4 (project onboarding), §5 (force sync), §6 (path normalization) unchanged
 - Git-sync.sh unchanged
-- Backup-common.sh unchanged
 - Restore workflow unchanged
+
+**Note (v1.1):** `backup-common.sh` was previously listed as unchanged, but
+`hook-preamble.sh` was added as a new shared library since this plan was
+drafted. `hook-preamble.sh` is already sourced by all three target hooks and
+does not need plan-level changes — just use its utilities (`register_cleanup`,
+`_capture_err`) in any new code.
 
 ---
 

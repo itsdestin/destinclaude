@@ -102,6 +102,24 @@ else
     fi
 fi
 
+# --- Skill route lookup (§8 support) ---
+_SKILL_ROUTES_JSON=""
+_SKILL_ROUTES_FILE="$CLAUDE_DIR/toolkit-state/skill-routes.json"
+[[ -f "$_SKILL_ROUTES_FILE" ]] && _SKILL_ROUTES_JSON=$(cat "$_SKILL_ROUTES_FILE" 2>/dev/null)
+
+# Returns 0 (should sync) or 1 (skip) based on skill-routes.json
+_should_sync_skill() {
+    local name="$1"
+    if [[ -n "$_SKILL_ROUTES_JSON" ]] && command -v node &>/dev/null; then
+        local route=""
+        route=$(node -e "try{const r=JSON.parse(process.argv[1]);
+            console.log((r[process.argv[2]]||{}).route||'')}catch{}" \
+            "$_SKILL_ROUTES_JSON" "$name" 2>/dev/null) || true
+        [[ "$route" == "none" ]] && return 1
+    fi
+    return 0
+}
+
 # --- Drive backend ---
 sync_drive() {
     if ! command -v rclone &>/dev/null; then
@@ -167,6 +185,7 @@ sync_drive() {
             if [[ ! -L "$skill_dir" ]] || ! is_toolkit_owned "${skill_dir%/}"; then
                 local skill_name
                 skill_name=$(basename "$skill_dir")
+                _should_sync_skill "$skill_name" || continue
                 rclone copy "$skill_dir" "$REMOTE_BASE/skills/$skill_name/" \
                     --update --exclude '.DS_Store' 2>/dev/null || \
                     log_backup "WARN" "Skill $skill_name sync to Drive failed"
@@ -277,6 +296,7 @@ sync_github() (
             if [[ ! -L "$skill_dir" ]] || ! is_toolkit_owned "${skill_dir%/}"; then
                 local skill_name
                 skill_name=$(basename "$skill_dir")
+                _should_sync_skill "$skill_name" || continue
                 mkdir -p "$REPO_DIR/skills/$skill_name"
                 cp -r "$skill_dir"/* "$REPO_DIR/skills/$skill_name/" 2>/dev/null || true
             fi
@@ -380,6 +400,7 @@ sync_icloud() {
             if [[ ! -L "$skill_dir" ]] || ! is_toolkit_owned "${skill_dir%/}"; then
                 local skill_name
                 skill_name=$(basename "$skill_dir")
+                _should_sync_skill "$skill_name" || continue
                 mkdir -p "$ICLOUD_PATH/skills/$skill_name"
                 rsync -a --update "$skill_dir" "$ICLOUD_PATH/skills/$skill_name/" 2>/dev/null || \
                     cp -r "$skill_dir"/* "$ICLOUD_PATH/skills/$skill_name/" 2>/dev/null || true
