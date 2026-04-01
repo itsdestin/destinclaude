@@ -6,9 +6,15 @@ Check for and install updates to the DestinClaude toolkit.
 
 ## Steps
 
-1. **Read current version.** Read the VERSION file in the toolkit root directory. Store this as `CURRENT_VERSION`. You will need it later as the pre-merge version.
+0. **Resolve TOOLKIT_ROOT.** Read `~/.claude/toolkit-state/config.local.json` and extract the `toolkit_root` value. This is the authoritative path to the active plugin installation — rebuilt every session start by `session-start.sh`. Store as `TOOLKIT_ROOT` and use it as the working directory for ALL subsequent git and file operations.
+   ```bash
+   node -e "console.log(JSON.parse(require('fs').readFileSync(process.argv[1],'utf8')).toolkit_root)" "$HOME/.claude/toolkit-state/config.local.json"
+   ```
+   If the file doesn't exist or `toolkit_root` is null, fall back to `~/.claude/toolkit-state/config.json`. If neither has it: "Can't determine toolkit location — run `/health` to diagnose."
 
-2. **Fetch latest release info.** Run in the toolkit root:
+1. **Read current version.** Read `$TOOLKIT_ROOT/VERSION`. Store this as `CURRENT_VERSION`. You will need it later as the pre-merge version.
+
+2. **Fetch latest release info.** Run in `$TOOLKIT_ROOT`:
    ```bash
    git fetch --tags origin 2>/dev/null
    ```
