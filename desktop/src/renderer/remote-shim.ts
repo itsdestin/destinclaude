@@ -23,6 +23,11 @@ let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let reconnectDelay = 1000;
 const MAX_RECONNECT_DELAY = 30_000;
 
+/** Override WebSocket target — set by connectToHost(), cleared by disconnectFromHost() */
+let targetUrl: string | null = null;
+/** Whether to preserve __PLATFORM__ on next auth:ok (prevents desktop overwriting 'android') */
+let preservePlatform = false;
+
 function setConnectionState(state: RemoteConnectionState) {
   connectionState = state;
   stateChangeCallback?.(state);
@@ -37,6 +42,8 @@ export function onConnectionStateChange(cb: (state: RemoteConnectionState) => vo
 }
 
 function getWsUrl(): string {
+  // If a remote host override is set, use it (connectToHost sets this)
+  if (targetUrl) return targetUrl;
   // Android WebView loads from file:// — connect to local bridge server
   if (location.protocol === 'file:') {
     return 'ws://localhost:9901';
@@ -184,8 +191,12 @@ export function connect(passwordOrToken: string, isToken = false): Promise<strin
           // Store token for reconnection
           const token = msg.token;
           localStorage.setItem('destincode-remote-token', token);
-          const platform = msg.platform || 'browser';
-          (window as any).__PLATFORM__ = platform;
+          // Preserve __PLATFORM__ when connecting to a remote desktop from Android —
+          // the desktop server responds with platform:"electron" but we're still on a phone
+          if (!preservePlatform) {
+            const platform = msg.platform || 'browser';
+            (window as any).__PLATFORM__ = platform;
+          }
           resolve(token);
           // Switch to normal message handling
           ws!.onmessage = (e) => handleMessage(e.data as string);
@@ -242,8 +253,71 @@ export function disconnect(): void {
   localStorage.removeItem('destincode-remote-token');
 }
 
+/**
+ * Connect to a remote desktop server. Disconnects from the current server first.
+ * __PLATFORM__ is preserved as 'android' so touch adaptations stay active.
+ */
+export async function connectToHost(host: string, port: number, password: string): Promise<void> {
+  const { setConnectionMode } = await import('./platform');
+
+  // Disconnect from current server (local bridge or previous remote)
+  disconnect();
+
+  // Reject any pending requests from the old server
+  for (const [id, entry] of pending) {
+    clearTimeout(entry.timeout);
+    entry.reject(new Error('Server switched'));
+  }
+  pending.clear();
+
+  // Point at the desktop server
+  targetUrl = `ws://${host}:${port}/ws`;
+  localStorage.setItem('destincode-remote-target', targetUrl);
+  preservePlatform = true;
+
+  // Connect with password auth
+  await connect(password, false);
+
+  preservePlatform = false;
+  setConnectionMode('remote');
+}
+
+/**
+ * Disconnect from a remote desktop and reconnect to the local bridge server.
+ */
+export async function disconnectFromHost(): Promise<void> {
+  const { setConnectionMode } = await import('./platform');
+
+  disconnect();
+
+  for (const [id, entry] of pending) {
+    clearTimeout(entry.timeout);
+    entry.reject(new Error('Server switched'));
+  }
+  pending.clear();
+
+  // Clear remote target — getWsUrl() falls back to localhost:9901
+  targetUrl = null;
+  localStorage.removeItem('destincode-remote-target');
+  preservePlatform = false;
+
+  // Reconnect to local bridge
+  await connect('android-local', false);
+
+  setConnectionMode('local');
+}
+
 /** Install the window.claude shim. Call once on app startup in browser mode. */
 export function installShim(): void {
+  // Restore remote target from previous session (e.g., page reload while in remote mode)
+  const savedTarget = localStorage.getItem('destincode-remote-target');
+  if (savedTarget) {
+    targetUrl = savedTarget;
+    preservePlatform = true; // Will be set on next auth:ok
+    // Restore connection mode synchronously so components render correctly on first paint
+    import('./platform').then(({ setConnectionMode }) => setConnectionMode('remote'));
+  }
+
   (window as any).claude = {
     session: {
       create: (opts: any) => invoke('session:create', opts),

@@ -131,8 +131,23 @@ function AndroidSettings({ open, onClose }: { open: boolean; onClose: () => void
   const [formHost, setFormHost] = useState('');
   const [formPort, setFormPort] = useState('9900');
   const [formPassword, setFormPassword] = useState('');
+  const [remoteConnected, setRemoteConnected] = useState(false);
+  const [connectedDeviceName, setConnectedDeviceName] = useState('');
+  const [connecting, setConnecting] = useState(false);
+  const [connectError, setConnectError] = useState<string | null>(null);
 
   const claude = (window as any).claude;
+
+  // Sync remote connection state
+  useEffect(() => {
+    import('../platform').then(({ isRemoteMode, onConnectionModeChange }) => {
+      setRemoteConnected(isRemoteMode());
+      const unsub = onConnectionModeChange((mode) => {
+        setRemoteConnected(mode === 'remote');
+      });
+      return unsub;
+    });
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -165,6 +180,21 @@ function AndroidSettings({ open, onClose }: { open: boolean; onClose: () => void
     setDirectories(prev => prev.filter(d => d.path !== path));
   }, []);
 
+  const doConnect = useCallback(async (device: PairedDevice) => {
+    setConnecting(true);
+    setConnectError(null);
+    try {
+      const { connectToHost } = await import('../remote-shim');
+      await connectToHost(device.host, device.port, device.password);
+      setConnectedDeviceName(device.name);
+      onClose();
+    } catch (err: any) {
+      setConnectError(err?.message || 'Connection failed');
+    } finally {
+      setConnecting(false);
+    }
+  }, [onClose]);
+
   const handleSaveDevice = useCallback(async () => {
     if (!formHost.trim()) return;
     const device: PairedDevice = {
@@ -180,7 +210,9 @@ function AndroidSettings({ open, onClose }: { open: boolean; onClose: () => void
     setFormHost('');
     setFormPort('9900');
     setFormPassword('');
-  }, [formName, formHost, formPort, formPassword]);
+    // Connect immediately after saving
+    await doConnect(device);
+  }, [formName, formHost, formPort, formPassword, doConnect]);
 
   const handleRemoveDevice = useCallback(async (device: PairedDevice) => {
     await claude.android?.removePairedDevice?.(device.host, device.port);
@@ -188,9 +220,20 @@ function AndroidSettings({ open, onClose }: { open: boolean; onClose: () => void
   }, []);
 
   const handleConnectToDesktop = useCallback(async (device: PairedDevice) => {
-    // Phase 2: disconnect from local bridge, reconnect to desktop
-    // For now, this is a placeholder
-    console.log('Connect to desktop:', device);
+    await doConnect(device);
+  }, [doConnect]);
+
+  const handleDisconnect = useCallback(async () => {
+    setConnecting(true);
+    try {
+      const { disconnectFromHost } = await import('../remote-shim');
+      await disconnectFromHost();
+      setConnectedDeviceName('');
+    } catch (err: any) {
+      setConnectError(err?.message || 'Disconnect failed');
+    } finally {
+      setConnecting(false);
+    }
   }, []);
 
   const handleScanQr = useCallback(async () => {
@@ -276,14 +319,40 @@ function AndroidSettings({ open, onClose }: { open: boolean; onClose: () => void
         <section>
           <h3 className="text-[10px] font-medium text-gray-500 tracking-wider uppercase mb-3">Connect to Desktop</h3>
 
-          {/* Paired devices */}
-          {pairedDevices.length > 0 && (
+          {/* Connection status banner */}
+          {remoteConnected && (
+            <div className="bg-green-500/10 border border-green-500/25 rounded-lg p-3 mb-3">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                <span className="text-xs text-green-400 font-medium">
+                  Connected to {connectedDeviceName || 'Desktop'}
+                </span>
+              </div>
+              <button
+                onClick={handleDisconnect}
+                disabled={connecting}
+                className="w-full px-3 py-1.5 rounded bg-gray-700 hover:bg-gray-600 text-xs text-gray-300 disabled:opacity-50"
+              >
+                {connecting ? 'Disconnecting...' : 'Disconnect — Return to Local'}
+              </button>
+            </div>
+          )}
+
+          {connectError && (
+            <div className="bg-red-500/10 border border-red-500/25 rounded-lg p-2 mb-3">
+              <p className="text-[10px] text-red-400">{connectError}</p>
+            </div>
+          )}
+
+          {/* Paired devices — hidden when connected to remote */}
+          {!remoteConnected && pairedDevices.length > 0 && (
             <div className="space-y-1 mb-3">
               {pairedDevices.map(device => (
                 <div key={`${device.host}:${device.port}`} className="flex items-center justify-between py-2 px-3 rounded bg-gray-800/50">
                   <button
                     onClick={() => handleConnectToDesktop(device)}
-                    className="min-w-0 flex-1 text-left"
+                    disabled={connecting}
+                    className="min-w-0 flex-1 text-left disabled:opacity-50"
                   >
                     <span className="text-xs text-gray-200 block">{device.name}</span>
                     <span className="text-[10px] text-gray-500 font-mono block">{device.host}:{device.port}</span>
@@ -299,7 +368,13 @@ function AndroidSettings({ open, onClose }: { open: boolean; onClose: () => void
             </div>
           )}
 
-          {!showConnectForm ? (
+          {connecting && (
+            <div className="text-center py-3">
+              <span className="text-xs text-gray-400">Connecting...</span>
+            </div>
+          )}
+
+          {!remoteConnected && !connecting && !showConnectForm ? (
             <div className="space-y-2">
               <button
                 onClick={handleScanQr}

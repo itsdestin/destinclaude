@@ -18,7 +18,7 @@ import TrustGate, { useTrustGateActive } from './components/TrustGate';
 import SettingsPanel from './components/SettingsPanel';
 import ResumeBrowser from './components/ResumeBrowser';
 import type { SkillEntry, PermissionMode } from '../shared/types';
-import { getPlatform } from './platform';
+import { getPlatform, isRemoteMode, onConnectionModeChange } from './platform';
 import type { SessionStatusColor } from './components/StatusDot';
 
 type ViewMode = 'chat' | 'terminal';
@@ -380,6 +380,37 @@ function AppInner() {
       setSkills([resumeSkill, ...list]);
     }).catch(console.error);
   }, []);
+
+  // Flush and reload session state when connection mode changes (local ↔ remote).
+  // On Android, switching to remote means the WebSocket now talks to the desktop server —
+  // all local session state is stale and must be replaced with the desktop's sessions.
+  useEffect(() => {
+    const unsub = onConnectionModeChange((mode) => {
+      // Flush all session state
+      setSessions([]);
+      setSessionId(null);
+      setViewModes(new Map());
+      setPermissionModes(new Map());
+      setInitializedSessions(new Set());
+      setViewedSessions(new Set());
+      dispatch({ type: 'RESET' as any });
+
+      // Reload session list from the new server
+      window.claude.session.list().then((list: any[]) => {
+        if (!list || list.length === 0) return;
+        setSessions(list);
+        for (const s of list) {
+          dispatch({ type: 'SESSION_INIT', sessionId: s.id });
+          setViewModes((vm) => new Map(vm).set(s.id, 'chat'));
+          setPermissionModes((pm) => new Map(pm).set(s.id, s.permissionMode || 'normal'));
+        }
+        setSessionId(list[0].id);
+        // Mark existing sessions as initialized (already running)
+        setInitializedSessions(new Set(list.map((s) => s.id)));
+      }).catch(() => {});
+    });
+    return unsub;
+  }, [dispatch]);
 
   // Mark session as viewed when the user switches to it
   useEffect(() => {

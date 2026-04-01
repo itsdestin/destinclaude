@@ -3,7 +3,7 @@ import { ChatIcon, TerminalIcon, GamepadIcon } from './Icons';
 import SessionStrip from './SessionStrip';
 import type { SessionStatusColor } from './StatusDot';
 import type { PermissionMode } from '../../shared/types';
-import { isAndroid } from '../platform';
+import { isAndroid, isRemoteMode } from '../platform';
 
 interface SessionEntry {
   id: string;
@@ -84,6 +84,11 @@ export default function HeaderBar({
           <span className="sm:hidden">{cfg.shortLabel}</span>
           <span className="hidden sm:inline">{cfg.label}</span>
         </button>
+        {isRemoteMode() && (
+          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-400 border border-blue-500/25 shrink-0">
+            REMOTE
+          </span>
+        )}
         {model && (
           <span className="text-[10px] text-gray-500 truncate max-w-[120px] hidden sm:inline">
             {model}
