@@ -96,8 +96,69 @@ function installHooks() {
     settings.hooks['PermissionRequest'].push(blockingEntry);
   }
 
+  // --- Auto-titling hook (with DestinClaude deference) ---
+  // Only register the desktop-bundled title-update.sh if the DestinClaude toolkit's
+  // version is NOT installed. If the toolkit is present, its version takes precedence.
+  const toolkitTitlePath = path.join(require('os').homedir(), '.claude', 'plugins', 'destinclaude', 'core', 'hooks', 'title-update.sh');
+  const rawTitlePath = path.resolve(__dirname, '..', 'hook-scripts', 'title-update.sh');
+  const unpackedTitlePath = rawTitlePath.replace(`app.asar${path.sep}`, `app.asar.unpacked${path.sep}`);
+  const TITLE_UPDATE_PATH = fs.existsSync(unpackedTitlePath) ? unpackedTitlePath : rawTitlePath;
+
+  if (!fs.existsSync(toolkitTitlePath)) {
+    // Ensure PostToolUse array exists (should already from relay registration above)
+    if (!settings.hooks['PostToolUse']) {
+      settings.hooks['PostToolUse'] = [];
+    }
+
+    const titleCmd = `bash ${JSON.stringify(TITLE_UPDATE_PATH)}`;
+    const titleEntry = {
+      matcher: '',
+      hooks: [{ type: 'command', command: titleCmd, timeout: 10 }],
+    };
+
+    const existingTitleIdx = settings.hooks['PostToolUse'].findIndex((matcher) =>
+      matcher.hooks?.some((h) => h.command?.includes('title-update'))
+    );
+
+    if (existingTitleIdx >= 0) {
+      settings.hooks['PostToolUse'][existingTitleIdx] = titleEntry;
+    } else {
+      settings.hooks['PostToolUse'].push(titleEntry);
+    }
+
+    // Deploy Auto-Title instruction to CLAUDE.md if not already present
+    const claudeMdPath = path.join(require('os').homedir(), '.claude', 'CLAUDE.md');
+    const autoTitleMarker = '## Auto-Title';
+    const autoTitleInstruction = `
+## Auto-Title
+
+When you see an \`[Auto-Title]\` reminder, **immediately** use Bash to write a 3-5 word Title Case topic summary to the file path specified. Use: \`echo "Topic Here" > /path/to/file\`. Do this BEFORE continuing with your response — do not skip or defer it.
+`;
+    try {
+      if (fs.existsSync(claudeMdPath)) {
+        const content = fs.readFileSync(claudeMdPath, 'utf8');
+        if (!content.includes(autoTitleMarker)) {
+          fs.appendFileSync(claudeMdPath, autoTitleInstruction);
+        }
+      } else {
+        fs.mkdirSync(path.dirname(claudeMdPath), { recursive: true });
+        fs.writeFileSync(claudeMdPath, '# CLAUDE.md\n' + autoTitleInstruction);
+      }
+    } catch (e) {
+      console.warn('Failed to deploy Auto-Title instruction:', e.message);
+    }
+  } else {
+    // DestinClaude is installed — remove any desktop-bundled title-update hook
+    if (settings.hooks['PostToolUse']) {
+      settings.hooks['PostToolUse'] = settings.hooks['PostToolUse'].filter((matcher) =>
+        !matcher.hooks?.some((h) => h.command?.includes('title-update') && !h.command?.includes('plugins'))
+      );
+    }
+  }
+
   fs.writeFileSync(SETTINGS_PATH, JSON.stringify(settings, null, 2));
-  console.log('Hooks installed for ' + FIRE_AND_FORGET_EVENTS.length + ' fire-and-forget events + PermissionRequest (blocking)');
+  console.log('Hooks installed for ' + FIRE_AND_FORGET_EVENTS.length + ' fire-and-forget events + PermissionRequest (blocking)' +
+    (fs.existsSync(toolkitTitlePath) ? '' : ' + auto-title'));
 }
 
 installHooks();

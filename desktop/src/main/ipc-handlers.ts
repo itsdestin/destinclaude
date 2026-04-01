@@ -2,6 +2,7 @@ import { IpcMain, BrowserWindow, dialog, clipboard, nativeImage, shell, powerSav
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
+import { execFile } from 'child_process';
 import { SessionManager } from './session-manager';
 import { HookRelay } from './hook-relay';
 import { IPC, SkillEntry } from '../shared/types';
@@ -335,6 +336,24 @@ export function registerIpcHandlers(
     });
   }
 
+  // --- Usage cache refresher ---
+  // Runs usage-fetch.js periodically to keep .usage-cache.json fresh
+  // even when the DestinClaude toolkit's statusline isn't running.
+  const rawUsageFetchPath = path.resolve(__dirname, '../../hook-scripts/usage-fetch.js');
+  const unpackedUsageFetchPath = rawUsageFetchPath.replace(`app.asar${path.sep}`, `app.asar.unpacked${path.sep}`);
+  const usageFetchScript = fs.existsSync(unpackedUsageFetchPath) ? unpackedUsageFetchPath : rawUsageFetchPath;
+
+  function refreshUsageCache() {
+    try {
+      execFile('node', [usageFetchScript], { timeout: 15000 }, () => {
+        // Output written to .usage-cache.json; buildStatusData() reads it
+      });
+    } catch { /* node not found or script error — status bar just shows no data */ }
+  }
+
+  refreshUsageCache();
+  const usageRefreshInterval = setInterval(refreshUsageCache, 5 * 60 * 1000);
+
   // --- Topic file watcher (auto-title) ---
   // The auto-title hook writes topics to ~/.claude/topics/topic-{CLAUDE_CODE_SESSION_ID}.
   // But our desktop session IDs differ from Claude Code's internal IDs.
@@ -459,6 +478,7 @@ export function registerIpcHandlers(
   // Return cleanup function for use during app shutdown
   return function cleanup() {
     clearInterval(statusInterval);
+    clearInterval(usageRefreshInterval);
     transcriptWatcher.stopAll();
     for (const [id, watcher] of topicWatchers) {
       if (typeof (watcher as fs.FSWatcher).close === 'function') {
