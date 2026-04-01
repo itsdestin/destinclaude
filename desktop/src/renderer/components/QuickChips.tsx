@@ -9,9 +9,11 @@ export interface QuickChip {
 export const defaultChips: QuickChip[] = [
   { label: 'Journal', prompt: "let's journal" },
   { label: 'Inbox', prompt: 'check my inbox' },
-  { label: 'Briefing', prompt: 'brief me on' },
-  { label: 'Draft Text', prompt: 'help me draft a text' },
-  { label: 'Teach Workflow', prompt: 'I want to teach you a new workflow — use the skill creator to ask me questions and build a skill for it' },
+  { label: 'Git Status', prompt: 'run git status and summarize what\'s changed' },
+  { label: 'Review PR', prompt: 'review the latest PR on this repo' },
+  { label: 'Fix Tests', prompt: 'run the tests and fix any failures' },
+  { label: 'Briefing', prompt: 'brief me on ' },
+  { label: 'Draft Text', prompt: 'help me draft a text to ' },
 ];
 
 interface Props {
