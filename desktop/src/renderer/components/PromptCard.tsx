@@ -30,7 +30,7 @@ const intentStyles = {
 export default function PromptCard({ prompt, sessionId, onSelect }: Props) {
   if (prompt.completed) {
     return (
-      <div className="flex justify-start px-4 py-1">
+      <div className="flex justify-start px-4 py-0.5">
         <div className="max-w-[85%] rounded-2xl rounded-bl-sm bg-gray-800 px-2 py-1">
           <div className="border border-gray-700 rounded-lg px-3 py-2 flex items-center gap-1.5">
             <CheckIcon className="w-3.5 h-3.5 shrink-0 text-gray-400" />

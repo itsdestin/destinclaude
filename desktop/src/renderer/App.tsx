@@ -88,8 +88,14 @@ function AppInner() {
       const chatState = chatStateMap.get(s.id);
       if (!chatState) { newStatuses.set(s.id, 'gray'); }
       else {
-        const hasAwaiting = [...chatState.toolCalls.values()].some(t => t.status === 'awaiting-approval');
-        const hasRunning = [...chatState.toolCalls.values()].some(t => t.status === 'running');
+        // Single pass, no temporary array allocation — hot path during streaming
+        let hasAwaiting = false;
+        let hasRunning = false;
+        for (const t of chatState.toolCalls.values()) {
+          if (t.status === 'awaiting-approval') hasAwaiting = true;
+          else if (t.status === 'running') hasRunning = true;
+          if (hasAwaiting) break; // awaiting takes priority in the status logic
+        }
 
         const status: SessionStatusColor = hasAwaiting
           ? 'red'
@@ -173,12 +179,35 @@ function AppInner() {
       }
     });
 
+    // Batch transcript dispatches into animation frames — multiple fs.watch events
+    // within a single frame become one React render instead of N separate renders.
+    const pendingTranscriptActions: any[] = [];
+    let transcriptRafId: number | null = null;
+    let transcriptBatchCancelled = false;
+
+    function flushTranscriptActions() {
+      transcriptRafId = null;
+      if (transcriptBatchCancelled) return;
+      const batch = pendingTranscriptActions.splice(0);
+      // React 18 batches all synchronous dispatches → single render for the whole batch
+      for (const action of batch) {
+        dispatch(action);
+      }
+    }
+
+    function batchTranscriptDispatch(action: any) {
+      pendingTranscriptActions.push(action);
+      if (transcriptRafId === null) {
+        transcriptRafId = requestAnimationFrame(flushTranscriptActions);
+      }
+    }
+
     const transcriptHandler = (window.claude.on as any).transcriptEvent?.((event: any) => {
       if (!event?.type || !event?.sessionId) return;
 
       switch (event.type) {
         case 'user-message':
-          dispatch({
+          batchTranscriptDispatch({
             type: 'TRANSCRIPT_USER_MESSAGE',
             sessionId: event.sessionId,
             uuid: event.uuid,
@@ -187,7 +216,7 @@ function AppInner() {
           });
           break;
         case 'assistant-text':
-          dispatch({
+          batchTranscriptDispatch({
             type: 'TRANSCRIPT_ASSISTANT_TEXT',
             sessionId: event.sessionId,
             uuid: event.uuid,
@@ -196,7 +225,7 @@ function AppInner() {
           });
           break;
         case 'tool-use':
-          dispatch({
+          batchTranscriptDispatch({
             type: 'TRANSCRIPT_TOOL_USE',
             sessionId: event.sessionId,
             uuid: event.uuid,
@@ -206,7 +235,7 @@ function AppInner() {
           });
           break;
         case 'tool-result':
-          dispatch({
+          batchTranscriptDispatch({
             type: 'TRANSCRIPT_TOOL_RESULT',
             sessionId: event.sessionId,
             uuid: event.uuid,
@@ -216,7 +245,7 @@ function AppInner() {
           });
           break;
         case 'turn-complete':
-          dispatch({
+          batchTranscriptDispatch({
             type: 'TRANSCRIPT_TURN_COMPLETE',
             sessionId: event.sessionId,
             uuid: event.uuid,
@@ -279,6 +308,8 @@ function AppInner() {
     });
 
     return () => {
+      transcriptBatchCancelled = true;
+      if (transcriptRafId !== null) cancelAnimationFrame(transcriptRafId);
       window.claude.off('session:created', createdHandler);
       window.claude.off('session:destroyed', destroyedHandler);
       window.claude.off('hook:event', hookHandler);

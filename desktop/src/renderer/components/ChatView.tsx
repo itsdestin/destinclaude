@@ -70,9 +70,18 @@ export default function ChatView({ sessionId, visible, resumeInfo }: Props) {
     return () => { mountedRef.current = false; };
   }, []);
 
-  const hasAwaitingApproval = [...state.toolCalls.values()].some(
-    (t) => t.status === 'awaiting-approval',
-  );
+  // Single pass — compute all tool status flags at once (avoids 3 separate array spreads)
+  let hasAwaitingApproval = false;
+  let hasRunningTools = false;
+  const awaitingTools: any[] = [];
+  for (const t of state.toolCalls.values()) {
+    if (t.status === 'awaiting-approval') {
+      hasAwaitingApproval = true;
+      awaitingTools.push(t);
+    } else if (t.status === 'running') {
+      hasRunningTools = true;
+    }
+  }
 
   useEffect(() => {
     // Don't start the timeout when a tool is awaiting permission approval —
@@ -212,10 +221,8 @@ export default function ChatView({ sessionId, visible, resumeInfo }: Props) {
               }
             })}
             {/* Awaiting-approval tools pop out as standalone bubbles at the bottom */}
-            {[...state.toolCalls.values()]
-              .filter((t) => t.status === 'awaiting-approval')
-              .map((tool) => (
-                <div key={tool.toolUseId} className="flex justify-start px-4 py-1">
+            {awaitingTools.map((tool) => (
+                <div key={tool.toolUseId} className="flex justify-start px-4 py-0.5">
                   <div className="max-w-[85%] rounded-2xl rounded-bl-sm bg-gray-800 px-2 py-1">
                     <ToolCard tool={tool} sessionId={sessionId} />
                   </div>
@@ -225,7 +232,7 @@ export default function ChatView({ sessionId, visible, resumeInfo }: Props) {
                 not when tools are still running or awaiting approval */}
             {state.isThinking
               && !hasAwaitingApproval
-              && ![...state.toolCalls.values()].some((t) => t.status === 'running')
+              && !hasRunningTools
               && <ThinkingIndicator />}
           </>
         )}

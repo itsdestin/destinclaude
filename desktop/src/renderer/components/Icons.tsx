@@ -111,6 +111,17 @@ export function FailIcon({ className = 'w-4 h-4' }: IconProps) {
   );
 }
 
+/** Status: awaiting approval — subtle rounded ? */
+export function QuestionIcon({ className = 'w-4 h-4' }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" opacity="0.6">
+      <circle cx="12" cy="12" r="9" strokeWidth="1.5" />
+      <path d="M9.5 9.5a3 3 0 0 1 5 1.5c0 1.5-2.5 2-2.5 2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="12" cy="17" r="0.5" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
 /** Chevron — used for expand/collapse toggles */
 export function ChevronIcon({ className = 'w-3.5 h-3.5', expanded = false }: IconProps & { expanded?: boolean }) {
   return (

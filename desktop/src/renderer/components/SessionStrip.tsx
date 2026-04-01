@@ -84,6 +84,7 @@ export default function SessionStrip({
   const [dangerous, setDangerous] = useState(false);
   const leaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const pillBarRef = useRef<HTMLDivElement>(null);
 
   /* ── Pointer-event drag state ──────────────────────────── */
   const [dragIdx, setDragIdx] = useState<number | null>(null);
@@ -91,6 +92,7 @@ export default function SessionStrip({
   const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null);
   const [dragLabel, setDragLabel] = useState<string>('');
   const [dragColor, setDragColor] = useState<SessionStatusColor>('gray');
+  const [ghostTarget, setGhostTarget] = useState<{ x: number; y: number } | null>(null);
   // Track whether pointer moved enough to distinguish drag from click
   const dragOrigin = useRef<{ x: number; y: number } | null>(null);
   const isDragging = useRef(false);
@@ -176,17 +178,53 @@ export default function SessionStrip({
 
     setDragPos({ x: e.clientX, y: e.clientY });
 
-    // Hit-test: find which session element the pointer is over
-    const els = document.querySelectorAll('[data-session-idx]');
+    // Hit-test: find nearest pill by horizontal distance (Y-independent, wide pickup range)
+    const bar = pillBarRef.current;
+    if (!bar) return;
+    const els = bar.querySelectorAll('[data-session-idx]');
+
     let closest: number | null = null;
+    let closestDist = Infinity;
+    const pillRects: { idx: number; rect: DOMRect }[] = [];
+
     els.forEach(el => {
+      const idx = parseInt((el as HTMLElement).dataset.sessionIdx!, 10);
       const rect = el.getBoundingClientRect();
-      if (e.clientX >= rect.left && e.clientX <= rect.right &&
-          e.clientY >= rect.top && e.clientY <= rect.bottom) {
-        closest = parseInt((el as HTMLElement).dataset.sessionIdx!, 10);
+      pillRects.push({ idx, rect });
+      const centerX = (rect.left + rect.right) / 2;
+      const dist = Math.abs(e.clientX - centerX);
+      if (idx !== dragIdx && dist < closestDist) {
+        closestDist = dist;
+        closest = idx;
       }
     });
-    setOverIdx(closest !== dragIdx ? closest : null);
+
+    setOverIdx(closest);
+
+    // Compute ghost target position — snap to the insertion gap between pills
+    if (closest !== null) {
+      const targetIdx = closest; // const for TS narrowing in callbacks
+      pillRects.sort((a, b) => a.idx - b.idx);
+      const barRect = bar.getBoundingClientRect();
+      const y = (barRect.top + barRect.bottom) / 2;
+      let x: number;
+
+      if (targetIdx < dragIdx) {
+        // Ghost appears before the target pill (item moves left)
+        const target = pillRects.find(r => r.idx === targetIdx)!;
+        const prev = pillRects.find(r => r.idx === targetIdx - 1);
+        x = prev ? (prev.rect.right + target.rect.left) / 2 : target.rect.left - 16;
+      } else {
+        // Ghost appears after the target pill (item moves right)
+        const target = pillRects.find(r => r.idx === targetIdx)!;
+        const next = pillRects.find(r => r.idx === targetIdx + 1);
+        x = next ? (target.rect.right + next.rect.left) / 2 : target.rect.right + 16;
+      }
+
+      setGhostTarget({ x, y });
+    } else {
+      setGhostTarget(null);
+    }
   }, [dragIdx]);
 
   const handlePointerUp = useCallback((e: React.PointerEvent) => {
@@ -197,6 +235,7 @@ export default function SessionStrip({
     setDragIdx(null);
     setOverIdx(null);
     setDragPos(null);
+    setGhostTarget(null);
     dragOrigin.current = null;
     isDragging.current = false;
 
@@ -216,7 +255,7 @@ export default function SessionStrip({
 
   return (
     <>
-      <div className="flex items-center gap-0.5 bg-gray-800 rounded-full px-1.5 py-0.5">
+      <div ref={pillBarRef} className="flex items-center gap-0.5 bg-gray-800 rounded-full px-1.5 py-0.5">
         {/* ── Session pills ──────────────────────────────── */}
         {sessions.map((s, idx) => {
           const color = sessionStatuses?.get(s.id) || 'gray';
@@ -229,10 +268,6 @@ export default function SessionStrip({
 
           return (
             <React.Fragment key={s.id}>
-              {/* Insertion line — rendered before the pill when this is the drop target */}
-              {isOver && dragIdx !== null && idx <= dragIdx && (
-                <div className="w-0.5 h-4 rounded-full bg-blue-400 shrink-0 transition-all duration-150" />
-              )}
               <button
                 data-session-idx={idx}
                 onPointerDown={(e) => handlePointerDown(e, idx)}
@@ -254,9 +289,9 @@ export default function SessionStrip({
                   transition: isBeingDragged
                     ? 'opacity 150ms, transform 150ms'
                     : 'all 150ms cubic-bezier(0.34, 1.56, 0.64, 1)',
-                  transform: (!isBeingDragged && isHovered && !isActive) ? 'scale(1.04)' : undefined,
+                  transform: (!isBeingDragged && isHovered && !isActive) ? 'scale(1.02)' : undefined,
                   boxShadow: isActive ? GLOW_SHADOW[color] : undefined,
-                  cursor: isBeingDragged ? 'grabbing' : 'grab',
+                  cursor: 'default',
                 }}
                 title={s.name}
               >
@@ -273,10 +308,6 @@ export default function SessionStrip({
                 </span>
                 {/* Active indicator bar — removed; dot is sufficient */}
               </button>
-              {/* Insertion line — rendered after the pill */}
-              {isOver && dragIdx !== null && idx > dragIdx && (
-                <div className="w-0.5 h-4 rounded-full bg-blue-400 shrink-0 transition-all duration-150" />
-              )}
             </React.Fragment>
           );
         })}
@@ -324,13 +355,11 @@ export default function SessionStrip({
                           animation: `row-fade-in 100ms ease both`,
                           animationDelay: `${idx * 20}ms`,
                           transition: 'opacity 150ms, background 150ms',
-                          cursor: isBeingDragged ? 'grabbing' : 'default',
-                          borderTop: isOver && dragIdx !== null && idx <= dragIdx ? '2px solid #60A5FA' : undefined,
-                          borderBottom: isOver && dragIdx !== null && idx > dragIdx ? '2px solid #60A5FA' : undefined,
+                          cursor: 'default',
                         }}
                       >
                         {/* Drag grip — visible on hover */}
-                        <span className="shrink-0 flex items-center pl-1.5 pt-2.5 opacity-0 group-hover/row:opacity-100 transition-opacity cursor-grab">
+                        <span className="shrink-0 flex items-center pl-1.5 pt-2.5 opacity-0 group-hover/row:opacity-100 transition-opacity">
                           <DragGrip />
                         </span>
                         <button
@@ -428,14 +457,15 @@ export default function SessionStrip({
         </div>
       </div>
 
-      {/* ── Floating drag clone (portal) ─────────────────── */}
-      {dragging && dragPos && (
+      {/* ── Floating drag ghost — snaps to insertion gap ──── */}
+      {dragging && ghostTarget && (
         <div
           className="fixed z-[9999] pointer-events-none flex items-center gap-1.5 rounded-full px-2.5 py-1 bg-gray-800 border border-gray-600 shadow-lg shadow-black/40"
           style={{
-            left: dragPos.x,
-            top: dragPos.y,
+            left: ghostTarget.x,
+            top: ghostTarget.y,
             transform: 'translate(-50%, -50%) scale(1.05)',
+            transition: 'left 150ms cubic-bezier(0.34, 1.56, 0.64, 1), top 150ms cubic-bezier(0.34, 1.56, 0.64, 1)',
           }}
         >
           <SessionDot color={dragColor} isActive />
