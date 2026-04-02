@@ -53,6 +53,7 @@ export function createSessionChatState(): SessionChatState {
 }
 
 export type ChatAction =
+  | { type: 'RESET' }
   | { type: 'SESSION_INIT'; sessionId: string }
   | { type: 'SESSION_REMOVE'; sessionId: string }
   | {

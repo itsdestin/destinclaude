@@ -393,7 +393,7 @@ function AppInner() {
       setPermissionModes(new Map());
       setInitializedSessions(new Set());
       setViewedSessions(new Set());
-      dispatch({ type: 'RESET' as any });
+      dispatch({ type: 'RESET' });
 
       // Reload session list from the new server
       window.claude.session.list().then((list: any[]) => {
@@ -591,7 +591,11 @@ function AppInner() {
             <HeaderBar
               sessions={sessions}
               activeSessionId={sessionId}
-              onSelectSession={setSessionId}
+              onSelectSession={(id: string) => {
+                setSessionId(id);
+                // Notify Android/remote bridge so the native terminal view switches too
+                (window as any).claude?.session?.switch?.(id);
+              }}
               onCreateSession={createSession}
               onCloseSession={(id) => window.claude.session.destroy(id)}
               onReorderSessions={(fromIndex: number, toIndex: number) => {

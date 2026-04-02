@@ -59,6 +59,10 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
   const next = new Map(state);
 
   switch (action.type) {
+    case 'RESET': {
+      return new Map();
+    }
+
     case 'SESSION_INIT': {
       if (!next.has(action.sessionId)) {
         next.set(action.sessionId, createSessionChatState());
