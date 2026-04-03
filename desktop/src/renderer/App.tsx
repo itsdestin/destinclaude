@@ -18,6 +18,7 @@ import TrustGate, { useTrustGateActive } from './components/TrustGate';
 import SettingsPanel from './components/SettingsPanel';
 import ResumeBrowser from './components/ResumeBrowser';
 import type { SkillEntry, PermissionMode } from '../shared/types';
+import FirstRunView from './components/FirstRunView';
 import { getPlatform, isRemoteMode, onConnectionModeChange } from './platform';
 import type { SessionStatusColor } from './components/StatusDot';
 import { ThemeProvider } from './state/theme-context';
@@ -57,6 +58,19 @@ function AppInner() {
   const [viewedSessions, setViewedSessions] = useState<Set<string>>(new Set());
   const [resumeInfo, setResumeInfo] = useState<Map<string, { claudeSessionId: string; projectSlug: string }>>(new Map());
   const [resumeRequested, setResumeRequested] = useState(false);
+  const [isFirstRun, setIsFirstRun] = useState<boolean | null>(null); // null = loading
+
+  useEffect(() => {
+    (window as any).claude?.firstRun?.getState?.().then((state: any) => {
+      if (state && state.currentStep !== 'COMPLETE') {
+        setIsFirstRun(true);
+      } else {
+        setIsFirstRun(false);
+      }
+    }).catch(() => {
+      setIsFirstRun(false);
+    });
+  }, []);
 
   usePromptDetector();
   const dispatch = useChatDispatch();
@@ -613,6 +627,20 @@ function AppInner() {
 
   // Parse announcement
   const announcementText = statusData.announcement?.message || null;
+
+  // Still loading first-run check
+  if (isFirstRun === null) {
+    return <div className="flex-1 flex items-center justify-center bg-gray-950" />;
+  }
+
+  // First-run mode — show setup UI instead of normal app
+  if (isFirstRun) {
+    return (
+      <div className="h-screen flex flex-col bg-gray-950">
+        <FirstRunView onComplete={() => setIsFirstRun(false)} />
+      </div>
+    );
+  }
 
   return (
     <div className="flex w-screen h-full bg-canvas text-fg">
