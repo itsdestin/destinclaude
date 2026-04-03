@@ -153,14 +153,15 @@ export function parseTranscriptLine(line: string, sessionId: string): Transcript
     }
   }
 
-  // Emit turn-complete if stop_reason is end_turn
-  if (message.stop_reason === 'end_turn') {
+  // Emit turn-complete for any definitive stop reason except tool_use
+  // (tool_use means Claude is waiting for tool results, not actually done)
+  if (message.stop_reason && message.stop_reason !== 'tool_use') {
     events.push({
       type: 'turn-complete',
       sessionId,
       uuid,
       timestamp,
-      data: { stopReason: 'end_turn' },
+      data: { stopReason: message.stop_reason },
     });
   }
 

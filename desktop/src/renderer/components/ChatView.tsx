@@ -91,7 +91,7 @@ export default function ChatView({ sessionId, visible, resumeInfo }: Props) {
         if (mountedRef.current) {
           dispatch({ type: 'THINKING_TIMEOUT', sessionId });
         }
-      }, 60000);
+      }, 30000);
     } else {
       if (thinkingTimerRef.current) {
         clearTimeout(thinkingTimerRef.current);
@@ -132,18 +132,20 @@ export default function ChatView({ sessionId, visible, resumeInfo }: Props) {
 
     const observer = new IntersectionObserver(
       ([entry]) => setAtBottom(entry.isIntersecting),
-      { threshold: 0.1 },
+      { threshold: 0.1, rootMargin: '0px 0px 150px 0px' },
     );
     observer.observe(sentinel);
     return () => observer.disconnect();
   }, []);
 
-  // Auto-scroll when new content arrives and user is at bottom
+  // Auto-scroll when new content arrives and user is at bottom.
+  // assistantTurns and toolCalls are new Map references on every reducer update,
+  // so they trigger scroll for text appends, tool results, etc. — not just timeline growth.
   useEffect(() => {
     if (atBottom && bottomRef.current) {
-      bottomRef.current.scrollIntoView({ behavior: 'smooth' });
+      bottomRef.current.scrollIntoView({ behavior: 'auto' });
     }
-  }, [state.timeline.length, state.isThinking, atBottom]);
+  }, [state.timeline.length, state.assistantTurns, state.toolCalls, state.isThinking, atBottom]);
 
   const jumpToBottom = useCallback(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
