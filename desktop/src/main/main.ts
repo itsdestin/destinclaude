@@ -150,6 +150,18 @@ function createWindow(firstRunManager?: FirstRunManager) {
 
   if (firstRunManager) {
     registerFirstRunIpc(ipcMain, mainWindow, firstRunManager, sessionManager);
+  } else {
+    // Always register the state handler so the renderer's getState() call
+    // resolves immediately instead of hanging on an unregistered channel.
+    ipcMain.handle(IPC.FIRST_RUN_STATE, async () => ({
+      currentStep: 'COMPLETE',
+      prerequisites: [],
+      overallProgress: 100,
+      statusMessage: '',
+      authMode: 'none',
+      authComplete: true,
+      needsDevMode: false,
+    }));
   }
 
   // Forward hook events to renderer
