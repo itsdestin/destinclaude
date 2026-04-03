@@ -47,6 +47,9 @@ const IPC = {
   FIRST_RUN_SUBMIT_API_KEY: 'first-run:submit-api-key',
   FIRST_RUN_DEV_MODE_DONE: 'first-run:dev-mode-done',
   FIRST_RUN_SKIP: 'first-run:skip',
+  MODEL_GET_PREFERENCE: 'model:get-preference',
+  MODEL_SET_PREFERENCE: 'model:set-preference',
+  MODEL_READ_LAST: 'model:read-last',
 } as const;
 
 contextBridge.exposeInMainWorld('claude', {
@@ -146,6 +149,11 @@ contextBridge.exposeInMainWorld('claude', {
     getClientList: () => ipcRenderer.invoke(IPC.REMOTE_GET_CLIENT_LIST),
     disconnectClient: (clientId: string) => ipcRenderer.invoke(IPC.REMOTE_DISCONNECT_CLIENT, clientId),
     broadcastAction: (action: any) => ipcRenderer.send(IPC.UI_ACTION_BROADCAST, action),
+  },
+  model: {
+    getPreference: (): Promise<string> => ipcRenderer.invoke(IPC.MODEL_GET_PREFERENCE),
+    setPreference: (model: string): Promise<boolean> => ipcRenderer.invoke(IPC.MODEL_SET_PREFERENCE, model),
+    readLastModel: (transcriptPath: string): Promise<string | null> => ipcRenderer.invoke(IPC.MODEL_READ_LAST, transcriptPath),
   },
   off: (channel: string, handler: (...args: any[]) => void) =>
     ipcRenderer.removeListener(channel, handler),

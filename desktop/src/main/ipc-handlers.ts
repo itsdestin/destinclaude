@@ -154,6 +154,46 @@ export function registerIpcHandlers(
     }
   });
 
+  // --- Model preference persistence ---
+  ipcMain.handle('model:get-preference', async () => {
+    try {
+      const raw = fs.readFileSync(modelPrefPath, 'utf-8');
+      const parsed = JSON.parse(raw);
+      return parsed.model || 'sonnet';
+    } catch {
+      return 'sonnet';
+    }
+  });
+
+  ipcMain.handle('model:set-preference', async (_event, model: string) => {
+    try {
+      fs.mkdirSync(path.dirname(modelPrefPath), { recursive: true });
+      fs.writeFileSync(modelPrefPath, JSON.stringify({ model }));
+      return true;
+    } catch {
+      return false;
+    }
+  });
+
+  // --- Transcript model verification ---
+  ipcMain.handle('model:read-last', async (_event, transcriptPath: string) => {
+    try {
+      const content = fs.readFileSync(transcriptPath, 'utf-8');
+      const lines = content.trim().split('\n');
+      for (let i = lines.length - 1; i >= 0; i--) {
+        try {
+          const entry = JSON.parse(lines[i]);
+          if (entry.type === 'assistant' && entry.message?.model) {
+            return entry.message.model;
+          }
+        } catch { continue; }
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  });
+
   // --- Skills discovery (shared with RemoteServer) ---
   ipcMain.handle(IPC.SKILLS_LIST, async () => {
     return scanSkills();
@@ -320,6 +360,7 @@ export function registerIpcHandlers(
   const usageCachePath = path.join(os.homedir(), '.claude', '.usage-cache.json');
   const announcementCachePath = path.join(os.homedir(), '.claude', '.announcement-cache.json');
   const updateStatusPath = path.join(os.homedir(), '.claude', 'toolkit-state', 'update-status.json');
+  const modelPrefPath = path.join(os.homedir(), '.claude', 'destincode-model.json');
 
   function readJsonFile(filePath: string): any {
     try {
