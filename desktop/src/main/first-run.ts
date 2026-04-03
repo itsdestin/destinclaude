@@ -48,9 +48,15 @@ export class FirstRunManager extends EventEmitter {
    * doesn't exist.
    */
   static isFirstRun(): boolean {
+    // If the first-run state machine already reached COMPLETE, skip
     try {
-      const raw = fs.readFileSync(CONFIG_FILE, 'utf8');
-      const config = JSON.parse(raw);
+      const state = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
+      if (state.currentStep === 'COMPLETE') return false;
+    } catch { /* no state file = fresh */ }
+
+    // Check if the wizard has written setup_completed
+    try {
+      const config = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
       return config.setup_completed !== true;
     } catch {
       return true;
@@ -85,7 +91,17 @@ export class FirstRunManager extends EventEmitter {
         return;
       }
 
-      await this.runStep(this.state.currentStep);
+      // If resuming at a later step (e.g., after app restart), re-run detection
+      // to get accurate state rather than blindly replaying. Auth mode is reset
+      // so the user sees the login button again instead of stale "Waiting..." text.
+      const step = this.state.currentStep;
+      if (step === 'AUTHENTICATE' || step === 'LAUNCH_WIZARD' || step === 'ENABLE_DEVELOPER_MODE') {
+        this.state.authMode = 'none';
+        this.state.lastError = undefined;
+        await this.detectAll();
+      } else {
+        await this.runStep(step);
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       log('ERROR', 'first-run', 'Unexpected error in run()', { error: msg });
@@ -120,6 +136,9 @@ export class FirstRunManager extends EventEmitter {
       case 'LAUNCH_WIZARD':
         this.updateState({ statusMessage: 'Launching setup wizard...' });
         this.emit('launch-wizard');
+        // Mark first-run as complete so the next app launch skips straight to normal mode.
+        // The setup wizard handles the rest (config.json setup_completed is written by the wizard).
+        this.advanceTo('COMPLETE');
         break;
       case 'COMPLETE':
         // no-op
