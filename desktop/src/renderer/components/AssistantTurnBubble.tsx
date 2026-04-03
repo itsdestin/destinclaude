@@ -31,29 +31,29 @@ function CollapsedToolGroup({ tools, sessionId }: { tools: ToolCallState[]; sess
     .join(', ');
 
   return (
-    <div className="border border-gray-700 rounded-lg overflow-hidden">
+    <div className="border border-edge rounded-lg overflow-hidden">
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center gap-1.5 px-3 py-1.5 text-left hover:bg-gray-800/50 transition-colors"
+        className="w-full flex items-center gap-1.5 px-3 py-1.5 text-left hover:bg-inset/50 transition-colors"
       >
         {runningCount > 0 ? (
           <BrailleSpinner size="sm" />
         ) : failedCount > 0 ? (
-          <FailIcon className="w-3.5 h-3.5 shrink-0 text-gray-400" />
+          <FailIcon className="w-3.5 h-3.5 shrink-0 text-fg-dim" />
         ) : (
-          <CheckIcon className="w-3.5 h-3.5 shrink-0 text-gray-400" />
+          <CheckIcon className="w-3.5 h-3.5 shrink-0 text-fg-dim" />
         )}
-        <span className="text-gray-600 text-xs select-none">|</span>
-        <span className="text-xs text-gray-400 flex-1">
+        <span className="text-fg-faint text-xs select-none">|</span>
+        <span className="text-xs text-fg-dim flex-1">
           {tools.length} tools ({nameList})
           {completedCount === tools.length && ' — all complete'}
           {runningCount > 0 && ` — ${runningCount} running`}
           {failedCount > 0 && ` — ${failedCount} failed`}
         </span>
-        <ChevronIcon className="w-3.5 h-3.5 shrink-0 text-gray-500" expanded={expanded} />
+        <ChevronIcon className="w-3.5 h-3.5 shrink-0 text-fg-muted" expanded={expanded} />
       </button>
       {expanded && (
-        <div className="px-2 pb-1.5 space-y-0.5 rounded-b-lg">
+        <div className="px-2 pb-1.5 space-y-0.5 bg-inset rounded-b-lg">
           {tools.map((tool) => (
             <ToolCard key={tool.toolUseId} tool={tool} sessionId={sessionId} />
           ))}
@@ -109,7 +109,7 @@ export default function AssistantTurnBubble({ turn, toolGroups, toolCalls, sessi
         const toolsOnly = hasTools && !bubble.text;
         return (
           <div key={bubble.key} className="flex justify-start px-4 py-0.5">
-            <div className={`max-w-[85%] rounded-2xl rounded-bl-sm bg-gray-800 text-sm text-gray-200 ${hasTools ? 'px-2' : 'px-4'} ${toolsOnly ? 'py-1' : hasTools ? 'pt-2.5 pb-1' : 'py-2.5'}`}>
+            <div className={`max-w-[85%] rounded-2xl rounded-bl-sm bg-inset text-sm text-fg ${hasTools ? 'px-2' : 'px-4'} ${toolsOnly ? 'py-1' : hasTools ? 'pt-2.5 pb-1' : 'py-2.5'}`}>
               {bubble.text && (
                 <div className={hasTools ? 'px-2' : ''}>
                   <MarkdownContent content={bubble.text.content} />

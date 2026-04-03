@@ -179,7 +179,7 @@ export default function InputBar({ sessionId, disabled, onOpenDrawer, onResumeCo
 
   return (
     <div
-      className="border-t border-gray-800 shrink-0"
+      className="border-t border-edge shrink-0"
       onDrop={handleDrop}
       onDragOver={handleDragOver}
     >
@@ -193,18 +193,18 @@ export default function InputBar({ sessionId, disabled, onOpenDrawer, onResumeCo
                 <img
                   src={`file://${att.path.replace(/\\/g, '/')}`}
                   alt={att.name}
-                  className="w-12 h-12 rounded-md object-cover border border-gray-700"
+                  className="w-12 h-12 rounded-md object-cover border border-edge"
                 />
               ) : (
-                <div className="w-12 h-12 rounded-md border border-gray-700 bg-gray-900 flex items-center justify-center">
-                  <span className="text-[9px] text-gray-400 text-center leading-tight px-1 truncate">
+                <div className="w-12 h-12 rounded-md border border-edge bg-panel flex items-center justify-center">
+                  <span className="text-[9px] text-fg-dim text-center leading-tight px-1 truncate">
                     {att.name}
                   </span>
                 </div>
               )}
               <button
                 onClick={() => removeAttachment(att.path)}
-                className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-gray-700 text-gray-300 hover:bg-gray-600 flex items-center justify-center text-[10px] leading-none opacity-0 group-hover:opacity-100 transition-opacity"
+                className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-inset text-fg-2 hover:bg-edge flex items-center justify-center text-[10px] leading-none opacity-0 group-hover:opacity-100 transition-opacity"
               >
                 ×
               </button>
@@ -214,11 +214,11 @@ export default function InputBar({ sessionId, disabled, onOpenDrawer, onResumeCo
       )}
 
       <div className="px-2 sm:px-3 pb-1 sm:pb-1.5">
-        <form onSubmit={handleSubmit} className="flex items-center gap-1.5 sm:gap-2 bg-gray-800 rounded-xl px-2 sm:px-3 py-2">
+        <form onSubmit={handleSubmit} className="flex items-center gap-1.5 sm:gap-2 bg-inset rounded-xl px-2 sm:px-3 py-2">
           <BrailleBurst
             onTrigger={handleAttachClick}
             disabled={disabled}
-            className="shrink-0 text-gray-400 hover:text-gray-200 disabled:opacity-30 transition-colors"
+            className="shrink-0 text-fg-dim hover:text-fg disabled:opacity-30 transition-colors"
             title="Attach file"
           >
             <AttachIcon className="w-5 h-5" />
@@ -226,7 +226,7 @@ export default function InputBar({ sessionId, disabled, onOpenDrawer, onResumeCo
           <BrailleBurst
             onTrigger={() => onOpenDrawer?.(false)}
             disabled={disabled}
-            className="shrink-0 text-gray-400 hover:text-gray-200 disabled:opacity-30 transition-colors"
+            className="shrink-0 text-fg-dim hover:text-fg disabled:opacity-30 transition-colors"
             title="Browse skills"
           >
             <CompassIcon className="w-5 h-5" />
@@ -255,14 +255,14 @@ export default function InputBar({ sessionId, disabled, onOpenDrawer, onResumeCo
             placeholder={disabled ? 'Waiting for approval...' : 'Message Claude...'}
             disabled={disabled}
             autoFocus
-            className="flex-1 bg-transparent text-sm text-gray-200 placeholder-gray-500 outline-none disabled:opacity-50 resize-none overflow-y-auto leading-snug"
+            className="flex-1 bg-transparent text-sm text-fg placeholder-fg-muted outline-none disabled:opacity-50 resize-none overflow-y-auto leading-snug"
           />
           <button
             type="submit"
             disabled={disabled || (!text.trim() && attachments.length === 0)}
-            className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg bg-gray-300 hover:bg-gray-200 disabled:opacity-30 disabled:hover:bg-gray-300 transition-colors"
+            className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg bg-accent hover:brightness-110 disabled:opacity-30 transition-colors"
           >
-            <svg className="w-4 h-4 text-gray-950" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className="w-4 h-4 text-on-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M12 5l7 7-7 7" />
             </svg>
           </button>

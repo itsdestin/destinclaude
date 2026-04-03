@@ -22,7 +22,8 @@ Electron + React app that wraps Claude Code CLI in a GUI.
 - **RemoteServer** (`src/main/remote-server.ts`) — HTTP + WebSocket server for remote browser access. Handles auth tokens, PTY buffer replay, hook event relay, transcript event relay, and cross-device session sync
 - **RemoteConfig** (`src/main/remote-config.ts`) — Reads/writes `~/.claude/destincode-remote.json` for port, password hash, and Tailscale trust settings
 - **SkillScanner** (`src/main/skill-scanner.ts`) — Scans installed skills and exposes them to the remote UI's command drawer
-- **SettingsPanel** (`src/renderer/components/SettingsPanel.tsx`) — Settings UI for remote access config (password, Tailscale trust, QR code, connected clients)
+- **SettingsPanel** (`src/renderer/components/SettingsPanel.tsx`) — Settings UI for remote access config, appearance popup (theme + font)
+- **ThemeProvider** (`src/renderer/state/theme-context.tsx`) — Appearance state: active theme, cycle list, font family. Persists to localStorage, applies `data-theme` attribute on `<html>`, swaps highlight.js stylesheet, sets font CSS variables. See `docs/theme-spec.md` for details
 
 ## Chat View Data Flow
 
@@ -81,6 +82,22 @@ DestinCode includes a multiplayer game system (currently Connect 4) powered by P
 - **Spec:** `docs/superpowers/specs/2026-03-27-partykit-game-backend-design.md`
 
 Adding a new game requires: a new room class in `partykit/src/`, new client game logic, and new UI components. The lobby and favorites system are game-agnostic.
+
+## Theming & Appearance
+
+The app uses a semantic CSS token system for theming. All colors are CSS custom properties toggled by `data-theme` on `<html>`.
+
+- **Themes:** Light (default), Dark, Midnight, Crème — defined in `src/renderer/styles/globals.css`
+- **Tokens:** `bg-canvas`, `bg-panel`, `bg-inset`, `bg-well`, `bg-accent`, `text-fg`, `text-fg-2`, `text-fg-dim`, `text-fg-muted`, `text-fg-faint`, `text-on-accent`, `border-edge`, `border-edge-dim`
+- **Adding a theme:** Add a `[data-theme="name"]` block in globals.css with all variables, add the name to `THEMES` array in `theme-context.tsx`, add label/description/swatches to `SettingsPanel.tsx`
+- **Font:** User-selectable via `queryLocalFonts()` API. Applied via `--font-sans`/`--font-mono` CSS variables + xterm.js `fontFamily`
+- **Persistence:** `localStorage` keys: `destincode-theme`, `destincode-theme-cycle`, `destincode-font`
+- **Status bar pill:** Cycles through user-configured subset of themes (configurable in appearance popup)
+- **highlight.js:** Dynamically swaps between `github-dark.css` and `github.css` via inline `?inline` CSS imports managed in ThemeProvider
+- **xterm.js:** Reads `--canvas` and `--fg` CSS variables for terminal colors, syncs reactively on theme/font change
+- **Anti-FOUC:** Theme + font applied before React mounts in `index.tsx`
+
+**Key rule:** Status colors (green, red, amber, blue, orange) are theme-independent and stay hardcoded. Only surface/text/border colors use semantic tokens.
 
 ## Specs
 

@@ -263,7 +263,7 @@ function PermissionButtons({ requestId, suggestions, onResponded, onFailed }: {
   const ring = 'ring-2 ring-white/40';
 
   return (
-    <div className="flex items-center gap-2 px-3 py-2 border-t border-gray-700 bg-gray-800/30">
+    <div className="flex items-center gap-2 px-3 py-2 border-t border-edge bg-inset/30">
       <button
         ref={el => { buttonsRef.current[0] = el; }}
         disabled={responding}
@@ -305,31 +305,31 @@ export default function ToolCard({ tool, sessionId }: Props) {
   const display = friendlyToolDisplay(tool);
 
   return (
-    <div className="border border-gray-700 rounded-lg overflow-hidden">
+    <div className="border border-edge rounded-lg overflow-hidden">
       {/* Header */}
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center gap-1.5 px-3 py-1.5 text-left bg-gray-850 hover:bg-gray-800/50 transition-colors"
+        className="w-full flex items-center gap-1.5 px-3 py-1.5 text-left hover:bg-inset/50 transition-colors"
       >
         {/* Status indicator */}
         {tool.status === 'running' && (
           <BrailleSpinner size="sm" />
         )}
         {tool.status === 'awaiting-approval' && (
-          <QuestionIcon className="w-3.5 h-3.5 shrink-0 text-gray-400" />
+          <QuestionIcon className="w-3.5 h-3.5 shrink-0 text-fg-dim" />
         )}
         {tool.status === 'complete' && (
-          <CheckIcon className="w-3.5 h-3.5 shrink-0 text-gray-400" />
+          <CheckIcon className="w-3.5 h-3.5 shrink-0 text-fg-dim" />
         )}
         {tool.status === 'failed' && (
-          <FailIcon className="w-3.5 h-3.5 shrink-0 text-gray-400" />
+          <FailIcon className="w-3.5 h-3.5 shrink-0 text-fg-dim" />
         )}
-        <span className="text-gray-600 text-xs select-none">|</span>
-        <span className="text-xs font-medium text-gray-300">{display.label}</span>
+        <span className="text-fg-faint text-xs select-none">|</span>
+        <span className="text-xs font-medium text-fg-2">{display.label}</span>
         {display.detail && (
-          <span className="text-xs text-gray-500 truncate flex-1 min-w-0">{display.detail}</span>
+          <span className="text-xs text-fg-muted truncate flex-1 min-w-0">{display.detail}</span>
         )}
-        <ChevronIcon className="w-3.5 h-3.5 shrink-0 text-gray-500" expanded={expanded} />
+        <ChevronIcon className="w-3.5 h-3.5 shrink-0 text-fg-muted" expanded={expanded} />
       </button>
 
 
@@ -357,19 +357,19 @@ export default function ToolCard({ tool, sessionId }: Props) {
 
       {/* Expanded details */}
       {expanded && (
-        <div className="px-3 pb-3 border-t border-gray-700 pt-2 space-y-2">
+        <div className="px-3 pb-3 border-t border-edge pt-2 space-y-2">
           {Object.keys(tool.input).length > 0 && (
             <div>
-              <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-1">Input</div>
-              <pre className="text-xs text-gray-400 bg-gray-900 rounded p-2 overflow-auto max-h-48">
+              <div className="text-[10px] uppercase tracking-wider text-fg-muted mb-1">Input</div>
+              <pre className="text-xs text-fg-dim bg-panel rounded p-2 overflow-auto max-h-48">
                 {JSON.stringify(tool.input, null, 2)}
               </pre>
             </div>
           )}
           {tool.response && (
             <div>
-              <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-1">Response</div>
-              <pre className="text-xs text-gray-400 bg-gray-900 rounded p-2 overflow-auto max-h-48">
+              <div className="text-[10px] uppercase tracking-wider text-fg-muted mb-1">Response</div>
+              <pre className="text-xs text-fg-dim bg-panel rounded p-2 overflow-auto max-h-48">
                 {tool.response}
               </pre>
             </div>
@@ -377,7 +377,7 @@ export default function ToolCard({ tool, sessionId }: Props) {
           {tool.error && (
             <div>
               <div className="text-[10px] uppercase tracking-wider text-red-500 mb-1">Error</div>
-              <pre className="text-xs text-red-400 bg-gray-900 rounded p-2 overflow-auto max-h-48">
+              <pre className="text-xs text-red-400 bg-panel rounded p-2 overflow-auto max-h-48">
                 {tool.error}
               </pre>
             </div>

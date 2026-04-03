@@ -18,10 +18,10 @@ export default function GamePanel({ connection, incognito, onToggleIncognito }: 
   const isPlaying = state.screen === 'playing' || state.screen === 'game-over';
 
   return (
-    <div className="w-80 bg-gray-900 border-l border-gray-800 flex flex-col h-full shrink-0 overflow-hidden">
+    <div className="w-80 bg-panel border-l border-edge flex flex-col h-full shrink-0 overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-gray-800">
-        <span className="text-sm font-semibold text-gray-200">Connect 4</span>
+      <div className="flex items-center justify-between px-3 py-2 border-b border-edge">
+        <span className="text-sm font-semibold text-fg">Connect 4</span>
         <button
           onClick={() => {
             if (state.screen !== 'lobby' && state.screen !== 'setup') {
@@ -30,7 +30,7 @@ export default function GamePanel({ connection, incognito, onToggleIncognito }: 
             }
             dispatch({ type: 'TOGGLE_PANEL' });
           }}
-          className="text-gray-500 hover:text-gray-300 transition-colors"
+          className="text-fg-muted hover:text-fg-2 transition-colors"
         >
           ✕
         </button>

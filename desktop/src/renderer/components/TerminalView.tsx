@@ -6,6 +6,15 @@ import { WebglAddon } from '@xterm/addon-webgl';
 import '@xterm/xterm/css/xterm.css';
 import { usePtyOutput } from '../hooks/useIpc';
 import { registerTerminal, unregisterTerminal, notifyBufferReady } from '../hooks/terminal-registry';
+import { useTheme } from '../state/theme-context';
+
+/** Read the current theme CSS variables and return an xterm ITheme. */
+function getXtermTheme(): { background: string; foreground: string; cursor: string; selectionBackground: string } {
+  const s = getComputedStyle(document.documentElement);
+  const bg = s.getPropertyValue('--canvas').trim() || '#0A0A0A';
+  const fg = s.getPropertyValue('--fg').trim() || '#E0E0E0';
+  return { background: bg, foreground: fg, cursor: fg, selectionBackground: '#264f78' };
+}
 
 interface Props {
   sessionId: string;
@@ -16,6 +25,23 @@ export default function TerminalView({ sessionId, visible }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
+  const { theme, font } = useTheme();
+
+  // Sync xterm theme when app theme changes
+  useEffect(() => {
+    if (terminalRef.current) {
+      terminalRef.current.options.theme = getXtermTheme();
+    }
+  }, [theme]);
+
+  // Sync xterm font when app font changes
+  useEffect(() => {
+    if (terminalRef.current) {
+      terminalRef.current.options.fontFamily = font;
+      // Re-fit after font change since glyph widths may differ
+      try { fitAddonRef.current?.fit(); } catch {}
+    }
+  }, [font]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -24,13 +50,8 @@ export default function TerminalView({ sessionId, visible }: Props) {
       allowProposedApi: true,
       cursorBlink: true,
       fontSize: 14,
-      fontFamily: "'Cascadia Code', 'Fira Code', monospace",
-      theme: {
-        background: '#0A0A0A',
-        foreground: '#E0E0E0',
-        cursor: '#E0E0E0',
-        selectionBackground: '#264f78',
-      },
+      fontFamily: font,
+      theme: getXtermTheme(),
     });
 
     const fitAddon = new FitAddon();
@@ -131,7 +152,7 @@ export default function TerminalView({ sessionId, visible }: Props) {
         left: 0,
         right: 0,
         bottom: 0,
-        background: '#0A0A0A',
+        background: 'var(--canvas)',
         borderRadius: 8,
         overflow: 'hidden',
         // Use visibility:hidden instead of display:none so xterm.js can

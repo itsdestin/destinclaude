@@ -1,24 +1,123 @@
 @import "tailwindcss";
-@import "highlight.js/styles/github-dark.css";
 
 @source "../../";
 
-@theme {
-  /* DestinCode neutral palette — pure grays, no blue tint */
-  --color-gray-50: #F5F5F5;
-  --color-gray-100: #EBEBEB;
-  --color-gray-200: #E0E0E0;
-  --color-gray-300: #B0B0B0;
-  --color-gray-400: #999999;
-  --color-gray-500: #666666;
-  --color-gray-600: #555555;
-  --color-gray-700: #333333;
-  --color-gray-800: #222222;
-  --color-gray-850: #1C1C1C;
-  --color-gray-900: #191919;
-  --color-gray-950: #111111;
+/* ═══════════════════════════════════════════════════════════════════════════
+   Theme System — 4 themes via data-theme attribute on <html>
+   Each theme defines the same set of CSS custom properties.
+   Tailwind @theme maps these to utility classes (bg-canvas, text-fg, etc.)
+   ═══════════════════════════════════════════════════════════════════════════ */
 
-  /* Status colors matched to DestinCode */
+/* ─── Light (default) ─── */
+[data-theme="light"], :root {
+  --canvas: #F2F2F2;
+  --panel: #EAEAEA;
+  --inset: #E0E0E0;
+  --well: #F7F7F7;
+  --accent: #1A1A1A;
+  --on-accent: #F2F2F2;
+  --fg: #1A1A1A;
+  --fg-2: #444444;
+  --fg-dim: #666666;
+  --fg-muted: #888888;
+  --fg-faint: #AAAAAA;
+  --edge: #CFCFCF;
+  --edge-dim: #DCDCDC80;
+  --scrollbar-thumb: #C0C0C0;
+  --scrollbar-hover: #999999;
+  --hl-theme: light;
+  color-scheme: light;
+}
+
+/* ─── Dark ─── */
+[data-theme="dark"] {
+  --canvas: #111111;
+  --panel: #191919;
+  --inset: #222222;
+  --well: #1C1C1C;
+  --accent: #D4D4D4;
+  --on-accent: #111111;
+  --fg: #E0E0E0;
+  --fg-2: #B0B0B0;
+  --fg-dim: #999999;
+  --fg-muted: #666666;
+  --fg-faint: #444444;
+  --edge: #2E2E2E;
+  --edge-dim: #37373780;
+  --scrollbar-thumb: #333333;
+  --scrollbar-hover: #555555;
+  --hl-theme: dark;
+  color-scheme: dark;
+}
+
+/* ─── Midnight ─── */
+[data-theme="midnight"] {
+  --canvas: #0D1117;
+  --panel: #161B22;
+  --inset: #21262D;
+  --well: #0D1117;
+  --accent: #B1BAC4;
+  --on-accent: #0D1117;
+  --fg: #C9D1D9;
+  --fg-2: #A0AAB4;
+  --fg-dim: #8B949E;
+  --fg-muted: #6E7681;
+  --fg-faint: #484F58;
+  --edge: #30363D;
+  --edge-dim: #30363D80;
+  --scrollbar-thumb: #30363D;
+  --scrollbar-hover: #484F58;
+  --hl-theme: dark;
+  color-scheme: dark;
+}
+
+/* ─── Crème ─── */
+[data-theme="creme"] {
+  --canvas: #F0E6D6;
+  --panel: #EBE1D1;
+  --inset: #DDD1BE;
+  --well: #F5ECDE;
+  --accent: #3D3229;
+  --on-accent: #F0E6D6;
+  --fg: #2C2418;
+  --fg-2: #5C4F3E;
+  --fg-dim: #7A6E5D;
+  --fg-muted: #9E9283;
+  --fg-faint: #BEB3A4;
+  --edge: #CBBFAD;
+  --edge-dim: #D4C8B580;
+  --scrollbar-thumb: #CBBFB0;
+  --scrollbar-hover: #A89A8A;
+  --hl-theme: light;
+  color-scheme: light;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Tailwind @theme — maps CSS variables to utility classes
+   Usage: bg-canvas, text-fg, border-edge, etc.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@theme {
+  /* Surfaces */
+  --color-canvas: var(--canvas);
+  --color-panel: var(--panel);
+  --color-inset: var(--inset);
+  --color-well: var(--well);
+  --color-accent: var(--accent);
+  --color-on-accent: var(--on-accent);
+
+  /* Text */
+  --color-fg: var(--fg);
+  --color-fg-2: var(--fg-2);
+  --color-fg-dim: var(--fg-dim);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-faint: var(--fg-faint);
+
+  /* Borders */
+  --color-edge: var(--edge);
+  --color-edge-dim: var(--edge-dim);
+
+  /* Status colors — constant across all themes */
   --color-green-400: #4CAF50;
   --color-red-400: #DD4444;
   --color-red-500: #DD4444;
@@ -28,6 +127,10 @@
   --font-sans: 'Cascadia Mono', 'Cascadia Code', 'Fira Code', monospace;
   --font-mono: 'Cascadia Mono', 'Cascadia Code', 'Fira Code', monospace;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Global styles
+   ═══════════════════════════════════════════════════════════════════════════ */
 
 /* Use dynamic viewport height on mobile — prevents content from scrolling behind browser chrome */
 html, body, #root {
@@ -70,7 +173,7 @@ html, body, #root {
   scrollbar-width: none;
 }
 
-/* Custom scrollbars to match the dark UI — thinner on mobile */
+/* Custom scrollbars — uses theme variables */
 ::-webkit-scrollbar {
   width: 4px;
   height: 4px;
@@ -88,12 +191,12 @@ html, body, #root {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #333333;
+  background: var(--scrollbar-thumb);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #555555;
+  background: var(--scrollbar-hover);
 }
 
 ::-webkit-scrollbar-corner {
@@ -155,3 +258,4 @@ html, body, #root {
     opacity: 1;
   }
 }
+

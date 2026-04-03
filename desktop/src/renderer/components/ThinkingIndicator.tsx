@@ -41,9 +41,9 @@ export default function ThinkingIndicator() {
 
   return (
     <div className="flex items-center gap-2 px-4 py-1.5">
-      <div className="flex items-center gap-2 bg-gray-800 rounded-2xl rounded-bl-sm px-4 py-2.5">
+      <div className="flex items-center gap-2 bg-inset rounded-2xl rounded-bl-sm px-4 py-2.5">
         <BrailleSpinner size="base" />
-        <span className="text-sm text-gray-400">
+        <span className="text-sm text-fg-dim">
           {THINKING_LINES[lineIndex]}
         </span>
       </div>

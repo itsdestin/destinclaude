@@ -40,23 +40,23 @@ export default function GameChat({ connection }: Props) {
   };
 
   return (
-    <div className="border-t border-gray-800 flex flex-col" style={{ maxHeight: '160px', minHeight: '120px' }}>
+    <div className="border-t border-edge flex flex-col" style={{ maxHeight: '160px', minHeight: '120px' }}>
       {/* Header */}
-      <div className="px-3 py-1.5 border-b border-gray-800 shrink-0">
-        <span className="text-[10px] uppercase tracking-wider text-gray-500">Game Chat</span>
+      <div className="px-3 py-1.5 border-b border-edge shrink-0">
+        <span className="text-[10px] uppercase tracking-wider text-fg-muted">Game Chat</span>
       </div>
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-3 py-1.5 flex flex-col gap-1">
         {state.chatMessages.length === 0 ? (
-          <p className="text-xs text-gray-600 italic">No messages yet</p>
+          <p className="text-xs text-fg-faint italic">No messages yet</p>
         ) : (
           state.chatMessages.map((msg, i) => (
             <div key={i} className="flex gap-1.5 text-xs">
               <span className={`font-medium shrink-0 ${colorForSender(msg.from)}`}>
                 {msg.from}:
               </span>
-              <span className="text-gray-300 break-words min-w-0">{msg.text}</span>
+              <span className="text-fg-2 break-words min-w-0">{msg.text}</span>
             </div>
           ))
         )}
@@ -64,7 +64,7 @@ export default function GameChat({ connection }: Props) {
       </div>
 
       {/* Input */}
-      <div className="px-3 py-2 border-t border-gray-800 shrink-0">
+      <div className="px-3 py-2 border-t border-edge shrink-0">
         <input
           type="text"
           value={text}
@@ -72,7 +72,7 @@ export default function GameChat({ connection }: Props) {
           onKeyDown={handleKeyDown}
           placeholder="Say something..."
           maxLength={200}
-          className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-xs text-gray-200 placeholder-gray-500 outline-none focus:border-gray-400 transition-colors"
+          className="w-full bg-well border border-edge rounded-lg px-3 py-1.5 text-xs text-fg placeholder-fg-muted outline-none focus:border-fg-dim transition-colors"
         />
       </div>
     </div>

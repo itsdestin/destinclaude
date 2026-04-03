@@ -27,7 +27,7 @@ function ErrorScreen() {
       </div>
       <p className="text-sm text-red-400 text-center">{state.partyError}</p>
       {isConnectionError ? (
-        <p className="text-xs text-gray-500 text-center">Make sure GitHub CLI is installed and authenticated: gh auth login</p>
+        <p className="text-xs text-fg-muted text-center">Make sure GitHub CLI is installed and authenticated: gh auth login</p>
       ) : (
         <button
           onClick={() => dispatch({ type: 'CLEAR_CHALLENGE' })}
@@ -63,19 +63,19 @@ function LobbyScreen({ connection, incognito, onToggleIncognito }: Props) {
   return (
     <div className="flex flex-col gap-0">
       {/* Player info bar */}
-      <div className="px-3 py-2 border-b border-gray-800 flex items-center justify-between">
+      <div className="px-3 py-2 border-b border-edge flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className={`w-2 h-2 rounded-full ${incognito ? 'bg-gray-600' : 'bg-green-400'}`} />
-          <span className="text-sm font-medium text-gray-200">{state.username}</span>
-          {incognito && <span className="text-[10px] text-gray-500">Incognito</span>}
+          <div className={`w-2 h-2 rounded-full ${incognito ? 'bg-fg-faint' : 'bg-green-400'}`} />
+          <span className="text-sm font-medium text-fg">{state.username}</span>
+          {incognito && <span className="text-[10px] text-fg-muted">Incognito</span>}
         </div>
         {onToggleIncognito && (
           <button
             onClick={onToggleIncognito}
             className={`text-[10px] px-1.5 py-0.5 rounded transition-colors ${
               incognito
-                ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                : 'text-gray-500 hover:text-gray-300'
+                ? 'bg-inset text-fg-2 hover:bg-edge'
+                : 'text-fg-muted hover:text-fg-2'
             }`}
             title={incognito ? 'Go online — appear in player lists' : 'Go incognito — hide from player lists'}
           >
@@ -86,8 +86,8 @@ function LobbyScreen({ connection, incognito, onToggleIncognito }: Props) {
 
       {/* Incoming challenge */}
       {state.challengeFrom && (
-        <div className="px-3 py-2 border-b border-gray-800 bg-indigo-950/50">
-          <p className="text-sm text-gray-200 mb-2">
+        <div className="px-3 py-2 border-b border-edge bg-indigo-950/50">
+          <p className="text-sm text-fg mb-2">
             <span className="font-medium text-[#66AAFF]">{state.challengeFrom}</span> wants to play!
           </p>
           <div className="flex gap-2">
@@ -103,7 +103,7 @@ function LobbyScreen({ connection, incognito, onToggleIncognito }: Props) {
             </button>
             <button
               onClick={() => { connection.respondToChallenge(state.challengeFrom!, false); dispatch({ type: 'CLEAR_CHALLENGE' }); }}
-              className="flex-1 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs font-medium rounded-lg py-1.5 transition-colors"
+              className="flex-1 bg-inset hover:bg-edge text-fg-2 text-xs font-medium rounded-lg py-1.5 transition-colors"
             >
               Decline
             </button>
@@ -113,19 +113,19 @@ function LobbyScreen({ connection, incognito, onToggleIncognito }: Props) {
 
       {/* Challenge declined notification */}
       {state.challengeDeclinedBy && (
-        <div className="px-3 py-2 border-b border-gray-800">
-          <p className="text-xs text-gray-400">
-            <span className="text-gray-300">{state.challengeDeclinedBy}</span> declined your challenge.
+        <div className="px-3 py-2 border-b border-edge">
+          <p className="text-xs text-fg-dim">
+            <span className="text-fg-2">{state.challengeDeclinedBy}</span> declined your challenge.
             <button onClick={() => dispatch({ type: 'CLEAR_CHALLENGE' })} className="text-[#66AAFF] ml-1">Dismiss</button>
           </p>
         </div>
       )}
 
       {/* Create / Join */}
-      <div className="px-3 py-3 border-b border-gray-800 flex flex-col gap-2">
+      <div className="px-3 py-3 border-b border-edge flex flex-col gap-2">
         <button
           onClick={() => connection.createGame()}
-          className="w-full bg-gray-300 hover:bg-gray-200 text-gray-950 text-sm font-medium rounded-lg py-2 transition-colors"
+          className="w-full bg-accent hover:bg-accent text-on-accent text-sm font-medium rounded-lg py-2 transition-colors"
         >
           Create Game
         </button>
@@ -136,12 +136,12 @@ function LobbyScreen({ connection, incognito, onToggleIncognito }: Props) {
             onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
             placeholder="Room code"
             maxLength={6}
-            className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-500 outline-none focus:border-gray-400 transition-colors uppercase tracking-widest"
+            className="flex-1 bg-well border border-edge rounded-lg px-3 py-2 text-sm text-fg placeholder-fg-muted outline-none focus:border-fg-dim transition-colors uppercase tracking-widest"
           />
           <button
             onClick={() => { if (joinCode.trim()) connection.joinGame(joinCode.trim()); }}
             disabled={!joinCode.trim()}
-            className="bg-gray-700 hover:bg-gray-600 disabled:opacity-40 disabled:cursor-not-allowed text-gray-200 text-sm font-medium rounded-lg px-3 py-2 transition-colors"
+            className="bg-inset hover:bg-edge disabled:opacity-40 disabled:cursor-not-allowed text-fg text-sm font-medium rounded-lg px-3 py-2 transition-colors"
           >
             Join
           </button>
@@ -158,12 +158,12 @@ function LobbyScreen({ connection, incognito, onToggleIncognito }: Props) {
           .map(f => ({ username: f, status: 'offline' as const }));
         const sortedUsers = [...onlineFavorites, ...onlineNonFavorites, ...offlineFavorites];
         return (
-          <div className="px-3 py-2 border-b border-gray-800">
-            <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-2">
+          <div className="px-3 py-2 border-b border-edge">
+            <div className="text-[10px] uppercase tracking-wider text-fg-muted mb-2">
               Players ({otherUsers.length} online{offlineFavorites.length > 0 ? `, ${offlineFavorites.length} favorite offline` : ''})
             </div>
             {sortedUsers.length === 0 ? (
-              <p className="text-xs text-gray-600 italic">No one else online yet</p>
+              <p className="text-xs text-fg-faint italic">No one else online yet</p>
             ) : (
               <ul className="flex flex-col gap-1">
                 {sortedUsers.map((user) => {
@@ -173,16 +173,16 @@ function LobbyScreen({ connection, incognito, onToggleIncognito }: Props) {
                     <li key={user.username} className="flex items-center gap-2">
                       <button
                         onClick={() => toggleFavorite(user.username)}
-                        className={`text-xs shrink-0 transition-colors ${isFav ? 'text-yellow-400' : 'text-gray-600 hover:text-gray-400'}`}
+                        className={`text-xs shrink-0 transition-colors ${isFav ? 'text-yellow-400' : 'text-fg-faint hover:text-fg-dim'}`}
                         title={isFav ? 'Remove from favorites' : 'Add to favorites'}
                       >
                         {isFav ? '★' : '☆'}
                       </button>
                       <span className={`w-2 h-2 rounded-full shrink-0 ${
-                        !isOnline ? 'bg-gray-600' :
+                        !isOnline ? 'bg-fg-faint' :
                         user.status === 'idle' ? 'bg-green-400' : 'bg-yellow-400'
                       }`} />
-                      <span className={`text-sm truncate flex-1 ${isOnline ? 'text-gray-300' : 'text-gray-600'}`}>
+                      <span className={`text-sm truncate flex-1 ${isOnline ? 'text-fg-2' : 'text-fg-faint'}`}>
                         {user.username}
                       </span>
                       {isOnline && user.status === 'in-game' ? (
@@ -195,7 +195,7 @@ function LobbyScreen({ connection, incognito, onToggleIncognito }: Props) {
                           Challenge
                         </button>
                       ) : (
-                        <span className="text-[10px] text-gray-600 ml-auto">offline</span>
+                        <span className="text-[10px] text-fg-faint ml-auto">offline</span>
                       )}
                     </li>
                   );
@@ -208,8 +208,8 @@ function LobbyScreen({ connection, incognito, onToggleIncognito }: Props) {
 
       {/* Leaderboard preview */}
       <div className="px-3 py-2">
-        <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-2">Top Players</div>
-        <p className="text-xs text-gray-600 italic">No stats yet</p>
+        <div className="text-[10px] uppercase tracking-wider text-fg-muted mb-2">Top Players</div>
+        <p className="text-xs text-fg-faint italic">No stats yet</p>
       </div>
     </div>
   );
@@ -235,18 +235,18 @@ function JoiningScreen({ connection }: Props) {
   return (
     <div className="flex-1 flex flex-col items-center justify-center gap-6 px-4 py-8">
       <div className="flex flex-col items-center gap-3">
-        <p className="text-xs text-gray-500 uppercase tracking-wider">Joining Room</p>
-        <p className="text-lg font-mono font-bold text-gray-200 tracking-widest">{state.roomCode}</p>
+        <p className="text-xs text-fg-muted uppercase tracking-wider">Joining Room</p>
+        <p className="text-lg font-mono font-bold text-fg tracking-widest">{state.roomCode}</p>
       </div>
 
       <div className="flex flex-col items-center gap-2">
         <BrailleSpinner size="lg" />
-        <p className="text-sm text-gray-400">Connecting...</p>
+        <p className="text-sm text-fg-dim">Connecting...</p>
       </div>
 
       <button
         onClick={() => { connection.leaveGame(); dispatch({ type: 'RETURN_TO_LOBBY' }); }}
-        className="text-sm text-gray-500 hover:text-gray-300 transition-colors"
+        className="text-sm text-fg-muted hover:text-fg-2 transition-colors"
       >
         Cancel
       </button>
@@ -270,12 +270,12 @@ function WaitingScreen({ connection }: Props) {
   return (
     <div className="flex-1 flex flex-col items-center justify-center gap-6 px-4 py-8">
       <div className="flex flex-col items-center gap-3">
-        <p className="text-xs text-gray-500 uppercase tracking-wider">Room Code</p>
+        <p className="text-xs text-fg-muted uppercase tracking-wider">Room Code</p>
         <div className="flex gap-1.5">
           {code.split('').map((ch, i) => (
             <span
               key={i}
-              className="w-9 h-10 flex items-center justify-center bg-gray-800 border border-gray-700 rounded-lg text-lg font-mono font-bold text-gray-200"
+              className="w-9 h-10 flex items-center justify-center bg-inset border border-edge rounded-lg text-lg font-mono font-bold text-fg"
             >
               {ch}
             </span>
@@ -291,12 +291,12 @@ function WaitingScreen({ connection }: Props) {
 
       <div className="flex flex-col items-center gap-2">
         <BrailleSpinner size="lg" />
-        <p className="text-sm text-gray-400">Waiting for opponent...</p>
+        <p className="text-sm text-fg-dim">Waiting for opponent...</p>
       </div>
 
       <button
         onClick={() => { connection.leaveGame(); dispatch({ type: 'RETURN_TO_LOBBY' }); }}
-        className="text-sm text-gray-500 hover:text-gray-300 transition-colors"
+        className="text-sm text-fg-muted hover:text-fg-2 transition-colors"
       >
         Cancel
       </button>

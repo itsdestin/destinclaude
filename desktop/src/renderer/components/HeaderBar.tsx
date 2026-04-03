@@ -55,12 +55,12 @@ export default function HeaderBar({
   const cfg = MODE_CONFIG[permissionMode] || MODE_CONFIG['normal'];
 
   return (
-    <div className="flex items-center h-10 px-2 sm:px-3 border-b border-gray-800 shrink-0">
+    <div className="flex items-center h-10 px-2 sm:px-3 border-b border-edge shrink-0">
       {/* Left — settings + permission badge */}
       <div className="flex-1 flex items-center gap-1 sm:gap-2 min-w-0">
         <button
           onClick={onToggleSettings}
-          className={`relative ${isAndroid() ? 'p-2' : 'p-1'} rounded hover:bg-gray-800 transition-colors shrink-0 ${settingsOpen ? 'text-gray-200' : 'text-gray-500'}`}
+          className={`relative ${isAndroid() ? 'p-2' : 'p-1'} rounded hover:bg-inset transition-colors shrink-0 ${settingsOpen ? 'text-fg' : 'text-fg-muted'}`}
           title="Settings"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -90,7 +90,7 @@ export default function HeaderBar({
           </span>
         )}
         {model && (
-          <span className="text-[10px] text-gray-500 truncate max-w-[120px] hidden sm:inline">
+          <span className="text-[10px] text-fg-muted truncate max-w-[120px] hidden sm:inline">
             {model}
           </span>
         )}
@@ -118,13 +118,13 @@ export default function HeaderBar({
       <div className="flex-1 flex items-center justify-end gap-1 sm:gap-2">
         {/* Chat/Terminal toggle */}
         {(
-          <div className="flex bg-gray-800 rounded-md p-0.5 gap-0.5">
+          <div className="flex bg-inset rounded-md p-0.5 gap-0.5">
             <button
               onClick={() => onToggleView('chat')}
               className={`px-1.5 sm:px-2.5 py-1 rounded transition-colors flex items-center gap-1.5 ${
                 viewMode === 'chat'
-                  ? 'bg-gray-300 text-gray-950'
-                  : 'text-gray-400 hover:text-gray-300'
+                  ? 'bg-accent text-on-accent'
+                  : 'text-fg-dim hover:text-fg-2'
               }`}
               title="Chat"
             >
@@ -135,8 +135,8 @@ export default function HeaderBar({
               onClick={() => onToggleView('terminal')}
               className={`px-1.5 sm:px-2.5 py-1 rounded transition-colors flex items-center gap-1.5 ${
                 viewMode === 'terminal'
-                  ? 'bg-gray-300 text-gray-950'
-                  : 'text-gray-400 hover:text-gray-300'
+                  ? 'bg-accent text-on-accent'
+                  : 'text-fg-dim hover:text-fg-2'
               }`}
               title="Terminal"
             >
@@ -145,15 +145,15 @@ export default function HeaderBar({
             </button>
           </div>
         )}
-        <div className="bg-gray-800 rounded-md p-0.5 hidden sm:block">
+        <div className="bg-inset rounded-md p-0.5 hidden sm:block">
           <button
             onClick={onToggleGamePanel}
             className={`px-2 py-1 rounded transition-colors flex items-center gap-1 ${
               gamePanelOpen
-                ? 'bg-gray-300 text-gray-950'
+                ? 'bg-accent text-on-accent'
                 : challengePending && !gamePanelOpen
                   ? 'text-orange-400'
-                  : 'text-gray-400 hover:text-gray-300'
+                  : 'text-fg-dim hover:text-fg-2'
             }`}
             style={challengePending && !gamePanelOpen ? {
               animation: 'challenge-pulse 2.5s ease-in-out infinite',

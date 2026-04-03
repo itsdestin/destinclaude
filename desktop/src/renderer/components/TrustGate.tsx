@@ -18,8 +18,8 @@ function buttonIntent(label: string): 'accept' | 'reject' | 'neutral' {
 
 const intentStyles = {
   accept: 'bg-[#2E7D32] hover:bg-[#388E3C] text-white',
-  reject: 'bg-gray-700 hover:bg-gray-600 text-gray-200',
-  neutral: 'bg-gray-300 hover:bg-gray-200 text-gray-950',
+  reject: 'bg-inset hover:bg-edge text-fg',
+  neutral: 'bg-accent hover:bg-accent text-on-accent',
 };
 
 /**
@@ -68,10 +68,10 @@ export default function TrustGate({ sessionId }: Props) {
   if (!trustPrompt) return null;
 
   return (
-    <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-gray-950">
-      <AppIcon className="w-16 h-16 text-gray-400 mb-6" />
-      <p className="text-sm text-gray-200 font-medium mb-1">{trustPrompt.title}</p>
-      <p className="text-xs text-gray-500 mb-6 max-w-sm text-center">
+    <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-canvas">
+      <AppIcon className="w-16 h-16 text-fg-dim mb-6" />
+      <p className="text-sm text-fg font-medium mb-1">{trustPrompt.title}</p>
+      <p className="text-xs text-fg-muted mb-6 max-w-sm text-center">
         Claude needs your permission before working in this directory.
       </p>
       <div className="flex gap-3">

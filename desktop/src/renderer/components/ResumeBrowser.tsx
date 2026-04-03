@@ -92,21 +92,21 @@ export default function ResumeBrowser({ open, onClose, onResume }: Props) {
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 z-40 bg-gray-950/60 backdrop-blur-sm"
+        className="fixed inset-0 z-40 bg-canvas/60 backdrop-blur-sm"
         onClick={onClose}
       />
 
       {/* Modal */}
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
         <div
-          className="bg-gray-900 border border-gray-700 rounded-xl shadow-2xl w-full max-w-md max-h-[70vh] flex flex-col pointer-events-auto"
+          className="bg-panel border border-edge rounded-xl shadow-2xl w-full max-w-md max-h-[70vh] flex flex-col pointer-events-auto"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="px-4 pt-4 pb-3 border-b border-gray-800">
-            <h2 className="text-sm font-bold text-gray-200 mb-3">Resume Session</h2>
-            <div className="flex items-center gap-2 bg-gray-800 rounded-lg px-3 py-2 border border-gray-700/50">
-              <svg className="w-4 h-4 text-gray-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <div className="px-4 pt-4 pb-3 border-b border-edge">
+            <h2 className="text-sm font-bold text-fg mb-3">Resume Session</h2>
+            <div className="flex items-center gap-2 bg-inset rounded-lg px-3 py-2 border border-edge-dim">
+              <svg className="w-4 h-4 text-fg-muted shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <circle cx="11" cy="11" r="7" />
                 <path d="M21 21l-4.35-4.35" strokeLinecap="round" />
               </svg>
@@ -116,7 +116,7 @@ export default function ResumeBrowser({ open, onClose, onResume }: Props) {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search sessions..."
-                className="flex-1 bg-transparent text-sm text-gray-200 placeholder-gray-500 outline-none"
+                className="flex-1 bg-transparent text-sm text-fg placeholder-fg-muted outline-none"
               />
             </div>
           </div>
@@ -124,9 +124,9 @@ export default function ResumeBrowser({ open, onClose, onResume }: Props) {
           {/* Session list */}
           <div className="flex-1 overflow-y-auto py-2">
             {loading ? (
-              <p className="text-sm text-gray-500 text-center py-8">Loading sessions...</p>
+              <p className="text-sm text-fg-muted text-center py-8">Loading sessions...</p>
             ) : filtered.length === 0 ? (
-              <p className="text-sm text-gray-500 text-center py-8">
+              <p className="text-sm text-fg-muted text-center py-8">
                 {search.trim() ? 'No matching sessions' : 'No previous sessions found'}
               </p>
             ) : grouped ? (
@@ -134,7 +134,7 @@ export default function ResumeBrowser({ open, onClose, onResume }: Props) {
               [...grouped.entries()].map(([projectPath, items]) => (
                 <div key={projectPath} className="mb-2">
                   <div className="px-4 py-1">
-                    <span className="text-[10px] uppercase tracking-wider text-gray-500">
+                    <span className="text-[10px] uppercase tracking-wider text-fg-muted">
                       {projectPath.replace(/\\/g, '/').split('/').pop() || projectPath}
                     </span>
                   </div>
@@ -142,13 +142,13 @@ export default function ResumeBrowser({ open, onClose, onResume }: Props) {
                     <button
                       key={s.sessionId}
                       onClick={() => { onResume(s.sessionId, s.projectSlug); onClose(); }}
-                      className="w-full text-left px-4 py-2 flex items-center gap-3 text-gray-400 hover:bg-gray-800 hover:text-gray-200 transition-colors"
+                      className="w-full text-left px-4 py-2 flex items-center gap-3 text-fg-dim hover:bg-inset hover:text-fg transition-colors"
                     >
                       <div className="flex-1 min-w-0">
                         <div className="text-sm truncate">{s.name}</div>
-                        <div className="text-[10px] text-gray-600">{formatSize(s.size)}</div>
+                        <div className="text-[10px] text-fg-faint">{formatSize(s.size)}</div>
                       </div>
-                      <span className="text-[10px] text-gray-600 shrink-0">
+                      <span className="text-[10px] text-fg-faint shrink-0">
                         {formatRelativeTime(s.lastModified)}
                       </span>
                     </button>
@@ -161,15 +161,15 @@ export default function ResumeBrowser({ open, onClose, onResume }: Props) {
                 <button
                   key={s.sessionId}
                   onClick={() => { onResume(s.sessionId, s.projectSlug); onClose(); }}
-                  className="w-full text-left px-4 py-2 flex items-center gap-3 text-gray-400 hover:bg-gray-800 hover:text-gray-200 transition-colors"
+                  className="w-full text-left px-4 py-2 flex items-center gap-3 text-fg-dim hover:bg-inset hover:text-fg transition-colors"
                 >
                   <div className="flex-1 min-w-0">
                     <div className="text-sm truncate">{s.name}</div>
-                    <div className="text-[10px] text-gray-600">
+                    <div className="text-[10px] text-fg-faint">
                       {s.projectPath.replace(/\\/g, '/').split('/').pop()}
                     </div>
                   </div>
-                  <span className="text-[10px] text-gray-600 shrink-0">
+                  <span className="text-[10px] text-fg-faint shrink-0">
                     {formatRelativeTime(s.lastModified)}
                   </span>
                 </button>

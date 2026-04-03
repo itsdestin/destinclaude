@@ -1,6 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { isAndroid } from '../platform';
+import { useTheme, THEMES, type ThemeName } from '../state/theme-context';
+
+// Local Font Access API — available in Chromium/Electron
+declare function queryLocalFonts(): Promise<{ family: string; fullName: string; postScriptName: string; style: string }[]>;
 
 interface RemoteConfig {
   enabled: boolean;
@@ -61,17 +65,17 @@ export default function SettingsPanel({ open, onClose, onSendInput, hasActiveSes
 
       {/* Panel */}
       <div
-        className={`fixed top-0 left-0 h-full w-80 bg-gray-900 border-r border-gray-700/50 z-50 transform transition-transform duration-300 ease-out ${
+        className={`fixed top-0 left-0 h-full w-80 bg-panel border-r border-edge-dim z-50 transform transition-transform duration-300 ease-out ${
           open ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         <div className="flex flex-col h-full overflow-y-auto">
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-800">
-            <h2 className="text-sm font-bold text-gray-200">Settings</h2>
+          <div className="flex items-center justify-between px-4 py-3 border-b border-edge">
+            <h2 className="text-sm font-bold text-fg">Settings</h2>
             <button
               onClick={onClose}
-              className="text-gray-500 hover:text-gray-300 text-lg leading-none"
+              className="text-fg-muted hover:text-fg-2 text-lg leading-none"
             >
               ✕
             </button>
@@ -98,7 +102,7 @@ export default function SettingsPanel({ open, onClose, onSendInput, hasActiveSes
 function Toggle({ enabled, onToggle, color = 'green' }: { enabled: boolean; onToggle: () => void; color?: 'green' | 'red' }) {
   const bg = enabled
     ? color === 'red' ? 'bg-red-600' : 'bg-green-600'
-    : 'bg-gray-700';
+    : 'bg-inset';
   return (
     <button
       onClick={onToggle}
@@ -108,6 +112,317 @@ function Toggle({ enabled, onToggle, color = 'green' }: { enabled: boolean; onTo
         enabled ? 'left-4' : 'left-0.5'
       }`} />
     </button>
+  );
+}
+
+// ─── Theme selector (shared) ───────────────────────────────────────────────
+
+const THEME_LABELS: Record<ThemeName, string> = {
+  light: 'Light',
+  dark: 'Dark',
+  midnight: 'Midnight',
+  creme: 'Crème',
+};
+
+const THEME_DESCRIPTIONS: Record<ThemeName, string> = {
+  light: 'Neutral grays, easy on the eyes',
+  dark: 'Pure neutral dark',
+  midnight: 'Deep navy with blue tint',
+  creme: 'Warm parchment tones',
+};
+
+// Preview swatches — the 4 surface colors for each theme
+const THEME_SWATCHES: Record<ThemeName, { canvas: string; panel: string; inset: string; fg: string; accent: string }> = {
+  light:    { canvas: '#F2F2F2', panel: '#EAEAEA', inset: '#E0E0E0', fg: '#1A1A1A', accent: '#1A1A1A' },
+  dark:     { canvas: '#111111', panel: '#191919', inset: '#222222', fg: '#E0E0E0', accent: '#D4D4D4' },
+  midnight: { canvas: '#0D1117', panel: '#161B22', inset: '#21262D', fg: '#C9D1D9', accent: '#B1BAC4' },
+  creme:    { canvas: '#F0E6D6', panel: '#EBE1D1', inset: '#DDD1BE', fg: '#2C2418', accent: '#3D3229' },
+};
+
+/** Extract display name from font CSS value (strips quotes and fallbacks) */
+function fontDisplayName(font: string): string {
+  const first = font.split(',')[0].trim();
+  return first.replace(/^['"]|['"]$/g, '');
+}
+
+// Fallback fonts shown when queryLocalFonts() is unavailable (remote browser)
+const FALLBACK_FONTS = [
+  'Arial', 'Cascadia Mono', 'Cascadia Code', 'Consolas', 'Courier New',
+  'Fira Code', 'Georgia', 'Helvetica', 'Inter', 'JetBrains Mono',
+  'Menlo', 'Monaco', 'Roboto', 'San Francisco', 'Segoe UI',
+  'SF Mono', 'Source Code Pro', 'System UI', 'Times New Roman', 'Verdana',
+];
+
+function ThemeSelector() {
+  const { theme, setTheme, cycleList, setCycleList, font, setFont } = useTheme();
+  const [open, setOpen] = useState(false);
+  const [view, setView] = useState<'main' | 'fonts'>('main');
+  const [fontSearch, setFontSearch] = useState('');
+  const [systemFonts, setSystemFonts] = useState<string[] | null>(null);
+  const [fontsLoading, setFontsLoading] = useState(false);
+  const popupRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  const toggleCycle = useCallback((t: ThemeName) => {
+    const isIn = cycleList.includes(t);
+    if (isIn) {
+      if (cycleList.length <= 1) return;
+      setCycleList(cycleList.filter((x) => x !== t));
+    } else {
+      setCycleList(THEMES.filter((x) => cycleList.includes(x) || x === t));
+    }
+  }, [cycleList, setCycleList]);
+
+  // Close on click outside
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (popupRef.current && !popupRef.current.contains(e.target as Node)) {
+        setOpen(false);
+        // Reset view when closing
+        setTimeout(() => setView('main'), 300);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  // Load system fonts when font view opens
+  useEffect(() => {
+    if (view !== 'fonts' || systemFonts !== null) return;
+    setFontsLoading(true);
+
+    if (typeof queryLocalFonts === 'function') {
+      queryLocalFonts().then((fonts: any[]) => {
+        const families = new Set<string>();
+        for (const f of fonts) families.add(f.family);
+        const sorted = [...families].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+        setSystemFonts(sorted);
+        setFontsLoading(false);
+      }).catch(() => {
+        setSystemFonts(FALLBACK_FONTS);
+        setFontsLoading(false);
+      });
+    } else {
+      setSystemFonts(FALLBACK_FONTS);
+      setFontsLoading(false);
+    }
+  }, [view, systemFonts]);
+
+  // Auto-focus search when entering font view
+  useEffect(() => {
+    if (view === 'fonts') {
+      setTimeout(() => searchRef.current?.focus(), 50);
+    }
+  }, [view]);
+
+  const filteredFonts = systemFonts?.filter((f) =>
+    f.toLowerCase().includes(fontSearch.toLowerCase())
+  ) ?? [];
+
+  const currentFontName = fontDisplayName(font);
+  const sw = THEME_SWATCHES[theme];
+
+  return (
+    <section>
+      <h3 className="text-[10px] font-medium text-fg-muted tracking-wider uppercase mb-3">Appearance</h3>
+
+      {/* Current theme row */}
+      <button
+        onClick={() => { setView('main'); setOpen(true); }}
+        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-inset/50 hover:bg-inset transition-colors text-left"
+      >
+        <div className="flex rounded overflow-hidden shrink-0" style={{ width: 32, height: 20 }}>
+          <div style={{ flex: 1, background: sw.canvas }} />
+          <div style={{ flex: 1, background: sw.panel }} />
+          <div style={{ flex: 1, background: sw.inset }} />
+          <div style={{ flex: 1, background: sw.accent }} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <span className="text-xs text-fg font-medium">{THEME_LABELS[theme]}</span>
+          <span className="text-[10px] text-fg-muted ml-2">{currentFontName}</span>
+        </div>
+        <svg className="w-3.5 h-3.5 text-fg-muted shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
+
+      {/* Popup overlay */}
+      {open && (
+        <>
+          <div className="fixed inset-0 bg-black/30 z-[60]" onClick={() => { setOpen(false); setTimeout(() => setView('main'), 300); }} />
+          <div
+            ref={popupRef}
+            className="fixed z-[61] rounded-xl bg-panel border border-edge shadow-2xl overflow-hidden"
+            style={{
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: 340,
+              maxHeight: '80vh',
+            }}
+          >
+            {view === 'main' ? (
+              <>
+                {/* Header */}
+                <div className="flex items-center justify-between px-4 py-3 border-b border-edge">
+                  <h3 className="text-sm font-bold text-fg">Appearance</h3>
+                  <button onClick={() => { setOpen(false); setTimeout(() => setView('main'), 300); }} className="text-fg-muted hover:text-fg-2 text-lg leading-none">✕</button>
+                </div>
+
+                <div className="p-3 space-y-2 overflow-y-auto" style={{ maxHeight: 'calc(80vh - 52px)' }}>
+                  {/* Theme cards */}
+                  {THEMES.map((t) => {
+                    const s = THEME_SWATCHES[t];
+                    const isActive = theme === t;
+                    const inCycle = cycleList.includes(t);
+                    return (
+                      <div
+                        key={t}
+                        className={`w-full flex items-start gap-3 p-3 rounded-lg border transition-colors ${
+                          isActive ? 'border-accent bg-accent/10' : 'border-edge-dim hover:border-edge'
+                        }`}
+                      >
+                        <button
+                          onClick={() => { setTheme(t); setOpen(false); setTimeout(() => setView('main'), 300); }}
+                          className="flex items-start gap-3 flex-1 min-w-0 text-left"
+                        >
+                          <div className="shrink-0 rounded-md overflow-hidden border border-edge-dim" style={{ width: 56, height: 40, background: s.canvas }}>
+                            <div style={{ height: 6, background: s.panel, borderBottom: `1px solid ${s.inset}` }} />
+                            <div style={{ padding: '3px 4px' }}>
+                              <div style={{ height: 3, width: '80%', borderRadius: 1, background: s.fg, opacity: 0.4, marginBottom: 2 }} />
+                              <div style={{ height: 3, width: '55%', borderRadius: 1, background: s.fg, opacity: 0.25, marginBottom: 3 }} />
+                              <div style={{ height: 5, width: '100%', borderRadius: 2, background: s.inset }} />
+                            </div>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className={`text-xs font-medium ${isActive ? 'text-fg' : 'text-fg-2'}`}>{THEME_LABELS[t]}</span>
+                              {isActive && <span className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-accent text-on-accent">Active</span>}
+                            </div>
+                            <p className="text-[10px] text-fg-muted mt-0.5">{THEME_DESCRIPTIONS[t]}</p>
+                            <div className="flex gap-1 mt-1.5">
+                              {[s.canvas, s.panel, s.inset, s.accent, s.fg].map((color, i) => (
+                                <div key={i} className="w-3.5 h-3.5 rounded-full border border-edge-dim" style={{ background: color }} />
+                              ))}
+                            </div>
+                          </div>
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); toggleCycle(t); }}
+                          className={`shrink-0 mt-1 w-5 h-5 rounded border flex items-center justify-center transition-colors ${
+                            inCycle ? 'bg-accent border-accent' : 'bg-transparent border-edge hover:border-fg-dim'
+                          }`}
+                          title={inCycle ? 'Remove from quick cycle' : 'Add to quick cycle'}
+                        >
+                          {inCycle && (
+                            <svg className="w-3 h-3 text-on-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </button>
+                      </div>
+                    );
+                  })}
+
+                  <p className="text-[9px] text-fg-faint text-center pt-1">
+                    Checked themes appear in the status bar cycle
+                  </p>
+
+                  {/* Divider */}
+                  <div className="border-t border-edge-dim my-1" />
+
+                  {/* Font row — opens font browser */}
+                  <button
+                    onClick={() => { setView('fonts'); setFontSearch(''); }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border border-edge-dim hover:border-edge transition-colors text-left"
+                  >
+                    <span className="text-lg shrink-0 leading-none text-fg-dim">Aa</span>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-xs text-fg font-medium">Font</span>
+                      <p className="text-[10px] text-fg-muted truncate" style={{ fontFamily: font }}>{currentFontName}</p>
+                    </div>
+                    <svg className="w-3.5 h-3.5 text-fg-muted shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Font browser header */}
+                <div className="flex items-center gap-2 px-4 py-3 border-b border-edge">
+                  <button
+                    onClick={() => setView('main')}
+                    className="text-fg-muted hover:text-fg-2 shrink-0"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </button>
+                  <h3 className="text-sm font-bold text-fg">Font</h3>
+                  <button onClick={() => { setOpen(false); setTimeout(() => setView('main'), 300); }} className="text-fg-muted hover:text-fg-2 text-lg leading-none ml-auto">✕</button>
+                </div>
+
+                {/* Search */}
+                <div className="px-3 pt-3 pb-2">
+                  <input
+                    ref={searchRef}
+                    type="text"
+                    value={fontSearch}
+                    onChange={(e) => setFontSearch(e.target.value)}
+                    placeholder="Search fonts..."
+                    className="w-full px-3 py-1.5 rounded-lg bg-well border border-edge-dim text-xs text-fg placeholder-fg-muted focus:outline-none focus:border-fg-dim"
+                  />
+                </div>
+
+                {/* Font list */}
+                <div className="overflow-y-auto px-1 pb-2" style={{ maxHeight: 'calc(80vh - 120px)' }}>
+                  {fontsLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <span className="text-xs text-fg-muted">Loading fonts...</span>
+                    </div>
+                  ) : filteredFonts.length === 0 ? (
+                    <div className="flex items-center justify-center py-8">
+                      <span className="text-xs text-fg-muted">No fonts found</span>
+                    </div>
+                  ) : (
+                    filteredFonts.map((f) => {
+                      const isSelected = currentFontName === f;
+                      return (
+                        <button
+                          key={f}
+                          onClick={() => {
+                            setFont(`'${f}', sans-serif`);
+                          }}
+                          className={`w-full flex items-center gap-2 px-3 py-2 mx-1 rounded-lg text-left transition-colors ${
+                            isSelected
+                              ? 'bg-accent/10 border border-accent'
+                              : 'hover:bg-inset/50 border border-transparent'
+                          }`}
+                        >
+                          <span
+                            className={`text-sm flex-1 truncate ${isSelected ? 'text-fg font-medium' : 'text-fg-2'}`}
+                            style={{ fontFamily: `'${f}', sans-serif` }}
+                          >
+                            {f}
+                          </span>
+                          {isSelected && (
+                            <svg className="w-3.5 h-3.5 text-accent shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        </>
+      )}
+    </section>
   );
 }
 
@@ -256,7 +571,7 @@ function AndroidSettings({ open, onClose }: { open: boolean; onClose: () => void
 
   if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center text-gray-500 text-sm">
+      <div className="flex-1 flex items-center justify-center text-fg-muted text-sm">
         Loading...
       </div>
     );
@@ -266,24 +581,26 @@ function AndroidSettings({ open, onClose }: { open: boolean; onClose: () => void
     <>
       <div className="flex-1 px-4 py-4 space-y-6">
 
+        <ThemeSelector />
+
         {/* Package Tier */}
         <section>
-          <h3 className="text-[10px] font-medium text-gray-500 tracking-wider uppercase mb-3">Package Tier</h3>
+          <h3 className="text-[10px] font-medium text-fg-muted tracking-wider uppercase mb-3">Package Tier</h3>
           <div className="space-y-1">
             {TIERS.map(t => (
               <button
                 key={t.id}
                 onClick={() => handleSetTier(t.id)}
                 className={`w-full flex items-center gap-2 px-3 py-2 rounded text-left transition-colors ${
-                  tier === t.id ? 'bg-gray-800' : 'hover:bg-gray-800/50'
+                  tier === t.id ? 'bg-inset' : 'hover:bg-inset/50'
                 }`}
               >
-                <span className={`text-[10px] ${tier === t.id ? 'text-gray-200' : 'text-gray-600'}`}>
+                <span className={`text-[10px] ${tier === t.id ? 'text-fg' : 'text-fg-faint'}`}>
                   {tier === t.id ? '●' : '○'}
                 </span>
                 <div>
-                  <span className="text-xs text-gray-200 font-medium">{t.name}</span>
-                  <p className="text-[10px] text-gray-500">{t.desc}</p>
+                  <span className="text-xs text-fg font-medium">{t.name}</span>
+                  <p className="text-[10px] text-fg-muted">{t.desc}</p>
                 </div>
               </button>
             ))}
@@ -292,18 +609,18 @@ function AndroidSettings({ open, onClose }: { open: boolean; onClose: () => void
 
         {/* Project Directories */}
         <section>
-          <h3 className="text-[10px] font-medium text-gray-500 tracking-wider uppercase mb-3">Project Directories</h3>
+          <h3 className="text-[10px] font-medium text-fg-muted tracking-wider uppercase mb-3">Project Directories</h3>
           {directories.length > 0 ? (
             <div className="space-y-1">
               {directories.map(dir => (
-                <div key={dir.path} className="flex items-center justify-between py-1.5 px-2 rounded bg-gray-800/50">
+                <div key={dir.path} className="flex items-center justify-between py-1.5 px-2 rounded bg-inset/50">
                   <div className="min-w-0 flex-1">
-                    <span className="text-xs text-gray-300 block truncate">{dir.label}</span>
-                    <span className="text-[10px] text-gray-600 block truncate font-mono">{dir.path}</span>
+                    <span className="text-xs text-fg-2 block truncate">{dir.label}</span>
+                    <span className="text-[10px] text-fg-faint block truncate font-mono">{dir.path}</span>
                   </div>
                   <button
                     onClick={() => handleRemoveDirectory(dir.path)}
-                    className="text-gray-600 hover:text-red-400 text-sm leading-none px-1 shrink-0 ml-2"
+                    className="text-fg-faint hover:text-red-400 text-sm leading-none px-1 shrink-0 ml-2"
                   >
                     ✕
                   </button>
@@ -311,13 +628,13 @@ function AndroidSettings({ open, onClose }: { open: boolean; onClose: () => void
               ))}
             </div>
           ) : (
-            <p className="text-[10px] text-gray-600">No custom directories. Home (~) is always available.</p>
+            <p className="text-[10px] text-fg-faint">No custom directories. Home (~) is always available.</p>
           )}
         </section>
 
         {/* Connect to Desktop */}
         <section>
-          <h3 className="text-[10px] font-medium text-gray-500 tracking-wider uppercase mb-3">Connect to Desktop</h3>
+          <h3 className="text-[10px] font-medium text-fg-muted tracking-wider uppercase mb-3">Connect to Desktop</h3>
 
           {/* Connection status banner */}
           {remoteConnected && (
@@ -331,7 +648,7 @@ function AndroidSettings({ open, onClose }: { open: boolean; onClose: () => void
               <button
                 onClick={handleDisconnect}
                 disabled={connecting}
-                className="w-full px-3 py-1.5 rounded bg-gray-700 hover:bg-gray-600 text-xs text-gray-300 disabled:opacity-50"
+                className="w-full px-3 py-1.5 rounded bg-inset hover:bg-edge text-xs text-fg-2 disabled:opacity-50"
               >
                 {connecting ? 'Disconnecting...' : 'Disconnect — Return to Local'}
               </button>
@@ -348,18 +665,18 @@ function AndroidSettings({ open, onClose }: { open: boolean; onClose: () => void
           {!remoteConnected && pairedDevices.length > 0 && (
             <div className="space-y-1 mb-3">
               {pairedDevices.map(device => (
-                <div key={`${device.host}:${device.port}`} className="flex items-center justify-between py-2 px-3 rounded bg-gray-800/50">
+                <div key={`${device.host}:${device.port}`} className="flex items-center justify-between py-2 px-3 rounded bg-inset/50">
                   <button
                     onClick={() => handleConnectToDesktop(device)}
                     disabled={connecting}
                     className="min-w-0 flex-1 text-left disabled:opacity-50"
                   >
-                    <span className="text-xs text-gray-200 block">{device.name}</span>
-                    <span className="text-[10px] text-gray-500 font-mono block">{device.host}:{device.port}</span>
+                    <span className="text-xs text-fg block">{device.name}</span>
+                    <span className="text-[10px] text-fg-muted font-mono block">{device.host}:{device.port}</span>
                   </button>
                   <button
                     onClick={() => handleRemoveDevice(device)}
-                    className="text-gray-600 hover:text-red-400 text-sm leading-none px-1 shrink-0 ml-2"
+                    className="text-fg-faint hover:text-red-400 text-sm leading-none px-1 shrink-0 ml-2"
                   >
                     ✕
                   </button>
@@ -370,7 +687,7 @@ function AndroidSettings({ open, onClose }: { open: boolean; onClose: () => void
 
           {connecting && (
             <div className="text-center py-3">
-              <span className="text-xs text-gray-400">Connecting...</span>
+              <span className="text-xs text-fg-dim">Connecting...</span>
             </div>
           )}
 
@@ -378,70 +695,70 @@ function AndroidSettings({ open, onClose }: { open: boolean; onClose: () => void
             <div className="space-y-2">
               <button
                 onClick={handleScanQr}
-                className="w-full px-3 py-2 rounded bg-gray-200 text-gray-900 text-xs font-medium active:bg-gray-300"
+                className="w-full px-3 py-2 rounded bg-accent text-on-accent text-xs font-medium active:brightness-110"
               >
                 Scan QR Code
               </button>
               <button
                 onClick={() => setShowConnectForm(true)}
-                className="w-full px-3 py-2 rounded border border-gray-700 text-gray-400 text-xs active:bg-gray-800"
+                className="w-full px-3 py-2 rounded border border-edge text-fg-dim text-xs active:bg-inset"
               >
                 Enter Manually
               </button>
             </div>
           ) : (
-            <div className="space-y-3 bg-gray-800/50 rounded-lg p-3">
+            <div className="space-y-3 bg-inset/50 rounded-lg p-3">
               <div>
-                <label className="text-[10px] text-gray-500 uppercase tracking-wider block mb-1">Device Name</label>
+                <label className="text-[10px] text-fg-muted uppercase tracking-wider block mb-1">Device Name</label>
                 <input
                   type="text"
                   value={formName}
                   onChange={e => setFormName(e.target.value)}
                   placeholder="My Desktop"
-                  className="w-full px-2 py-1.5 rounded bg-[#1C1C1C] border border-gray-700/50 text-xs text-gray-200 focus:outline-none focus:border-gray-500"
+                  className="w-full px-2 py-1.5 rounded bg-well border border-edge-dim text-xs text-fg focus:outline-none focus:border-fg-muted"
                 />
               </div>
               <div>
-                <label className="text-[10px] text-gray-500 uppercase tracking-wider block mb-1">Host / IP</label>
+                <label className="text-[10px] text-fg-muted uppercase tracking-wider block mb-1">Host / IP</label>
                 <input
                   type="text"
                   value={formHost}
                   onChange={e => setFormHost(e.target.value)}
                   placeholder="100.x.x.x"
-                  className="w-full px-2 py-1.5 rounded bg-[#1C1C1C] border border-gray-700/50 text-xs text-gray-200 focus:outline-none focus:border-gray-500"
+                  className="w-full px-2 py-1.5 rounded bg-well border border-edge-dim text-xs text-fg focus:outline-none focus:border-fg-muted"
                 />
               </div>
               <div>
-                <label className="text-[10px] text-gray-500 uppercase tracking-wider block mb-1">Port</label>
+                <label className="text-[10px] text-fg-muted uppercase tracking-wider block mb-1">Port</label>
                 <input
                   type="text"
                   value={formPort}
                   onChange={e => setFormPort(e.target.value)}
                   placeholder="9900"
-                  className="w-full px-2 py-1.5 rounded bg-[#1C1C1C] border border-gray-700/50 text-xs text-gray-200 focus:outline-none focus:border-gray-500"
+                  className="w-full px-2 py-1.5 rounded bg-well border border-edge-dim text-xs text-fg focus:outline-none focus:border-fg-muted"
                 />
               </div>
               <div>
-                <label className="text-[10px] text-gray-500 uppercase tracking-wider block mb-1">Password</label>
+                <label className="text-[10px] text-fg-muted uppercase tracking-wider block mb-1">Password</label>
                 <input
                   type="password"
                   value={formPassword}
                   onChange={e => setFormPassword(e.target.value)}
                   placeholder="Remote access password"
-                  className="w-full px-2 py-1.5 rounded bg-[#1C1C1C] border border-gray-700/50 text-xs text-gray-200 focus:outline-none focus:border-gray-500"
+                  className="w-full px-2 py-1.5 rounded bg-well border border-edge-dim text-xs text-fg focus:outline-none focus:border-fg-muted"
                 />
               </div>
               <div className="flex gap-2">
                 <button
                   onClick={() => setShowConnectForm(false)}
-                  className="px-3 py-1.5 rounded bg-gray-700 hover:bg-gray-600 text-xs text-gray-300"
+                  className="px-3 py-1.5 rounded bg-inset hover:bg-edge text-xs text-fg-2"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSaveDevice}
                   disabled={!formHost.trim()}
-                  className="flex-1 px-3 py-1.5 rounded bg-gray-200 text-gray-900 text-xs font-medium disabled:opacity-50 active:bg-gray-300"
+                  className="flex-1 px-3 py-1.5 rounded bg-accent text-on-accent text-xs font-medium disabled:opacity-50 active:brightness-110"
                 >
                   Save & Connect
                 </button>
@@ -449,25 +766,25 @@ function AndroidSettings({ open, onClose }: { open: boolean; onClose: () => void
             </div>
           )}
 
-          <p className="text-[10px] text-gray-600 mt-3">
+          <p className="text-[10px] text-fg-faint mt-3">
             Connect to the DestinCode desktop app on your computer. Set up remote access in the desktop app's settings first.
           </p>
         </section>
       </div>
 
       {/* Footer — About + Donate */}
-      <div className="border-t border-gray-800 px-4 py-3 space-y-2">
+      <div className="border-t border-edge px-4 py-3 space-y-2">
         {aboutInfo && (
           <div className="flex items-center justify-between">
-            <span className="text-[10px] text-gray-600">DestinCode {aboutInfo.version}</span>
-            {aboutInfo.build && <span className="text-[10px] text-gray-700 font-mono">{aboutInfo.build}</span>}
+            <span className="text-[10px] text-fg-faint">DestinCode {aboutInfo.version}</span>
+            {aboutInfo.build && <span className="text-[10px] text-fg-faint font-mono">{aboutInfo.build}</span>}
           </div>
         )}
         <a
           href="https://buymeacoffee.com/itsdestin"
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-800/50 hover:bg-gray-800 transition-colors text-sm text-gray-300 hover:text-gray-100"
+          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-inset/50 hover:bg-inset transition-colors text-sm text-fg-2 hover:text-fg"
         >
           <span>☕</span>
           <span>Donate</span>
@@ -569,7 +886,7 @@ function DesktopSettings({ open, onClose, onSendInput, hasActiveSession }: {
 
   if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center text-gray-500 text-sm">
+      <div className="flex-1 flex items-center justify-center text-fg-muted text-sm">
         Loading...
       </div>
     );
@@ -578,6 +895,8 @@ function DesktopSettings({ open, onClose, onSendInput, hasActiveSession }: {
   return (
     <>
       <div className="flex-1 px-4 py-4 space-y-6">
+
+        <ThemeSelector />
 
         {/* Setup banner — shown when no clients connected */}
         {!hasClients && (
@@ -589,14 +908,14 @@ function DesktopSettings({ open, onClose, onSendInput, hasActiveSession }: {
             {tailscale?.installed && tailscale.url && config?.hasPassword ? (
               showSetupQR ? (
                 <div className="mt-2">
-                  <p className="text-[10px] text-gray-500 mb-2">Scan to connect a device:</p>
+                  <p className="text-[10px] text-fg-muted mb-2">Scan to connect a device:</p>
                   <div className="flex justify-center bg-white rounded-lg p-3 w-fit mx-auto">
                     <QRCodeSVG value={tailscale.url} size={140} />
                   </div>
-                  <p className="text-[10px] text-gray-500 mt-2 text-center font-mono">{tailscale.url}</p>
+                  <p className="text-[10px] text-fg-muted mt-2 text-center font-mono">{tailscale.url}</p>
                   <button
                     onClick={handleCopyLink}
-                    className="w-full mt-2 px-3 py-1 rounded bg-gray-800 hover:bg-gray-700 text-[10px] text-gray-400"
+                    className="w-full mt-2 px-3 py-1 rounded bg-inset hover:bg-edge text-[10px] text-fg-dim"
                   >
                     {copied ? 'Copied!' : 'Copy link'}
                   </button>
@@ -620,7 +939,7 @@ function DesktopSettings({ open, onClose, onSendInput, hasActiveSession }: {
                   Set Up Remote Access
                 </button>
                 {!hasActiveSession && (
-                  <p className="text-[10px] text-gray-500 mt-1 text-center">Create a session first to run setup</p>
+                  <p className="text-[10px] text-fg-muted mt-1 text-center">Create a session first to run setup</p>
                 )}
               </>
             )}
@@ -629,16 +948,16 @@ function DesktopSettings({ open, onClose, onSendInput, hasActiveSession }: {
 
         {/* Remote Access section */}
         <section>
-          <h3 className="text-[10px] font-medium text-gray-500 tracking-wider uppercase mb-3">Remote Access</h3>
+          <h3 className="text-[10px] font-medium text-fg-muted tracking-wider uppercase mb-3">Remote Access</h3>
 
           <label className="flex items-center justify-between py-2 cursor-pointer">
-            <span className="text-xs text-gray-300">Enabled</span>
+            <span className="text-xs text-fg-2">Enabled</span>
             <Toggle enabled={!!config?.enabled} onToggle={handleToggleEnabled} />
           </label>
 
           <div className="py-2">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-xs text-gray-300">Password</span>
+              <span className="text-xs text-fg-2">Password</span>
               {config?.hasPassword && (
                 <span className="text-[10px] text-green-400">Set</span>
               )}
@@ -650,12 +969,12 @@ function DesktopSettings({ open, onClose, onSendInput, hasActiveSession }: {
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSetPassword()}
-                className="flex-1 px-2 py-1 rounded bg-[#1C1C1C] border border-gray-700/50 text-xs text-gray-200 focus:outline-none focus:border-gray-500"
+                className="flex-1 px-2 py-1 rounded bg-well border border-edge-dim text-xs text-fg focus:outline-none focus:border-fg-muted"
               />
               <button
                 onClick={handleSetPassword}
                 disabled={!newPassword.trim() || passwordStatus === 'saving'}
-                className="px-2 py-1 rounded bg-gray-700 hover:bg-gray-600 text-xs disabled:opacity-50"
+                className="px-2 py-1 rounded bg-inset hover:bg-edge text-xs disabled:opacity-50"
               >
                 {passwordStatus === 'saved' ? '✓' : passwordStatus === 'saving' ? '...' : 'Set'}
               </button>
@@ -664,7 +983,7 @@ function DesktopSettings({ open, onClose, onSendInput, hasActiveSession }: {
 
           <div className="py-2">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-xs text-gray-300">Keep awake</span>
+              <span className="text-xs text-fg-2">Keep awake</span>
             </div>
             <div className="flex gap-1">
               {KEEP_AWAKE_OPTIONS.map((opt) => (
@@ -673,8 +992,8 @@ function DesktopSettings({ open, onClose, onSendInput, hasActiveSession }: {
                   onClick={() => handleSetKeepAwake(opt.value)}
                   className={`flex-1 px-1.5 py-1 rounded text-[10px] transition-colors ${
                     config?.keepAwakeHours === opt.value
-                      ? 'bg-gray-300 text-gray-950 font-medium'
-                      : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                      ? 'bg-accent text-on-accent font-medium'
+                      : 'bg-inset text-fg-dim hover:bg-edge'
                   }`}
                 >
                   {opt.label}
@@ -688,7 +1007,7 @@ function DesktopSettings({ open, onClose, onSendInput, hasActiveSession }: {
         {hasClients && (
           <section>
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-[10px] font-medium text-gray-500 tracking-wider uppercase">Remote Clients</h3>
+              <h3 className="text-[10px] font-medium text-fg-muted tracking-wider uppercase">Remote Clients</h3>
               <button
                 onClick={() => setShowAddDevice(true)}
                 className="text-[10px] text-blue-400 hover:text-blue-300"
@@ -699,14 +1018,14 @@ function DesktopSettings({ open, onClose, onSendInput, hasActiveSession }: {
 
             <div className="space-y-1">
               {clients.map(client => (
-                <div key={client.id} className="flex items-center justify-between py-1.5 px-2 rounded bg-gray-800/50">
+                <div key={client.id} className="flex items-center justify-between py-1.5 px-2 rounded bg-inset/50">
                   <div>
-                    <span className="text-xs text-gray-300 font-mono">{client.ip}</span>
-                    <span className="text-[10px] text-gray-600 ml-2">{timeAgo(client.connectedAt)}</span>
+                    <span className="text-xs text-fg-2 font-mono">{client.ip}</span>
+                    <span className="text-[10px] text-fg-faint ml-2">{timeAgo(client.connectedAt)}</span>
                   </div>
                   <button
                     onClick={() => handleDisconnectClient(client.id)}
-                    className="text-gray-600 hover:text-red-400 text-sm leading-none px-1"
+                    className="text-fg-faint hover:text-red-400 text-sm leading-none px-1"
                     title="Disconnect"
                   >
                     ✕
@@ -719,24 +1038,24 @@ function DesktopSettings({ open, onClose, onSendInput, hasActiveSession }: {
 
         {/* Add Device overlay */}
         {showAddDevice && tailscale?.url && (
-          <section className="bg-gray-800/50 rounded-lg p-3">
+          <section className="bg-inset/50 rounded-lg p-3">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-xs font-medium text-gray-300">Add Device</h3>
+              <h3 className="text-xs font-medium text-fg-2">Add Device</h3>
               <button
                 onClick={() => setShowAddDevice(false)}
-                className="text-gray-500 hover:text-gray-300 text-sm leading-none"
+                className="text-fg-muted hover:text-fg-2 text-sm leading-none"
               >
                 ✕
               </button>
             </div>
-            <p className="text-[10px] text-gray-500 mb-2">Scan QR or copy link to connect a new device:</p>
+            <p className="text-[10px] text-fg-muted mb-2">Scan QR or copy link to connect a new device:</p>
             <div className="flex justify-center bg-white rounded-lg p-3 w-fit mx-auto">
               <QRCodeSVG value={tailscale.url} size={140} />
             </div>
-            <p className="text-[10px] text-gray-500 mt-2 text-center font-mono">{tailscale.url}</p>
+            <p className="text-[10px] text-fg-muted mt-2 text-center font-mono">{tailscale.url}</p>
             <button
               onClick={handleCopyLink}
-              className="w-full mt-2 px-3 py-1.5 rounded bg-gray-700 hover:bg-gray-600 text-xs"
+              className="w-full mt-2 px-3 py-1.5 rounded bg-inset hover:bg-edge text-xs"
             >
               {copied ? 'Copied!' : 'Copy Link'}
             </button>
@@ -745,36 +1064,36 @@ function DesktopSettings({ open, onClose, onSendInput, hasActiveSession }: {
 
         {/* Tailscale section */}
         <section>
-          <h3 className="text-[10px] font-medium text-gray-500 tracking-wider uppercase mb-3">Tailscale</h3>
+          <h3 className="text-[10px] font-medium text-fg-muted tracking-wider uppercase mb-3">Tailscale</h3>
 
           {tailscale?.installed ? (
             <>
               <div className="py-2 flex items-center justify-between">
-                <span className="text-xs text-gray-300">Status</span>
+                <span className="text-xs text-fg-2">Status</span>
                 <span className="text-[10px] text-green-400">
                   Connected{tailscale.hostname ? ` · ${tailscale.hostname}` : ''}
                 </span>
               </div>
 
               <div className="py-2 flex items-center justify-between">
-                <span className="text-xs text-gray-300">IP</span>
-                <span className="text-xs text-gray-400 font-mono">{tailscale.ip}</span>
+                <span className="text-xs text-fg-2">IP</span>
+                <span className="text-xs text-fg-dim font-mono">{tailscale.ip}</span>
               </div>
 
               <label className="flex items-center justify-between py-2 cursor-pointer">
-                <span className="text-xs text-gray-300">Skip password on Tailscale</span>
+                <span className="text-xs text-fg-2">Skip password on Tailscale</span>
                 <Toggle enabled={!!config?.trustTailscale} onToggle={handleToggleTailscaleTrust} />
               </label>
             </>
           ) : (
             <div className="py-2">
-              <p className="text-xs text-gray-500 mb-2">
+              <p className="text-xs text-fg-muted mb-2">
                 Tailscale is not installed. It creates a secure private network so you can access DestinCode from anywhere.
               </p>
               <button
                 onClick={handleRunSetup}
                 disabled={!hasActiveSession}
-                className="px-3 py-1.5 rounded bg-gray-700 hover:bg-gray-600 text-xs disabled:opacity-50"
+                className="px-3 py-1.5 rounded bg-inset hover:bg-edge text-xs disabled:opacity-50"
               >
                 Install with Setup Skill
               </button>
@@ -784,12 +1103,12 @@ function DesktopSettings({ open, onClose, onSendInput, hasActiveSession }: {
       </div>
 
       {/* Support */}
-      <div className="border-t border-gray-800 pt-4 mt-2 flex flex-col gap-2">
+      <div className="border-t border-edge pt-4 mt-2 flex flex-col gap-2">
         <a
           href="https://buymeacoffee.com/itsdestin"
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-800/50 hover:bg-gray-800 transition-colors text-sm text-gray-300 hover:text-gray-100"
+          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-inset/50 hover:bg-inset transition-colors text-sm text-fg-2 hover:text-fg"
         >
           <span>☕</span>
           <span>Donate</span>

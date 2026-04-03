@@ -20,6 +20,7 @@ import ResumeBrowser from './components/ResumeBrowser';
 import type { SkillEntry, PermissionMode } from '../shared/types';
 import { getPlatform, isRemoteMode, onConnectionModeChange } from './platform';
 import type { SessionStatusColor } from './components/StatusDot';
+import { ThemeProvider } from './state/theme-context';
 
 type ViewMode = 'chat' | 'terminal';
 
@@ -614,7 +615,7 @@ function AppInner() {
   const announcementText = statusData.announcement?.message || null;
 
   return (
-    <div className="flex w-screen h-full bg-gray-950 text-gray-200">
+    <div className="flex w-screen h-full bg-canvas text-fg">
       {/* Main area */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {sessions.length > 0 && sessionId && currentSession ? (
@@ -677,9 +678,9 @@ function AppInner() {
               ))}
               {/* Initializing overlay — shown before Claude is ready */}
               {!sessionInitialized && sessionId && (
-                <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-gray-950">
-                  <AppIcon className="w-16 h-16 text-gray-400 mb-6 animate-pulse" />
-                  <p className="text-sm text-gray-400 font-medium">Initializing session...</p>
+                <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-canvas">
+                  <AppIcon className="w-16 h-16 text-fg-dim mb-6 animate-pulse" />
+                  <p className="text-sm text-fg-dim font-medium">Initializing session...</p>
                 </div>
               )}
               {trustGateActive && sessionId && <TrustGate sessionId={sessionId} />}
@@ -712,12 +713,12 @@ function AppInner() {
           </>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center gap-3">
-            <p className="text-xl text-gray-500">No Active Session</p>
-            <WelcomeAppIcon className="w-36 h-36 text-gray-400" />
+            <p className="text-xl text-fg-muted">No Active Session</p>
+            <WelcomeAppIcon className="w-36 h-36 text-fg-dim" />
             <div className="flex flex-col items-center gap-2 mt-1">
               <button
                 onClick={() => createSession('', false)}
-                className="px-8 py-2 text-base font-medium rounded-lg bg-gray-300 text-gray-950 hover:bg-gray-200 transition-colors"
+                className="px-8 py-2 text-base font-medium rounded-lg bg-accent text-on-accent hover:brightness-110 transition-colors"
               >
                 New Session
               </button>
@@ -765,10 +766,12 @@ function ChatInputBar({ sessionId, onOpenDrawer, disabled, onResumeCommand }: { 
 
 export default function App() {
   return (
-    <GameProvider>
-      <ChatProvider>
-        <AppInner />
-      </ChatProvider>
-    </GameProvider>
+    <ThemeProvider>
+      <GameProvider>
+        <ChatProvider>
+          <AppInner />
+        </ChatProvider>
+      </GameProvider>
+    </ThemeProvider>
   );
 }

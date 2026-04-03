@@ -47,7 +47,7 @@ function HistoryExpandButton({ sessionId, resumeInfo }: {
       <button
         onClick={handleExpand}
         disabled={loading}
-        className="text-xs text-gray-500 hover:text-gray-300 transition-colors disabled:opacity-50"
+        className="text-xs text-fg-muted hover:text-fg-2 transition-colors disabled:opacity-50"
       >
         {loading ? 'Loading...' : '\u2191 See previous messages'}
       </button>
@@ -178,7 +178,7 @@ export default function ChatView({ sessionId, visible, resumeInfo }: Props) {
     >
       <div className="flex-1 overflow-y-auto py-4">
         {state.timeline.length === 0 && !state.isThinking ? (
-          <div className="flex items-center justify-center h-full text-gray-500 text-sm">
+          <div className="flex items-center justify-center h-full text-fg-muted text-sm">
             Start a conversation with Claude
           </div>
         ) : (
@@ -223,7 +223,7 @@ export default function ChatView({ sessionId, visible, resumeInfo }: Props) {
             {/* Awaiting-approval tools pop out as standalone bubbles at the bottom */}
             {awaitingTools.map((tool) => (
                 <div key={tool.toolUseId} className="flex justify-start px-4 py-0.5">
-                  <div className="max-w-[85%] rounded-2xl rounded-bl-sm bg-gray-800 px-2 py-1">
+                  <div className="max-w-[85%] rounded-2xl rounded-bl-sm bg-inset px-2 py-1">
                     <ToolCard tool={tool} sessionId={sessionId} />
                   </div>
                 </div>
@@ -243,7 +243,7 @@ export default function ChatView({ sessionId, visible, resumeInfo }: Props) {
       {!atBottom && (
         <button
           onClick={jumpToBottom}
-          className="absolute bottom-4 left-1/2 -translate-x-1/2 px-3 py-1.5 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-full shadow-lg transition-colors"
+          className="absolute bottom-4 left-1/2 -translate-x-1/2 px-3 py-1.5 text-xs bg-inset hover:bg-edge text-fg-2 rounded-full shadow-lg transition-colors"
         >
           Jump to bottom
         </button>

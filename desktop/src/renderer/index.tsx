@@ -3,6 +3,15 @@ import { createRoot } from 'react-dom/client';
 import './styles/globals.css';
 import App from './App';
 
+// Apply theme + font before React mounts to prevent FOUC (flash of unstyled content)
+const storedTheme = localStorage.getItem('destincode-theme') || 'light';
+document.documentElement.setAttribute('data-theme', storedTheme);
+const storedFont = localStorage.getItem('destincode-font');
+if (storedFont) {
+  document.documentElement.style.setProperty('--font-sans', storedFont);
+  document.documentElement.style.setProperty('--font-mono', storedFont);
+}
+
 /** Minimal login screen for remote browser access. */
 function LoginScreen({ onLogin }: { onLogin: (password: string) => Promise<void>; }) {
   const [password, setPassword] = useState('');
@@ -27,7 +36,7 @@ function LoginScreen({ onLogin }: { onLogin: (password: string) => Promise<void>
   };
 
   return (
-    <div className="flex items-center justify-center h-full bg-gray-900 text-white">
+    <div className="flex items-center justify-center h-full bg-panel text-fg">
       <form onSubmit={handleSubmit} className="flex flex-col gap-3 w-72">
         <h1 className="text-xl font-bold text-center mb-2">DestinCode Remote</h1>
         <input
@@ -35,7 +44,7 @@ function LoginScreen({ onLogin }: { onLogin: (password: string) => Promise<void>
           placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="px-3 py-2 rounded bg-gray-800 border border-gray-700 text-sm focus:outline-none focus:border-gray-500"
+          className="px-3 py-2 rounded bg-inset border border-edge text-sm focus:outline-none focus:border-fg-muted"
           autoFocus
           disabled={loading}
         />
@@ -110,7 +119,7 @@ function Root() {
   }
 
   if (!shimReady) {
-    return <div className="flex items-center justify-center h-full bg-gray-900 text-white text-sm">Loading...</div>;
+    return <div className="flex items-center justify-center h-full bg-panel text-fg text-sm">Loading...</div>;
   }
 
   return <LoginScreen onLogin={handleLogin} />;

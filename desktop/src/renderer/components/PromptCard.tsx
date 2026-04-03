@@ -31,12 +31,12 @@ export default function PromptCard({ prompt, sessionId, onSelect }: Props) {
   if (prompt.completed) {
     return (
       <div className="flex justify-start px-4 py-0.5">
-        <div className="max-w-[85%] rounded-2xl rounded-bl-sm bg-gray-800 px-2 py-1">
-          <div className="border border-gray-700 rounded-lg px-3 py-2 flex items-center gap-1.5">
-            <CheckIcon className="w-3.5 h-3.5 shrink-0 text-gray-400" />
-            <span className="text-gray-600 text-xs select-none">|</span>
-            <span className="text-xs font-medium text-gray-300">{prompt.title}:</span>
-            <span className="text-xs text-gray-200 font-medium">{prompt.completed}</span>
+        <div className="max-w-[85%] rounded-2xl rounded-bl-sm bg-inset px-2 py-1">
+          <div className="border border-edge rounded-lg px-3 py-2 flex items-center gap-1.5">
+            <CheckIcon className="w-3.5 h-3.5 shrink-0 text-fg-dim" />
+            <span className="text-fg-faint text-xs select-none">|</span>
+            <span className="text-xs font-medium text-fg-2">{prompt.title}:</span>
+            <span className="text-xs text-fg font-medium">{prompt.completed}</span>
           </div>
         </div>
       </div>
@@ -45,15 +45,15 @@ export default function PromptCard({ prompt, sessionId, onSelect }: Props) {
 
   return (
     <div className="flex justify-start px-4 py-1">
-      <div className="max-w-[85%] rounded-2xl rounded-bl-sm bg-gray-800 px-2 py-1">
-        <div className="border border-gray-700 rounded-lg overflow-hidden">
+      <div className="max-w-[85%] rounded-2xl rounded-bl-sm bg-inset px-2 py-1">
+        <div className="border border-edge rounded-lg overflow-hidden">
           {/* Header — matches ToolCard style with | separator */}
           <div className="flex items-center gap-1.5 px-3 py-2">
-            <span className="text-gray-600 text-xs select-none">|</span>
-            <span className="text-xs font-medium text-gray-300">{prompt.title}</span>
+            <span className="text-fg-faint text-xs select-none">|</span>
+            <span className="text-xs font-medium text-fg-2">{prompt.title}</span>
           </div>
           {/* Buttons */}
-          <div className="flex items-center gap-2 px-3 py-2 border-t border-gray-700 bg-gray-800/30">
+          <div className="flex items-center gap-2 px-3 py-2 border-t border-edge bg-inset/30">
             {prompt.buttons.map((btn) => (
               <button
                 key={btn.label}

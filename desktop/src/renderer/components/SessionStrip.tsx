@@ -60,7 +60,7 @@ function SessionDot({ color, isActive }: { color: SessionStatusColor; isActive: 
 
 function DragGrip() {
   return (
-    <svg className="w-3 h-3 text-gray-600" viewBox="0 0 12 16" fill="currentColor">
+    <svg className="w-3 h-3 text-fg-faint" viewBox="0 0 12 16" fill="currentColor">
       <circle cx="3.5" cy="2" r="1.2" />
       <circle cx="8.5" cy="2" r="1.2" />
       <circle cx="3.5" cy="8" r="1.2" />
@@ -264,7 +264,7 @@ export default function SessionStrip({
 
   return (
     <>
-      <div ref={pillBarRef} className="flex items-center gap-0.5 bg-gray-800 rounded-full px-1.5 py-0.5 overflow-hidden">
+      <div ref={pillBarRef} className="flex items-center gap-0.5 bg-inset rounded-full px-1.5 py-0.5 overflow-hidden">
         {/* ── Session pills ──────────────────────────────── */}
         {visibleSessions.map((s, idx) => {
           const color = sessionStatuses?.get(s.id) || 'gray';
@@ -288,7 +288,7 @@ export default function SessionStrip({
                   relative flex items-center gap-1 rounded-full px-1.5 py-px
                   border select-none touch-none overflow-hidden
                   ${showName && (isActive || !allExpanded)
-                    ? 'border-gray-600 bg-gray-850'
+                    ? 'border-edge bg-panel'
                     : 'border-transparent'
                   }
                   ${isBeingDragged ? 'opacity-30 scale-95' : ''}
@@ -305,7 +305,7 @@ export default function SessionStrip({
               >
                 <SessionDot color={color} isActive={isActive} />
                 <span
-                  className="text-xs font-medium text-gray-300 whitespace-nowrap overflow-hidden"
+                  className="text-xs font-medium text-fg-2 whitespace-nowrap overflow-hidden"
                   style={{
                     maxWidth: showName ? (isActive ? 'none' : 120) : 0,
                     opacity: showName ? 1 : 0,
@@ -324,7 +324,7 @@ export default function SessionStrip({
         <div className="relative" ref={menuRef}>
           <button
             onClick={handleMenuToggle}
-            className="flex items-center justify-center w-5 h-5 ml-1 rounded hover:bg-gray-800 transition-colors text-gray-500 hover:text-gray-300"
+            className="flex items-center justify-center w-5 h-5 ml-1 rounded hover:bg-inset transition-colors text-fg-muted hover:text-fg-2"
             title="All Sessions"
           >
             <svg className={`w-3 h-3 transition-transform ${menuOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -335,7 +335,7 @@ export default function SessionStrip({
           {/* ── Dropdown menu ──────────────────────────────── */}
           {menuOpen && (
             <div
-              className="fixed top-auto mt-1 w-72 bg-gray-900 border border-gray-700 rounded-lg shadow-lg overflow-hidden z-50"
+              className="fixed top-auto mt-1 w-72 bg-panel border border-edge rounded-lg shadow-lg overflow-hidden z-50"
               style={{
                 left: '50%',
                 animation: 'dropdown-in 120ms cubic-bezier(0.16, 1, 0.3, 1) both',
@@ -356,8 +356,8 @@ export default function SessionStrip({
                         onPointerUp={handlePointerUp}
                         className={`relative flex items-start pr-1 group/row select-none touch-none ${
                           s.id === activeSessionId
-                            ? 'bg-gray-800 text-gray-200'
-                            : 'text-gray-400 hover:bg-gray-800 hover:text-gray-200'
+                            ? 'bg-inset text-fg'
+                            : 'text-fg-dim hover:bg-inset hover:text-fg'
                         } ${isBeingDragged ? 'opacity-30' : ''}`}
                         style={{
                           animation: `row-fade-in 100ms ease both`,
@@ -382,14 +382,14 @@ export default function SessionStrip({
                                 DANGER
                               </span>
                             )}
-                            <span className="text-[10px] text-gray-600 whitespace-nowrap">
+                            <span className="text-[10px] text-fg-faint whitespace-nowrap">
                               {s.cwd.replace(/\\/g, '/').split('/').pop()}
                             </span>
                           </span>
                         </button>
                         <button
                           onClick={(e) => { e.stopPropagation(); if (!suppressClick.current) onCloseSession(s.id); }}
-                          className="absolute right-1 top-2 shrink-0 w-5 h-5 flex items-center justify-center rounded text-gray-600 hover:text-[#DD4444] hover:bg-gray-700 opacity-0 group-hover/row:opacity-100 transition-all"
+                          className="absolute right-1 top-2 shrink-0 w-5 h-5 flex items-center justify-center rounded text-fg-faint hover:text-[#DD4444] hover:bg-inset opacity-0 group-hover/row:opacity-100 transition-all"
                           title="Close Session"
                         >
                           <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -402,24 +402,24 @@ export default function SessionStrip({
                 </div>
               )}
 
-              <div className="border-t border-gray-700" />
+              <div className="border-t border-edge" />
 
               {showNewForm ? (
                 <div className="p-3 flex flex-col gap-2">
                   <div>
-                    <label className="text-[10px] uppercase tracking-wider text-gray-500 mb-1 block">Project Folder</label>
+                    <label className="text-[10px] uppercase tracking-wider text-fg-muted mb-1 block">Project Folder</label>
                     <button
                       onClick={handleBrowse}
-                      className="w-full text-left px-2.5 py-1.5 bg-gray-800 border border-gray-700 rounded-md text-xs text-gray-300 hover:border-gray-600 transition-colors truncate"
+                      className="w-full text-left px-2.5 py-1.5 bg-inset border border-edge rounded-md text-xs text-fg-2 hover:border-edge transition-colors truncate"
                     >
                       {newCwd || 'Select folder...'}
                     </button>
                   </div>
                   <div className="flex items-center justify-between">
-                    <label className="text-[10px] uppercase tracking-wider text-gray-500">Skip Permissions</label>
+                    <label className="text-[10px] uppercase tracking-wider text-fg-muted">Skip Permissions</label>
                     <button
                       onClick={() => setDangerous(!dangerous)}
-                      className={`w-8 h-4.5 rounded-full relative transition-colors ${dangerous ? 'bg-[#DD4444]' : 'bg-gray-700'}`}
+                      className={`w-8 h-4.5 rounded-full relative transition-colors ${dangerous ? 'bg-[#DD4444]' : 'bg-inset'}`}
                     >
                       <span className={`absolute top-0.5 w-3.5 h-3.5 rounded-full bg-white transition-transform ${dangerous ? 'left-[calc(100%-16px)]' : 'left-0.5'}`} />
                     </button>
@@ -432,7 +432,7 @@ export default function SessionStrip({
                     className={`w-full text-sm font-medium rounded-md py-1.5 transition-colors ${
                       dangerous
                         ? 'bg-[#DD4444] hover:bg-[#E55555] text-white'
-                        : 'bg-gray-300 hover:bg-gray-200 text-gray-950'
+                        : 'bg-accent hover:bg-accent text-on-accent'
                     }`}
                   >
                     {dangerous ? 'Create (Dangerous)' : 'Create Session'}
@@ -442,7 +442,7 @@ export default function SessionStrip({
                 <div className="flex">
                   <button
                     onClick={() => { setMenuOpen(false); onOpenResumeBrowser(); }}
-                    className="flex-1 px-3 py-2 text-sm text-gray-400 hover:bg-gray-800 hover:text-gray-200 transition-colors flex items-center justify-center gap-1.5"
+                    className="flex-1 px-3 py-2 text-sm text-fg-dim hover:bg-inset hover:text-fg transition-colors flex items-center justify-center gap-1.5"
                   >
                     <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -453,7 +453,7 @@ export default function SessionStrip({
                   <div className="w-px my-0.5" style={{ background: 'linear-gradient(to bottom, transparent, #555555, transparent)' }} />
                   <button
                     onClick={() => setShowNewForm(true)}
-                    className="flex-1 px-3 py-2 text-sm text-gray-400 hover:bg-gray-800 hover:text-gray-200 transition-colors flex items-center justify-center gap-1.5"
+                    className="flex-1 px-3 py-2 text-sm text-fg-dim hover:bg-inset hover:text-fg transition-colors flex items-center justify-center gap-1.5"
                   >
                     <span className="text-base leading-none">+</span>
                     <span>New Session</span>
@@ -468,7 +468,7 @@ export default function SessionStrip({
       {/* ── Floating drag ghost — snaps to insertion gap ──── */}
       {dragging && ghostTarget && (
         <div
-          className="fixed z-[9999] pointer-events-none flex items-center gap-1.5 rounded-full px-2.5 py-1 bg-gray-800 border border-gray-600 shadow-lg shadow-black/40"
+          className="fixed z-[9999] pointer-events-none flex items-center gap-1.5 rounded-full px-2.5 py-1 bg-inset border border-edge shadow-lg shadow-black/40"
           style={{
             left: ghostTarget.x,
             top: ghostTarget.y,
@@ -477,7 +477,7 @@ export default function SessionStrip({
           }}
         >
           <SessionDot color={dragColor} isActive />
-          <span className="text-xs font-medium text-gray-200 whitespace-nowrap max-w-[180px] truncate">
+          <span className="text-xs font-medium text-fg whitespace-nowrap max-w-[180px] truncate">
             {dragLabel}
           </span>
         </div>

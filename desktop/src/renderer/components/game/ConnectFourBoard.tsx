@@ -54,7 +54,7 @@ export default function ConnectFourBoard({ connection }: Props) {
           </div>
           <button
             onClick={() => { connection.leaveGame(); dispatch({ type: 'RETURN_TO_LOBBY' }); }}
-            className="mt-2 w-full text-xs text-gray-400 hover:text-gray-200 bg-gray-800 rounded-lg py-1.5 transition-colors"
+            className="mt-2 w-full text-xs text-fg-dim hover:text-fg bg-inset rounded-lg py-1.5 transition-colors"
           >
             Leave Game
           </button>
@@ -65,17 +65,17 @@ export default function ConnectFourBoard({ connection }: Props) {
       <div className="flex items-center justify-between text-xs">
         <div className="flex items-center gap-1.5">
           <span className={`w-3 h-3 rounded-full ${state.myColor === 'red' ? 'bg-red-500' : 'bg-yellow-400'}`} />
-          <span className="text-gray-400">You{state.myColor ? ` (${state.myColor})` : ''}</span>
+          <span className="text-fg-dim">You{state.myColor ? ` (${state.myColor})` : ''}</span>
         </div>
         <div className={`text-xs font-medium px-2 py-0.5 rounded-full ${
           canMove
-            ? 'bg-gray-700/50 text-gray-300'
-            : 'bg-gray-800 text-gray-500'
+            ? 'bg-inset/50 text-fg-2'
+            : 'bg-inset text-fg-muted'
         }`}>
           {isPlaying ? (canMove ? 'Your turn' : `${state.turn}'s turn`) : ''}
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="text-gray-400">{state.opponent ?? 'Opponent'}</span>
+          <span className="text-fg-dim">{state.opponent ?? 'Opponent'}</span>
           <span className={`w-3 h-3 rounded-full ${state.myColor === 'red' ? 'bg-yellow-400' : 'bg-red-500'}`} />
         </div>
       </div>
@@ -120,7 +120,7 @@ export default function ConnectFourBoard({ connection }: Props) {
                       ? 'bg-red-600/40'
                       : 'bg-yellow-500/40';
                   } else {
-                    cellClass += 'bg-gray-900';
+                    cellClass += 'bg-panel';
                   }
 
                   return <div key={dataRow} className={cellClass} />;

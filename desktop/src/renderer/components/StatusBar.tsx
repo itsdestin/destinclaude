@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTheme, THEMES, type ThemeName } from '../state/theme-context';
 
 interface StatusData {
   usage: {
@@ -88,29 +89,37 @@ const warnStyles = {
   warn: 'bg-[#FF9800]/15 text-[#FF9800] border-[#FF9800]/25',
 };
 
+const THEME_LABELS: Record<ThemeName, string> = {
+  light: 'Light',
+  dark: 'Dark',
+  midnight: 'Midnight',
+  creme: 'Crème',
+};
+
 export default function StatusBar({ statusData, onRunSync }: Props) {
   const { usage, updateStatus, contextPercent, syncStatus, syncWarnings } = statusData;
   const warnings = parseSyncWarnings(syncWarnings);
+  const { theme, cycleTheme } = useTheme();
 
   return (
-    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-2 sm:px-3 py-1 text-[10px] text-gray-500 border-t border-gray-800/50">
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-2 sm:px-3 py-1 text-[10px] text-fg-muted border-t border-edge-dim">
       {/* Rate limits */}
       {usage?.five_hour != null && (
-        <span className="flex items-center gap-1 sm:gap-1.5 px-1.5 py-0.5 rounded bg-gray-900 border border-gray-700/50">
+        <span className="flex items-center gap-1 sm:gap-1.5 px-1.5 py-0.5 rounded bg-panel border border-edge-dim">
           <span>5h:</span>
           <span className={utilizationColor(usage.five_hour.utilization)}>
             {usage.five_hour.utilization}%
           </span>
-          <span className="text-gray-600 hidden sm:inline">{format5hReset(usage.five_hour.resets_at)}</span>
+          <span className="text-fg-faint hidden sm:inline">{format5hReset(usage.five_hour.resets_at)}</span>
         </span>
       )}
       {usage?.seven_day != null && (
-        <span className="flex items-center gap-1 sm:gap-1.5 px-1.5 py-0.5 rounded bg-gray-900 border border-gray-700/50">
+        <span className="flex items-center gap-1 sm:gap-1.5 px-1.5 py-0.5 rounded bg-panel border border-edge-dim">
           <span>7d:</span>
           <span className={utilizationColor(usage.seven_day.utilization)}>
             {usage.seven_day.utilization}%
           </span>
-          <span className="text-gray-600 hidden sm:inline">{format7dReset(usage.seven_day.resets_at)}</span>
+          <span className="text-fg-faint hidden sm:inline">{format7dReset(usage.seven_day.resets_at)}</span>
         </span>
       )}
 
@@ -135,11 +144,20 @@ export default function StatusBar({ statusData, onRunSync }: Props) {
         </button>
       ))}
 
+      {/* Theme pill */}
+      <button
+        onClick={cycleTheme}
+        className="px-1.5 py-0.5 rounded bg-panel border border-edge-dim cursor-pointer hover:bg-inset transition-colors"
+        title="Click to cycle theme"
+      >
+        {THEME_LABELS[theme]}
+      </button>
+
       {/* Version — pushed to end, hidden on very narrow screens */}
       {updateStatus && (
         <button
           onClick={() => window.claude.shell.openChangelog()}
-          className="px-1.5 py-0.5 rounded bg-gray-900 border border-gray-700/50 cursor-pointer hover:bg-gray-800 transition-colors ml-auto hidden sm:inline-flex"
+          className="px-1.5 py-0.5 rounded bg-panel border border-edge-dim cursor-pointer hover:bg-inset transition-colors ml-auto hidden sm:inline-flex"
         >
           {updateStatus.update_available ? (
             <span className="text-[#FF9800]">

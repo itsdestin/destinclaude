@@ -24,14 +24,14 @@ export default class ErrorBoundary extends React.Component<Props, State> {
   render() {
     if (this.state.error) {
       return (
-        <div className="flex flex-col items-center justify-center h-full gap-2 text-gray-500 text-xs p-4">
+        <div className="flex flex-col items-center justify-center h-full gap-2 text-fg-muted text-xs p-4">
           <span className="text-red-400 font-medium">{this.props.name} crashed</span>
-          <span className="text-gray-600 max-w-md text-center break-words">
+          <span className="text-fg-faint max-w-md text-center break-words">
             {this.state.error.message}
           </span>
           <button
             onClick={() => this.setState({ error: null })}
-            className="mt-2 px-3 py-1 rounded bg-gray-800 hover:bg-gray-700 text-gray-300 transition-colors"
+            className="mt-2 px-3 py-1 rounded bg-inset hover:bg-edge text-fg-2 transition-colors"
           >
             Retry
           </button>

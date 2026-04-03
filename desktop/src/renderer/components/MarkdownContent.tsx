@@ -19,7 +19,7 @@ function CopyButton({ text }: { text: string }) {
   return (
     <button
       onClick={handleCopy}
-      className="absolute top-2 right-2 px-2 py-1 text-xs rounded bg-gray-700 text-gray-300 hover:bg-gray-600 transition-colors opacity-0 group-hover:opacity-100"
+      className="absolute top-2 right-2 px-2 py-1 text-xs rounded bg-inset text-fg-2 hover:bg-edge transition-colors opacity-0 group-hover:opacity-100"
     >
       {copied ? 'Copied!' : 'Copy'}
     </button>
@@ -31,16 +31,16 @@ function CopyButton({ text }: { text: string }) {
 // reconciliation of the entire markdown tree.
 const mdComponents = {
   h1({ children, ...props }: any) {
-    return <h1 className="text-xl font-bold mt-6 mb-3 pb-1.5 text-white border-b border-gray-600" {...props}>{children}</h1>;
+    return <h1 className="text-xl font-bold mt-6 mb-3 pb-1.5 text-fg border-b border-edge" {...props}>{children}</h1>;
   },
   h2({ children, ...props }: any) {
-    return <h2 className="text-lg font-bold mt-6 mb-3 pb-1 text-white border-b border-gray-700" {...props}>{children}</h2>;
+    return <h2 className="text-lg font-bold mt-6 mb-3 pb-1 text-fg border-b border-edge" {...props}>{children}</h2>;
   },
   h3({ children, ...props }: any) {
-    return <h3 className="text-base font-bold mt-5 mb-2 text-gray-100" {...props}>{children}</h3>;
+    return <h3 className="text-base font-bold mt-5 mb-2 text-fg" {...props}>{children}</h3>;
   },
   h4({ children, ...props }: any) {
-    return <h4 className="text-sm font-bold mt-4 mb-1.5 text-gray-100" {...props}>{children}</h4>;
+    return <h4 className="text-sm font-bold mt-4 mb-1.5 text-fg" {...props}>{children}</h4>;
   },
   p({ children, ...props }: any) {
     return <p className="mb-3 last:mb-0 leading-relaxed" {...props}>{children}</p>;
@@ -55,20 +55,20 @@ const mdComponents = {
     return <li className="leading-relaxed" {...props}>{children}</li>;
   },
   hr({ ...props }: any) {
-    return <hr className="border-gray-500 my-5" {...props} />;
+    return <hr className="border-edge my-5" {...props} />;
   },
   blockquote({ children, ...props }: any) {
     return (
-      <blockquote className="border-l-2 border-gray-500 pl-3 my-3 text-gray-400 italic" {...props}>
+      <blockquote className="border-l-2 border-edge pl-3 my-3 text-fg-dim italic" {...props}>
         {children}
       </blockquote>
     );
   },
   strong({ children, ...props }: any) {
-    return <strong className="font-bold text-white" {...props}>{children}</strong>;
+    return <strong className="font-bold text-fg" {...props}>{children}</strong>;
   },
   em({ children, ...props }: any) {
-    return <em className="italic text-gray-300" {...props}>{children}</em>;
+    return <em className="italic text-fg-2" {...props}>{children}</em>;
   },
   pre({ children, ...props }: any) {
     let codeText = '';
@@ -82,7 +82,7 @@ const mdComponents = {
     });
     return (
       <div className="relative group my-3">
-        <pre className="rounded-md bg-gray-950 border border-gray-700 p-3 overflow-x-auto text-sm" {...props}>
+        <pre className="rounded-md bg-canvas border border-edge p-3 overflow-x-auto text-sm" {...props}>
           {children}
         </pre>
         {codeText && <CopyButton text={codeText} />}
@@ -124,7 +124,7 @@ const mdComponents = {
   table({ children, ...props }: any) {
     return (
       <div className="overflow-x-auto my-3">
-        <table className="border-collapse border border-gray-600 text-sm w-full" {...props}>
+        <table className="border-collapse border border-edge text-sm w-full" {...props}>
           {children}
         </table>
       </div>
@@ -132,14 +132,14 @@ const mdComponents = {
   },
   th({ children, ...props }: any) {
     return (
-      <th className="border border-gray-600 px-3 py-2 bg-gray-900 text-left font-bold text-gray-100" {...props}>
+      <th className="border border-edge px-3 py-2 bg-panel text-left font-bold text-fg" {...props}>
         {children}
       </th>
     );
   },
   td({ children, ...props }: any) {
     return (
-      <td className="border border-gray-600 px-3 py-2" {...props}>
+      <td className="border border-edge px-3 py-2" {...props}>
         {children}
       </td>
     );

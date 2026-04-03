@@ -71,7 +71,7 @@ export default function CommandDrawer({ open, searchMode, skills, onSelect, onCl
     <>
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 z-40 bg-gray-950/60 backdrop-blur-sm transition-opacity duration-300 ${
+        className={`fixed inset-0 z-40 bg-canvas/60 backdrop-blur-sm transition-opacity duration-300 ${
           open ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
         onClick={onClose}
@@ -79,20 +79,20 @@ export default function CommandDrawer({ open, searchMode, skills, onSelect, onCl
 
       {/* Drawer */}
       <div
-        className={`fixed bottom-0 left-0 right-0 z-50 bg-[#111111] border-t border-gray-700/50 rounded-t-xl transition-transform duration-300 ease-out ${
+        className={`fixed bottom-0 left-0 right-0 z-50 bg-panel border-t border-edge-dim rounded-t-xl transition-transform duration-300 ease-out ${
           open ? 'translate-y-0' : 'translate-y-full'
         }`}
         style={{ maxHeight: '45vh' }}
       >
         {/* Grab handle */}
         <div className="flex justify-center py-2">
-          <div className="w-8 h-1 rounded-full bg-gray-600" />
+          <div className="w-8 h-1 rounded-full bg-fg-faint" />
         </div>
 
         {/* Search bar */}
         <div className="px-4 pb-3">
-          <div className="flex items-center gap-2 bg-[#1C1C1C] rounded-lg px-3 py-2 border border-gray-700/50">
-            <svg className="w-4 h-4 text-gray-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <div className="flex items-center gap-2 bg-well rounded-lg px-3 py-2 border border-edge-dim">
+            <svg className="w-4 h-4 text-fg-muted shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <circle cx="11" cy="11" r="7" />
               <path d="M21 21l-4.35-4.35" strokeLinecap="round" />
             </svg>
@@ -102,7 +102,7 @@ export default function CommandDrawer({ open, searchMode, skills, onSelect, onCl
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search skills and commands..."
-              className="flex-1 bg-transparent text-sm text-gray-200 placeholder-gray-500 outline-none"
+              className="flex-1 bg-transparent text-sm text-fg placeholder-fg-muted outline-none"
             />
           </div>
         </div>
@@ -110,7 +110,7 @@ export default function CommandDrawer({ open, searchMode, skills, onSelect, onCl
         {/* Scrollable content */}
         <div className="overflow-y-auto px-4 pb-4" style={{ maxHeight: 'calc(45vh - 80px)' }}>
           {filtered.length === 0 ? (
-            <p className="text-sm text-gray-500 text-center py-6">No matching skills</p>
+            <p className="text-sm text-fg-muted text-center py-6">No matching skills</p>
           ) : grouped ? (
             // Categorized view
             categoryOrder.map((cat) => {
@@ -118,7 +118,7 @@ export default function CommandDrawer({ open, searchMode, skills, onSelect, onCl
               if (!items || items.length === 0) return null;
               return (
                 <div key={cat} className="mb-4">
-                  <h3 className="text-[10px] font-medium text-gray-500 tracking-wider mb-2">
+                  <h3 className="text-[10px] font-medium text-fg-muted tracking-wider mb-2">
                     {categoryLabels[cat]}
                   </h3>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">

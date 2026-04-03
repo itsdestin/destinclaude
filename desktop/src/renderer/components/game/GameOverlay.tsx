@@ -13,7 +13,7 @@ export default function GameOverlay({ connection }: Props) {
   const { winner, myColor } = state;
 
   let headline = 'Draw!';
-  let headlineClass = 'text-gray-200';
+  let headlineClass = 'text-fg';
 
   if (winner && winner !== 'draw') {
     if (winner === myColor) {
@@ -21,16 +21,16 @@ export default function GameOverlay({ connection }: Props) {
       headlineClass = winner === 'red' ? 'text-red-400' : 'text-yellow-400';
     } else {
       headline = 'You Lose!';
-      headlineClass = 'text-gray-400';
+      headlineClass = 'text-fg-dim';
     }
   }
 
   return (
-    <div className="absolute inset-0 bg-gray-950/80 backdrop-blur-sm flex flex-col items-center justify-center gap-4 z-10 rounded">
+    <div className="absolute inset-0 bg-canvas/80 backdrop-blur-sm flex flex-col items-center justify-center gap-4 z-10 rounded">
       <div className="flex flex-col items-center gap-1">
         <span className={`text-3xl font-black ${headlineClass}`}>{headline}</span>
         {winner && winner !== 'draw' && (
-          <span className="text-xs text-gray-500">
+          <span className="text-xs text-fg-muted">
             {winner === myColor ? 'Congratulations!' : 'Better luck next time'}
           </span>
         )}
@@ -40,13 +40,13 @@ export default function GameOverlay({ connection }: Props) {
         <button
           onClick={() => { if (!state.rematchRequested) connection.requestRematch(); }}
           disabled={state.rematchRequested}
-          className="w-full bg-gray-300 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed text-gray-950 text-sm font-medium rounded-lg py-2 transition-colors"
+          className="w-full bg-accent hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed text-on-accent text-sm font-medium rounded-lg py-2 transition-colors"
         >
           {state.rematchRequested ? 'Rematch Requested' : 'Rematch'}
         </button>
         <button
           onClick={() => { connection.leaveGame(); dispatch({ type: 'RETURN_TO_LOBBY' }); }}
-          className="w-full bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm font-medium rounded-lg py-2 transition-colors"
+          className="w-full bg-inset hover:bg-edge text-fg-2 text-sm font-medium rounded-lg py-2 transition-colors"
         >
           Back to Lobby
         </button>
