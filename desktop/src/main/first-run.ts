@@ -19,6 +19,7 @@ import {
   installClaude,
   cloneToolkit,
   startOAuthLogin,
+  pollAuthStatus,
   submitApiKey,
   checkDiskSpace,
   checkWindowsDevMode,
@@ -327,21 +328,44 @@ export class FirstRunManager extends EventEmitter {
   // -------------------------------------------------------------------------
 
   /** Called from IPC when the user chooses OAuth login. */
-  async handleOAuthLogin(): Promise<void> {
-    this.updateState({ authMode: 'oauth' });
+  async handleOAuthLogin(): Promise<{ url: string | null }> {
+    this.updateState({ authMode: 'oauth', statusMessage: 'Waiting for you to log in...' });
+    this.updatePrereq('auth', { status: 'installing' });
 
-    const result = await startOAuthLogin();
-    if (result.success) {
-      this.updateState({ authComplete: true });
-      this.updatePrereq('auth', { status: 'installed' });
-      log('INFO', 'first-run', 'OAuth login succeeded');
-      this.advanceTo('LAUNCH_WIZARD');
-      this.updateState({ statusMessage: 'Launching setup wizard...' });
-      this.emit('launch-wizard');
-    } else {
-      this.updateState({ lastError: `OAuth login failed: ${result.error}` });
-      this.updatePrereq('auth', { status: 'failed', error: result.error });
+    // Spawn the login process — it outputs the auth URL then waits for callback
+    const oauth = startOAuthLogin();
+
+    // Wait briefly for the URL to be captured from stdout
+    await new Promise(r => setTimeout(r, 1500));
+    const url = oauth.url;
+
+    if (!url) {
+      oauth.kill();
+      this.updateState({ lastError: 'Could not get login URL from Claude Code.' });
+      this.updatePrereq('auth', { status: 'failed', error: 'No login URL' });
+      return { url: null };
     }
+
+    log('INFO', 'first-run', 'OAuth URL captured, polling for auth completion');
+
+    // Return the URL to the caller so it can open it via shell.openExternal()
+    // Then poll in the background for auth completion
+    pollAuthStatus(120000, 2000).then((success) => {
+      oauth.kill();
+      if (success) {
+        this.updateState({ authComplete: true });
+        this.updatePrereq('auth', { status: 'installed' });
+        log('INFO', 'first-run', 'OAuth login succeeded');
+        this.advanceTo('LAUNCH_WIZARD');
+        this.updateState({ statusMessage: 'Launching setup wizard...' });
+        this.emit('launch-wizard');
+      } else {
+        this.updateState({ authMode: 'none', lastError: 'Login timed out. Try again?' });
+        this.updatePrereq('auth', { status: 'failed', error: 'Timed out' });
+      }
+    });
+
+    return { url };
   }
 
   /** Called from IPC when the user submits an API key. */

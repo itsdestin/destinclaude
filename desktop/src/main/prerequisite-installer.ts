@@ -1,4 +1,4 @@
-import { execFile, execSync } from 'child_process';
+import { execFile, execSync, spawn } from 'child_process';
 import { promisify } from 'util';
 import os from 'os';
 import path from 'path';
@@ -364,18 +364,56 @@ export async function cloneToolkit(): Promise<{ success: boolean; error?: string
   }
 }
 
-/** Start interactive OAuth login via Claude Code CLI. */
-export async function startOAuthLogin(): Promise<{ success: boolean; error?: string }> {
-  try {
-    const claudePath = resolveCommand('claude');
-    await execFileAsync(claudePath, ['login'], { timeout: 120000 });
-    log('INFO', 'prereq', 'OAuth login completed');
-    return { success: true };
-  } catch (err) {
-    const msg = String(err);
-    log('ERROR', 'prereq', 'OAuth login failed', { error: msg });
-    return { success: false, error: msg };
+/**
+ * Start OAuth login by spawning `claude auth login` and extracting the auth URL.
+ * Returns the URL so the caller can open it via shell.openExternal().
+ * The CLI process is kept alive — it waits for the OAuth callback.
+ * Call pollAuthStatus() to detect when login completes.
+ */
+export function startOAuthLogin(): { url: string | null; kill: () => void } {
+  const claudePath = resolveCommand('claude');
+  let authUrl: string | null = null;
+
+  const child = spawn(claudePath, ['auth', 'login'], {
+    stdio: ['ignore', 'pipe', 'pipe'],
+    windowsHide: true,
+  });
+
+  // Capture the auth URL from stdout
+  child.stdout?.on('data', (data: Buffer) => {
+    const text = data.toString();
+    const match = text.match(/https:\/\/claude\.com\/[^\s]+/);
+    if (match) authUrl = match[0];
+  });
+
+  child.stderr?.on('data', (data: Buffer) => {
+    log('WARN', 'prereq', 'OAuth stderr', { output: data.toString().trim() });
+  });
+
+  child.on('error', (err) => {
+    log('ERROR', 'prereq', 'OAuth process error', { error: String(err) });
+  });
+
+  // Return URL getter + cleanup. URL may not be available immediately —
+  // the caller should wait briefly then read it.
+  return {
+    get url() { return authUrl; },
+    kill: () => { try { child.kill(); } catch {} },
+  };
+}
+
+/**
+ * Poll `claude auth status` until authenticated or timeout.
+ * Returns true when auth succeeds.
+ */
+export async function pollAuthStatus(timeoutMs = 120000, intervalMs = 2000): Promise<boolean> {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    const result = await detectAuth();
+    if (result.installed) return true;
+    await new Promise(r => setTimeout(r, intervalMs));
   }
+  return false;
 }
 
 /** Submit an API key for authentication. Key is passed as an array arg — no shell interpolation. */
