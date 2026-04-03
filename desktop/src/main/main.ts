@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Menu, nativeImage, protocol } from 'electron';
+import { app, BrowserWindow, ipcMain, Menu, nativeImage, protocol, shell } from 'electron';
 import path from 'path';
 import os from 'os';
 import fs from 'fs';
@@ -93,7 +93,10 @@ function registerFirstRunIpc(
 
   ipcMain.handle(IPC.FIRST_RUN_START_AUTH, async (_event, mode: 'oauth' | 'apikey') => {
     if (mode === 'oauth') {
-      await firstRunManager.handleOAuthLogin();
+      const { url } = await firstRunManager.handleOAuthLogin();
+      if (url) {
+        shell.openExternal(url);
+      }
     }
   });
 
