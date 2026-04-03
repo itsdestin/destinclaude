@@ -149,4 +149,11 @@ export const IPC = {
   THEME_READ_FILE: 'theme:read-file', // Renderer -> Main: read a user theme JSON by slug
   THEME_WRITE_FILE: 'theme:write-file',
   THEME_READ_ASSET: 'theme:read-asset',
+  // First-run
+  FIRST_RUN_STATE: 'first-run:state',
+  FIRST_RUN_RETRY: 'first-run:retry',
+  FIRST_RUN_START_AUTH: 'first-run:start-auth',
+  FIRST_RUN_SUBMIT_API_KEY: 'first-run:submit-api-key',
+  FIRST_RUN_DEV_MODE_DONE: 'first-run:dev-mode-done',
+  FIRST_RUN_SKIP: 'first-run:skip',
 } as const;
