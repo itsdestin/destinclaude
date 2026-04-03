@@ -192,8 +192,13 @@ export async function detectAuth(): Promise<DetectionResult> {
   try {
     const claudePath = resolveCommand('claude');
     const { stdout } = await execFileAsync(claudePath, ['auth', 'status']);
-    log('INFO', 'prereq', 'Auth status: authenticated');
-    return { installed: true, version: stdout.trim(), path: claudePath };
+    // claude auth status exits 0 even when not logged in — parse the JSON
+    const parsed = JSON.parse(stdout.trim());
+    if (parsed.loggedIn === true) {
+      log('INFO', 'prereq', 'Auth status: authenticated', { email: parsed.email });
+      return { installed: true, version: parsed.email || 'authenticated' };
+    }
+    return { installed: false, error: 'Not logged in' };
   } catch (err) {
     return { installed: false, error: String(err) };
   }
