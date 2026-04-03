@@ -354,7 +354,7 @@ export default function SessionStrip({
                         onPointerDown={(e) => handlePointerDown(e, s.id)}
                         onPointerMove={handlePointerMove}
                         onPointerUp={handlePointerUp}
-                        className={`relative flex items-start pr-1 group/row select-none touch-none ${
+                        className={`relative flex items-center pr-1 group/row select-none touch-none ${
                           s.id === activeSessionId
                             ? 'bg-inset text-fg'
                             : 'text-fg-dim hover:bg-inset hover:text-fg'
@@ -367,14 +367,14 @@ export default function SessionStrip({
                         }}
                       >
                         {/* Drag grip — visible on hover */}
-                        <span className="shrink-0 flex items-center pl-1.5 pt-2.5 opacity-0 group-hover/row:opacity-100 transition-opacity">
+                        <span className={`shrink-0 flex items-center pl-1.5 transition-opacity ${isAndroid() ? 'hidden' : 'opacity-0 group-hover/row:opacity-100'}`}>
                           <DragGrip />
                         </span>
                         <button
                           onClick={() => { if (!suppressClick.current) { onSelectSession(s.id); setMenuOpen(false); } }}
-                          className="flex-1 text-left pl-1 pr-3 py-2 flex items-start gap-2 min-w-0"
+                          className="flex-1 text-left pl-1 pr-3 py-2 flex items-center gap-2 min-w-0"
                         >
-                          <span className="mt-0.5"><SessionDot color={color} isActive={s.id === activeSessionId} /></span>
+                          <SessionDot color={color} isActive={s.id === activeSessionId} />
                           <span className="text-[13px] leading-snug flex-1 min-w-0 line-clamp-2">{s.name}</span>
                           <span className="shrink-0 flex items-center gap-1.5 ml-auto">
                             {s.permissionMode === 'bypass' && (
@@ -389,7 +389,8 @@ export default function SessionStrip({
                         </button>
                         <button
                           onClick={(e) => { e.stopPropagation(); if (!suppressClick.current) onCloseSession(s.id); }}
-                          className="absolute right-1 top-2 shrink-0 w-5 h-5 flex items-center justify-center rounded text-fg-faint hover:text-[#DD4444] hover:bg-inset opacity-0 group-hover/row:opacity-100 transition-all"
+                          onPointerDown={(e) => e.stopPropagation()}
+                          className="shrink-0 w-5 h-5 flex items-center justify-center rounded text-fg-faint hover:text-[#DD4444] hover:bg-inset opacity-0 group-hover/row:opacity-100 transition-all"
                           title="Close Session"
                         >
                           <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
