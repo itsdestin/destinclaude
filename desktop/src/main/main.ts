@@ -73,20 +73,11 @@ function registerFirstRunIpc(
     } catch {}
   });
 
-  // Handle wizard launch — create a Claude Code session and auto-send setup prompt
+  // launch-wizard just signals completion — the renderer transitions to normal
+  // mode where the user clicks "New Session." No session auto-creation avoids
+  // timing issues between the first-run UI transition and session event handling.
   firstRunManager.on('launch-wizard', () => {
-    try {
-      const info = sessionManager.createSession({
-        name: 'Setup Wizard',
-        cwd: os.homedir(),
-        skipPermissions: false,
-      });
-      setTimeout(() => {
-        try { sessionManager.sendInput(info.id, 'I just installed DestinCode. Help me set up.\r'); } catch {}
-      }, 3000);
-    } catch (e) {
-      log('ERROR', 'FirstRun', 'Failed to launch wizard session', { error: String(e) });
-    }
+    log('INFO', 'FirstRun', 'First-run complete, transitioning to normal app');
   });
 
   ipcMain.handle(IPC.FIRST_RUN_STATE, async () => {
@@ -192,10 +183,7 @@ function createWindow(firstRunManager?: FirstRunManager) {
           try { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send(IPC.FIRST_RUN_STATE, state); } catch {}
         });
         lateFirstRunManager.on('launch-wizard', () => {
-          try {
-            const info = sessionManager.createSession({ name: 'Setup Wizard', cwd: os.homedir(), skipPermissions: false });
-            setTimeout(() => { try { sessionManager.sendInput(info.id, 'I just installed DestinCode. Help me set up.\r'); } catch {} }, 3000);
-          } catch (e) { log('ERROR', 'FirstRun', 'Late wizard launch failed', { error: String(e) }); }
+          log('INFO', 'FirstRun', 'Late first-run complete, transitioning to normal app');
         });
 
         // Register the other handlers
