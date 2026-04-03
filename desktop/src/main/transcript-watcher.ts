@@ -106,6 +106,7 @@ export function parseTranscriptLine(line: string, sessionId: string): Transcript
 
   // --- Assistant messages ---
   const content = message.content;
+  const messageModel: string | undefined = message.model;
   if (Array.isArray(content)) {
     for (const block of content) {
       switch (block.type) {
@@ -117,7 +118,7 @@ export function parseTranscriptLine(line: string, sessionId: string): Transcript
             sessionId,
             uuid,
             timestamp,
-            data: { text: cleaned },
+            data: { text: cleaned, ...(messageModel ? { model: messageModel } : {}) },
           });
           break;
         }
@@ -149,7 +150,7 @@ export function parseTranscriptLine(line: string, sessionId: string): Transcript
         sessionId,
         uuid,
         timestamp,
-        data: { text: cleaned },
+        data: { text: cleaned, ...(messageModel ? { model: messageModel } : {}) },
       });
     }
   }

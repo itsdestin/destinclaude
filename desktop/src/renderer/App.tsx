@@ -561,10 +561,10 @@ function AppInner() {
   useEffect(() => {
     if (!pendingModel) return;
     const handler = (window.claude.on as any).transcriptEvent?.((event: any) => {
-      if (!event || event.type !== 'assistant_text' || !event.model) return;
+      if (!event || event.type !== 'assistant-text' || !event.data?.model) return;
       if (event.sessionId !== sessionId) return;
 
-      const actualModel = event.model as string;
+      const actualModel = event.data.model as string;
       const matches = actualModel.includes(pendingModel);
       if (matches) {
         setPendingModel(null);
