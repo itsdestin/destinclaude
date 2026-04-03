@@ -33,7 +33,6 @@ interface Props {
   challengePending: boolean;
   permissionMode: PermissionMode;
   onCyclePermission: () => void;
-  model: string | null;
   announcement: string | null;
   settingsOpen: boolean;
   onToggleSettings: () => void;
@@ -48,7 +47,7 @@ export default function HeaderBar({
   sessions, activeSessionId, onSelectSession, onCreateSession, onCloseSession,
   viewMode, onToggleView,
   gamePanelOpen, onToggleGamePanel, gameConnected, challengePending,
-  permissionMode, onCyclePermission, model, announcement,
+  permissionMode, onCyclePermission, announcement,
   settingsOpen, onToggleSettings, settingsBadge, sessionStatuses, onResumeSession,
   onOpenResumeBrowser, onReorderSessions,
 }: Props) {
@@ -87,11 +86,6 @@ export default function HeaderBar({
         {isRemoteMode() && (
           <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-400 border border-blue-500/25 shrink-0">
             REMOTE
-          </span>
-        )}
-        {model && (
-          <span className="text-[10px] text-fg-muted truncate max-w-[120px] hidden sm:inline">
-            {model}
           </span>
         )}
         {announcement && (

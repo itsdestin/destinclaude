@@ -4,6 +4,7 @@ import ChatView from './components/ChatView';
 import HeaderBar from './components/HeaderBar';
 import InputBar, { type InputBarHandle } from './components/InputBar';
 import StatusBar from './components/StatusBar';
+import { MODELS, type ModelAlias } from './components/StatusBar';
 import ErrorBoundary from './components/ErrorBoundary';
 import GamePanel from './components/game/GamePanel';
 import { ChatProvider, useChatDispatch, useChatState, useChatStateMap } from './state/chat-context';
@@ -64,6 +65,11 @@ function AppInner() {
   const [isFirstRun, setIsFirstRun] = useState<boolean | null>(null); // null = loading
   const handleFirstRunComplete = useCallback(() => setIsFirstRun(false), []);
 
+  const [model, setModel] = useState<ModelAlias>('sonnet');
+  const [pendingModel, setPendingModel] = useState<ModelAlias | null>(null);
+  const consecutiveFailures = useRef(0);
+  const [toast, setToast] = useState<string | null>(null);
+
   // Check first-run state with a 3-second safety timeout — never hang the app
   useEffect(() => {
     let resolved = false;
@@ -80,6 +86,15 @@ function AppInner() {
       .catch(() => { clearTimeout(timeout); resolve(false); });
 
     return () => clearTimeout(timeout);
+  }, []);
+
+  // Load persisted model preference on mount
+  useEffect(() => {
+    (window.claude as any).model?.getPreference().then((m: string) => {
+      if (MODELS.includes(m as any)) {
+        setModel(m as ModelAlias);
+      }
+    }).catch(() => {});
   }, []);
 
   usePromptDetector();
@@ -532,6 +547,46 @@ function AppInner() {
     setDrawerFilter(undefined);
   }, []);
 
+  const cycleModel = useCallback(() => {
+    const idx = MODELS.indexOf(model);
+    const next = MODELS[(idx + 1) % MODELS.length];
+    setModel(next);
+    setPendingModel(next);
+    if (sessionId) {
+      window.claude.session.sendInput(sessionId, `/model ${next}\r`);
+    }
+  }, [model, sessionId]);
+
+  // Verify model switch via transcript events
+  useEffect(() => {
+    if (!pendingModel) return;
+    const handler = (window.claude.on as any).transcriptEvent?.((event: any) => {
+      if (!event || event.type !== 'assistant_text' || !event.model) return;
+      if (event.sessionId !== sessionId) return;
+
+      const actualModel = event.model as string;
+      const matches = actualModel.includes(pendingModel);
+      if (matches) {
+        setPendingModel(null);
+        consecutiveFailures.current = 0;
+        (window.claude as any).model?.setPreference(pendingModel);
+      } else {
+        const actual = MODELS.find(m => actualModel.includes(m));
+        if (actual) setModel(actual);
+        const failures = consecutiveFailures.current + 1;
+        consecutiveFailures.current = failures;
+        setPendingModel(null);
+        if (failures >= 2) {
+          setToast("Model switch failed again. Ask Claude to diagnose with /model, or report a bug.");
+        } else {
+          setToast("Couldn't switch to " + pendingModel.charAt(0).toUpperCase() + pendingModel.slice(1));
+        }
+        setTimeout(() => setToast(null), 4000);
+      }
+    });
+    return handler;
+  }, [pendingModel, sessionId]);
+
   const handleSelectSkill = useCallback(
     (skill: SkillEntry) => {
       if (skill.id === '_resume') {
@@ -556,12 +611,13 @@ function AppInner() {
   );
 
   const createSession = useCallback(async (cwd: string, dangerous: boolean) => {
-    await window.claude.session.create({
+    await (window.claude.session.create as any)({
       name: 'New Session',
       cwd,
       skipPermissions: dangerous,
+      model,
     });
-  }, []);
+  }, [model]);
 
   const handleResumeSession = useCallback(async (claudeSessionId: string, projectSlug: string) => {
     const slugToPath = (s: string) => {
@@ -576,6 +632,7 @@ function AppInner() {
       cwd,
       skipPermissions: false,
       resumeSessionId: claudeSessionId,
+      model,
     });
     if (!newSession?.id) return;
 
@@ -595,7 +652,7 @@ function AppInner() {
     } catch (err) {
       console.error('Failed to load history:', err);
     }
-  }, [dispatch]);
+  }, [dispatch, model]);
 
   const currentViewMode = sessionId ? (viewModes.get(sessionId) || 'chat') : 'chat';
 
@@ -695,7 +752,6 @@ function AppInner() {
               challengePending={gameState.challengeFrom !== null}
               permissionMode={currentPermissionMode}
               onCyclePermission={cyclePermission}
-              model={statusData.model}
               announcement={announcementText}
               settingsOpen={settingsOpen}
               onToggleSettings={() => setSettingsOpen(prev => !prev)}
@@ -759,6 +815,8 @@ function AppInner() {
                     dispatch({ type: 'USER_PROMPT', sessionId, content: '/sync', timestamp: Date.now() });
                     window.claude.session.sendInput(sessionId, '/sync\r');
                   } : undefined}
+                  model={model}
+                  onCycleModel={cycleModel}
                 />
               </>
             )}
@@ -808,6 +866,11 @@ function AppInner() {
         onClose={() => setResumeRequested(false)}
         onResume={handleResumeSession}
       />
+      {toast && (
+        <div className="fixed bottom-16 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-lg bg-panel border border-edge text-sm text-fg shadow-lg">
+          {toast}
+        </div>
+      )}
     </div>
   );
 }
