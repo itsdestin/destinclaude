@@ -431,6 +431,22 @@ export class FirstRunManager extends EventEmitter {
     this.emitState();
   }
 
+  /** Force the state machine to a specific step (e.g., re-trigger auth from normal mode) */
+  forceStep(step: FirstRunStep): void {
+    this.state = this.defaultState();
+    this.state.currentStep = step;
+    // Mark all prereqs before this step as installed since they passed detection
+    if (step === 'AUTHENTICATE' || step === 'LAUNCH_WIZARD') {
+      for (const p of this.state.prerequisites) {
+        if (p.name !== 'auth') p.status = 'installed';
+      }
+      this.state.overallProgress = 72;
+      this.state.statusMessage = 'Sign in to continue';
+    }
+    this.saveState();
+    this.emitState();
+  }
+
   // -------------------------------------------------------------------------
   // Private — state management
   // -------------------------------------------------------------------------

@@ -156,17 +156,63 @@ function createWindow(firstRunManager?: FirstRunManager) {
   if (firstRunManager) {
     registerFirstRunIpc(mainWindow, firstRunManager);
   } else {
-    // Always register the state handler so the renderer's getState() call
-    // resolves immediately instead of hanging on an unregistered channel.
-    ipcMain.handle(IPC.FIRST_RUN_STATE, async () => ({
-      currentStep: 'COMPLETE',
-      prerequisites: [],
-      overallProgress: 100,
-      statusMessage: '',
-      authMode: 'none',
-      authComplete: true,
-      needsDevMode: false,
-    }));
+    // Not a first-run — but verify Claude Code can actually run.
+    // If auth is missing, re-trigger first-run at the auth step so the user
+    // isn't dropped into an app that can't create sessions.
+    // Lazy auth verification — on the first getState() call from the renderer,
+    // check if Claude Code is actually authenticated. If not, spin up the
+    // first-run flow at the auth step. This handles: user quit mid-auth,
+    // user installed toolkit manually but never logged in, corrupted state, etc.
+    let lateFirstRunManager: FirstRunManager | null = null;
+    ipcMain.handle(IPC.FIRST_RUN_STATE, async () => {
+      // If we already spun up a late first-run manager, delegate to it
+      if (lateFirstRunManager) {
+        try { return lateFirstRunManager.getState(); }
+        catch { return { currentStep: 'COMPLETE' }; }
+      }
+      // One-time async auth check
+      try {
+        const { detectAuth } = require('./prerequisite-installer');
+        const result = await detectAuth();
+        if (result.installed) return { currentStep: 'COMPLETE' };
+
+        // Auth missing — spin up first-run at the auth step
+        log('WARN', 'Main', 'Setup complete but auth missing — showing auth screen');
+        lateFirstRunManager = new FirstRunManager();
+        lateFirstRunManager.forceStep('AUTHENTICATE');
+
+        // Wire up events (but skip FIRST_RUN_STATE — we're already handling it)
+        lateFirstRunManager.on('state-changed', (state) => {
+          try { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send(IPC.FIRST_RUN_STATE, state); } catch {}
+        });
+        lateFirstRunManager.on('launch-wizard', () => {
+          try {
+            const info = sessionManager.createSession({ name: 'Setup Wizard', cwd: os.homedir(), skipPermissions: false });
+            setTimeout(() => { try { sessionManager.sendInput(info.id, 'I just installed DestinCode. Help me set up.\r'); } catch {} }, 3000);
+          } catch (e) { log('ERROR', 'FirstRun', 'Late wizard launch failed', { error: String(e) }); }
+        });
+
+        // Register the other handlers
+        ipcMain.handle(IPC.FIRST_RUN_RETRY, async () => { try { await lateFirstRunManager!.retry(); } catch {} });
+        ipcMain.handle(IPC.FIRST_RUN_START_AUTH, async (_event, mode: 'oauth' | 'apikey') => {
+          try { if (mode === 'oauth') { const { url } = await lateFirstRunManager!.handleOAuthLogin(); if (url) shell.openExternal(url); } } catch {} });
+        ipcMain.handle(IPC.FIRST_RUN_SUBMIT_API_KEY, async (_event, key: string) => { try { await lateFirstRunManager!.handleApiKeySubmit(key); } catch {} });
+        ipcMain.handle(IPC.FIRST_RUN_DEV_MODE_DONE, async () => { try { await lateFirstRunManager!.handleDevModeDone(); } catch {} });
+        ipcMain.handle(IPC.FIRST_RUN_SKIP, async () => {
+          try {
+            const stateDir = path.join(os.homedir(), '.claude', 'toolkit-state');
+            fs.mkdirSync(stateDir, { recursive: true });
+            const cp = path.join(stateDir, 'config.json');
+            let c: any = {}; try { c = JSON.parse(fs.readFileSync(cp, 'utf8')); } catch {}
+            c.setup_completed = true; fs.writeFileSync(cp, JSON.stringify(c, null, 2));
+          } catch {}
+        });
+
+        return lateFirstRunManager.getState();
+      } catch {
+        return { currentStep: 'COMPLETE' }; // Can't check — don't block
+      }
+    });
   }
 
   // Forward hook events to renderer
