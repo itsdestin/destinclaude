@@ -61,68 +61,79 @@ protocol.registerSchemesAsPrivileged([
 ]);
 
 function registerFirstRunIpc(
-  ipcMain: Electron.IpcMain,
   mainWindow: BrowserWindow,
   firstRunManager: FirstRunManager,
-  sessionManager: SessionManager,
 ) {
   // Push state updates to renderer
   firstRunManager.on('state-changed', (state) => {
-    if (!mainWindow.isDestroyed()) {
-      mainWindow.webContents.send(IPC.FIRST_RUN_STATE, state);
-    }
+    try {
+      if (!mainWindow.isDestroyed()) {
+        mainWindow.webContents.send(IPC.FIRST_RUN_STATE, state);
+      }
+    } catch {}
   });
 
   // Handle wizard launch — create a Claude Code session and auto-send setup prompt
   firstRunManager.on('launch-wizard', () => {
-    const info = sessionManager.createSession({
-      name: 'Setup Wizard',
-      cwd: os.homedir(),
-      skipPermissions: false,
-    });
-    setTimeout(() => {
-      sessionManager.sendInput(info.id, 'I just installed DestinCode. Help me set up.\r');
-    }, 3000);
+    try {
+      const info = sessionManager.createSession({
+        name: 'Setup Wizard',
+        cwd: os.homedir(),
+        skipPermissions: false,
+      });
+      setTimeout(() => {
+        try { sessionManager.sendInput(info.id, 'I just installed DestinCode. Help me set up.\r'); } catch {}
+      }, 3000);
+    } catch (e) {
+      log('ERROR', 'FirstRun', 'Failed to launch wizard session', { error: String(e) });
+    }
   });
 
-  ipcMain.handle(IPC.FIRST_RUN_STATE, async () => firstRunManager.getState());
+  ipcMain.handle(IPC.FIRST_RUN_STATE, async () => {
+    try { return firstRunManager.getState(); }
+    catch { return { currentStep: 'COMPLETE' }; }
+  });
 
   ipcMain.handle(IPC.FIRST_RUN_RETRY, async () => {
-    await firstRunManager.retry();
+    try { await firstRunManager.retry(); }
+    catch (e) { log('ERROR', 'FirstRun', 'Retry failed', { error: String(e) }); }
   });
 
   ipcMain.handle(IPC.FIRST_RUN_START_AUTH, async (_event, mode: 'oauth' | 'apikey') => {
-    if (mode === 'oauth') {
-      const { url } = await firstRunManager.handleOAuthLogin();
-      if (url) {
-        shell.openExternal(url);
+    try {
+      if (mode === 'oauth') {
+        const { url } = await firstRunManager.handleOAuthLogin();
+        if (url) shell.openExternal(url);
       }
-    }
+    } catch (e) { log('ERROR', 'FirstRun', 'Auth failed', { error: String(e) }); }
   });
 
   ipcMain.handle(IPC.FIRST_RUN_SUBMIT_API_KEY, async (_event, key: string) => {
-    await firstRunManager.handleApiKeySubmit(key);
+    try { await firstRunManager.handleApiKeySubmit(key); }
+    catch (e) { log('ERROR', 'FirstRun', 'API key submit failed', { error: String(e) }); }
   });
 
   ipcMain.handle(IPC.FIRST_RUN_DEV_MODE_DONE, async () => {
-    await firstRunManager.handleDevModeDone();
+    try { await firstRunManager.handleDevModeDone(); }
+    catch (e) { log('ERROR', 'FirstRun', 'Dev mode failed', { error: String(e) }); }
   });
 
   ipcMain.handle(IPC.FIRST_RUN_SKIP, async () => {
-    const stateDir = path.join(os.homedir(), '.claude', 'toolkit-state');
-    fs.mkdirSync(stateDir, { recursive: true });
-    const configPath = path.join(stateDir, 'config.json');
     try {
-      const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+      const stateDir = path.join(os.homedir(), '.claude', 'toolkit-state');
+      fs.mkdirSync(stateDir, { recursive: true });
+      const configPath = path.join(stateDir, 'config.json');
+      let config: any = {};
+      try { config = JSON.parse(fs.readFileSync(configPath, 'utf8')); } catch {}
       config.setup_completed = true;
       fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
-    } catch {
-      fs.writeFileSync(configPath, JSON.stringify({ setup_completed: true }, null, 2));
-    }
+    } catch (e) { log('ERROR', 'FirstRun', 'Skip failed', { error: String(e) }); }
   });
 
-  // Start the first-run flow
-  firstRunManager.run();
+  // Start the first-run flow (async, doesn't block)
+  firstRunManager.run().catch((e) => {
+    log('ERROR', 'FirstRun', 'Run failed', { error: String(e) });
+  });
 }
 
 function createWindow(firstRunManager?: FirstRunManager) {
@@ -149,7 +160,7 @@ function createWindow(firstRunManager?: FirstRunManager) {
   cleanupIpcHandlers = registerIpcHandlers(ipcMain, sessionManager, mainWindow, hookRelay, remoteConfig, remoteServer);
 
   if (firstRunManager) {
-    registerFirstRunIpc(ipcMain, mainWindow, firstRunManager, sessionManager);
+    registerFirstRunIpc(mainWindow, firstRunManager);
   } else {
     // Always register the state handler so the renderer's getState() call
     // resolves immediately instead of hanging on an unregistered channel.
@@ -199,9 +210,16 @@ function createWindow(firstRunManager?: FirstRunManager) {
 app.whenReady().then(async () => {
   await rotateLog();
 
-  // --- First-run detection ---
-  const firstRunManager = new FirstRunManager();
-  const isFirstRun = FirstRunManager.isFirstRun();
+  // --- First-run detection (wrapped in try/catch — never breaks the app) ---
+  let firstRunManager: FirstRunManager | undefined;
+  let isFirstRun = false;
+  try {
+    isFirstRun = FirstRunManager.isFirstRun();
+    if (isFirstRun) firstRunManager = new FirstRunManager();
+  } catch (e) {
+    log('ERROR', 'Main', 'First-run detection failed, skipping', { error: String(e) });
+    isFirstRun = false;
+  }
 
   // Install hook relay entries in Claude Code settings
   try {

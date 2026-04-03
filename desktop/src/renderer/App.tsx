@@ -63,16 +63,22 @@ function AppInner() {
   const [resumeRequested, setResumeRequested] = useState(false);
   const [isFirstRun, setIsFirstRun] = useState<boolean | null>(null); // null = loading
 
+  // Check first-run state with a 3-second safety timeout — never hang the app
   useEffect(() => {
-    (window as any).claude?.firstRun?.getState?.().then((state: any) => {
-      if (state && state.currentStep !== 'COMPLETE') {
-        setIsFirstRun(true);
-      } else {
-        setIsFirstRun(false);
-      }
-    }).catch(() => {
-      setIsFirstRun(false);
-    });
+    let resolved = false;
+    const resolve = (value: boolean) => {
+      if (!resolved) { resolved = true; setIsFirstRun(value); }
+    };
+    const timeout = setTimeout(() => resolve(false), 3000);
+
+    (window as any).claude?.firstRun?.getState?.()
+      .then((state: any) => {
+        clearTimeout(timeout);
+        resolve(!!(state && state.currentStep !== 'COMPLETE'));
+      })
+      .catch(() => { clearTimeout(timeout); resolve(false); });
+
+    return () => clearTimeout(timeout);
   }, []);
 
   usePromptDetector();
