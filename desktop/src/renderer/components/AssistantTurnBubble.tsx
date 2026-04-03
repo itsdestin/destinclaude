@@ -53,7 +53,7 @@ function CollapsedToolGroup({ tools, sessionId }: { tools: ToolCallState[]; sess
         <ChevronIcon className="w-3.5 h-3.5 shrink-0 text-gray-500" expanded={expanded} />
       </button>
       {expanded && (
-        <div className="px-2 pb-1.5 space-y-0.5 bg-gray-850 rounded-b-lg">
+        <div className="px-2 pb-1.5 space-y-0.5 rounded-b-lg">
           {tools.map((tool) => (
             <ToolCard key={tool.toolUseId} tool={tool} sessionId={sessionId} />
           ))}
@@ -109,7 +109,7 @@ export default function AssistantTurnBubble({ turn, toolGroups, toolCalls, sessi
         const toolsOnly = hasTools && !bubble.text;
         return (
           <div key={bubble.key} className="flex justify-start px-4 py-0.5">
-            <div className={`max-w-[85%] rounded-2xl rounded-bl-sm bg-gray-800 text-sm text-gray-200 ${hasTools ? 'px-2' : 'px-4'} ${toolsOnly ? 'py-1' : hasTools ? 'pt-3 pb-1' : 'py-3'}`}>
+            <div className={`max-w-[85%] rounded-2xl rounded-bl-sm bg-gray-800 text-sm text-gray-200 ${hasTools ? 'px-2' : 'px-4'} ${toolsOnly ? 'py-1' : hasTools ? 'pt-2.5 pb-1' : 'py-2.5'}`}>
               {bubble.text && (
                 <div className={hasTools ? 'px-2' : ''}>
                   <MarkdownContent content={bubble.text.content} />

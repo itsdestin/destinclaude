@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ToolCallState } from '../../shared/types';
 import { useChatDispatch } from '../state/chat-context';
 import { CheckIcon, FailIcon, QuestionIcon, ChevronIcon } from './Icons';
@@ -206,12 +206,15 @@ function PermissionButtons({ requestId, suggestions, onResponded, onFailed }: {
   onFailed?: () => void;
 }) {
   const [responding, setResponding] = useState(false);
-  const handleRespond = async (decision: object) => {
+  const hasSuggestions = !!(suggestions?.length);
+  const [focusIdx, setFocusIdx] = useState(hasSuggestions ? 1 : 0);
+  const buttonsRef = useRef<(HTMLButtonElement | null)[]>([]);
+
+  const handleRespond = useCallback(async (decision: object) => {
     setResponding(true);
     try {
       const delivered = await (window as any).claude.session.respondToPermission(requestId, decision);
       if (delivered === false) {
-        // Socket was already closed (timeout or Claude Code killed the hook)
         console.warn('Permission response not delivered — socket already closed');
         setResponding(false);
         if (onFailed) onFailed();
@@ -223,30 +226,67 @@ function PermissionButtons({ requestId, suggestions, onResponded, onFailed }: {
       setResponding(false);
       if (onFailed) onFailed();
     }
-  };
+  }, [requestId, onResponded, onFailed]);
+
+  // Build actions list so keyboard handler can index into it
+  const actions = useRef<(() => void)[]>([]);
+  actions.current = [
+    () => handleRespond({ decision: { behavior: 'allow' } }),
+    ...(hasSuggestions
+      ? [() => handleRespond({ decision: { behavior: 'allow' }, updatedPermissions: [suggestions![0]] })]
+      : []),
+    () => handleRespond({ decision: { behavior: 'deny' } }),
+  ];
+  const count = actions.current.length;
+
+  // Global keyboard navigation: arrows cycle, Enter activates
+  useEffect(() => {
+    if (responding) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        e.preventDefault();
+        setFocusIdx(prev => {
+          const next = e.key === 'ArrowRight' ? (prev + 1) % count : (prev - 1 + count) % count;
+          buttonsRef.current[next]?.focus();
+          return next;
+        });
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        actions.current[focusIdx]?.();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [responding, focusIdx, count]);
+
+  const pad = isAndroid() ? 'py-2' : 'py-1';
+  const ring = 'ring-2 ring-white/40';
 
   return (
     <div className="flex items-center gap-2 px-3 py-2 border-t border-gray-700 bg-gray-800/30">
       <button
+        ref={el => { buttonsRef.current[0] = el; }}
         disabled={responding}
         onClick={() => handleRespond({ decision: { behavior: 'allow' } })}
-        className={`px-3 ${isAndroid() ? 'py-2' : 'py-1'} text-xs font-medium rounded bg-green-600/60 hover:bg-green-600/80 text-green-100 transition-colors disabled:opacity-50`}
+        className={`px-3 ${pad} text-xs font-medium rounded bg-green-600/60 hover:bg-green-600/80 text-green-100 transition-colors disabled:opacity-50 ${focusIdx === 0 ? ring : ''}`}
       >
         Yes
       </button>
-      {suggestions?.length ? (
+      {hasSuggestions ? (
         <button
+          ref={el => { buttonsRef.current[1] = el; }}
           disabled={responding}
-          onClick={() => handleRespond({ decision: { behavior: 'allow' }, updatedPermissions: [suggestions[0]] })}
-          className={`px-3 ${isAndroid() ? 'py-2' : 'py-1'} text-xs font-medium rounded bg-blue-600/60 hover:bg-blue-600/80 text-blue-100 transition-colors disabled:opacity-50`}
+          onClick={() => handleRespond({ decision: { behavior: 'allow' }, updatedPermissions: [suggestions![0]] })}
+          className={`px-3 ${pad} text-xs font-medium rounded bg-blue-600/60 hover:bg-blue-600/80 text-blue-100 transition-colors disabled:opacity-50 ${focusIdx === 1 ? ring : ''}`}
         >
           Always Allow
         </button>
       ) : null}
       <button
+        ref={el => { buttonsRef.current[hasSuggestions ? 2 : 1] = el; }}
         disabled={responding}
         onClick={() => handleRespond({ decision: { behavior: 'deny' } })}
-        className={`px-3 ${isAndroid() ? 'py-2' : 'py-1'} text-xs font-medium rounded bg-red-600/60 hover:bg-red-600/80 text-red-100 transition-colors disabled:opacity-50`}
+        className={`px-3 ${pad} text-xs font-medium rounded bg-red-600/60 hover:bg-red-600/80 text-red-100 transition-colors disabled:opacity-50 ${focusIdx === (hasSuggestions ? 2 : 1) ? ring : ''}`}
       >
         No
       </button>
@@ -269,7 +309,7 @@ export default function ToolCard({ tool, sessionId }: Props) {
       {/* Header */}
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center gap-1.5 px-3 py-1.5 text-left hover:bg-gray-800/50 transition-colors"
+        className="w-full flex items-center gap-1.5 px-3 py-1.5 text-left bg-gray-850 hover:bg-gray-800/50 transition-colors"
       >
         {/* Status indicator */}
         {tool.status === 'running' && (

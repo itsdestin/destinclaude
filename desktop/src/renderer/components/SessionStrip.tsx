@@ -150,12 +150,16 @@ export default function SessionStrip({
 
   /* ── Pointer-event drag handlers ───────────────────────── */
 
-  const handlePointerDown = useCallback((e: React.PointerEvent, idx: number) => {
+  const handlePointerDown = useCallback((e: React.PointerEvent, sessionId: string) => {
     // Only primary button
     if (e.button !== 0) return;
     dragOrigin.current = { x: e.clientX, y: e.clientY };
     isDragging.current = false;
 
+    // Resolve canonical index from the full sessions array (visibleSessions
+    // may be a filtered subset on Android, so raw map idx can't be trusted).
+    const idx = sessions.findIndex(s => s.id === sessionId);
+    if (idx === -1) return;
     const s = sessions[idx];
     // Capture label + color eagerly so pointermove can start immediately
     setDragIdx(idx);
@@ -266,8 +270,7 @@ export default function SessionStrip({
           const color = sessionStatuses?.get(s.id) || 'gray';
           const isActive = s.id === activeSessionId;
           const isHovered = hoveredId === s.id;
-          const anotherHovered = hoveredId !== null && hoveredId !== s.id;
-          const showName = allExpanded || isHovered || (isActive && !anotherHovered);
+          const showName = allExpanded || isHovered || isActive;
           const isBeingDragged = dragIdx === idx && isDragging.current;
           const isOver = overIdx === idx;
 
@@ -275,7 +278,7 @@ export default function SessionStrip({
             <React.Fragment key={s.id}>
               <button
                 data-session-idx={idx}
-                onPointerDown={(e) => handlePointerDown(e, idx)}
+                onPointerDown={(e) => handlePointerDown(e, s.id)}
                 onPointerMove={handlePointerMove}
                 onPointerUp={handlePointerUp}
                 onClick={() => handleClick(s.id)}
@@ -348,7 +351,7 @@ export default function SessionStrip({
                       <div
                         key={s.id}
                         data-session-idx={idx}
-                        onPointerDown={(e) => handlePointerDown(e, idx)}
+                        onPointerDown={(e) => handlePointerDown(e, s.id)}
                         onPointerMove={handlePointerMove}
                         onPointerUp={handlePointerUp}
                         className={`relative flex items-start pr-1 group/row select-none touch-none ${
@@ -385,7 +388,7 @@ export default function SessionStrip({
                           </span>
                         </button>
                         <button
-                          onClick={(e) => { e.stopPropagation(); onCloseSession(s.id); }}
+                          onClick={(e) => { e.stopPropagation(); if (!suppressClick.current) onCloseSession(s.id); }}
                           className="absolute right-1 top-2 shrink-0 w-5 h-5 flex items-center justify-center rounded text-gray-600 hover:text-[#DD4444] hover:bg-gray-700 opacity-0 group-hover/row:opacity-100 transition-all"
                           title="Close Session"
                         >

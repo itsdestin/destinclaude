@@ -43,7 +43,7 @@ const mdComponents = {
     return <h4 className="text-sm font-bold mt-4 mb-1.5 text-gray-100" {...props}>{children}</h4>;
   },
   p({ children, ...props }: any) {
-    return <p className="mb-3 leading-relaxed" {...props}>{children}</p>;
+    return <p className="mb-3 last:mb-0 leading-relaxed" {...props}>{children}</p>;
   },
   ol({ children, ...props }: any) {
     return <ol className="list-decimal pl-6 mb-3 space-y-1.5" {...props}>{children}</ol>;

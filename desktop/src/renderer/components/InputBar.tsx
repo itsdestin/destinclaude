@@ -38,6 +38,24 @@ export default function InputBar({ sessionId, disabled, onOpenDrawer, onResumeCo
     inputRef.current?.focus();
   }, [sessionId]);
 
+  // Auto-focus input when user starts typing anywhere in the app
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (disabled) return;
+      // Yield if another handler (e.g. permission prompt) already consumed this event
+      if (e.defaultPrevented) return;
+      // Skip if already focused on an input/textarea, or if modifier keys are held (shortcuts)
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      // Skip non-printable keys
+      if (e.key.length !== 1) return;
+      inputRef.current?.focus();
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [disabled]);
+
   const addFiles = useCallback((paths: string[]) => {
     setAttachments((prev) => {
       const existing = new Set(prev.map((a) => a.path));
@@ -195,7 +213,7 @@ export default function InputBar({ sessionId, disabled, onOpenDrawer, onResumeCo
         </div>
       )}
 
-      <div className="px-2 sm:px-3 pb-2 sm:pb-3">
+      <div className="px-2 sm:px-3 pb-1 sm:pb-1.5">
         <form onSubmit={handleSubmit} className="flex items-center gap-1.5 sm:gap-2 bg-gray-800 rounded-xl px-2 sm:px-3 py-2">
           <BrailleBurst
             onTrigger={handleAttachClick}
