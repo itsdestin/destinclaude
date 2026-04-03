@@ -16,6 +16,15 @@ interface StatusData {
   syncWarnings: string | null;
 }
 
+const MODELS = ['sonnet', 'opus', 'haiku'] as const;
+type ModelAlias = typeof MODELS[number];
+
+const MODEL_DISPLAY: Record<ModelAlias, { label: string; color: string; bg: string; border: string }> = {
+  sonnet: { label: 'Sonnet', color: '#9CA3AF', bg: 'rgba(156,163,175,0.15)', border: 'rgba(156,163,175,0.25)' },
+  opus:   { label: 'Opus',   color: '#818CF8', bg: 'rgba(129,140,248,0.15)', border: 'rgba(129,140,248,0.25)' },
+  haiku:  { label: 'Haiku',  color: '#2DD4BF', bg: 'rgba(45,212,191,0.15)',  border: 'rgba(45,212,191,0.25)' },
+};
+
 function utilizationColor(pct: number): string {
   if (pct >= 80) return 'text-[#DD4444]';
   if (pct >= 50) return 'text-[#FF9800]';
@@ -59,6 +68,8 @@ function format7dReset(iso: string): string {
 interface Props {
   statusData: StatusData;
   onRunSync?: () => void;
+  model?: ModelAlias;
+  onCycleModel?: () => void;
 }
 
 // Map raw warning codes to the same descriptive text used in the terminal statusline
@@ -147,7 +158,7 @@ function PencilIcon() {
   );
 }
 
-export default function StatusBar({ statusData, onRunSync }: Props) {
+export default function StatusBar({ statusData, onRunSync, model, onCycleModel }: Props) {
   const { usage, updateStatus, contextPercent, syncStatus, syncWarnings } = statusData;
   const warnings = parseSyncWarnings(syncWarnings);
   const { activeTheme, cycleTheme } = useTheme();
@@ -249,6 +260,22 @@ export default function StatusBar({ statusData, onRunSync }: Props) {
         </span>
       )}
 
+      {/* Model selector chip */}
+      {model && (
+        <button
+          onClick={onCycleModel}
+          className="px-1.5 py-0.5 rounded border cursor-pointer hover:brightness-125 transition-colors"
+          style={{
+            backgroundColor: MODEL_DISPLAY[model].bg,
+            color: MODEL_DISPLAY[model].color,
+            borderColor: MODEL_DISPLAY[model].border,
+          }}
+          title={`Model: ${MODEL_DISPLAY[model].label} (click to cycle)`}
+        >
+          {MODEL_DISPLAY[model].label}
+        </button>
+      )}
+
       {/* Sync warnings */}
       {show('sync-warnings') && warnings.map((w, i) => (
         <button
@@ -289,3 +316,5 @@ export default function StatusBar({ statusData, onRunSync }: Props) {
     </div>
   );
 }
+
+export { MODELS, type ModelAlias };
