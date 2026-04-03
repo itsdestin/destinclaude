@@ -102,8 +102,8 @@ function registerFirstRunIpc(
   ipcMain.handle(IPC.FIRST_RUN_START_AUTH, async (_event, mode: 'oauth' | 'apikey') => {
     try {
       if (mode === 'oauth') {
-        const { url } = await firstRunManager.handleOAuthLogin();
-        if (url) shell.openExternal(url);
+        // claude auth login opens the browser itself — don't double-open
+        await firstRunManager.handleOAuthLogin();
       }
     } catch (e) { log('ERROR', 'FirstRun', 'Auth failed', { error: String(e) }); }
   });
@@ -201,7 +201,7 @@ function createWindow(firstRunManager?: FirstRunManager) {
         // Register the other handlers
         ipcMain.handle(IPC.FIRST_RUN_RETRY, async () => { try { await lateFirstRunManager!.retry(); } catch {} });
         ipcMain.handle(IPC.FIRST_RUN_START_AUTH, async (_event, mode: 'oauth' | 'apikey') => {
-          try { if (mode === 'oauth') { const { url } = await lateFirstRunManager!.handleOAuthLogin(); if (url) shell.openExternal(url); } } catch {} });
+          try { if (mode === 'oauth') { await lateFirstRunManager!.handleOAuthLogin(); } } catch {} });
         ipcMain.handle(IPC.FIRST_RUN_SUBMIT_API_KEY, async (_event, key: string) => { try { await lateFirstRunManager!.handleApiKeySubmit(key); } catch {} });
         ipcMain.handle(IPC.FIRST_RUN_DEV_MODE_DONE, async () => { try { await lateFirstRunManager!.handleDevModeDone(); } catch {} });
         ipcMain.handle(IPC.FIRST_RUN_SKIP, async () => {

@@ -178,7 +178,9 @@ export default function FirstRunView({ onComplete }: FirstRunViewProps) {
     };
   }, []);
 
-  // Transition to main app on completion
+  // Transition to main app on completion.
+  // Only depends on currentStep — onComplete is stable (useCallback in parent).
+  // completeFired ref prevents double-fire if step oscillates.
   useEffect(() => {
     if (!state) return;
     if (completeFired.current) return;
@@ -187,7 +189,7 @@ export default function FirstRunView({ onComplete }: FirstRunViewProps) {
       const timer = setTimeout(onComplete, 1500);
       return () => clearTimeout(timer);
     }
-  }, [state, onComplete]);
+  }, [state?.currentStep]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleRetry = useCallback(() => {
     (window as any).claude.firstRun.retry();

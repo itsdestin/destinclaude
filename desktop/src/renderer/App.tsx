@@ -62,6 +62,7 @@ function AppInner() {
   const [resumeInfo, setResumeInfo] = useState<Map<string, { claudeSessionId: string; projectSlug: string }>>(new Map());
   const [resumeRequested, setResumeRequested] = useState(false);
   const [isFirstRun, setIsFirstRun] = useState<boolean | null>(null); // null = loading
+  const handleFirstRunComplete = useCallback(() => setIsFirstRun(false), []);
 
   // Check first-run state with a 3-second safety timeout — never hang the app
   useEffect(() => {
@@ -657,7 +658,7 @@ function AppInner() {
   if (isFirstRun) {
     return (
       <div className="h-screen flex flex-col bg-gray-950">
-        <FirstRunView onComplete={() => setIsFirstRun(false)} />
+        <FirstRunView onComplete={handleFirstRunComplete} />
       </div>
     );
   }
