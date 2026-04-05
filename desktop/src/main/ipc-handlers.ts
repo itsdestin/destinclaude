@@ -12,7 +12,7 @@ import { RemoteServer } from './remote-server';
 import { TranscriptWatcher } from './transcript-watcher';
 import { listPastSessions, loadHistory } from './session-browser';
 import { readTranscriptMeta } from './transcript-utils';
-import { startThemeWatcher, listUserThemes } from './theme-watcher';
+import { startThemeWatcher, listUserThemes, userThemePath } from './theme-watcher';
 
 // Max age for clipboard paste images (1 hour)
 const CLIPBOARD_MAX_AGE_MS = 60 * 60 * 1000;
@@ -36,6 +36,10 @@ export function registerIpcHandlers(
 
   ipcMain.handle(IPC.THEME_LIST, async () => {
     return listUserThemes();
+  });
+
+  ipcMain.handle(IPC.THEME_READ_FILE, async (_event, slug: string) => {
+    return fs.promises.readFile(userThemePath(slug), 'utf-8');
   });
 
   // Broadcast session-created events from SessionManager (covers both IPC and remote-created sessions)

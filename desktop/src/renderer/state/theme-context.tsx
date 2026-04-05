@@ -1,149 +1,179 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-// Vite ?inline gives raw CSS strings without injecting <style> tags
 // @ts-ignore — Vite inline CSS import
 import hljsDarkCss from 'highlight.js/styles/github-dark.css?inline';
 // @ts-ignore — Vite inline CSS import
 import hljsLightCss from 'highlight.js/styles/github.css?inline';
 
-export type ThemeName = 'light' | 'dark' | 'midnight' | 'creme';
+import { validateTheme } from '../themes/theme-validator';
+import { applyThemeToDom, buildBackgroundStyle } from '../themes/theme-engine';
+import type { ThemeDefinition, LoadedTheme } from '../themes/theme-types';
 
-const THEMES: ThemeName[] = ['light', 'dark', 'midnight', 'creme'];
+// Built-in themes imported as JSON (Vite handles JSON imports natively)
+import lightJson from '../themes/builtin/light.json';
+import darkJson from '../themes/builtin/dark.json';
+import midnightJson from '../themes/builtin/midnight.json';
+import cremeJson from '../themes/builtin/creme.json';
+
+const BUILTIN_THEMES: LoadedTheme[] = [
+  { ...(lightJson as unknown as ThemeDefinition), source: 'builtin' },
+  { ...(darkJson as unknown as ThemeDefinition), source: 'builtin' },
+  { ...(midnightJson as unknown as ThemeDefinition), source: 'builtin' },
+  { ...(cremeJson as unknown as ThemeDefinition), source: 'builtin' },
+];
+
+// Keep backward-compat exports
+export type ThemeName = string;
+export const THEMES = BUILTIN_THEMES.map(t => t.slug);
+export const DEFAULT_FONT_FAMILY = "'Cascadia Mono', 'Cascadia Code', 'Fira Code', monospace";
+
 const STORAGE_KEY = 'destincode-theme';
 const CYCLE_KEY = 'destincode-theme-cycle';
 const FONT_KEY = 'destincode-font';
-const DEFAULT_THEME: ThemeName = 'light';
-const DEFAULT_CYCLE: ThemeName[] = ['light', 'dark'];
-const DEFAULT_FONT = "'Cascadia Mono', 'Cascadia Code', 'Fira Code', monospace";
+const DEFAULT_THEME = 'light';
+const DEFAULT_CYCLE = ['light', 'dark'];
 
 interface ThemeContextValue {
-  theme: ThemeName;
-  setTheme: (theme: ThemeName) => void;
+  theme: string;
+  setTheme: (slug: string) => void;
   cycleTheme: () => void;
-  cycleList: ThemeName[];
-  setCycleList: (list: ThemeName[]) => void;
+  cycleList: string[];
+  setCycleList: (list: string[]) => void;
   font: string;
   setFont: (font: string) => void;
+  allThemes: LoadedTheme[];
+  activeTheme: LoadedTheme;
+  bgStyle: Record<string, string> | null;
 }
 
 const ThemeContext = createContext<ThemeContextValue>({
-  theme: DEFAULT_THEME,
-  setTheme: () => {},
-  cycleTheme: () => {},
-  cycleList: DEFAULT_CYCLE,
-  setCycleList: () => {},
-  font: DEFAULT_FONT,
-  setFont: () => {},
+  theme: DEFAULT_THEME, setTheme: () => {}, cycleTheme: () => {},
+  cycleList: DEFAULT_CYCLE, setCycleList: () => {},
+  font: DEFAULT_FONT_FAMILY, setFont: () => {},
+  allThemes: BUILTIN_THEMES, activeTheme: BUILTIN_THEMES[0], bgStyle: null,
 });
 
-function getStoredTheme(): ThemeName {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored && THEMES.includes(stored as ThemeName)) return stored as ThemeName;
-  } catch { /* localStorage unavailable */ }
-  return DEFAULT_THEME;
+function getStored(key: string, fallback: string): string {
+  try { return localStorage.getItem(key) || fallback; } catch { return fallback; }
 }
-
-function getStoredCycleList(): ThemeName[] {
-  try {
-    const stored = localStorage.getItem(CYCLE_KEY);
-    if (stored) {
-      const parsed = JSON.parse(stored) as string[];
-      const valid = parsed.filter((t) => THEMES.includes(t as ThemeName)) as ThemeName[];
-      if (valid.length > 0) return valid;
-    }
-  } catch { /* localStorage unavailable or invalid JSON */ }
-  return DEFAULT_CYCLE;
-}
-
-function getStoredFont(): string {
-  try {
-    const stored = localStorage.getItem(FONT_KEY);
-    if (stored) return stored;
-  } catch {}
-  return DEFAULT_FONT;
-}
-
-const DARK_THEMES: ThemeName[] = ['dark', 'midnight'];
-
-function applyTheme(theme: ThemeName) {
-  document.documentElement.setAttribute('data-theme', theme);
-}
-
-/** Swap highlight.js stylesheet between github-dark and github (light). */
-function applyHighlightTheme(theme: ThemeName) {
-  const isDark = DARK_THEMES.includes(theme);
-  const id = 'hljs-theme';
-  let el = document.getElementById(id) as HTMLStyleElement | null;
-  if (!el) {
-    el = document.createElement('style');
-    el.id = id;
-    document.head.appendChild(el);
-  }
-  el.textContent = isDark ? hljsDarkCss : hljsLightCss;
+function getStoredJSON<T>(key: string, fallback: T): T {
+  try { const s = localStorage.getItem(key); return s ? JSON.parse(s) : fallback; } catch { return fallback; }
 }
 
 function applyFont(font: string) {
-  const root = document.documentElement.style;
-  root.setProperty('--font-sans', font);
-  root.setProperty('--font-mono', font);
+  document.documentElement.style.setProperty('--font-sans', font);
+  document.documentElement.style.setProperty('--font-mono', font);
+}
+
+function applyHighlightTheme(dark: boolean) {
+  const id = 'hljs-theme';
+  let el = document.getElementById(id) as HTMLStyleElement | null;
+  if (!el) { el = document.createElement('style'); el.id = id; document.head.appendChild(el); }
+  el.textContent = dark ? hljsDarkCss : hljsLightCss;
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<ThemeName>(getStoredTheme);
-  const [cycleList, setCycleListState] = useState<ThemeName[]>(getStoredCycleList);
-  const [font, setFontState] = useState<string>(getStoredFont);
+  const [activeSlug, setActiveSlug] = useState(() => getStored(STORAGE_KEY, DEFAULT_THEME));
+  const [cycleList, setCycleListState] = useState<string[]>(() => getStoredJSON(CYCLE_KEY, DEFAULT_CYCLE));
+  const [font, setFontState] = useState(() => getStored(FONT_KEY, DEFAULT_FONT_FAMILY));
+  const [userThemes, setUserThemes] = useState<LoadedTheme[]>([]);
 
-  // Apply on mount and when theme changes
+  const allThemes = [...BUILTIN_THEMES, ...userThemes];
+  const activeTheme = allThemes.find(t => t.slug === activeSlug) ?? BUILTIN_THEMES[0];
+
+  // Load user themes from disk on mount
   useEffect(() => {
-    applyTheme(theme);
-    applyHighlightTheme(theme);
-  }, [theme]);
-
-  // Apply font on mount and when it changes
-  useEffect(() => {
-    applyFont(font);
-  }, [font]);
-
-  const setTheme = useCallback((next: ThemeName) => {
-    setThemeState(next);
-    try { localStorage.setItem(STORAGE_KEY, next); } catch {}
+    const loadUserThemes = async () => {
+      try {
+        const claude = (window as any).claude;
+        if (!claude?.theme?.list) return;
+        const slugs: string[] = await claude.theme.list();
+        const loaded: LoadedTheme[] = [];
+        for (const slug of slugs) {
+          try {
+            const raw = await claude.theme.readFile(slug);
+            const theme = validateTheme(JSON.parse(raw));
+            loaded.push({ ...theme, source: 'user' });
+          } catch (e) {
+            console.warn(`[ThemeProvider] Failed to load user theme "${slug}":`, e);
+          }
+        }
+        setUserThemes(loaded);
+      } catch { /* not in Electron */ }
+    };
+    loadUserThemes();
   }, []);
 
-  const setCycleList = useCallback((list: ThemeName[]) => {
+  // Listen for hot-reload signal from main process
+  useEffect(() => {
+    const claude = (window as any).claude;
+    if (!claude?.theme?.onReload) return;
+    const cleanup = claude.theme.onReload((slug: string) => {
+      claude.theme.readFile(slug).then((raw: string) => {
+        try {
+          const theme = validateTheme(JSON.parse(raw));
+          const loaded: LoadedTheme = { ...theme, source: 'user' };
+          setUserThemes(prev => {
+            const idx = prev.findIndex(t => t.slug === slug);
+            if (idx >= 0) { const next = [...prev]; next[idx] = loaded; return next; }
+            return [...prev, loaded];
+          });
+          setActiveSlug(slug);
+          try { localStorage.setItem(STORAGE_KEY, slug); } catch {}
+        } catch (e) {
+          console.warn(`[ThemeProvider] Hot-reload failed for "${slug}":`, e);
+        }
+      });
+    });
+    return cleanup;
+  }, []);
+
+  // Apply theme to DOM whenever active theme changes
+  useEffect(() => {
+    applyThemeToDom(activeTheme);
+    applyHighlightTheme(activeTheme.dark);
+  }, [activeTheme]);
+
+  // Apply font on change
+  useEffect(() => { applyFont(font); }, [font]);
+
+  const setTheme = useCallback((slug: string) => {
+    setActiveSlug(slug);
+    try { localStorage.setItem(STORAGE_KEY, slug); } catch {}
+  }, []);
+
+  const setCycleList = useCallback((list: string[]) => {
     const safe = list.length > 0 ? list : DEFAULT_CYCLE;
     setCycleListState(safe);
     try { localStorage.setItem(CYCLE_KEY, JSON.stringify(safe)); } catch {}
   }, []);
 
-  const setFont = useCallback((next: string) => {
-    setFontState(next);
-    applyFont(next);
-    try { localStorage.setItem(FONT_KEY, next); } catch {}
+  const setFont = useCallback((f: string) => {
+    setFontState(f); applyFont(f);
+    try { localStorage.setItem(FONT_KEY, f); } catch {}
   }, []);
 
   const cycleTheme = useCallback(() => {
-    setThemeState((prev) => {
-      const pool = THEMES.filter((t) => cycleList.includes(t));
+    setActiveSlug(prev => {
+      const pool = allThemes.filter(t => cycleList.includes(t.slug));
       if (pool.length === 0) return prev;
-      const idx = pool.indexOf(prev);
-      const next = idx === -1 ? pool[0] : pool[(idx + 1) % pool.length];
+      const idx = pool.findIndex(t => t.slug === prev);
+      const next = idx === -1 ? pool[0].slug : pool[(idx + 1) % pool.length].slug;
       try { localStorage.setItem(STORAGE_KEY, next); } catch {}
-      applyTheme(next);
-      applyHighlightTheme(next);
       return next;
     });
-  }, [cycleList]);
+  }, [allThemes, cycleList]);
+
+  const bgStyle = buildBackgroundStyle(activeTheme.background) as Record<string, string> | null;
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, cycleTheme, cycleList, setCycleList, font, setFont }}>
+    <ThemeContext.Provider value={{
+      theme: activeSlug, setTheme, cycleTheme,
+      cycleList, setCycleList, font, setFont,
+      allThemes, activeTheme, bgStyle,
+    }}>
       {children}
     </ThemeContext.Provider>
   );
 }
 
-export function useTheme() {
-  return useContext(ThemeContext);
-}
-
-export const DEFAULT_FONT_FAMILY = DEFAULT_FONT;
-export { THEMES };
+export function useTheme() { return useContext(ThemeContext); }
