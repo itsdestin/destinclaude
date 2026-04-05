@@ -5,9 +5,9 @@ interface Particle {
   x: number; y: number; speed: number; opacity: number; length: number;
 }
 
-function drawRain(ctx: CanvasRenderingContext2D, particles: Particle[], w: number, h: number, accent: string) {
+function drawRain(ctx: CanvasRenderingContext2D, particles: Particle[], w: number, h: number, rainColor: string) {
   ctx.clearRect(0, 0, w, h);
-  ctx.strokeStyle = accent + '40';
+  ctx.strokeStyle = rainColor;
   ctx.lineWidth = 1;
   for (const p of particles) {
     ctx.globalAlpha = p.opacity;
@@ -38,6 +38,7 @@ function drawDust(ctx: CanvasRenderingContext2D, particles: Particle[], w: numbe
 
 function drawEmber(ctx: CanvasRenderingContext2D, particles: Particle[], w: number, h: number, accent: string) {
   ctx.clearRect(0, 0, w, h);
+  const t = Date.now() * 0.001; // hoisted: one call per frame, not per particle
   for (const p of particles) {
     ctx.globalAlpha = p.opacity * 0.8;
     ctx.fillStyle = accent;
@@ -45,7 +46,7 @@ function drawEmber(ctx: CanvasRenderingContext2D, particles: Particle[], w: numb
     ctx.arc(p.x, p.y, 1.5, 0, Math.PI * 2);
     ctx.fill();
     p.y -= p.speed;
-    p.x += Math.sin(Date.now() * 0.001 + p.length) * 0.8;
+    p.x += Math.sin(t + p.length) * 0.8;
     p.opacity -= 0.002;
     if (p.y < 0 || p.opacity <= 0) {
       p.y = h + 10; p.x = Math.random() * w;
@@ -92,10 +93,11 @@ export default function ThemeEffects() {
       length: Math.random() * 15 + 5,
     }));
 
+    const rainColor = accent + '40'; // computed once per effect run, not per-frame
     const draw = () => {
       const w = canvas.width;
       const h = canvas.height;
-      if (preset === 'rain') drawRain(ctx, particlesRef.current, w, h, accent);
+      if (preset === 'rain') drawRain(ctx, particlesRef.current, w, h, rainColor);
       else if (preset === 'dust') drawDust(ctx, particlesRef.current, w, h, accent);
       else if (preset === 'ember') drawEmber(ctx, particlesRef.current, w, h, accent);
       animRef.current = requestAnimationFrame(draw);
