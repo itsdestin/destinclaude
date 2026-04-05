@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildTokenCSS, buildShapeCSS, buildBackgroundStyle, buildLayoutAttrs } from '../src/renderer/themes/theme-engine';
+import { buildTokenCSS, buildShapeCSS, buildBackgroundStyle, buildLayoutAttrs, buildPatternStyle } from '../src/renderer/themes/theme-engine';
 
 const TOKENS = {
   canvas: '#0D0F1A', panel: '#141726', inset: '#1F2440', well: '#0D0F1A',
@@ -75,5 +75,19 @@ describe('buildLayoutAttrs', () => {
 
   it('returns empty object for undefined layout', () => {
     expect(buildLayoutAttrs(undefined)).toEqual({});
+  });
+});
+
+describe('buildPatternStyle', () => {
+  it('returns repeating background style for pattern', () => {
+    const result = buildPatternStyle('theme-asset://hello-kitty/assets/bow.svg', 0.06);
+    expect(result).not.toBeNull();
+    expect(result!.backgroundImage).toContain('theme-asset://hello-kitty/assets/bow.svg');
+    expect(result!.backgroundRepeat).toBe('repeat');
+    expect(result!.opacity).toBe('0.06');
+  });
+
+  it('returns null when pattern is undefined', () => {
+    expect(buildPatternStyle(undefined, 0.06)).toBeNull();
   });
 });

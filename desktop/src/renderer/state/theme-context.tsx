@@ -5,7 +5,7 @@ import hljsDarkCss from 'highlight.js/styles/github-dark.css?inline';
 import hljsLightCss from 'highlight.js/styles/github.css?inline';
 
 import { validateTheme } from '../themes/theme-validator';
-import { applyThemeToDom, buildBackgroundStyle } from '../themes/theme-engine';
+import { applyThemeToDom, buildBackgroundStyle, buildPatternStyle } from '../themes/theme-engine';
 import type { ThemeDefinition, LoadedTheme } from '../themes/theme-types';
 import { resolveAllAssetPaths } from '../themes/theme-asset-resolver';
 
@@ -44,13 +44,14 @@ interface ThemeContextValue {
   allThemes: LoadedTheme[];
   activeTheme: LoadedTheme;
   bgStyle: Record<string, string> | null;
+  patternStyle: Record<string, string> | null;
 }
 
 const ThemeContext = createContext<ThemeContextValue>({
   theme: DEFAULT_THEME, setTheme: () => {}, cycleTheme: () => {},
   cycleList: DEFAULT_CYCLE, setCycleList: () => {},
   font: DEFAULT_FONT_FAMILY, setFont: () => {},
-  allThemes: BUILTIN_THEMES, activeTheme: BUILTIN_THEMES[0], bgStyle: null,
+  allThemes: BUILTIN_THEMES, activeTheme: BUILTIN_THEMES[0], bgStyle: null, patternStyle: null,
 });
 
 function getStored(key: string, fallback: string): string {
@@ -169,12 +170,16 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, [allThemes, cycleList]);
 
   const bgStyle = buildBackgroundStyle(activeTheme.background) as Record<string, string> | null;
+  const patternStyle = buildPatternStyle(
+    activeTheme.background?.pattern,
+    activeTheme.background?.['pattern-opacity'],
+  ) as Record<string, string> | null;
 
   return (
     <ThemeContext.Provider value={{
       theme: activeSlug, setTheme, cycleTheme,
       cycleList, setCycleList, font, setFont,
-      allThemes, activeTheme, bgStyle,
+      allThemes, activeTheme, bgStyle, patternStyle,
     }}>
       {children}
     </ThemeContext.Provider>

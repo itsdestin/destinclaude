@@ -242,6 +242,14 @@ html, body, #root {
   opacity: 1;
 }
 
+#theme-pattern {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0;
+}
+
 /* Glassmorphism panels — active when data-panels-blur is set on <html> */
 [data-panels-blur] .bg-panel {
   backdrop-filter: blur(var(--panels-blur, 0px));

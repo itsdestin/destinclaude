@@ -34,6 +34,20 @@ export function buildBackgroundStyle(bg: ThemeBackground | undefined): Record<st
   return null;
 }
 
+/** Returns inline style properties for the #theme-pattern div. Null if no pattern. */
+export function buildPatternStyle(
+  pattern: string | undefined,
+  opacity: number | undefined,
+): Record<string, string> | null {
+  if (!pattern) return null;
+  return {
+    backgroundImage: `url("${pattern}")`,
+    backgroundRepeat: 'repeat',
+    backgroundSize: 'auto',
+    opacity: String(opacity ?? 0.06),
+  };
+}
+
 /** Returns data-attribute key/value pairs to set on <body>. */
 export function buildLayoutAttrs(layout: ThemeLayout | undefined): Record<string, string> {
   if (!layout) return {};

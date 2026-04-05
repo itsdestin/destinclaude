@@ -782,9 +782,13 @@ const ChatInputBar = React.forwardRef<InputBarHandle, { sessionId: string; onOpe
 );
 
 function ThemeBg() {
-  const { bgStyle } = useTheme();
-  if (!bgStyle) return null;
-  return <div id="theme-bg" style={bgStyle as unknown as React.CSSProperties} aria-hidden="true" />;
+  const { bgStyle, patternStyle } = useTheme();
+  return (
+    <>
+      {bgStyle && <div id="theme-bg" style={bgStyle as unknown as React.CSSProperties} aria-hidden="true" />}
+      {patternStyle && <div id="theme-pattern" style={patternStyle as unknown as React.CSSProperties} aria-hidden="true" />}
+    </>
+  );
 }
 
 export default function App() {
