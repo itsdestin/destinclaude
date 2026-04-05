@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import type { SkillEntry } from '../../shared/types';
 import SkillCard from './SkillCard';
+import { useSkills } from '../state/skill-context';
 
 interface Props {
   open: boolean;
   searchMode: boolean;
-  skills?: SkillEntry[];
   onSelect: (skill: SkillEntry) => void;
   onClose: () => void;
+  onOpenManager: () => void;
+  onOpenMarketplace: () => void;
 }
 
 const categoryOrder = ['personal', 'work', 'development', 'admin', 'other'] as const;
@@ -19,7 +21,8 @@ const categoryLabels: Record<string, string> = {
   other: 'OTHER SKILLS',
 };
 
-export default function CommandDrawer({ open, searchMode, skills = [], onSelect, onClose }: Props) {
+export default function CommandDrawer({ open, searchMode, onSelect, onClose, onOpenManager, onOpenMarketplace }: Props) {
+  const { drawerSkills } = useSkills();
   const [search, setSearch] = useState('');
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -45,15 +48,15 @@ export default function CommandDrawer({ open, searchMode, skills = [], onSelect,
 
   // Filter skills by search query
   const filtered = useMemo(() => {
-    if (!search.trim()) return skills;
+    if (!search.trim()) return drawerSkills;
     const q = search.toLowerCase();
-    return skills.filter(
+    return drawerSkills.filter(
       (s) =>
         s.displayName.toLowerCase().includes(q) ||
         s.description.toLowerCase().includes(q) ||
         s.category.toLowerCase().includes(q),
     );
-  }, [skills, search]);
+  }, [drawerSkills, search]);
 
   // Group by category (only when not searching)
   const grouped = useMemo(() => {
@@ -104,13 +107,31 @@ export default function CommandDrawer({ open, searchMode, skills = [], onSelect,
               placeholder="Search skills and commands..."
               className="flex-1 bg-transparent text-sm text-fg placeholder-fg-muted outline-none"
             />
+            {/* Pencil icon — opens Skill Manager */}
+            <button
+              onClick={() => { onClose(); onOpenManager(); }}
+              className="shrink-0 p-1 rounded hover:bg-inset text-fg-muted hover:text-fg transition-colors"
+              title="Manage skills"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
           </div>
         </div>
 
         {/* Scrollable content */}
         <div className="overflow-y-auto px-4 pb-4" style={{ maxHeight: 'calc(45vh - 80px)' }}>
           {filtered.length === 0 ? (
-            <p className="text-sm text-fg-muted text-center py-6">No matching skills</p>
+            <div className="text-center py-6">
+              <p className="text-sm text-fg-muted">No matching skills</p>
+              <button
+                onClick={() => { onClose(); onOpenMarketplace(); }}
+                className="mt-2 text-sm text-accent hover:underline"
+              >
+                Browse Marketplace
+              </button>
+            </div>
           ) : grouped ? (
             // Categorized view
             categoryOrder.map((cat) => {

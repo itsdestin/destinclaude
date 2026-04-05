@@ -58,6 +58,8 @@ function AppInner() {
   const [viewedSessions, setViewedSessions] = useState<Set<string>>(new Set());
   const [resumeInfo, setResumeInfo] = useState<Map<string, { claudeSessionId: string; projectSlug: string }>>(new Map());
   const [resumeRequested, setResumeRequested] = useState(false);
+  const [managerOpen, setManagerOpen] = useState(false);
+  const [marketplaceOpen, setMarketplaceOpen] = useState(false);
 
   usePromptDetector();
   const dispatch = useChatDispatch();
@@ -678,6 +680,8 @@ function AppInner() {
                   searchMode={drawerSearchMode}
                   onSelect={handleSelectSkill}
                   onClose={() => setDrawerOpen(false)}
+                  onOpenManager={() => setManagerOpen(true)}
+                  onOpenMarketplace={() => setMarketplaceOpen(true)}
                 />
                 <StatusBar
                   statusData={{
