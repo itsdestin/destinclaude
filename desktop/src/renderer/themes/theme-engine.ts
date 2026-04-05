@@ -65,14 +65,26 @@ export function applyThemeToDom(theme: ThemeDefinition): void {
     root.style.setProperty(prop, value);
   }
 
-  // 4. Glassmorphism — set/remove data-panels-blur + CSS var
+  // 4. Glassmorphism — set/remove data-panels-blur + CSS vars
   const blur = theme.background?.['panels-blur'];
+  const panelsOpacity = theme.background?.['panels-opacity'];
   if (blur && blur > 0) {
     root.setAttribute('data-panels-blur', String(blur));
     root.style.setProperty('--panels-blur', `${blur}px`);
+    // Compute semi-transparent panel color for glassmorphism
+    if (panelsOpacity !== undefined && panelsOpacity < 1) {
+      const hex = theme.tokens.panel.replace(/^#/, '');
+      const r = parseInt(hex.slice(0, 2), 16);
+      const g = parseInt(hex.slice(2, 4), 16);
+      const b = parseInt(hex.slice(4, 6), 16);
+      root.style.setProperty('--panel-glass', `rgba(${r}, ${g}, ${b}, ${panelsOpacity})`);
+    } else {
+      root.style.removeProperty('--panel-glass');
+    }
   } else {
     root.removeAttribute('data-panels-blur');
     root.style.removeProperty('--panels-blur');
+    root.style.removeProperty('--panel-glass');
   }
 
   // 5. Layout data attributes on body — clear previous first
@@ -109,7 +121,7 @@ export function clearThemeFromDom(): void {
   const root = document.documentElement;
   const body = document.body;
   root.removeAttribute('data-panels-blur');
-  const propsToRemove = [...TOKEN_CSS_PROPS, '--panels-blur', '--radius-sm', '--radius-md', '--radius-lg', '--radius-full'];
+  const propsToRemove = [...TOKEN_CSS_PROPS, '--panels-blur', '--panel-glass', '--radius-sm', '--radius-md', '--radius-lg', '--radius-full'];
   for (const p of propsToRemove) root.style.removeProperty(p);
   for (const a of LAYOUT_ATTRS) body.removeAttribute(a);
   const customEl = document.getElementById('theme-custom') as HTMLStyleElement | null;

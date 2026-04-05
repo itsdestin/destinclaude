@@ -1,0 +1,273 @@
+/*
+ * DestinCode Theme Preview CSS
+ * Self-contained CSS that replicates the app's theme rendering.
+ * Used by /theme-builder concept cards so HTML preview matches the app.
+ *
+ * CONTRACT: Class names and CSS properties MUST match
+ * desktop/src/renderer/styles/globals.css + Tailwind @theme block.
+ */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font-sans, 'Cascadia Mono', 'Fira Code', monospace);
+  color: var(--fg);
+  background: var(--canvas);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Surfaces */
+.bg-canvas  { background-color: var(--canvas); }
+.bg-panel   { background-color: var(--panel); }
+.bg-inset   { background-color: var(--inset); }
+.bg-well    { background-color: var(--well); }
+.bg-accent  { background-color: var(--accent); }
+
+/* Text */
+.text-fg       { color: var(--fg); }
+.text-fg-2     { color: var(--fg-2); }
+.text-fg-dim   { color: var(--fg-dim); }
+.text-fg-muted { color: var(--fg-muted); }
+.text-fg-faint { color: var(--fg-faint); }
+.text-on-accent { color: var(--on-accent); }
+
+/* Borders */
+.border-edge     { border-color: var(--edge); }
+.border-edge-dim { border-color: var(--edge-dim); }
+
+/* Radius */
+.rounded-sm   { border-radius: var(--radius-sm, 4px); }
+.rounded-md   { border-radius: var(--radius-md, 8px); }
+.rounded-lg   { border-radius: var(--radius-lg, 12px); }
+.rounded-full { border-radius: var(--radius-full, 9999px); }
+
+/* Background layer */
+#theme-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: var(--canvas);
+  opacity: 1;
+}
+
+/* Glassmorphism */
+[data-panels-blur] .bg-panel {
+  backdrop-filter: blur(var(--panels-blur, 0px));
+  -webkit-backdrop-filter: blur(var(--panels-blur, 0px));
+  background-color: var(--panel-glass, var(--panel));
+}
+
+/* Layout presets — input */
+[data-input-style="floating"] .input-bar-container {
+  margin: 8px 12px;
+  border-radius: var(--radius-full, 9999px);
+  box-shadow: 0 2px 16px rgba(0,0,0,0.2);
+}
+[data-input-style="minimal"] .input-bar-container {
+  border-top: none;
+  background: transparent;
+}
+[data-input-style="terminal"] .input-bar-container {
+  border-radius: 0;
+  font-family: var(--font-mono, monospace);
+  border-top: 1px solid var(--edge);
+}
+
+/* Layout presets — bubbles */
+[data-bubble-style="pill"] .chat-bubble {
+  border-radius: var(--radius-full, 9999px);
+  padding-left: 16px;
+  padding-right: 16px;
+}
+[data-bubble-style="flat"] .chat-bubble {
+  border-radius: 0;
+  border-left: 2px solid var(--edge);
+}
+[data-bubble-style="bordered"] .chat-bubble {
+  border: 1px solid var(--edge);
+  border-radius: var(--radius-md, 8px);
+}
+
+/* Layout presets — header */
+[data-header-style="minimal"] .header-bar {
+  background: transparent;
+  border-bottom: none;
+}
+[data-header-style="hidden"] .header-bar {
+  display: none;
+}
+
+/* Layout presets — statusbar */
+[data-statusbar-style="minimal"] .status-bar {
+  background: transparent;
+  border-top: none;
+  font-size: 9px;
+}
+[data-statusbar-style="floating"] .status-bar {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-radius: var(--radius-full, 9999px);
+  padding: 2px 12px;
+  border: 1px solid var(--edge-dim);
+  background: var(--panel);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-hover); }
+
+/* Particle badge (static — animation is app-only) */
+.particle-indicator {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 9px;
+  padding: 2px 8px;
+  border-radius: var(--radius-full, 9999px);
+  background: var(--accent);
+  color: var(--on-accent);
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+/* App mockup structure */
+.app-mockup {
+  width: 100%;
+  max-width: 420px;
+  height: 520px;
+  border-radius: var(--radius-lg, 12px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--edge-dim);
+  position: relative;
+}
+.header-bar {
+  display: flex;
+  align-items: center;
+  padding: 10px 14px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--edge);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fg);
+  gap: 8px;
+  flex-shrink: 0;
+}
+.chat-area {
+  flex: 1;
+  padding: 12px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--canvas);
+}
+.chat-bubble {
+  padding: 8px 12px;
+  border-radius: var(--radius-md, 8px);
+  font-size: 12px;
+  line-height: 1.5;
+  max-width: 85%;
+}
+.chat-bubble.assistant {
+  background: var(--panel);
+  color: var(--fg);
+  align-self: flex-start;
+}
+.chat-bubble.user {
+  background: var(--accent);
+  color: var(--on-accent);
+  align-self: flex-end;
+}
+.chat-bubble .tool-card {
+  margin-top: 6px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm, 4px);
+  background: var(--inset);
+  font-size: 10px;
+  color: var(--fg-dim);
+  border: 1px solid var(--edge-dim);
+}
+.input-bar-container {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  background: var(--panel);
+  border-top: 1px solid var(--edge);
+  gap: 8px;
+  flex-shrink: 0;
+}
+.input-bar-container .input-field {
+  flex: 1;
+  padding: 6px 10px;
+  border-radius: var(--radius-md, 8px);
+  background: var(--inset);
+  border: 1px solid var(--edge-dim);
+  color: var(--fg-muted);
+  font-size: 11px;
+  font-family: inherit;
+}
+.input-bar-container .send-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full, 9999px);
+  background: var(--accent);
+  color: var(--on-accent);
+  border: none;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 12px;
+  background: var(--panel);
+  border-top: 1px solid var(--edge-dim);
+  font-size: 10px;
+  color: var(--fg-muted);
+  flex-shrink: 0;
+  position: relative;
+}
+
+/* Concept card layout */
+.concept-card {
+  background: var(--panel);
+  border: 1px solid var(--edge);
+  border-radius: var(--radius-lg, 12px);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.concept-card .swatch-row {
+  display: flex;
+  gap: 6px;
+}
+.concept-card .swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm, 4px);
+  border: 1px solid var(--edge-dim);
+}
+.concept-card .concept-label {
+  font-size: 10px;
+  color: var(--fg-muted);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.concept-card .concept-label span {
+  padding: 2px 6px;
+  border-radius: var(--radius-sm, 4px);
+  background: var(--inset);
+  border: 1px solid var(--edge-dim);
+}
