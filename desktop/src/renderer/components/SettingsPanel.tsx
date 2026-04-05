@@ -169,8 +169,8 @@ function ThemeButton({ onSendInput }: { onSendInput?: (text: string) => void }) 
               top: '50%',
               left: '50%',
               transform: 'translate(-50%, -50%)',
-              width: 'min(380px, 90vw)',
-              maxHeight: '85vh',
+              width: 'min(480px, 88vw)',
+              height: 'min(600px, 80vh)',
             }}
           >
             <ThemeScreen onClose={() => setOpen(false)} onSendInput={onSendInput} />
