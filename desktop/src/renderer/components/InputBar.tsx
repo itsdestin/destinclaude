@@ -122,7 +122,11 @@ const InputBar = forwardRef<InputBarHandle, Props>(function InputBar({ sessionId
     if (!el) return;
     el.style.height = 'auto';
     const lineHeight = parseInt(getComputedStyle(el).lineHeight) || 21;
-    el.style.height = `${Math.min(el.scrollHeight, lineHeight * 3)}px`;
+    const maxHeight = lineHeight * 3;
+    const clamped = Math.min(el.scrollHeight, maxHeight);
+    el.style.height = `${clamped}px`;
+    // Only show scrollbar when content actually overflows the max height
+    el.style.overflowY = el.scrollHeight > maxHeight ? 'auto' : 'hidden';
   }, []);
 
   useEffect(() => {
@@ -276,7 +280,7 @@ const InputBar = forwardRef<InputBarHandle, Props>(function InputBar({ sessionId
             placeholder={disabled ? 'Waiting for approval...' : 'Message Claude...'}
             disabled={disabled}
             autoFocus
-            className="flex-1 bg-transparent text-sm text-fg placeholder-fg-muted outline-none disabled:opacity-50 resize-none overflow-y-auto leading-snug"
+            className="flex-1 bg-transparent text-sm text-fg placeholder-fg-muted outline-none disabled:opacity-50 resize-none overflow-y-hidden leading-snug"
           />
           <button
             type="submit"
