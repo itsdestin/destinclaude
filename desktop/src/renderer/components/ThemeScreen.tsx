@@ -28,6 +28,7 @@ export default function ThemeScreen({ onClose, onSendInput }: Props) {
   const [fontSearch, setFontSearch] = useState('');
   const [view, setView] = useState<'grid' | 'fonts'>('grid');
   const searchRef = useRef<HTMLInputElement>(null);
+  const accentTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (fonts !== null) return;
@@ -49,9 +50,12 @@ export default function ThemeScreen({ onClose, onSendInput }: Props) {
 
   const updateAccent = useCallback((hex: string) => {
     if (!activeTheme || activeTheme.source !== 'user') return;
-    const onAccent = computeOnAccent(hex);
-    const updated = { ...activeTheme, tokens: { ...activeTheme.tokens, accent: hex, 'on-accent': onAccent } };
-    (window as any).claude?.theme?.writeFile?.(activeTheme.slug, JSON.stringify(updated, null, 2));
+    if (accentTimerRef.current) clearTimeout(accentTimerRef.current);
+    accentTimerRef.current = setTimeout(() => {
+      const onAccent = computeOnAccent(hex);
+      const updated = { ...activeTheme, tokens: { ...activeTheme.tokens, accent: hex, 'on-accent': onAccent } };
+      (window as any).claude?.theme?.writeFile?.(activeTheme.slug, JSON.stringify(updated, null, 2));
+    }, 150);
   }, [activeTheme]);
 
   const updateRoundness = useCallback((value: number) => {
