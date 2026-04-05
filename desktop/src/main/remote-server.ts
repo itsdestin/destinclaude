@@ -42,23 +42,8 @@ export class RemoteServer {
   private transcriptBuffers = new Map<string, any[]>();
   private statusInterval: ReturnType<typeof setInterval> | null = null;
   private failedAttempts = new Map<string, { count: number; resetAt: number }>();
-  // Topic file watcher for session:renamed events
-  private sessionIdMap = new Map<string, string>(); // desktopId → claudeId
+  // Last-known topic names, fed by ipc-handlers.ts via setLastTopic()
   private lastTopics = new Map<string, string>();
-  private topicInterval: ReturnType<typeof setInterval> | null = null;
-
-  // Bound listeners for proper cleanup (avoid anonymous lambda leaks)
-  private onHookEventMapping = (event: any) => {
-    const desktopId = event.sessionId;
-    const claudeId = event.payload?.session_id as string;
-    if (!desktopId || !claudeId || this.sessionIdMap.has(desktopId)) return;
-    this.sessionIdMap.set(desktopId, claudeId);
-  };
-
-  private onSessionExitMapping = (sessionId: string) => {
-    this.sessionIdMap.delete(sessionId);
-    this.lastTopics.delete(sessionId);
-  };
 
   constructor(
     private sessionManager: SessionManager,
@@ -158,28 +143,7 @@ export class RemoteServer {
       this.broadcast({ type: 'status:data', payload: data });
     }, 10_000);
 
-    // Topic file watcher — discover desktop→claude session ID mapping from hook events
-    // and poll topic files for session:renamed events
-    const topicDir = path.join(os.homedir(), '.claude', 'topics');
-    this.hookRelay.on('hook-event', this.onHookEventMapping);
-
-    this.topicInterval = setInterval(() => {
-      for (const [desktopId, claudeId] of this.sessionIdMap) {
-        try {
-          const content = fs.readFileSync(path.join(topicDir, `topic-${claudeId}`), 'utf8').trim();
-          if (content && content !== 'New Session' && content !== this.lastTopics.get(desktopId)) {
-            this.lastTopics.set(desktopId, content);
-            // Update SessionInfo so session:list returns current names
-            const session = this.sessionManager.getSession(desktopId);
-            if (session) session.name = content;
-            this.broadcast({ type: 'session:renamed', payload: { sessionId: desktopId, name: content } });
-          }
-        } catch { /* file may not exist yet */ }
-      }
-    }, 2000);
-
-    // Clean up topic tracking when sessions exit
-    this.sessionManager.on('session-exit', this.onSessionExitMapping);
+    // Topic names are tracked by ipc-handlers.ts and forwarded via setLastTopic() + broadcast()
 
     return new Promise<void>((resolve) => {
       this.httpServer!.listen(this.config.port, () => {
@@ -189,17 +153,18 @@ export class RemoteServer {
     });
   }
 
+  /** Store a topic name for replay on new connections. Called by ipc-handlers.ts. */
+  setLastTopic(desktopId: string, name: string): void {
+    this.lastTopics.set(desktopId, name);
+  }
+
   stop(): void {
     if (this.statusInterval) clearInterval(this.statusInterval);
-    if (this.topicInterval) clearInterval(this.topicInterval);
-    this.sessionIdMap.clear();
     this.lastTopics.clear();
     this.transcriptBuffers.clear();
     this.sessionManager.off('pty-output', this.onPtyOutput);
     this.hookRelay.off('hook-event', this.onHookEvent);
-    this.hookRelay.off('hook-event', this.onHookEventMapping);
     this.sessionManager.off('session-exit', this.onSessionExit);
-    this.sessionManager.off('session-exit', this.onSessionExitMapping);
     this.sessionManager.off('session-created', this.onSessionCreated);
 
     for (const client of this.clients) {
@@ -286,6 +251,7 @@ export class RemoteServer {
     this.ptyBuffers.delete(sessionId);
     this.hookBuffers.delete(sessionId);
     this.transcriptBuffers.delete(sessionId);
+    this.lastTopics.delete(sessionId);
     this.broadcast({ type: 'session:destroyed', payload: { sessionId } });
   };
 

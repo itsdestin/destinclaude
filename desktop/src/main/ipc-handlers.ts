@@ -374,6 +374,14 @@ export function registerIpcHandlers(
   const topicWatchers = new Map<string, fs.FSWatcher | NodeJS.Timeout>();
   const lastTopics = new Map<string, string>();
 
+  // Broadcast session rename to remote WebSocket clients + update SessionInfo
+  function broadcastRename(desktopId: string, name: string) {
+    const session = sessionManager.getSession(desktopId);
+    if (session) session.name = name;
+    remoteServer?.broadcast({ type: 'session:renamed', payload: { sessionId: desktopId, name } });
+    remoteServer?.setLastTopic(desktopId, name);
+  }
+
   function readTopicFile(claudeSessionId: string): string | null {
     try {
       const content = fs.readFileSync(path.join(topicDir, `topic-${claudeSessionId}`), 'utf8').trim();
@@ -394,6 +402,7 @@ export function registerIpcHandlers(
     if (initial && initial !== 'New Session') {
       lastTopics.set(desktopId, initial);
       send(IPC.SESSION_RENAMED, desktopId, initial);
+      broadcastRename(desktopId, initial);
     }
 
     const topicFilePath = path.join(topicDir, `topic-${claudeId}`);
@@ -406,6 +415,7 @@ export function registerIpcHandlers(
         if (topic && topic !== 'New Session' && topic !== lastTopics.get(desktopId)) {
           lastTopics.set(desktopId, topic);
           send(IPC.SESSION_RENAMED, desktopId, topic);
+          broadcastRename(desktopId, topic);
         }
       });
       watcher.on('error', () => {
@@ -429,6 +439,7 @@ export function registerIpcHandlers(
       if (topic && topic !== 'New Session' && topic !== lastTopics.get(desktopId)) {
         lastTopics.set(desktopId, topic);
         send(IPC.SESSION_RENAMED, desktopId, topic);
+        broadcastRename(desktopId, topic);
       }
     }, 2000);
     topicWatchers.set(desktopId, interval);
