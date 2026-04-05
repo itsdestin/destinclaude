@@ -21,6 +21,7 @@ import type { SkillEntry, PermissionMode } from '../shared/types';
 import { getPlatform, isRemoteMode, onConnectionModeChange } from './platform';
 import type { SessionStatusColor } from './components/StatusDot';
 import { ThemeProvider, useTheme } from './state/theme-context';
+import ThemeEffects from './components/ThemeEffects';
 
 type ViewMode = 'chat' | 'terminal';
 
@@ -790,6 +791,7 @@ export default function App() {
   return (
     <ThemeProvider>
       <ThemeBg />
+      <ThemeEffects />
       <GameProvider>
         <ChatProvider>
           <AppInner />
