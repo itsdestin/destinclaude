@@ -13,20 +13,30 @@ export function startThemeWatcher(win: BrowserWindow): () => void {
   }
 
   let watcher: fs.FSWatcher | null = null;
+  const debounceMap = new Map<string, ReturnType<typeof setTimeout>>();
 
   try {
-    watcher = fs.watch(THEMES_DIR, (eventType, filename) => {
+    watcher = fs.watch(THEMES_DIR, (_eventType, filename) => {
       if (!filename || !filename.endsWith('.json')) return;
       const slug = filename.replace(/\.json$/, '');
-      if (!win.isDestroyed()) {
-        win.webContents.send('theme:reload', slug);
-      }
+      const existing = debounceMap.get(slug);
+      if (existing) clearTimeout(existing);
+      debounceMap.set(slug, setTimeout(() => {
+        debounceMap.delete(slug);
+        if (!win.isDestroyed()) {
+          win.webContents.send('theme:reload', slug);
+        }
+      }, 50));
     });
   } catch (err) {
     console.warn('[theme-watcher] fs.watch failed, themes will not hot-reload:', err);
   }
 
-  return () => { watcher?.close(); };
+  return () => {
+    watcher?.close();
+    for (const t of debounceMap.values()) clearTimeout(t);
+    debounceMap.clear();
+  };
 }
 
 /** Returns list of user theme slugs from ~/.claude/destinclaude-themes/. */
