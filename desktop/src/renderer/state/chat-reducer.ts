@@ -254,6 +254,46 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
       if (!session) return state;
 
       const toolCalls = new Map(session.toolCalls);
+
+      // Check for a synthetic permission entry (perm-*) that matches this tool.
+      // When the hook arrives before the transcript, a synthetic entry is created
+      // with awaiting-approval status. Replace it with the real tool, preserving
+      // the permission state and group placement.
+      let mergedSynthetic = false;
+      for (const [synId, synTool] of toolCalls) {
+        if (synId.startsWith('perm-') && synTool.toolName === action.toolName
+            && synTool.status === 'awaiting-approval') {
+          // Replace synthetic with real tool, preserving permission state
+          toolCalls.delete(synId);
+          toolCalls.set(action.toolUseId, {
+            toolUseId: action.toolUseId,
+            toolName: action.toolName,
+            input: action.toolInput,
+            status: synTool.status,
+            requestId: synTool.requestId,
+            permissionSuggestions: synTool.permissionSuggestions,
+          });
+          // Update the tool group to reference the real ID
+          const toolGroups = new Map(session.toolGroups);
+          for (const [gid, group] of toolGroups) {
+            if (group.toolIds.includes(synId)) {
+              toolGroups.set(gid, {
+                ...group,
+                toolIds: group.toolIds.map((id) => id === synId ? action.toolUseId : id),
+              });
+              break;
+            }
+          }
+          next.set(action.sessionId, {
+            ...session, toolCalls, toolGroups,
+            lastActivityAt: Date.now(),
+          });
+          mergedSynthetic = true;
+          break;
+        }
+      }
+      if (mergedSynthetic) return next;
+
       toolCalls.set(action.toolUseId, {
         toolUseId: action.toolUseId,
         toolName: action.toolName,

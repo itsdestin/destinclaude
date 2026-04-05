@@ -8,6 +8,18 @@ import { getScreenText, onBufferReady } from './terminal-registry';
 // Hook events typically arrive 100-200ms after the Ink menu renders.
 const PROMPT_DEBOUNCE_MS = 350;
 
+// Only show parser-detected PromptCards for these known setup prompts.
+// Permission prompts (Yes/No/Always Allow) are handled exclusively by the
+// hook system via ToolCard. Showing them here too causes duplication.
+// This also prevents false positives from numbered lists in Claude's output
+// that the Ink parser misidentifies as menus.
+const SETUP_PROMPT_TITLES = new Set([
+  'Trust This Folder?',
+  'Choose a Theme',
+  'Select Login Method',
+  'Skip Permissions Warning',
+]);
+
 // After a permission response (PERMISSION_RESPONDED/EXPIRED clears
 // awaiting-approval), suppress parser detection for this window. Prevents
 // Race 3: PTY redraws the Ink menu briefly while Claude processes the
@@ -91,6 +103,11 @@ export function usePromptDetector() {
 
         if (menu.id !== lastMenuId) {
           lastMenuRef.current.set(sid, menu.id);
+
+          // Only show PromptCards for known setup prompts. Permission prompts
+          // and false positives (numbered lists) are skipped — hooks handle
+          // permissions, and numbered lists aren't real menus.
+          if (!SETUP_PROMPT_TITLES.has(menu.title)) return;
 
           // Cancel any previous pending prompt for this session
           const existingTimer = pendingTimerRef.current.get(sid);
