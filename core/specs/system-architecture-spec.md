@@ -1,7 +1,7 @@
 # System Design — Spec
 
-**Version:** 1.5
-**Last updated:** 2026-03-26
+**Version:** 1.6
+**Last updated:** 2026-04-05
 **Feature location:** `~/.claude/` (entire system)
 
 ## Purpose
@@ -33,36 +33,34 @@ Canonical architecture reference for the user's Claude Code automation system. F
 | Component | Location | Authoritative Spec |
 |-----------|----------|-------------------|
 | 10 skills (3 layers) | `~/.claude/skills/{name}/` (symlinked from toolkit) | Each skill's `specs/{name}-spec.md` |
-| 16 hooks | `~/.claude/hooks/` (symlinked from toolkit) | `backup-system-spec.md` (git-sync, session-start, personal-sync), `write-guard-spec.md`, `worktree-guard-spec.md`, `statusline-spec.md` (title-update), this spec (checklist-reminder, done-sound) |
+| 15 hooks | `~/.claude/hooks/` (symlinked from toolkit) | `backup-system-spec.md` (sync, session-start), `write-guard-spec.md`, `worktree-guard-spec.md`, `statusline-spec.md` (title-update), this spec (checklist-reminder, done-sound) |
 | 7 MCP servers | Configured in `~/.claude.json`, definitions in `core/mcp-manifest.json` | `destinclaude-spec.md` (registration); individual servers documented in CLAUDE.md |
 | Statusline | `~/.claude/statusline.sh` + hooks | `statusline-spec.md` |
 | Encyclopedia system | `~/.claude/encyclopedia/` (cache), `gdrive:Claude/The Journal/System/` (source of truth) | `encyclopedia-system-spec.md` |
-| Backup/sync | `core/hooks/git-sync.sh` + `session-start.sh` + `personal-sync.sh` | `backup-system-spec.md` |
+| Backup/sync | `core/hooks/sync.sh` + `session-start.sh` | `backup-system-spec.md` |
 | Write guard | `core/hooks/write-guard.sh` | `write-guard-spec.md` |
 | Memory system | `~/.claude/projects/{project-key}/memory/` | `memory-system-spec.md` |
 | Specs system | `core/specs/` (system), `{layer}/skills/{name}/specs/` (skill) | `specs-system-spec.md` |
 
 **Dependency relationships:**
-- `git-sync.sh` → writes `.write-registry.json` (consumed by `write-guard.sh` and `checklist-reminder.sh`)
-- `session-start.sh` → runs `git pull`, `rclone sync` (encyclopedia), and `check-inbox.sh`
+- `sync.sh` → writes `.write-registry.json` (consumed by `write-guard.sh` and `checklist-reminder.sh`)
+- `session-start.sh` → runs personal data pull, `rclone sync` (encyclopedia), and `check-inbox.sh`
 - Encyclopedia skills → read from `~/.claude/encyclopedia/` (cache), write to Drive (source of truth)
-- `checklist-reminder.sh` → reads `.write-registry.json` (written by `git-sync.sh`)
+- `checklist-reminder.sh` → reads `.write-registry.json` (written by `sync.sh`)
 - All skills → governed by CLAUDE.md rules, skill-specific specs, and system-architecture.md checklist
 
 ### 2. Data Flow
 
 ```
 Local (~/.claude/)
-  ├── Git (GitHub private repo: claude-config)
-  │     ├── Tracked: CLAUDE.md, settings, hooks, skills, specs, plans,
-  │     │            docs, memory, mcp-server source, restore.sh
-  │     ├── Ignored: credentials, binaries, caches, state files,
-  │     │            transcripts, encyclopedia cache, .claude.json
-  │     ├── Commit: immediate on every Write|Edit (via git-sync.sh)
-  │     └── Push: debounced every 15 min (via git-sync.sh)
+  ├── Sync Backends (via sync.sh, PostToolUse Write|Edit, debounced 15 min)
+  │     ├── Drive (gdrive:): skills, specs, plans, hooks, system-backup/
+  │     ├── GitHub (personal repo): skills, specs, plans, hooks, system-backup/
+  │     └── iCloud: same scope
+  │         Note: No local git repo required; cloud backends provide version history
   │
   ├── Drive Archive (gdrive:Claude/Backup/)
-  │     ├── Triggered: on each successful git push
+  │     ├── Triggered: on each sync cycle (best-effort)
   │     ├── Scope: specs/, skills/, CLAUDE.md, conversation transcripts
   │     ├── Format: timestamped folders (MM-DD-YYYY @ TIMEpm)/
   │     └── Policy: write-only, append-only, no pruning, best-effort
@@ -84,8 +82,7 @@ Local (~/.claude/)
 | `write-guard.sh` | PreToolUse | `Write\|Edit` | Block writes when another active session owns the file | Reads `.write-registry.json` |
 | `worktree-guard.sh` | PreToolUse | `Bash` | Block git branch switches in the main plugin directory | None |
 | `tool-router.sh` | PreToolUse | `mcp__claude_ai_Gmail__\|mcp__claude_ai_Google_Calendar__` | Block Claude.ai native Gmail/Calendar MCP tools; redirect to GWS CLI equivalents | None |
-| `git-sync.sh` | PostToolUse | `Write\|Edit` | Commit to Git, debounced push, Drive archive, update write registry | Writes `.write-registry.json`, `.push-marker`, `.sync-status` |
-| `personal-sync.sh` | PostToolUse | `Write\|Edit` | Sync personal data files to Drive after edits | None |
+| `sync.sh` | PostToolUse | `Write\|Edit` | Update write registry, debounced sync to configured backends (Drive/GitHub/iCloud) | Writes `.write-registry.json`, `.sync-marker` |
 | `title-update.sh` | PostToolUse | `.*` | Prompt Claude to set session topic (10-min throttle) | Reads/writes `~/.claude/topics/marker-{sid}` |
 | `todo-capture.sh` | UserPromptSubmit | `.*` | Capture task mentions from user prompts to Todoist | None |
 | `checklist-reminder.sh` | Stop | `.*` | Remind Claude to verify system change checklist if system files were modified | Reads `.write-registry.json` |
@@ -96,7 +93,7 @@ Local (~/.claude/)
 | `usage-fetch.js` | (utility) | — | Retrieve and cache API usage/rate-limit data | Writes `.usage-cache.json` |
 | `statusline.sh` | (statusLine) | — | Render multi-line status bar for Claude Code | Reads topics, sync-status, caches |
 
-**Execution order within same event:** Hooks fire in the order listed in `settings.json`. For PostToolUse, `git-sync.sh` (Write|Edit only) fires before `title-update.sh` (all tools).
+**Execution order within same event:** Hooks fire in the order listed in `settings.json`. For PostToolUse, `sync.sh` (Write|Edit only) fires before `title-update.sh` (all tools).
 
 ### 4. Session Lifecycle
 
@@ -110,7 +107,7 @@ Local (~/.claude/)
 **Note:** Network sync failures are written to `.sync-warnings` (e.g., `GIT:PULL_FAILED`, `PERSONAL:PULL_FAILED`) and surfaced via the statusline and `/sync` skill rather than blocking session start.
 
 **During:**
-- Every Write|Edit → `write-guard.sh` (PreToolUse) checks for conflicts → `git-sync.sh` (PostToolUse) commits + debounced push
+- Every Write|Edit → `write-guard.sh` (PreToolUse) checks for conflicts → `sync.sh` (PostToolUse) updates registry + debounced sync to backends
 - Claude.ai Gmail/Calendar MCP calls → `tool-router.sh` (PreToolUse) blocks and redirects to GWS CLI
 - Every tool use → `title-update.sh` (PostToolUse) throttled topic reminder
 - Skills load their SKILL.md (includes system rules footer)
@@ -185,3 +182,4 @@ See [GitHub Issues](https://github.com/itsdestin/destinclaude/issues) for known 
 | 2026-03-24 | 1.3 | Updated hook count 14→16, added worktree-guard.sh, check-inbox.sh, sync-encyclopedia.sh to hook table | Update | — | |
 | 2026-03-26 | 1.4 | Session lifecycle updated: network operations now run as debounced background process instead of blocking session start. Sync failures surfaced via .sync-warnings | Update | owner | |
 | 2026-03-26 | 1.5 | Added mandate: Claude must never direct users to run commands — all commands run via Bash tool; only GUI interactions (e.g., browser sign-in) are acceptable user actions | Mandate | owner | |
+| 2026-04-05 | 1.6 | Sync consolidation: replaced git-sync.sh + personal-sync.sh with unified sync.sh. Updated component table, dependency relationships, data flow (removed Git section, added multi-backend sync), hook architecture table (2 rows → 1), execution order note, and session lifecycle. | Update | owner | |

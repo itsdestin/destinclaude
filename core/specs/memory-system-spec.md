@@ -1,7 +1,7 @@
 # Memory System — Spec
 
-**Version:** 1.1
-**Last updated:** 2026-03-15
+**Version:** 1.2
+**Last updated:** 2026-04-05
 **Feature location:** `~/.claude/projects/{project-key}/memory/`
 
 ## Purpose
@@ -46,11 +46,11 @@ The memory system gives Claude Code persistent context about the user across con
   - `reference_todoist.md` — Todoist configuration and MCP setup.
   - `reference_gemini_cli.md` — How to launch Gemini CLI.
 - **Read/write mechanism:** Claude Code's built-in auto-memory. Claude reads `MEMORY.md` at session start (via system prompt injection) and can create/edit memory files with standard Write/Edit tools.
-- **Backup:** Memory files are tracked by Git and backed up via `git-sync.sh`. Drive archive copies are created on each push.
+- **Backup:** Memory files are synced to configured backends via `sync.sh`.
 
 ## Dependencies
 
-- **Depends on:** Claude Code's built-in memory system (reads `MEMORY.md` into context); `git-sync.sh` hook for Git backup, with Drive archive on push.
+- **Depends on:** Claude Code's built-in memory system (reads `MEMORY.md` into context); `sync.sh` hook for backend sync.
 - **Depended on by:** All skills and workflows that need persistent user context (journaling, encyclopedia, writing voice, and optional domain-specific modules). The Encyclopedia system on Google Drive is the canonical store for biographical detail — memory just points to it.
 
 ## Known Issues & Planned Updates
@@ -63,3 +63,4 @@ See [GitHub Issues](https://github.com/itsdestin/destinclaude/issues) for known 
 |------|---------|-------------|------|-------------|
 | 2026-03-13 | 1.0 | Initial spec | New | — |
 | 2026-03-15 | 1.1 | Updated file list (8→14), fixed stale sync-to-drive.sh references to git-sync.sh | Revised | — | |
+| 2026-04-05 | 1.2 | Sync consolidation: updated git-sync.sh references to sync.sh in backup description and dependencies. | Update | owner | |

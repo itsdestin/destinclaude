@@ -1,10 +1,10 @@
 # Write Guard — Design Spec
 
-**Version:** 1.2
-**Date:** 2026-03-15
+**Version:** 1.3
+**Date:** 2026-04-05
 **Status:** Approved
 **Related spec:** `backup-system-spec.md`
-**Feature location:** `~/.claude/hooks/write-guard.sh`, registry update in `~/.claude/hooks/git-sync.sh`
+**Feature location:** `~/.claude/hooks/write-guard.sh`, registry update in `~/.claude/hooks/sync.sh`
 
 ## Problem
 
@@ -26,8 +26,8 @@ Optimistic concurrency control via a centralized write registry and a PreToolUse
 | `$PPID` as session identifier | Both PreToolUse and PostToolUse hooks are spawned by the same parent process (the Claude Code session), so `$PPID` is consistent across hook invocations for the same session. Simple and reliable for same-machine detection. | Session ID from `~/.claude/sessions/*.json` (more robust but adds file parsing overhead per hook invocation), environment variable injection (not supported by Claude Code hook system). |
 | SHA-256 truncated to 16 hex chars | Enough to detect changes with negligible collision risk (64 bits), fast to compute via `sha256sum`. | Full SHA-256 (unnecessary — 16 chars is sufficient for change detection), MD5 (weaker but same practical outcome), file size + mtime (not reliable across platforms). |
 | Registry not backed up to Drive | PIDs are machine-local ephemeral state — meaningless across devices. Same category as `.backup-lock/` and `.session-heartbeat`. | Back up registry (would cause spurious conflicts on other machines with different PIDs). |
-| Registry update placed early in `git-sync.sh` (before commit/push) | If session A starts a slow push and session B writes the same file during that push, B's PreToolUse check needs to see A's registry entry immediately. | Update after push (creates a window where concurrent writes are undetected). |
-| Registry update in `git-sync.sh` rather than separate PostToolUse hook | Avoids a second hook script firing on every write (two hooks = two JSON parses, two process spawns). The existing mutex lock serializes writes, protecting the registry from concurrent updates. | Separate PostToolUse hook (cleaner separation but doubles per-write overhead). |
+| Registry update before debounce in `sync.sh` | The registry must reflect every write immediately. `sync.sh` updates the registry before the debounce check so `write-guard.sh` always has a current entry — even when a sync hasn't run in 15 minutes. | Update after sync (leaves a 15-min window where concurrent writes are undetected). |
+| Registry update in `sync.sh` rather than separate PostToolUse hook | Avoids a second hook script firing on every write. The existing mutex lock serializes writes, protecting the registry from concurrent updates. | Separate PostToolUse hook (cleaner separation but doubles per-write overhead). |
 | Protect all tracked files | Negligible overhead (one JSON lookup per write) and simpler than maintaining a separate "protected files" list. | Skills/specs only (most likely conflict targets, but leaves other files unprotected), configurable exclusion list (premature complexity). |
 
 ## Architecture
@@ -62,8 +62,8 @@ Two components:
 
 **Logic (in order):**
 
-1. **Parse stdin JSON** — extract `tool_name` and `tool_input.file_path`. Normalize backslashes to forward slashes (same normalization as `git-sync.sh`).
-2. **Tracked file filter** — same whitelist as `git-sync.sh`. Non-tracked files pass through (exit 0).
+1. **Parse stdin JSON** — extract `tool_name` and `tool_input.file_path`. Normalize backslashes to forward slashes (same normalization as `sync.sh`).
+2. **Tracked file filter** — same whitelist as `sync.sh`. Non-tracked files pass through (exit 0).
 3. **Read registry** — parse `~/.claude/.write-registry.json`. If no entry for this file, allow (exit 0 — first write ever).
 4. **Same-session check** — if registry PID matches `$PPID`, allow (exit 0 — we're the last writer). Assumption: both PreToolUse and PostToolUse hooks are spawned by the same parent process (the Claude Code session), so `$PPID` is consistent.
 5. **Liveness check** — `tasklist //FI "PID eq $PID"` (Windows-compatible; `kill -0` doesn't work for Windows PIDs in Git Bash). If the other session is dead, allow (exit 0 — stale entry, no conflict).
@@ -74,9 +74,9 @@ Two components:
 
 **Performance:** ~50ms estimated overhead per write (JSON parse + sha256sum + kill -0). To be validated during implementation.
 
-### PostToolUse Registry Update (in `git-sync.sh`)
+### PostToolUse Registry Update (in `sync.sh`)
 
-Placed early in the script, right after the tracked-file filter passes (before the dedup window check):
+Placed early in the script, right after the path filter passes and before the debounce check:
 
 1. Compute SHA-256 of written file, truncate to 16 hex chars.
 2. Read existing registry JSON (or start with `{}`).
@@ -104,7 +104,7 @@ Added to `~/.claude/settings.json` (user-level settings, same file as existing h
 
 ## Scope
 
-- Protects all files matching the `git-sync.sh` tracked-files whitelist.
+- Protects all files matching the `sync.sh` tracked-files whitelist.
 - Same-machine protection only (cross-device is handled by the backup system).
 - Blocks conflicting writes — does not auto-resolve conflicts.
 
@@ -129,13 +129,11 @@ Added to `~/.claude/settings.json` (user-level settings, same file as existing h
 
 ## Integration Checklist
 
-- [ ] Create `~/.claude/hooks/write-guard.sh`
-- [ ] Add registry update logic to `git-sync.sh` (after filter, before commit)
-- [ ] Add PreToolUse hook entry to `~/.claude/settings.json`
-- [ ] Add `write-guard.sh` to tracked files in `git-sync.sh` filter
-- [ ] Update `backup-system-spec.md` spec — new section + design decision + tracked file + changelog
-- [ ] Update `CLAUDE.md` — hooks section
-- [ ] Update `git-sync.sh` — restore path for new hook file
+- [x] Created `~/.claude/hooks/write-guard.sh`
+- [x] Registry update logic in `sync.sh` (before debounce check)
+- [x] PreToolUse hook entry in `~/.claude/settings.json`
+- [x] `write-guard.sh` in tracked files in `sync.sh` filter (via `*/hooks/*` pattern)
+- [x] `backup-system-spec.md` updated
 
 ## Known Issues & Planned Updates
 
@@ -146,5 +144,6 @@ See [GitHub Issues](https://github.com/itsdestin/destinclaude/issues) for known 
 | Date | Version | What changed | Type | Approved by |
 |------|---------|-------------|------|-------------|
 | 2026-03-14 | 1.0 | Initial spec | New | — |
+| 2026-04-05 | 1.3 | Registry update moved from `git-sync.sh` to `sync.sh` as part of sync consolidation. Updated all spec references from git-sync.sh → sync.sh. | Update | owner |
 | 2026-03-15 | 1.2 | Registry update moved from `sync-to-drive.sh` to `git-sync.sh` as part of Git + Drive hybrid migration | Update | — |
 | 2026-03-15 | 1.1 | Windows platform fixes: hardcode registry path (Git Bash `$HOME` → `/c/...` breaks Node.js `readFileSync`), replace `kill -0` with `tasklist` for PID liveness (Git Bash `kill` can't signal Windows PIDs) | Implementation | — |

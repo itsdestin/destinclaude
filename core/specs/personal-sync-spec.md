@@ -1,8 +1,14 @@
 # Personal Data Sync — Spec
 
-**Version:** 2.4
-**Last updated:** 2026-04-05
-**Feature location:** `core/hooks/personal-sync.sh`, session-start integration in `core/hooks/session-start.sh`
+> **RETIRED — 2026-04-05**
+> This spec has been superseded by `backup-system-spec.md` v5.0.
+> `personal-sync.sh` was merged into `core/hooks/sync.sh` as part of the sync consolidation.
+> This file is preserved as historical record only. Do not update.
+
+**Version:** 2.3 (final)
+**Last updated:** 2026-03-25
+**Status:** Retired — superseded by backup-system-spec.md v5.0
+**Feature location:** ~~`core/hooks/personal-sync.sh`~~ → now `core/hooks/sync.sh`
 
 ## Purpose
 

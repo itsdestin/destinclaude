@@ -24,13 +24,13 @@ if [ -z "$FILE_PATH" ]; then
     exit 0
 fi
 
-# Tracked files filter — same whitelist as git-sync.sh
+# Tracked files filter — same whitelist as sync.sh
 if [[ "$FILE_PATH" != *"/memory/"* ]] && \
    [[ "$FILE_PATH" != *"\\memory\\"* ]] && \
    [[ "$FILE_PATH" != *"CLAUDE.md"* ]] && \
    [[ "$FILE_PATH" != *"settings.json"* ]] && \
    [[ "$FILE_PATH" != *"mcp.json"* ]] && \
-   [[ "$FILE_PATH" != *"git-sync.sh"* ]] && \
+   [[ "$FILE_PATH" != *"sync.sh"* ]] && \
    [[ "$FILE_PATH" != *"session-start.sh"* ]] && \
    [[ "$FILE_PATH" != *"write-guard.sh"* ]] && \
    [[ "$FILE_PATH" != *"gws/client_secret.json"* ]] && \

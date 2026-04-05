@@ -351,7 +351,7 @@ If the user chose option 3, run an express setup that skips most interactive pha
 2. **Phase 2 (Conflicts):** Skip if none. Resolve any found conflicts tersely.
 3. **Phase 3 (Layers):** Auto-select all layers (Core + Life + Productivity). No question asked.
 4. **Phase 4 (Dependencies):** Install all dependencies silently. For each tool that needs a browser sign-in (GitHub, Google Drive, gcloud), open the browser without preamble — just say "Sign in to [service] in the browser that just opened." Show a single summary table at the end.
-5. **Phase 5 (Personalization):** Only ask for `USER_NAME`. Use defaults for all other template variables (`DRIVE_ROOT`: "Claude", `TODOIST_PROJECT`: "Claude's Inbox", `JOURNAL_DIR`: "journal", `ENCYCLOPEDIA_DIR`: "encyclopedia"). For `GIT_REMOTE` and `PERSONAL_SYNC_BACKEND`, skip with defaults ("none") — the user can configure these later. Run all symlink, hook, MCP, and plugin registration steps silently.
+5. **Phase 5 (Personalization):** Only ask for `USER_NAME`. Use defaults for all other template variables (`DRIVE_ROOT`: "Claude", `TODOIST_PROJECT`: "Claude's Inbox", `JOURNAL_DIR`: "journal", `ENCYCLOPEDIA_DIR`: "encyclopedia"). For `PERSONAL_SYNC_BACKEND`, skip with default ("none") — the user can configure this later. Run all symlink, hook, MCP, and plugin registration steps silently.
 6. **Phase 5b (Desktop App):** Install without asking if the install script exists.
 7. **Phase 6 (Verification):** Show compact pass/fail table only.
 
@@ -949,7 +949,7 @@ Summarize: "All the tools you need are installed. Now let's personalize everythi
 Fill in template variables, install selected layers, and configure CLAUDE.md.
 
 > **Comfort-level adaptation:**
-> - **Beginner:** Keep all explanatory framing for template variable questions (the "by 'root' I just mean..." style). When asking about `GIT_REMOTE` and `PERSONAL_SYNC_BACKEND`, keep the full tutorial offers and plain-language explanations.
+> - **Beginner:** Keep all explanatory framing for template variable questions (the "by 'root' I just mean..." style). When asking about `PERSONAL_SYNC_BACKEND`, keep the full tutorial offers and plain-language explanations.
 > - **Intermediate:** No change (this is the current behavior).
 > - **Power user:** Strip all explanatory framing from template variable questions — ask them rapid-fire with just the variable name and default. Skip the GitHub/sync tutorial offers (just ask the raw question). Example: "Google Drive root folder? (default: Claude)" instead of the multi-line explanation.
 
@@ -1018,8 +1018,6 @@ What Todoist project should Claude use as your inbox? (default: Claude's Inbox) 
 ```
 
 Only ask about variables relevant to the selected layers. Skip `TODOIST_PROJECT` if Productivity isn't selected, skip `DRIVE_ROOT`/`JOURNAL_DIR`/`ENCYCLOPEDIA_DIR` if Life isn't selected.
-
-When asking about `GIT_REMOTE`, if the user seems unsure or says they don't know what GitHub is, offer to explain it and help them set up a free account and repository. Frame it as: "GitHub is a free service that stores a backup of your settings online — like a safety net. Want me to walk you through setting one up? It takes about 2 minutes." If they decline, skip it gracefully.
 
 When asking about `PERSONAL_SYNC_BACKEND`, frame the distinction clearly: "Your toolkit improvements — skills, hooks, and commands — sync to the public DestinClaude repo. That's all system-level code, nothing personal. But your memory (things Claude learns about you), your preferences, and your personal config need a private home so they're backed up and available if you switch devices."
 

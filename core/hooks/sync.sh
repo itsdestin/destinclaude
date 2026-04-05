@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # PostToolUse hook for Write|Edit
-# Syncs personal data (memory, CLAUDE.md, config, encyclopedia, skills) to all configured backends.
+# Unified sync — backs up all personal data and system config to configured backends.
 # Debounced to 15-minute intervals. Cross-platform (Windows/Mac/Linux).
-# Spec: core/specs/personal-sync-spec.md
+# Supersedes: git-sync.sh + personal-sync.sh (sync-consolidation-design 04-01-2026)
+# Spec: core/specs/backup-system-spec.md
 
 set -euo pipefail
 
@@ -18,7 +19,6 @@ FILE_PATH=$(echo "$INPUT" | node -e "
 # Source shared backup utilities
 HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Source shared infrastructure (trap handlers, error capture, rotation)
 [[ -f "$HOOK_DIR/lib/hook-preamble.sh" ]] && source "$HOOK_DIR/lib/hook-preamble.sh"
 
 if [[ -f "$HOOK_DIR/lib/backup-common.sh" ]]; then
@@ -31,16 +31,18 @@ fi
 # Ensure is_toolkit_owned() has TOOLKIT_ROOT to check against
 TOOLKIT_ROOT=$(config_get "toolkit_root" "")
 
-# --- Path filter: only sync personal data files ---
+# --- Path filter: sync personal data and system config ---
 CLAUDE_DIR="${CLAUDE_DIR:-$HOME/.claude}"
 
 case "$FILE_PATH" in
-    */toolkit-state/config.local.json) exit 0 ;;   # Machine-specific, never sync (D1)
-    */mcp-servers/mcp-config.json) exit 0 ;;        # Machine-specific, never sync (D2)
-    */projects/*/*.jsonl) ;;                        # Conversation transcripts (D3)
+    # --- Exclusions (machine-specific, never sync) ---
+    */toolkit-state/config.local.json) exit 0 ;;
+    */mcp-servers/mcp-config.json) exit 0 ;;
+    */settings.local.json) exit 0 ;;
+    # --- Personal data ---
+    */projects/*/*.jsonl) ;;
     */projects/*/memory/*) ;;
     */CLAUDE.md) ;;
-    */toolkit-state/config.json) ;;
     */encyclopedia/*) ;;
     */conversation-index.json) ;;
     */skills/*)
@@ -48,6 +50,14 @@ case "$FILE_PATH" in
             exit 0
         fi
         ;;
+    # --- System config (remote: system-backup/) ---
+    */toolkit-state/config.json) ;;
+    */settings.json) ;;
+    */keybindings.json) ;;
+    */mcp.json) ;;
+    */history.jsonl) ;;
+    */plans/*) ;;
+    */specs/*) ;;
     *) exit 0 ;;
 esac
 
@@ -73,10 +83,37 @@ else
     SYNC_REPO=$(grep -o '"PERSONAL_SYNC_REPO"[[:space:]]*:[[:space:]]*"[^"]*"' "$CONFIG_FILE" 2>/dev/null | head -1 | sed 's/.*"PERSONAL_SYNC_REPO"[[:space:]]*:[[:space:]]*"//' | sed 's/"$//' || echo "")
 fi
 
+# --- Write registry update (for write-guard) ---
+# Must happen before debounce — registry is updated on every write, not just sync cycles.
+REGISTRY="${REGISTRY:-$CLAUDE_DIR/.write-registry.json}"
+if [[ -n "${PPID:-}" ]]; then
+    CONTENT_HASH=""
+    if [[ -f "$FILE_PATH" ]]; then
+        CONTENT_HASH=$( (sha256sum "$FILE_PATH" 2>/dev/null || shasum -a 256 "$FILE_PATH" 2>/dev/null) | awk '{print substr($1,1,16)}')
+    fi
+    TIMESTAMP=$(date +%s)
+    if [[ -f "$REGISTRY" ]]; then
+        REG_CONTENT=$(cat "$REGISTRY")
+    else
+        REG_CONTENT="{}"
+    fi
+    NORM_PATH="${FILE_PATH//\\//}"
+    REG_CONTENT=$(node -e "
+        const reg = JSON.parse(process.argv[1]);
+        reg[process.argv[2]] = {pid: parseInt(process.argv[3]), timestamp: parseInt(process.argv[4]), content_hash: process.argv[5]};
+        console.log(JSON.stringify(reg, null, 2));
+    " "$REG_CONTENT" "$NORM_PATH" "$PPID" "$TIMESTAMP" "$CONTENT_HASH" 2>/dev/null) || true
+    if type atomic_write &>/dev/null; then
+        atomic_write "$REGISTRY" "$REG_CONTENT"
+    else
+        echo "$REG_CONTENT" > "$REGISTRY"
+    fi
+fi
+
 [[ -z "$BACKEND" || "$BACKEND" == "none" ]] && exit 0
 
-# --- Mutex: prevent concurrent personal-sync instances ---
-LOCK_DIR="$CLAUDE_DIR/toolkit-state/.personal-sync-lock"
+# --- Mutex: prevent concurrent sync instances ---
+LOCK_DIR="$CLAUDE_DIR/toolkit-state/.sync-lock"
 if ! mkdir "$LOCK_DIR" 2>/dev/null; then
     _lock_pid=$(cat "$LOCK_DIR/pid" 2>/dev/null || echo 0)
     if kill -0 "$_lock_pid" 2>/dev/null; then
@@ -89,7 +126,7 @@ echo $$ > "$LOCK_DIR/pid"
 register_cleanup "rm -rf '$LOCK_DIR'"
 
 # --- Debounce: 15 minutes ---
-MARKER_FILE="$CLAUDE_DIR/toolkit-state/.personal-sync-marker"
+MARKER_FILE="$CLAUDE_DIR/toolkit-state/.sync-marker"
 
 if type debounce_check &>/dev/null; then
     debounce_check "$MARKER_FILE" 15 || exit 0
@@ -103,12 +140,11 @@ else
     fi
 fi
 
-# --- Skill route lookup (§8 support) ---
+# --- Skill route lookup ---
 _SKILL_ROUTES_JSON=""
 _SKILL_ROUTES_FILE="$CLAUDE_DIR/toolkit-state/skill-routes.json"
 [[ -f "$_SKILL_ROUTES_FILE" ]] && _SKILL_ROUTES_JSON=$(cat "$_SKILL_ROUTES_FILE" 2>/dev/null)
 
-# Returns 0 (should sync) or 1 (skip) based on skill-routes.json
 _should_sync_skill() {
     local name="$1"
     if [[ -n "$_SKILL_ROUTES_JSON" ]] && command -v node &>/dev/null; then
@@ -129,8 +165,10 @@ sync_drive() {
     fi
 
     local REMOTE_BASE="gdrive:$DRIVE_ROOT/Backup/personal"
+    local SYS_REMOTE="$REMOTE_BASE/system-backup"
     local ERRORS=0
 
+    # Memory files
     if [[ -d "$CLAUDE_DIR/projects" ]]; then
         for PROJECT_DIR in "$CLAUDE_DIR"/projects/*/; do
             [[ ! -d "$PROJECT_DIR" ]] && continue
@@ -146,6 +184,7 @@ sync_drive() {
         done
     fi
 
+    # CLAUDE.md
     if [[ -f "$CLAUDE_DIR/CLAUDE.md" ]]; then
         rclone copyto "$CLAUDE_DIR/CLAUDE.md" "$REMOTE_BASE/CLAUDE.md" --update 2>/dev/null || {
             log_backup "WARN" "Failed to sync CLAUDE.md"
@@ -153,22 +192,12 @@ sync_drive() {
         }
     fi
 
-    if [[ -f "$CONFIG_FILE" ]]; then
-        rclone copyto "$CONFIG_FILE" "$REMOTE_BASE/toolkit-state/config.json" --update 2>/dev/null || {
-            log_backup "WARN" "Failed to sync config.json"
-            ERRORS=$((ERRORS + 1))
-        }
-    fi
-
+    # Encyclopedia
     if [[ -d "$CLAUDE_DIR/encyclopedia" ]]; then
-        # Only sync top-level .md files — exclude subdirectories to prevent
-        # contamination loops where stray dirs get pushed up and pulled back.
         rclone copy "$CLAUDE_DIR/encyclopedia/" "$REMOTE_BASE/encyclopedia/" \
             --update --max-depth 1 --include "*.md" 2>/dev/null || \
             log_backup "WARN" "Encyclopedia sync to Backup failed"
 
-        # Also push to The Journal/System/ — the canonical source of truth
-        # that other skills (encyclopedia-compile, sync-encyclopedia) read from.
         local _enc_remote_path="The Journal/System"
         if [[ -f "$CONFIG_FILE" ]]; then
             local _enc_configured
@@ -180,6 +209,7 @@ sync_drive() {
             log_backup "WARN" "Encyclopedia sync to The Journal/System failed"
     fi
 
+    # User-created skills
     if [[ -d "$CLAUDE_DIR/skills" ]]; then
         for skill_dir in "$CLAUDE_DIR/skills"/*/; do
             [[ ! -d "$skill_dir" ]] && continue
@@ -194,8 +224,7 @@ sync_drive() {
         done
     fi
 
-    # Conversations — snapshot then upload per-slug (Design ref: D3, D4)
-    # Snapshot eliminates race with MCP servers and subagents writing to JSONL files
+    # Conversations (snapshot to avoid races with subagents)
     if [[ -d "$CLAUDE_DIR/projects" ]]; then
         local _snap_dir
         _snap_dir=$(mktemp -d)
@@ -203,19 +232,16 @@ sync_drive() {
 
         for slug_dir in "$CLAUDE_DIR"/projects/*/; do
             [[ ! -d "$slug_dir" ]] && continue
-            # Skip symlinked slug directories (foreign device slugs)
             [[ -L "${slug_dir%/}" ]] && continue
             local slug_name
             slug_name=$(basename "$slug_dir")
 
-            # Check if this slug has any JSONL files worth syncing
             local _has_jsonl=false
             for _f in "$slug_dir"*.jsonl; do
                 [[ -f "$_f" && ! -L "$_f" ]] && _has_jsonl=true && break
             done
             [[ "$_has_jsonl" == "false" ]] && continue
 
-            # Recursive discovery — includes subagent files in subdirectories
             find "$slug_dir" -name '*.jsonl' -not -type l 2>/dev/null | while IFS= read -r _f; do
                 local _rel="${_f#$slug_dir}"
                 mkdir -p "$_snap_dir/$slug_name/$(dirname "$_rel")"
@@ -231,10 +257,35 @@ sync_drive() {
         done
     fi
 
-    # Conversation index — push to system-backup/ (consolidation-ready path)
+    # System config under system-backup/ (D3)
+    [[ -f "$CONFIG_FILE" ]] && {
+        rclone copyto "$CONFIG_FILE" "$SYS_REMOTE/config.json" --update 2>/dev/null || {
+            log_backup "WARN" "Failed to sync config.json"; ERRORS=$((ERRORS + 1))
+        }
+    }
+    [[ -f "$CLAUDE_DIR/settings.json" ]] && \
+        rclone copyto "$CLAUDE_DIR/settings.json" "$SYS_REMOTE/settings.json" --update 2>/dev/null || \
+        log_backup "WARN" "Failed to sync settings.json"
+    [[ -f "$CLAUDE_DIR/keybindings.json" ]] && \
+        rclone copyto "$CLAUDE_DIR/keybindings.json" "$SYS_REMOTE/keybindings.json" --update 2>/dev/null || \
+        log_backup "WARN" "Failed to sync keybindings.json"
+    [[ -f "$CLAUDE_DIR/mcp.json" ]] && \
+        rclone copyto "$CLAUDE_DIR/mcp.json" "$SYS_REMOTE/mcp.json" --update 2>/dev/null || \
+        log_backup "WARN" "Failed to sync mcp.json"
+    [[ -f "$CLAUDE_DIR/history.jsonl" ]] && \
+        rclone copyto "$CLAUDE_DIR/history.jsonl" "$SYS_REMOTE/history.jsonl" --update 2>/dev/null || \
+        log_backup "WARN" "Failed to sync history.jsonl"
+    [[ -d "$CLAUDE_DIR/plans" ]] && \
+        rclone copy "$CLAUDE_DIR/plans/" "$SYS_REMOTE/plans/" --update 2>/dev/null || \
+        log_backup "WARN" "Failed to sync plans/"
+    [[ -d "$CLAUDE_DIR/specs" ]] && \
+        rclone copy "$CLAUDE_DIR/specs/" "$SYS_REMOTE/specs/" --update 2>/dev/null || \
+        log_backup "WARN" "Failed to sync specs/"
+
+    # Conversation index
     local _INDEX_FILE="$CLAUDE_DIR/conversation-index.json"
     if [[ -f "$_INDEX_FILE" ]]; then
-        rclone copyto "$_INDEX_FILE" "gdrive:$DRIVE_ROOT/Backup/system-backup/conversation-index.json" \
+        rclone copyto "$_INDEX_FILE" "$SYS_REMOTE/conversation-index.json" \
             --checksum 2>/dev/null || \
             log_backup "WARN" "Conversation index sync to Drive failed" "sync.push.drive"
     fi
@@ -279,10 +330,10 @@ sync_github() (
     fi
 
     cd "$REPO_DIR"
-
     git remote set-url personal-sync "$SYNC_REPO" 2>/dev/null || \
         git remote add personal-sync "$SYNC_REPO" 2>/dev/null || true
 
+    # Memory files
     if [[ -d "$CLAUDE_DIR/projects" ]]; then
         for PROJECT_DIR in "$CLAUDE_DIR"/projects/*/; do
             [[ ! -d "$PROJECT_DIR" ]] && continue
@@ -296,9 +347,12 @@ sync_github() (
     fi
 
     [[ -f "$CLAUDE_DIR/CLAUDE.md" ]] && cp "$CLAUDE_DIR/CLAUDE.md" "$REPO_DIR/CLAUDE.md" 2>/dev/null || true
-    [[ -f "$CONFIG_FILE" ]] && { mkdir -p "$REPO_DIR/toolkit-state"; cp "$CONFIG_FILE" "$REPO_DIR/toolkit-state/config.json" 2>/dev/null || true; }
-    [[ -d "$CLAUDE_DIR/encyclopedia" ]] && { mkdir -p "$REPO_DIR/encyclopedia"; cp -r "$CLAUDE_DIR/encyclopedia"/* "$REPO_DIR/encyclopedia/" 2>/dev/null || true; }
+    [[ -d "$CLAUDE_DIR/encyclopedia" ]] && {
+        mkdir -p "$REPO_DIR/encyclopedia"
+        cp -r "$CLAUDE_DIR/encyclopedia"/* "$REPO_DIR/encyclopedia/" 2>/dev/null || true
+    }
 
+    # User-created skills
     if [[ -d "$CLAUDE_DIR/skills" ]]; then
         for skill_dir in "$CLAUDE_DIR/skills"/*/; do
             [[ ! -d "$skill_dir" ]] && continue
@@ -312,7 +366,7 @@ sync_github() (
         done
     fi
 
-    # Conversations — copy per-slug with recursive discovery (Design ref: D3, D4)
+    # Conversations
     if [[ -d "$CLAUDE_DIR/projects" ]]; then
         for slug_dir in "$CLAUDE_DIR"/projects/*/; do
             [[ ! -d "$slug_dir" ]] && continue
@@ -333,16 +387,26 @@ sync_github() (
         done
     fi
 
+    # System config under system-backup/ (D3)
+    local SYS_DIR="$REPO_DIR/system-backup"
+    mkdir -p "$SYS_DIR"
+    [[ -f "$CONFIG_FILE" ]] && cp "$CONFIG_FILE" "$SYS_DIR/config.json" 2>/dev/null || true
+    [[ -f "$CLAUDE_DIR/settings.json" ]] && cp "$CLAUDE_DIR/settings.json" "$SYS_DIR/settings.json" 2>/dev/null || true
+    [[ -f "$CLAUDE_DIR/keybindings.json" ]] && cp "$CLAUDE_DIR/keybindings.json" "$SYS_DIR/keybindings.json" 2>/dev/null || true
+    [[ -f "$CLAUDE_DIR/mcp.json" ]] && cp "$CLAUDE_DIR/mcp.json" "$SYS_DIR/mcp.json" 2>/dev/null || true
+    [[ -f "$CLAUDE_DIR/history.jsonl" ]] && cp "$CLAUDE_DIR/history.jsonl" "$SYS_DIR/history.jsonl" 2>/dev/null || true
+    [[ -d "$CLAUDE_DIR/plans" ]] && { mkdir -p "$SYS_DIR/plans"; cp -r "$CLAUDE_DIR/plans"/* "$SYS_DIR/plans/" 2>/dev/null || true; }
+    [[ -d "$CLAUDE_DIR/specs" ]] && { mkdir -p "$SYS_DIR/specs"; cp -r "$CLAUDE_DIR/specs"/* "$SYS_DIR/specs/" 2>/dev/null || true; }
+
     # Conversation index
     local _INDEX_FILE="$CLAUDE_DIR/conversation-index.json"
     if [[ -f "$_INDEX_FILE" ]]; then
-        mkdir -p "$REPO_DIR/system-backup"
-        cp "$_INDEX_FILE" "$REPO_DIR/system-backup/conversation-index.json" 2>/dev/null || true
+        cp "$_INDEX_FILE" "$SYS_DIR/conversation-index.json" 2>/dev/null || true
     fi
 
     git add -A 2>/dev/null || true
     if ! git diff --cached --quiet 2>/dev/null; then
-        git commit -m "auto: personal sync" --no-gpg-sign 2>/dev/null || true
+        git commit -m "auto: sync" --no-gpg-sign 2>/dev/null || true
         git push personal-sync main 2>/dev/null || {
             log_backup "WARN" "Push to personal-sync repo failed (will retry next cycle)"
             return 1
@@ -353,7 +417,7 @@ sync_github() (
     return 0
 )
 
-# --- iCloud backend: local folder copy (Design ref: D5) ---
+# --- iCloud backend ---
 sync_icloud() {
     local ICLOUD_PATH
     ICLOUD_PATH=$(config_get "ICLOUD_PATH" "")
@@ -378,8 +442,9 @@ sync_icloud() {
         }
     fi
 
-    log_backup "INFO" "Syncing personal data to iCloud: $ICLOUD_PATH"
+    log_backup "INFO" "Syncing to iCloud: $ICLOUD_PATH"
 
+    # Memory files
     if [[ -d "$CLAUDE_DIR/projects" ]]; then
         for PROJECT_DIR in "$CLAUDE_DIR"/projects/*/; do
             [[ ! -d "$PROJECT_DIR" ]] && continue
@@ -398,18 +463,13 @@ sync_icloud() {
             cp "$CLAUDE_DIR/CLAUDE.md" "$ICLOUD_PATH/" 2>/dev/null || true
     }
 
-    [[ -f "$CONFIG_FILE" ]] && {
-        mkdir -p "$ICLOUD_PATH/toolkit-state"
-        rsync -a --update "$CONFIG_FILE" "$ICLOUD_PATH/toolkit-state/" 2>/dev/null || \
-            cp "$CONFIG_FILE" "$ICLOUD_PATH/toolkit-state/" 2>/dev/null || true
-    }
-
     [[ -d "$CLAUDE_DIR/encyclopedia" ]] && {
         mkdir -p "$ICLOUD_PATH/encyclopedia"
         rsync -a --update "$CLAUDE_DIR/encyclopedia/" "$ICLOUD_PATH/encyclopedia/" 2>/dev/null || \
             cp -r "$CLAUDE_DIR/encyclopedia"/* "$ICLOUD_PATH/encyclopedia/" 2>/dev/null || true
     }
 
+    # User-created skills
     if [[ -d "$CLAUDE_DIR/skills" ]]; then
         for skill_dir in "$CLAUDE_DIR/skills"/*/; do
             [[ ! -d "$skill_dir" ]] && continue
@@ -424,7 +484,7 @@ sync_icloud() {
         done
     fi
 
-    # Conversations — copy per-slug with recursive discovery, skip symlinks (Design ref: D3, D4)
+    # Conversations
     if [[ -d "$CLAUDE_DIR/projects" ]]; then
         for slug_dir in "$CLAUDE_DIR"/projects/*/; do
             [[ ! -d "$slug_dir" ]] && continue
@@ -446,12 +506,45 @@ sync_icloud() {
         done
     fi
 
+    # System config under system-backup/ (D3)
+    local SYS_PATH="$ICLOUD_PATH/system-backup"
+    mkdir -p "$SYS_PATH"
+    [[ -f "$CONFIG_FILE" ]] && {
+        rsync -a --update "$CONFIG_FILE" "$SYS_PATH/config.json" 2>/dev/null || \
+            cp "$CONFIG_FILE" "$SYS_PATH/config.json" 2>/dev/null || true
+    }
+    [[ -f "$CLAUDE_DIR/settings.json" ]] && {
+        rsync -a --update "$CLAUDE_DIR/settings.json" "$SYS_PATH/settings.json" 2>/dev/null || \
+            cp "$CLAUDE_DIR/settings.json" "$SYS_PATH/settings.json" 2>/dev/null || true
+    }
+    [[ -f "$CLAUDE_DIR/keybindings.json" ]] && {
+        rsync -a --update "$CLAUDE_DIR/keybindings.json" "$SYS_PATH/keybindings.json" 2>/dev/null || \
+            cp "$CLAUDE_DIR/keybindings.json" "$SYS_PATH/keybindings.json" 2>/dev/null || true
+    }
+    [[ -f "$CLAUDE_DIR/mcp.json" ]] && {
+        rsync -a --update "$CLAUDE_DIR/mcp.json" "$SYS_PATH/mcp.json" 2>/dev/null || \
+            cp "$CLAUDE_DIR/mcp.json" "$SYS_PATH/mcp.json" 2>/dev/null || true
+    }
+    [[ -f "$CLAUDE_DIR/history.jsonl" ]] && {
+        rsync -a --update "$CLAUDE_DIR/history.jsonl" "$SYS_PATH/history.jsonl" 2>/dev/null || \
+            cp "$CLAUDE_DIR/history.jsonl" "$SYS_PATH/history.jsonl" 2>/dev/null || true
+    }
+    [[ -d "$CLAUDE_DIR/plans" ]] && {
+        mkdir -p "$SYS_PATH/plans"
+        rsync -a --update "$CLAUDE_DIR/plans/" "$SYS_PATH/plans/" 2>/dev/null || \
+            cp -r "$CLAUDE_DIR/plans"/* "$SYS_PATH/plans/" 2>/dev/null || true
+    }
+    [[ -d "$CLAUDE_DIR/specs" ]] && {
+        mkdir -p "$SYS_PATH/specs"
+        rsync -a --update "$CLAUDE_DIR/specs/" "$SYS_PATH/specs/" 2>/dev/null || \
+            cp -r "$CLAUDE_DIR/specs"/* "$SYS_PATH/specs/" 2>/dev/null || true
+    }
+
     # Conversation index
     local _INDEX_FILE="$CLAUDE_DIR/conversation-index.json"
     if [[ -f "$_INDEX_FILE" ]]; then
-        mkdir -p "$ICLOUD_PATH/system-backup"
-        rsync -a --checksum "$_INDEX_FILE" "$ICLOUD_PATH/system-backup/conversation-index.json" 2>/dev/null || \
-            cp "$_INDEX_FILE" "$ICLOUD_PATH/system-backup/conversation-index.json" 2>/dev/null || true
+        rsync -a --checksum "$_INDEX_FILE" "$SYS_PATH/conversation-index.json" 2>/dev/null || \
+            cp "$_INDEX_FILE" "$SYS_PATH/conversation-index.json" 2>/dev/null || true
     fi
 
     log_backup "INFO" "iCloud sync complete."
@@ -463,7 +556,7 @@ if type update_conversation_index &>/dev/null; then
     update_conversation_index || log_backup "WARN" "Conversation index update failed" "sync.push.index"
 fi
 
-# --- Multi-backend sync loop (Design ref: D6) ---
+# --- Multi-backend sync loop ---
 _sync_errors=0
 while IFS= read -r backend; do
     [[ -z "$backend" ]] && continue
@@ -479,17 +572,17 @@ while IFS= read -r backend; do
     esac
 done < <(if type get_backends &>/dev/null; then get_backends; else echo "$BACKEND"; fi)
 
-# Write backup-meta.json after successful sync (Design ref: D7)
+# Write backup-meta.json after successful sync
 if [[ $_sync_errors -eq 0 ]] && type write_backup_meta &>/dev/null; then
     write_backup_meta "$CLAUDE_DIR"
 fi
 
-# --- Surface errors in session (mandate: visible error messages) ---
+# Surface errors in session
 if [[ $_sync_errors -gt 0 ]]; then
-    echo "{\"hookSpecificOutput\": \"Warning: personal sync completed with $_sync_errors error(s) — check ~/.claude/backup.log\"}" >&2
+    echo "{\"hookSpecificOutput\": \"Warning: sync completed with $_sync_errors error(s) — check ~/.claude/backup.log\"}" >&2
 fi
 
-# --- Update debounce marker (CRITICAL: must happen after sync) ---
+# Update debounce marker (CRITICAL: must happen after sync)
 if type debounce_touch &>/dev/null; then
     debounce_touch "$MARKER_FILE"
 else

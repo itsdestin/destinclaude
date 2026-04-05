@@ -782,8 +782,7 @@ phase_verify() {
           ['SessionStart',      'startup',    'session-start.sh'],
           ['PreToolUse',        'Write|Edit', 'write-guard.sh'],
           ['PreToolUse',        'Bash|Agent', 'worktree-guard.sh'],
-          ['PostToolUse',       'Write|Edit', 'git-sync.sh'],
-          ['PostToolUse',       'Write|Edit', 'personal-sync.sh'],
+          ['PostToolUse',       'Write|Edit', 'sync.sh'],
           ['PostToolUse',       '.*',         'title-update.sh'],
           ['UserPromptSubmit',  '.*',         'todo-capture.sh'],
           ['Stop',              '.*',         'checklist-reminder.sh'],
@@ -881,16 +880,11 @@ EOF
   fi
 
   # 2. Sync Status
-  if [ -f "$CLAUDE_HOME/hooks/git-sync.sh" ] || [ -L "$CLAUDE_HOME/hooks/git-sync.sh" ]; then
-    if [ -f "$CLAUDE_HOME/.sync-status" ]; then
-      emit "OK" "Sync Status" "git-sync.sh installed, .sync-status exists"
-      ok_count=$((ok_count + 1))
-    else
-      emit "OK" "Sync Status" "git-sync.sh installed, .sync-status created on first write"
-      ok_count=$((ok_count + 1))
-    fi
+  if [ -f "$CLAUDE_HOME/hooks/sync.sh" ] || [ -L "$CLAUDE_HOME/hooks/sync.sh" ]; then
+    emit "OK" "Sync Status" "sync.sh installed"
+    ok_count=$((ok_count + 1))
   else
-    emit "FAIL" "Sync Status" "git-sync.sh missing from hooks"
+    emit "FAIL" "Sync Status" "sync.sh missing from hooks"
     fail_count=$((fail_count + 1))
   fi
 

@@ -1,5 +1,5 @@
 #!/bin/bash
-# SessionStart hook: pull latest from Git, sync personal data, sync encyclopedia cache, extract MCP config, check inbox
+# SessionStart hook: sync personal data, sync encyclopedia cache, extract MCP config, check inbox
 set -euo pipefail
 
 CLAUDE_DIR="${CLAUDE_DIR:-$HOME/.claude}"
@@ -139,7 +139,7 @@ if [[ -f "$CONFIG_FILE" ]] && command -v node &>/dev/null; then
             drive)
                 if command -v rclone &>/dev/null; then
                     _DR=$(config_get "DRIVE_ROOT" "Claude")
-                    rclone copyto "$CONFIG_FILE" "gdrive:$_DR/Backup/personal/toolkit-state/config.json" 2>/dev/null || true
+                    rclone copyto "$CONFIG_FILE" "gdrive:$_DR/Backup/personal/system-backup/config.json" 2>/dev/null || true
                 fi
                 ;;
             github)
@@ -220,7 +220,7 @@ if [[ -n "$TOOLKIT_ROOT" && -d "$TOOLKIT_ROOT/core/hooks" ]]; then
     _MODIFIED=""
 
     # Check all expected toolkit hook files
-    for _hook in check-inbox.sh checklist-reminder.sh contribution-detector.sh done-sound.sh git-sync.sh personal-sync.sh session-start.sh title-update.sh todo-capture.sh tool-router.sh worktree-guard.sh write-guard.sh; do
+    for _hook in check-inbox.sh checklist-reminder.sh contribution-detector.sh done-sound.sh session-start.sh sync.sh title-update.sh todo-capture.sh tool-router.sh worktree-guard.sh write-guard.sh; do
         _installed="$CLAUDE_DIR/hooks/$_hook"
         _source="$TOOLKIT_ROOT/core/hooks/$_hook"
         if [[ -f "$_installed" && ! -L "$_installed" && -f "$_source" ]]; then
@@ -295,34 +295,7 @@ _session_sync_background() {
     local SYNC_ERRORS_FILE="$CLAUDE_DIR/toolkit-state/.session-sync-errors"
     > "$SYNC_ERRORS_FILE" 2>/dev/null
 
-    # --- Sub-function: Git pull (cross-device sync) ---
-    _bg_git_pull() {
-        cd "$CLAUDE_DIR" || return
-        if ! git remote get-url origin &>/dev/null; then return; fi
-
-        _GIT_DEFAULT=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's|refs/remotes/origin/||') || true
-        [[ -z "$_GIT_DEFAULT" ]] && _GIT_DEFAULT="main"
-
-        # Stash dirty files before pull (defense-in-depth alongside .gitignore migration)
-        local _stashed=false
-        if ! git diff --quiet 2>/dev/null || ! git diff --cached --quiet 2>/dev/null; then
-            git stash push -q -m "session-start: auto-stash before pull" 2>/dev/null \
-                && _stashed=true
-        fi
-
-        if ! git pull --rebase origin "$_GIT_DEFAULT" 2>/dev/null; then
-            git rebase --abort 2>/dev/null || true
-            log_backup "WARN" "Git pull failed on session start" "sync.pull.git"
-            echo "GIT:PULL_FAILED" >> "$SYNC_ERRORS_FILE"
-        fi
-
-        if [[ "$_stashed" == "true" ]]; then
-            git stash pop -q 2>/dev/null || \
-                log_backup "WARN" "Stash pop failed after session-start pull" "sync.pull.git"
-        fi
-    }
-
-    # --- Sub-function: Personal data pull (Design ref: D6) ---
+    # --- Sub-function: Personal data pull ---
     _bg_personal_data_pull() {
         local _PULL_BACKEND=""
         if type get_preferred_backend &>/dev/null; then
@@ -356,7 +329,7 @@ _session_sync_background() {
                         # Parallel rclone calls for independent data categories
                         rclone copy "$DRIVE_SOURCE/CLAUDE.md" "$CLAUDE_DIR/" \
                             --update 2>/dev/null &
-                        rclone copy "$DRIVE_SOURCE/toolkit-state/config.json" "$CLAUDE_DIR/toolkit-state/" \
+                        rclone copy "$DRIVE_SOURCE/system-backup/config.json" "$CLAUDE_DIR/toolkit-state/" \
                             --update 2>/dev/null &
                         # Only copy top-level .md files — exclude subdirectories to prevent
                         # contamination loops where stray dirs get mirrored into the cache.
@@ -398,7 +371,7 @@ _session_sync_background() {
                         # Copy restored files to live locations
                         [[ -d "$REPO_DIR/memory" ]] && rsync -a --update "$REPO_DIR/memory/" "$CLAUDE_DIR/projects/" 2>/dev/null || true
                         [[ -f "$REPO_DIR/CLAUDE.md" ]] && rsync -a --update "$REPO_DIR/CLAUDE.md" "$CLAUDE_DIR/" 2>/dev/null || true
-                        [[ -f "$REPO_DIR/toolkit-state/config.json" ]] && rsync -a --update "$REPO_DIR/toolkit-state/config.json" "$CLAUDE_DIR/toolkit-state/" 2>/dev/null || true
+                        [[ -f "$REPO_DIR/system-backup/config.json" ]] && rsync -a --update "$REPO_DIR/system-backup/config.json" "$CLAUDE_DIR/toolkit-state/" 2>/dev/null || true
                         [[ -d "$REPO_DIR/encyclopedia" ]] && rsync -a --update "$REPO_DIR/encyclopedia/" "$CLAUDE_DIR/encyclopedia/" 2>/dev/null || true
                         # Conversations
                         if [[ -d "$REPO_DIR/conversations" ]]; then
@@ -433,7 +406,7 @@ _session_sync_background() {
                     if [[ -n "$ICLOUD_PATH" && -d "$ICLOUD_PATH" ]]; then
                         [[ -d "$ICLOUD_PATH/memory" ]] && rsync -a --update "$ICLOUD_PATH/memory/" "$CLAUDE_DIR/projects/" 2>/dev/null || true
                         [[ -f "$ICLOUD_PATH/CLAUDE.md" ]] && rsync -a --update "$ICLOUD_PATH/CLAUDE.md" "$CLAUDE_DIR/" 2>/dev/null || true
-                        [[ -f "$ICLOUD_PATH/toolkit-state/config.json" ]] && rsync -a --update "$ICLOUD_PATH/toolkit-state/config.json" "$CLAUDE_DIR/toolkit-state/" 2>/dev/null || true
+                        [[ -f "$ICLOUD_PATH/system-backup/config.json" ]] && rsync -a --update "$ICLOUD_PATH/system-backup/config.json" "$CLAUDE_DIR/toolkit-state/" 2>/dev/null || true
                         [[ -d "$ICLOUD_PATH/encyclopedia" ]] && rsync -a --update "$ICLOUD_PATH/encyclopedia/" "$CLAUDE_DIR/encyclopedia/" 2>/dev/null || true
                         # Conversations
                         if [[ -d "$ICLOUD_PATH/conversations" ]]; then
@@ -531,7 +504,7 @@ _session_sync_background() {
             echo "PERSONAL:NOT_CONFIGURED" >> "$WARNINGS_FILE"
         else
             # Check if last sync is stale (>24 hours)
-            local _PS_MARKER="$CLAUDE_DIR/toolkit-state/.personal-sync-marker"
+            local _PS_MARKER="$CLAUDE_DIR/toolkit-state/.sync-marker"
             if [[ -f "$_PS_MARKER" ]]; then
                 local _PS_LAST _PS_NOW _PS_AGE
                 _PS_LAST=$(cat "$_PS_MARKER" 2>/dev/null || echo 0)
@@ -541,15 +514,6 @@ _session_sync_background() {
                     echo "PERSONAL:STALE" >> "$WARNINGS_FILE"
                 fi
             fi
-        fi
-
-        # 1b. Git repo health (Design ref: D8)
-        local _GIT_REMOTE=""
-        if type config_get &>/dev/null; then
-            _GIT_REMOTE=$(config_get "GIT_REMOTE" "")
-        fi
-        if [[ -n "$_GIT_REMOTE" && "$_GIT_REMOTE" != "none" && ! -d "$CLAUDE_DIR/.git" ]]; then
-            echo "GIT:NOT_INITIALIZED" >> "$WARNINGS_FILE"
         fi
 
         # 2. Unrouted user skills (not toolkit symlinks, not git-tracked, not in skill-routes.json)
@@ -667,7 +631,6 @@ VEREOF
     # -----------------------------------------------------------------------
     # Launch network operations in parallel
     # -----------------------------------------------------------------------
-    _bg_git_pull &
     _bg_personal_data_pull &
     _bg_legacy_migration &
     _bg_version_check &
@@ -730,14 +693,14 @@ VEREOF
     # -----------------------------------------------------------------------
     # Staleness catch-up: if personal sync hasn't run in 24h, trigger it
     # -----------------------------------------------------------------------
-    local _personal_marker="$CLAUDE_DIR/toolkit-state/.personal-sync-marker"
+    local _personal_marker="$CLAUDE_DIR/toolkit-state/.sync-marker"
     if [[ -f "$_personal_marker" ]]; then
         local _last_sync _stale_age
         _last_sync=$(cat "$_personal_marker" 2>/dev/null || echo 0)
         _stale_age=$(( $(date +%s) - _last_sync ))
         if (( _stale_age > 86400 )); then
             log_backup "INFO" "Personal sync stale (${_stale_age}s) — triggering catch-up" "sync.stale"
-            bash "$CLAUDE_DIR/hooks/personal-sync.sh" \
+            bash "$CLAUDE_DIR/hooks/sync.sh" \
                 <<< '{"tool_input":{"file_path":"'"$CLAUDE_DIR/CLAUDE.md"'"}}' &
         fi
     fi
