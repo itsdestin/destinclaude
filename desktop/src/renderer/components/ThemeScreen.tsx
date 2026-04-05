@@ -11,7 +11,7 @@ const FALLBACK_FONTS = [
   'Source Code Pro', 'System UI', 'Times New Roman', 'Verdana',
 ];
 
-const PARTICLE_OPTIONS = ['none', 'rain', 'dust', 'ember', 'snow'] as const;
+const PARTICLE_OPTIONS = ['none', 'rain', 'dust', 'ember', 'snow', 'custom'] as const;
 
 function roundnessToShape(value: number) {
   const sm  = Math.round(value * 8);
