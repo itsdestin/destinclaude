@@ -33,7 +33,13 @@ export function scanSkills(): SkillEntry[] {
 
     const curated = registry[id];
     if (curated) {
-      skills.push({ id, ...curated, pluginName } as SkillEntry);
+      skills.push({
+        id,
+        ...curated,
+        type: curated.type || 'plugin',
+        visibility: curated.visibility || 'published',
+        pluginName,
+      } as SkillEntry);
     } else {
       skills.push({
         id,
@@ -42,6 +48,8 @@ export function scanSkills(): SkillEntry[] {
         category: 'other',
         prompt: `/${id}`,
         source: inferredSource,
+        type: 'plugin',
+        visibility: 'published',
         pluginName,
       });
     }
@@ -101,7 +109,12 @@ export function scanSkills(): SkillEntry[] {
   // 3. Add curated-only entries (skills that exist in registry but weren't discovered on disk)
   for (const [id, meta] of Object.entries(registry)) {
     if (!discoveredIds.has(id)) {
-      skills.push({ id, ...meta } as SkillEntry);
+      skills.push({
+        id,
+        ...meta,
+        type: (meta as any).type || 'plugin',
+        visibility: (meta as any).visibility || 'published',
+      } as SkillEntry);
     }
   }
 

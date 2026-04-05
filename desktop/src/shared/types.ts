@@ -71,16 +71,84 @@ export interface ChatMessage {
   timestamp: number;
 }
 
-// --- Command drawer types ---
+// --- Command drawer / marketplace types ---
 
 export interface SkillEntry {
+  // Existing
   id: string;
   displayName: string;
   description: string;
   category: 'personal' | 'work' | 'development' | 'admin' | 'other';
   prompt: string;
-  source: 'destinclaude' | 'self' | 'plugin';
+  source: 'destinclaude' | 'self' | 'plugin' | 'marketplace';
   pluginName?: string;
+
+  // New — marketplace fields
+  type: 'prompt' | 'plugin';
+  author?: string;
+  version?: string;
+  rating?: number;
+  ratingCount?: number;
+  installs?: number;
+  visibility: 'private' | 'shared' | 'published';
+  installedAt?: string;
+  updatedAt?: string;
+  repoUrl?: string;
+}
+
+export interface SkillDetailView extends SkillEntry {
+  fullDescription?: string;
+  tags?: string[];
+  publishedAt?: string;
+  authorGithub?: string;
+  sourceRegistry?: string;
+}
+
+export interface SkillFilters {
+  type?: 'prompt' | 'plugin';
+  category?: SkillEntry['category'];
+  sort?: 'popular' | 'newest' | 'rating' | 'name';
+  query?: string;
+}
+
+export interface ChipConfig {
+  skillId?: string;  // optional — chips can exist without a backing skill (e.g., "Git Status" is just a prompt)
+  label: string;
+  prompt: string;
+}
+
+export interface MetadataOverride {
+  displayName?: string;
+  description?: string;
+  category?: SkillEntry['category'];
+}
+
+export interface UserSkillConfig {
+  version: 1;
+  favorites: string[];
+  chips: ChipConfig[];
+  overrides: Record<string, MetadataOverride>;
+  privateSkills: SkillEntry[];
+}
+
+export interface SkillProvider {
+  listMarketplace(filters?: SkillFilters): Promise<SkillEntry[]>;
+  getSkillDetail(id: string): Promise<SkillDetailView>;
+  search(query: string): Promise<SkillEntry[]>;
+  getInstalled(): Promise<SkillEntry[]>;
+  getFavorites(): Promise<string[]>;
+  getChips(): Promise<ChipConfig[]>;
+  getOverrides(): Promise<Record<string, MetadataOverride>>;
+  install(id: string): Promise<void>;
+  uninstall(id: string): Promise<void>;
+  setFavorite(id: string, favorited: boolean): Promise<void>;
+  setChips(chips: ChipConfig[]): Promise<void>;
+  setOverride(id: string, override: MetadataOverride): Promise<void>;
+  createPromptSkill(skill: Omit<SkillEntry, 'id'>): Promise<SkillEntry>;
+  deletePromptSkill(id: string): Promise<void>;
+  publish(id: string): Promise<{ prUrl: string }>;
+  generateShareLink(id: string): Promise<string>;
+  importFromLink(encoded: string): Promise<SkillEntry>;
 }
 
 export interface PastSession {
@@ -113,6 +181,23 @@ export const IPC = {
   SESSION_RESIZE: 'session:resize',
   SESSION_LIST: 'session:list',
   SKILLS_LIST: 'skills:list',
+  SKILLS_LIST_MARKETPLACE: 'skills:list-marketplace',
+  SKILLS_GET_DETAIL: 'skills:get-detail',
+  SKILLS_SEARCH: 'skills:search',
+  SKILLS_INSTALL: 'skills:install',
+  SKILLS_UNINSTALL: 'skills:uninstall',
+  SKILLS_GET_FAVORITES: 'skills:get-favorites',
+  SKILLS_SET_FAVORITE: 'skills:set-favorite',
+  SKILLS_GET_CHIPS: 'skills:get-chips',
+  SKILLS_SET_CHIPS: 'skills:set-chips',
+  SKILLS_GET_OVERRIDE: 'skills:get-override',
+  SKILLS_SET_OVERRIDE: 'skills:set-override',
+  SKILLS_CREATE_PROMPT: 'skills:create-prompt',
+  SKILLS_DELETE_PROMPT: 'skills:delete-prompt',
+  SKILLS_PUBLISH: 'skills:publish',
+  SKILLS_GET_SHARE_LINK: 'skills:get-share-link',
+  SKILLS_IMPORT_FROM_LINK: 'skills:import-from-link',
+  SKILLS_GET_CURATED_DEFAULTS: 'skills:get-curated-defaults',
   TERMINAL_READY: 'session:terminal-ready',
   // Main -> Renderer
   SESSION_CREATED: 'session:created',
