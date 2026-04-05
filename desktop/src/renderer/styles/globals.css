@@ -27,6 +27,10 @@
   --scrollbar-hover: #999999;
   --hl-theme: light;
   color-scheme: light;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
 }
 
 /* ─── Dark ─── */
@@ -48,6 +52,10 @@
   --scrollbar-hover: #555555;
   --hl-theme: dark;
   color-scheme: dark;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
 }
 
 /* ─── Midnight ─── */
@@ -69,6 +77,10 @@
   --scrollbar-hover: #484F58;
   --hl-theme: dark;
   color-scheme: dark;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
 }
 
 /* ─── Crème ─── */
@@ -90,6 +102,10 @@
   --scrollbar-hover: #A89A8A;
   --hl-theme: light;
   color-scheme: light;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -116,6 +132,12 @@
   /* Borders */
   --color-edge: var(--edge);
   --color-edge-dim: var(--edge-dim);
+
+  /* Border radius scale — driven by theme variables */
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-full: var(--radius-full);
 
   /* Status colors — constant across all themes */
   --color-green-400: #4CAF50;
@@ -201,6 +223,95 @@ html, body, #root {
 
 ::-webkit-scrollbar-corner {
   background: transparent;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Theme background layer — sits behind all panels
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+#theme-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: var(--canvas);
+  opacity: 1;
+}
+
+/* Glassmorphism panels — active when data-panels-blur is set on <html> */
+[data-panels-blur] .bg-panel {
+  backdrop-filter: blur(var(--panels-blur, 0px));
+  -webkit-backdrop-filter: blur(var(--panels-blur, 0px));
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Layout presets — applied via data attributes on <body>
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Input styles */
+[data-input-style="floating"] .input-bar-container {
+  margin: 8px 12px;
+  border-radius: var(--radius-full);
+  box-shadow: 0 2px 16px rgba(0,0,0,0.2);
+}
+
+[data-input-style="minimal"] .input-bar-container {
+  border-top: none;
+  background: transparent;
+}
+
+[data-input-style="terminal"] .input-bar-container {
+  border-radius: 0;
+  font-family: var(--font-mono);
+  border-top: 1px solid var(--edge);
+}
+
+/* Bubble styles */
+[data-bubble-style="pill"] .assistant-bubble,
+[data-bubble-style="pill"] .user-bubble {
+  border-radius: var(--radius-full);
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+[data-bubble-style="flat"] .assistant-bubble,
+[data-bubble-style="flat"] .user-bubble {
+  border-radius: 0;
+  border-left: 2px solid var(--edge);
+}
+
+[data-bubble-style="bordered"] .assistant-bubble,
+[data-bubble-style="bordered"] .user-bubble {
+  border: 1px solid var(--edge);
+  border-radius: var(--radius-md);
+}
+
+/* Header styles */
+[data-header-style="minimal"] .header-bar {
+  background: transparent;
+  border-bottom: none;
+}
+
+[data-header-style="hidden"] .header-bar {
+  display: none;
+}
+
+/* Status bar styles */
+[data-statusbar-style="minimal"] .status-bar {
+  background: transparent;
+  border-top: none;
+  font-size: 9px;
+}
+
+[data-statusbar-style="floating"] .status-bar {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-radius: var(--radius-full);
+  background: var(--panel);
+  border: 1px solid var(--edge);
+  padding: 2px 12px;
 }
 
 @keyframes breathe {
