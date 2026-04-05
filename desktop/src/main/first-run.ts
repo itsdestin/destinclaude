@@ -91,11 +91,13 @@ export class FirstRunManager extends EventEmitter {
         return;
       }
 
-      // If resuming at a later step (e.g., after app restart), re-run detection
-      // to get accurate state rather than blindly replaying. Auth mode is reset
-      // so the user sees the login button again instead of stale "Waiting..." text.
+      // If resuming at an interactive step (e.g., after app restart), re-run
+      // detection to get accurate state rather than blindly replaying. Auth mode
+      // is reset so the user sees the login button again instead of stale text.
+      // LAUNCH_WIZARD is NOT re-detected — it means all prereqs already passed.
+      // runStep('LAUNCH_WIZARD') emits the event and advances to COMPLETE.
       const step = this.state.currentStep;
-      if (step === 'AUTHENTICATE' || step === 'LAUNCH_WIZARD' || step === 'ENABLE_DEVELOPER_MODE') {
+      if (step === 'AUTHENTICATE' || step === 'ENABLE_DEVELOPER_MODE') {
         this.state.authMode = 'none';
         this.state.lastError = undefined;
         await this.detectAll();
@@ -305,6 +307,7 @@ export class FirstRunManager extends EventEmitter {
       this.advanceTo('LAUNCH_WIZARD');
       this.updateState({ statusMessage: 'Launching setup wizard...' });
       this.emit('launch-wizard');
+      this.advanceTo('COMPLETE');
     }
   }
 
@@ -334,6 +337,7 @@ export class FirstRunManager extends EventEmitter {
         this.advanceTo('LAUNCH_WIZARD');
         this.updateState({ statusMessage: 'Launching setup wizard...' });
         this.emit('launch-wizard');
+        this.advanceTo('COMPLETE');
       }
     } else {
       this.updateState({
@@ -378,6 +382,7 @@ export class FirstRunManager extends EventEmitter {
         this.advanceTo('LAUNCH_WIZARD');
         this.updateState({ statusMessage: 'Launching setup wizard...' });
         this.emit('launch-wizard');
+        this.advanceTo('COMPLETE');
       } else {
         this.updateState({ authMode: 'none', lastError: 'Login timed out. Try again?' });
         this.updatePrereq('auth', { status: 'failed', error: 'Timed out' });
@@ -399,6 +404,7 @@ export class FirstRunManager extends EventEmitter {
       this.advanceTo('LAUNCH_WIZARD');
       this.updateState({ statusMessage: 'Launching setup wizard...' });
       this.emit('launch-wizard');
+      this.advanceTo('COMPLETE');
     } else {
       this.updateState({
         lastError: `API key authentication failed: ${result.error}`,

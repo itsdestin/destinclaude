@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import type { FirstRunState, PrerequisiteState } from '../../shared/first-run-types';
 
 /* ------------------------------------------------------------------ */
@@ -163,7 +163,6 @@ interface FirstRunViewProps {
 
 export default function FirstRunView({ onComplete }: FirstRunViewProps) {
   const [state, setState] = useState<FirstRunState | null>(null);
-  const completeFired = useRef(false);
 
   // Fetch initial state + subscribe to updates
   useEffect(() => {
@@ -179,13 +178,12 @@ export default function FirstRunView({ onComplete }: FirstRunViewProps) {
   }, []);
 
   // Transition to main app on completion.
-  // Only depends on currentStep — onComplete is stable (useCallback in parent).
-  // completeFired ref prevents double-fire if step oscillates.
+  // When the step reaches LAUNCH_WIZARD or COMPLETE, wait 1.5s then transition.
+  // If the step changes away (e.g. re-detection on resume), the timer is cleaned
+  // up and re-created when the step reaches a terminal state again.
   useEffect(() => {
     if (!state) return;
-    if (completeFired.current) return;
     if (state.currentStep === 'LAUNCH_WIZARD' || state.currentStep === 'COMPLETE') {
-      completeFired.current = true;
       const timer = setTimeout(onComplete, 1500);
       return () => clearTimeout(timer);
     }
