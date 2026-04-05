@@ -80,7 +80,7 @@ export default function SettingsPanel({ open, onClose, onSendInput, hasActiveSes
           </div>
 
           {isAndroid() ? (
-            <AndroidSettings open={open} onClose={onClose} />
+            <AndroidSettings open={open} onClose={onClose} onSendInput={onSendInput} />
           ) : (
             <DesktopSettings
               open={open}
@@ -220,7 +220,7 @@ interface PairedDevice {
   password: string;
 }
 
-function AndroidSettings({ open, onClose }: { open: boolean; onClose: () => void }) {
+function AndroidSettings({ open, onClose, onSendInput }: { open: boolean; onClose: () => void; onSendInput: (text: string) => void }) {
   const [loading, setLoading] = useState(true);
   const [tier, setTier] = useState('CORE');
   const [directories, setDirectories] = useState<{ label: string; path: string }[]>([]);
@@ -360,34 +360,39 @@ function AndroidSettings({ open, onClose }: { open: boolean; onClose: () => void
     <>
       <div className="flex-1 px-4 py-4 space-y-6">
 
-        <ThemeScreen onClose={onClose} />
+        <ThemeScreen onClose={onClose} onSendInput={onSendInput} />
 
-        <TierSelector tier={tier} onSetTier={handleSetTier} />
+        {/* Tier & directories are local-only — hide when connected to remote desktop */}
+        {!remoteConnected && (
+          <>
+            <TierSelector tier={tier} onSetTier={handleSetTier} />
 
-        {/* Project Directories */}
-        <section>
-          <h3 className="text-[10px] font-medium text-fg-muted tracking-wider uppercase mb-3">Project Directories</h3>
-          {directories.length > 0 ? (
-            <div className="space-y-1">
-              {directories.map(dir => (
-                <div key={dir.path} className="flex items-center justify-between py-1.5 px-2 rounded bg-inset/50">
-                  <div className="min-w-0 flex-1">
-                    <span className="text-xs text-fg-2 block truncate">{dir.label}</span>
-                    <span className="text-[10px] text-fg-faint block truncate font-mono">{dir.path}</span>
-                  </div>
-                  <button
-                    onClick={() => handleRemoveDirectory(dir.path)}
-                    className="text-fg-faint hover:text-red-400 text-sm leading-none px-1 shrink-0 ml-2"
-                  >
-                    ✕
-                  </button>
+            {/* Project Directories */}
+            <section>
+              <h3 className="text-[10px] font-medium text-fg-muted tracking-wider uppercase mb-3">Project Directories</h3>
+              {directories.length > 0 ? (
+                <div className="space-y-1">
+                  {directories.map(dir => (
+                    <div key={dir.path} className="flex items-center justify-between py-1.5 px-2 rounded bg-inset/50">
+                      <div className="min-w-0 flex-1">
+                        <span className="text-xs text-fg-2 block truncate">{dir.label}</span>
+                        <span className="text-[10px] text-fg-faint block truncate font-mono">{dir.path}</span>
+                      </div>
+                      <button
+                        onClick={() => handleRemoveDirectory(dir.path)}
+                        className="text-fg-faint hover:text-red-400 text-sm leading-none px-1 shrink-0 ml-2"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-[10px] text-fg-faint">No custom directories. Home (~) is always available.</p>
-          )}
-        </section>
+              ) : (
+                <p className="text-[10px] text-fg-faint">No custom directories. Home (~) is always available.</p>
+              )}
+            </section>
+          </>
+        )}
 
         {/* Connect to Desktop */}
         <section>
@@ -653,7 +658,7 @@ function DesktopSettings({ open, onClose, onSendInput, hasActiveSession }: {
     <>
       <div className="flex-1 px-4 py-4 space-y-6">
 
-        <ThemeScreen onClose={onClose} />
+        <ThemeScreen onClose={onClose} onSendInput={onSendInput} />
 
         {/* Setup banner — shown when no clients connected */}
         {!hasClients && (

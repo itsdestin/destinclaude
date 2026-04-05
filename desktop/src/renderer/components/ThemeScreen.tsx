@@ -20,9 +20,9 @@ function roundnessToShape(value: number) {
   return { 'radius-sm': `${sm}px`, 'radius-md': `${md}px`, 'radius-lg': `${lg}px`, 'radius-full': '9999px' };
 }
 
-interface Props { onClose: () => void; }
+interface Props { onClose: () => void; onSendInput?: (text: string) => void; }
 
-export default function ThemeScreen({ onClose }: Props) {
+export default function ThemeScreen({ onClose, onSendInput }: Props) {
   const { allThemes, theme: activeSlug, setTheme, cycleList, setCycleList, font, setFont, activeTheme } = useTheme();
   const [fonts, setFonts] = useState<string[] | null>(null);
   const [fontSearch, setFontSearch] = useState('');
@@ -210,7 +210,7 @@ export default function ThemeScreen({ onClose }: Props) {
         {/* Build with Claude */}
         <button
           onClick={() => {
-            (window as any).claude?.session?.sendInput?.('/theme-builder ');
+            onSendInput?.('/theme-builder ');
             onClose();
           }}
           className="w-full py-2 rounded-lg border border-accent/30 bg-accent/10 text-accent text-xs font-medium hover:bg-accent/20 transition-colors"
