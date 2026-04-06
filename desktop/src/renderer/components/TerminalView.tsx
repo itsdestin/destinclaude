@@ -11,11 +11,19 @@ import { useTheme } from '../state/theme-context';
 /** Read the current theme CSS variables and return an xterm ITheme. */
 function getXtermTheme(): { background: string; foreground: string; cursor: string; selectionBackground: string } {
   const s = getComputedStyle(document.documentElement);
-  const bg = s.getPropertyValue('--canvas').trim() || '#0A0A0A';
   const fg = s.getPropertyValue('--fg').trim() || '#E0E0E0';
   const accent = s.getPropertyValue('--accent').trim() || '#264f78';
+  // When glassmorphism is active, make xterm background transparent so the
+  // wallpaper shows through the frosted container behind it
+  const hasBlur = document.documentElement.hasAttribute('data-panels-blur');
+  const bg = hasBlur ? 'transparent' : (s.getPropertyValue('--canvas').trim() || '#0A0A0A');
   // Selection: accent at 30% opacity
   return { background: bg, foreground: fg, cursor: fg, selectionBackground: accent + '4D' };
+}
+
+/** Check if glassmorphism is active. */
+function hasGlassmorphism(): boolean {
+  return document.documentElement.hasAttribute('data-panels-blur');
 }
 
 interface Props {
@@ -149,6 +157,8 @@ export default function TerminalView({ sessionId, visible }: Props) {
     terminalRef.current?.write(data, () => notifyBufferReady(sessionId));
   });
 
+  const glass = hasGlassmorphism();
+
   return (
     <div
       ref={containerRef}
@@ -159,7 +169,9 @@ export default function TerminalView({ sessionId, visible }: Props) {
         left: 0,
         right: 0,
         bottom: 0,
-        background: 'var(--canvas)',
+        background: glass ? 'transparent' : 'var(--canvas)',
+        backdropFilter: glass ? 'blur(24px) saturate(1.2)' : undefined,
+        WebkitBackdropFilter: glass ? 'blur(24px) saturate(1.2)' : undefined,
         borderRadius: 'var(--radius-md)',
         overflow: 'hidden',
         // Use visibility:hidden instead of display:none so xterm.js can
