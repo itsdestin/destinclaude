@@ -291,6 +291,12 @@ html, body, #root {
   background-color: var(--panel-glass, var(--panel));
 }
 
+/* When glassmorphism is active, make the main canvas transparent
+   so the #theme-bg wallpaper shows through behind blurred panels */
+[data-panels-blur] .bg-canvas {
+  background-color: transparent !important;
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
    Layout presets — applied via data attributes on <body>
    ═══════════════════════════════════════════════════════════════════════════ */
