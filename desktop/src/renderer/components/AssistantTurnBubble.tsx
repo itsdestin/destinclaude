@@ -109,7 +109,7 @@ export default function AssistantTurnBubble({ turn, toolGroups, toolCalls, sessi
         const toolsOnly = hasTools && !bubble.text;
         return (
           <div key={bubble.key} className="flex justify-start px-4 py-0.5">
-            <div className={`assistant-bubble max-w-[85%] rounded-2xl rounded-bl-sm bg-inset text-sm text-fg overflow-hidden px-5 ${toolsOnly ? 'py-2.5' : hasTools ? 'pt-4 pb-2' : 'py-3.5'}`}>
+            <div className={`assistant-bubble max-w-[85%] rounded-2xl rounded-bl-sm bg-inset text-sm text-fg px-5 ${toolsOnly ? 'py-2.5' : hasTools ? 'pt-4 pb-3' : 'py-3.5'}`}>
               {bubble.text && (
                 <MarkdownContent content={bubble.text.content} />
               )}

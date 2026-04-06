@@ -264,7 +264,7 @@ export default function ChatView({ sessionId, visible, resumeInfo }: Props) {
             {/* Awaiting-approval tools pop out as standalone bubbles at the bottom */}
             {awaitingTools.map((tool) => (
                 <div key={tool.toolUseId} className="flex justify-start px-4 py-0.5">
-                  <div className="assistant-bubble max-w-[85%] rounded-2xl rounded-bl-sm bg-inset overflow-hidden px-4 py-2">
+                  <div className="assistant-bubble max-w-[85%] rounded-2xl rounded-bl-sm bg-inset px-5 py-3">
                     <ToolCard tool={tool} sessionId={sessionId} />
                   </div>
                 </div>
