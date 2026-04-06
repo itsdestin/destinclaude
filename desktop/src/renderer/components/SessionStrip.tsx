@@ -142,30 +142,26 @@ export default function SessionStrip({
 
   // Shift-hold session switcher: hold Shift to open dropdown, arrow keys to
   // navigate, release Shift to switch to the highlighted session
+  const shiftHoldTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
-    let shiftAlone = true;
-
     const onKeyDown = (e: KeyboardEvent) => {
       const tag = (document.activeElement?.tagName || '').toLowerCase();
       if (tag === 'input' || tag === 'textarea') return;
 
-      if (e.key === 'Shift' && !e.ctrlKey && !e.altKey && !e.metaKey) {
-        shiftAlone = true;
-        return;
-      }
-
-      // If Shift is held and user presses arrow keys, activate navigation
-      if (e.shiftKey && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
-        e.preventDefault();
-        if (!shiftNavActive.current) {
-          // First arrow press while holding Shift — open dropdown
+      // Bare Shift press — start hold timer to open dropdown
+      if (e.key === 'Shift' && !e.ctrlKey && !e.altKey && !e.metaKey && !shiftNavActive.current) {
+        shiftHoldTimer.current = setTimeout(() => {
           shiftNavActive.current = true;
-          shiftAlone = false;
           const currentIdx = sessions.findIndex(s => s.id === activeSessionId);
           setShiftNavIdx(currentIdx >= 0 ? currentIdx : 0);
           setMenuOpen(true);
-        }
-        // Navigate
+        }, 150);
+        return;
+      }
+
+      // Arrow keys while shift-nav is active
+      if (shiftNavActive.current && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+        e.preventDefault();
         setShiftNavIdx(prev => {
           if (e.key === 'ArrowDown') return Math.min(prev + 1, sessions.length - 1);
           return Math.max(prev - 1, 0);
@@ -173,21 +169,31 @@ export default function SessionStrip({
         return;
       }
 
-      // Any other key while Shift is held means it's not a bare Shift
-      if (e.shiftKey) shiftAlone = false;
+      // Any other key while Shift is held — cancel the hold timer
+      if (shiftHoldTimer.current) {
+        clearTimeout(shiftHoldTimer.current);
+        shiftHoldTimer.current = null;
+      }
     };
 
     const onKeyUp = (e: KeyboardEvent) => {
-      if (e.key === 'Shift' && shiftNavActive.current) {
-        // Release Shift — select the highlighted session and close
-        shiftNavActive.current = false;
-        setShiftNavIdx(idx => {
-          if (idx >= 0 && idx < sessions.length) {
-            onSelectSession(sessions[idx].id);
-          }
-          return -1;
-        });
-        setMenuOpen(false);
+      if (e.key === 'Shift') {
+        // Cancel hold timer if Shift was released before it fired
+        if (shiftHoldTimer.current) {
+          clearTimeout(shiftHoldTimer.current);
+          shiftHoldTimer.current = null;
+        }
+        if (shiftNavActive.current) {
+          // Release Shift — select the highlighted session and close
+          shiftNavActive.current = false;
+          setShiftNavIdx(idx => {
+            if (idx >= 0 && idx < sessions.length) {
+              onSelectSession(sessions[idx].id);
+            }
+            return -1;
+          });
+          setMenuOpen(false);
+        }
       }
     };
 
@@ -196,6 +202,7 @@ export default function SessionStrip({
     return () => {
       window.removeEventListener('keydown', onKeyDown, true);
       window.removeEventListener('keyup', onKeyUp, true);
+      if (shiftHoldTimer.current) clearTimeout(shiftHoldTimer.current);
     };
   }, [sessions, activeSessionId, onSelectSession]);
 
@@ -353,7 +360,7 @@ export default function SessionStrip({
 
   return (
     <>
-      <div ref={pillBarRef} className="flex items-center gap-0.5 bg-inset rounded-full px-1.5 py-0.5 overflow-hidden">
+      <div ref={pillBarRef} className="flex items-center gap-0.5 bg-inset rounded-full px-1.5 py-0.5 overflow-hidden min-w-0 shrink">
         {/* ── Session pills ──────────────────────────────── */}
         {visibleSessions.map((s, idx) => {
           const color = sessionStatuses?.get(s.id) || 'gray';
@@ -397,7 +404,7 @@ export default function SessionStrip({
                   className="text-xs font-medium text-fg-2 whitespace-nowrap overflow-hidden text-ellipsis"
                   style={{
                     maxWidth: showName
-                      ? (isCompact ? 100 : (isActive ? 'none' : 120))
+                      ? (isActive ? 'none' : 120)
                       : 0,
                     opacity: showName ? 1 : 0,
                     transition: allExpanded ? 'none' : 'max-width 200ms ease, opacity 150ms ease',
