@@ -297,50 +297,50 @@ html, body, #root {
   background-color: transparent !important;
 }
 
-/* Header bar — frosted glass overlay, content scrolls underneath */
+/* Header bar — heavy frosted glass overlay, content scrolls underneath */
 [data-panels-blur] .header-bar {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   z-index: 20;
-  backdrop-filter: blur(var(--panels-blur, 0px));
-  -webkit-backdrop-filter: blur(var(--panels-blur, 0px));
-  background-color: var(--panel-glass, var(--panel));
+  backdrop-filter: blur(24px) saturate(1.2);
+  -webkit-backdrop-filter: blur(24px) saturate(1.2);
+  background-color: color-mix(in srgb, var(--panel) 88%, transparent);
 }
 
 /* Chat scroll area extends behind header — extra top padding so
    content starts below the header but scrolls up behind it */
 [data-panels-blur] .chat-scroll {
-  padding-top: 3rem; /* 48px ≈ h-10 header (40px) + 8px breathing room */
+  padding-top: 3rem;
 }
 
-/* Status bar — frosted glass with blur */
+/* Status bar — heavy frosted glass */
 [data-panels-blur] .status-bar {
-  backdrop-filter: blur(var(--panels-blur, 0px));
-  -webkit-backdrop-filter: blur(var(--panels-blur, 0px));
-  background-color: var(--panel-glass, var(--panel));
+  backdrop-filter: blur(24px) saturate(1.2);
+  -webkit-backdrop-filter: blur(24px) saturate(1.2);
+  background-color: color-mix(in srgb, var(--panel) 88%, transparent);
 }
 
-/* Input bar wrapper — frosted glass */
+/* Input bar wrapper — heavy frosted glass */
 [data-panels-blur] .border-t.shrink-0:has(form) {
-  backdrop-filter: blur(var(--panels-blur, 0px));
-  -webkit-backdrop-filter: blur(var(--panels-blur, 0px));
-  background-color: var(--panel-glass, var(--panel));
+  backdrop-filter: blur(24px) saturate(1.2);
+  -webkit-backdrop-filter: blur(24px) saturate(1.2);
+  background-color: color-mix(in srgb, var(--panel) 88%, transparent);
 }
 
-/* Chat bubbles (assistant) — semi-transparent inset with subtle blur */
+/* Chat bubbles (assistant) — frosted glass, mostly opaque */
 [data-panels-blur] .bg-inset {
-  backdrop-filter: blur(calc(var(--panels-blur, 0px) * 0.5));
-  -webkit-backdrop-filter: blur(calc(var(--panels-blur, 0px) * 0.5));
-  background-color: color-mix(in srgb, var(--inset) 75%, transparent);
+  backdrop-filter: blur(16px) saturate(1.1);
+  -webkit-backdrop-filter: blur(16px) saturate(1.1);
+  background-color: color-mix(in srgb, var(--inset) 90%, transparent);
 }
 
-/* User message bubble — semi-transparent accent with subtle blur */
+/* User message bubble — frosted accent, mostly opaque */
 [data-panels-blur] .bg-accent {
-  backdrop-filter: blur(calc(var(--panels-blur, 0px) * 0.5));
-  -webkit-backdrop-filter: blur(calc(var(--panels-blur, 0px) * 0.5));
-  background-color: color-mix(in srgb, var(--accent) 85%, transparent);
+  backdrop-filter: blur(16px) saturate(1.1);
+  -webkit-backdrop-filter: blur(16px) saturate(1.1);
+  background-color: color-mix(in srgb, var(--accent) 90%, transparent);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
