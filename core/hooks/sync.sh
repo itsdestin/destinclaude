@@ -44,6 +44,8 @@ case "$FILE_PATH" in
     */projects/*/memory/*) ;;
     */CLAUDE.md) ;;
     */encyclopedia/*) ;;
+    */vault-header.json) ;;
+    */vault/*.enc) ;;
     */skills/*)
         if type is_toolkit_owned &>/dev/null && is_toolkit_owned "$FILE_PATH"; then
             exit 0
@@ -80,6 +82,14 @@ else
     BACKEND=$(grep -o '"PERSONAL_SYNC_BACKEND"[[:space:]]*:[[:space:]]*"[^"]*"' "$CONFIG_FILE" 2>/dev/null | head -1 | sed 's/.*"PERSONAL_SYNC_BACKEND"[[:space:]]*:[[:space:]]*"//' | sed 's/"$//' || echo "none")
     DRIVE_ROOT=$(grep -o '"DRIVE_ROOT"[[:space:]]*:[[:space:]]*"[^"]*"' "$CONFIG_FILE" 2>/dev/null | head -1 | sed 's/.*"DRIVE_ROOT"[[:space:]]*:[[:space:]]*"//' | sed 's/"$//' || echo "Claude")
     SYNC_REPO=$(grep -o '"PERSONAL_SYNC_REPO"[[:space:]]*:[[:space:]]*"[^"]*"' "$CONFIG_FILE" 2>/dev/null | head -1 | sed 's/.*"PERSONAL_SYNC_REPO"[[:space:]]*:[[:space:]]*"//' | sed 's/"$//' || echo "")
+fi
+
+# --- Vault state ---
+VAULT_ENABLED="false"
+if type config_get &>/dev/null; then
+    VAULT_ENABLED=$(config_get "vault_enabled" "false")
+elif command -v node &>/dev/null && [[ -f "$CONFIG_FILE" ]]; then
+    VAULT_ENABLED=$(node -e "try{const c=JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'));console.log(c.vault_enabled===true?'true':'false')}catch{console.log('false')}" "$CONFIG_FILE" 2>/dev/null) || VAULT_ENABLED="false"
 fi
 
 # --- Write registry update (for write-guard) ---
@@ -191,21 +201,36 @@ sync_drive() {
         }
     fi
 
-    # Encyclopedia
-    if [[ -d "$CLAUDE_DIR/encyclopedia" ]]; then
-        rclone copy "$CLAUDE_DIR/encyclopedia/" "$REMOTE_BASE/encyclopedia/" \
-            --update --max-depth 1 --include "*.md" 2>/dev/null || \
-            log_backup "WARN" "Encyclopedia sync to Backup failed"
+    # Encyclopedia (skip when vault is active — encrypted copies are pushed instead)
+    if [[ "$VAULT_ENABLED" != "true" ]]; then
+        if [[ -d "$CLAUDE_DIR/encyclopedia" ]]; then
+            rclone copy "$CLAUDE_DIR/encyclopedia/" "$REMOTE_BASE/encyclopedia/" \
+                --update --max-depth 1 --include "*.md" 2>/dev/null || \
+                log_backup "WARN" "Encyclopedia sync to Backup failed"
 
-        local _enc_remote_path="The Journal/System"
-        if [[ -f "$CONFIG_FILE" ]]; then
-            local _enc_configured
-            _enc_configured=$(grep -o '"encyclopedia_remote_path"[[:space:]]*:[[:space:]]*"[^"]*"' "$CONFIG_FILE" 2>/dev/null | head -1 | sed 's/.*"encyclopedia_remote_path"[[:space:]]*:[[:space:]]*"//' | sed 's/"$//' || true)
-            [[ -n "$_enc_configured" ]] && _enc_remote_path="$_enc_configured"
+            local _enc_remote_path="The Journal/System"
+            if [[ -f "$CONFIG_FILE" ]]; then
+                local _enc_configured
+                _enc_configured=$(grep -o '"encyclopedia_remote_path"[[:space:]]*:[[:space:]]*"[^"]*"' "$CONFIG_FILE" 2>/dev/null | head -1 | sed 's/.*"encyclopedia_remote_path"[[:space:]]*:[[:space:]]*"//' | sed 's/"$//' || true)
+                [[ -n "$_enc_configured" ]] && _enc_remote_path="$_enc_configured"
+            fi
+            rclone copy "$CLAUDE_DIR/encyclopedia/" "gdrive:$DRIVE_ROOT/$_enc_remote_path/" \
+                --update --max-depth 1 --include "*.md" 2>/dev/null || \
+                log_backup "WARN" "Encyclopedia sync to The Journal/System failed"
         fi
-        rclone copy "$CLAUDE_DIR/encyclopedia/" "gdrive:$DRIVE_ROOT/$_enc_remote_path/" \
-            --update --max-depth 1 --include "*.md" 2>/dev/null || \
-            log_backup "WARN" "Encyclopedia sync to The Journal/System failed"
+    fi
+
+    # Vault files (when vault is active)
+    if [[ "$VAULT_ENABLED" == "true" ]]; then
+        [[ -f "$CLAUDE_DIR/vault-header.json" ]] && \
+            rclone copyto "$CLAUDE_DIR/vault-header.json" "$REMOTE_BASE/vault-header.json" \
+                --checksum 2>/dev/null || \
+                log_backup "WARN" "Vault header sync to Drive failed"
+        local _VAULT_DIR="$CLAUDE_DIR/vault"
+        [[ -d "$_VAULT_DIR" ]] && \
+            rclone copy "$_VAULT_DIR/" "$REMOTE_BASE/vault/" \
+                --checksum --include '*.enc' 2>/dev/null || \
+                log_backup "WARN" "Vault files sync to Drive failed"
     fi
 
     # User-created skills
@@ -346,10 +371,20 @@ sync_github() (
     fi
 
     [[ -f "$CLAUDE_DIR/CLAUDE.md" ]] && cp "$CLAUDE_DIR/CLAUDE.md" "$REPO_DIR/CLAUDE.md" 2>/dev/null || true
-    [[ -d "$CLAUDE_DIR/encyclopedia" ]] && {
-        mkdir -p "$REPO_DIR/encyclopedia"
-        cp -r "$CLAUDE_DIR/encyclopedia"/* "$REPO_DIR/encyclopedia/" 2>/dev/null || true
-    }
+    # Encyclopedia (skip when vault active)
+    if [[ "$VAULT_ENABLED" != "true" ]]; then
+        [[ -d "$CLAUDE_DIR/encyclopedia" ]] && {
+            mkdir -p "$REPO_DIR/encyclopedia"
+            cp -r "$CLAUDE_DIR/encyclopedia"/* "$REPO_DIR/encyclopedia/" 2>/dev/null || true
+        }
+    fi
+
+    # Vault files
+    if [[ "$VAULT_ENABLED" == "true" ]]; then
+        [[ -f "$CLAUDE_DIR/vault-header.json" ]] && cp "$CLAUDE_DIR/vault-header.json" "$REPO_DIR/vault-header.json" 2>/dev/null || true
+        local _VAULT_DIR="$CLAUDE_DIR/vault"
+        [[ -d "$_VAULT_DIR" ]] && { mkdir -p "$REPO_DIR/vault"; cp -r "$_VAULT_DIR"/* "$REPO_DIR/vault/" 2>/dev/null || true; }
+    fi
 
     # User-created skills
     if [[ -d "$CLAUDE_DIR/skills" ]]; then
@@ -462,11 +497,28 @@ sync_icloud() {
             cp "$CLAUDE_DIR/CLAUDE.md" "$ICLOUD_PATH/" 2>/dev/null || true
     }
 
-    [[ -d "$CLAUDE_DIR/encyclopedia" ]] && {
-        mkdir -p "$ICLOUD_PATH/encyclopedia"
-        rsync -a --update "$CLAUDE_DIR/encyclopedia/" "$ICLOUD_PATH/encyclopedia/" 2>/dev/null || \
-            cp -r "$CLAUDE_DIR/encyclopedia"/* "$ICLOUD_PATH/encyclopedia/" 2>/dev/null || true
-    }
+    # Encyclopedia (skip when vault active)
+    if [[ "$VAULT_ENABLED" != "true" ]]; then
+        [[ -d "$CLAUDE_DIR/encyclopedia" ]] && {
+            mkdir -p "$ICLOUD_PATH/encyclopedia"
+            rsync -a --update "$CLAUDE_DIR/encyclopedia/" "$ICLOUD_PATH/encyclopedia/" 2>/dev/null || \
+                cp -r "$CLAUDE_DIR/encyclopedia"/* "$ICLOUD_PATH/encyclopedia/" 2>/dev/null || true
+        }
+    fi
+
+    # Vault files
+    if [[ "$VAULT_ENABLED" == "true" ]]; then
+        [[ -f "$CLAUDE_DIR/vault-header.json" ]] && {
+            rsync -a --checksum "$CLAUDE_DIR/vault-header.json" "$ICLOUD_PATH/vault-header.json" 2>/dev/null || \
+                cp "$CLAUDE_DIR/vault-header.json" "$ICLOUD_PATH/vault-header.json" 2>/dev/null || true
+        }
+        local _VAULT_DIR="$CLAUDE_DIR/vault"
+        [[ -d "$_VAULT_DIR" ]] && {
+            mkdir -p "$ICLOUD_PATH/vault"
+            rsync -a --checksum "$_VAULT_DIR/" "$ICLOUD_PATH/vault/" 2>/dev/null || \
+                cp -r "$_VAULT_DIR"/* "$ICLOUD_PATH/vault/" 2>/dev/null || true
+        }
+    fi
 
     # User-created skills
     if [[ -d "$CLAUDE_DIR/skills" ]]; then
