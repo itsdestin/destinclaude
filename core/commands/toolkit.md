@@ -47,6 +47,19 @@ Then list skills grouped by installed layer. For each skill, show the trigger ph
     skill-creator ....... "create a skill" / "build a new skill"
 ```
 
+Then show desktop hotkeys (only if user is on DestinCode desktop app):
+
+```
+DESKTOP HOTKEYS (DestinCode app only)
+    Hold Shift .......... Open session switcher dropdown
+    Shift + ↑/↓ ......... Navigate between sessions (release Shift to switch)
+    ↑/↓ ................. Scroll chat (accelerates the longer you hold)
+    Shift+Tab ............ Cycle permission mode
+    Shift+Enter ......... Insert newline in message
+    / ................... Open skill/command drawer
+    Escape .............. Close drawer or modal
+```
+
 Then show hooks:
 
 ```

@@ -102,6 +102,25 @@ The app uses a semantic CSS token system for theming. All colors are CSS custom 
 
 **Key rule:** Status colors (green, red, amber, blue, orange) are theme-independent and stay hardcoded. Only surface/text/border colors use semantic tokens.
 
+## Keyboard Shortcuts
+
+The desktop app uses a layered keyboard system. The text input auto-focuses when any printable character is typed, and auto-unfocuses after 0.5s of idle so global shortcuts become available.
+
+| Shortcut | Context | Action |
+|----------|---------|--------|
+| **Shift (hold)** | Not typing | Opens session switcher dropdown |
+| **Shift + Arrow Up/Down** | Shift held, dropdown open | Navigate between sessions |
+| **Shift (release)** | Dropdown open | Switch to highlighted session |
+| **Arrow Up/Down** | Not typing | Scroll chat view (accelerates with held press) |
+| **Shift+Tab** | Any | Cycle permission mode (normal → auto-accept → plan → bypass) |
+| **Shift+Enter** | Text input focused | Insert newline |
+| **Enter** | Text input focused | Send message |
+| **/** | Text input focused | Open skill/command drawer |
+| **Escape** | Drawer/modal open | Close drawer or modal |
+| **Arrow Left/Right** | Permission prompt visible | Cycle between Yes/No/Always Allow buttons |
+
+**Implementation:** Global shortcuts use capture-phase `window` event listeners so they work even when xterm has focus. The idle unfocus timer and auto-focus listener coordinate through `document.activeElement` without direct coupling between components. See `InputBar.tsx` (idle unfocus + auto-focus), `SessionStrip.tsx` (Shift-hold nav), and `ChatView.tsx` (arrow scroll).
+
 ## Specs
 
 See `desktop/docs/` for design documents and implementation plans.
