@@ -291,9 +291,10 @@ html, body, #root {
   background-color: var(--panel-glass, var(--panel));
 }
 
-/* When glassmorphism is active, make the main canvas transparent
-   so the body wallpaper shows through */
-[data-panels-blur] .bg-canvas {
+/* When glassmorphism is active, make the main app shell transparent
+   so the body wallpaper shows through. Scoped to .app-shell only —
+   overlays (Marketplace, SkillManager, TrustGate) keep their opaque bg-canvas */
+[data-panels-blur] .app-shell {
   background-color: transparent !important;
 }
 
