@@ -42,6 +42,7 @@ interface Props {
   onClose: () => void;
   onSendInput: (text: string) => void;
   hasActiveSession: boolean;
+  onOpenThemeMarketplace?: () => void;
 }
 
 function timeAgo(timestamp: number): string {
@@ -53,7 +54,7 @@ function timeAgo(timestamp: number): string {
   return `${hours}h ago`;
 }
 
-export default function SettingsPanel({ open, onClose, onSendInput, hasActiveSession }: Props) {
+export default function SettingsPanel({ open, onClose, onSendInput, hasActiveSession, onOpenThemeMarketplace }: Props) {
   return (
     <>
       {/* Backdrop */}
@@ -83,13 +84,14 @@ export default function SettingsPanel({ open, onClose, onSendInput, hasActiveSes
           </div>
 
           {isAndroid() ? (
-            <AndroidSettings open={open} onClose={onClose} onSendInput={onSendInput} />
+            <AndroidSettings open={open} onClose={onClose} onSendInput={onSendInput} onOpenThemeMarketplace={onOpenThemeMarketplace} />
           ) : (
             <DesktopSettings
               open={open}
               onClose={onClose}
               onSendInput={onSendInput}
               hasActiveSession={hasActiveSession}
+              onOpenThemeMarketplace={onOpenThemeMarketplace}
             />
           )}
         </div>
@@ -211,7 +213,7 @@ function SoundSettings() {
 // ─── Theme popup button ────────────────────────────────────────────────────
 
 /** Compact "Appearance" row — opens ThemeScreen in a centered popup modal */
-function ThemeButton({ onSendInput }: { onSendInput?: (text: string) => void }) {
+function ThemeButton({ onSendInput, onOpenMarketplace }: { onSendInput?: (text: string) => void; onOpenMarketplace?: () => void }) {
   const { activeTheme, font } = useTheme();
   const [open, setOpen] = useState(false);
   const popupRef = useRef<HTMLDivElement>(null);
@@ -265,7 +267,7 @@ function ThemeButton({ onSendInput }: { onSendInput?: (text: string) => void }) 
               height: 'min(600px, 80vh)',
             }}
           >
-            <ThemeScreen onClose={() => setOpen(false)} onSendInput={onSendInput} />
+            <ThemeScreen onClose={() => setOpen(false)} onSendInput={onSendInput} onOpenMarketplace={onOpenMarketplace} />
           </div>
         </>,
         document.body,
@@ -845,7 +847,7 @@ interface PairedDevice {
   password: string;
 }
 
-function AndroidSettings({ open, onClose, onSendInput }: { open: boolean; onClose: () => void; onSendInput: (text: string) => void }) {
+function AndroidSettings({ open, onClose, onSendInput, onOpenThemeMarketplace }: { open: boolean; onClose: () => void; onSendInput: (text: string) => void; onOpenThemeMarketplace?: () => void }) {
   const [loading, setLoading] = useState(true);
   const [tier, setTier] = useState('CORE');
   const [directories, setDirectories] = useState<{ label: string; path: string }[]>([]);
@@ -994,7 +996,7 @@ function AndroidSettings({ open, onClose, onSendInput }: { open: boolean; onClos
     <>
       <div className="flex-1 px-4 py-4 space-y-6">
 
-        <ThemeButton onSendInput={onSendInput} />
+        <ThemeButton onSendInput={onSendInput} onOpenMarketplace={onOpenThemeMarketplace} />
 
         {/* Tier & directories are local-only — hide when connected to remote desktop */}
         {!remoteConnected && (
@@ -1217,11 +1219,12 @@ function AndroidSettings({ open, onClose, onSendInput }: { open: boolean; onClos
 
 // ─── Desktop Settings (existing, unchanged) ─────────────────────────────────
 
-function DesktopSettings({ open, onClose, onSendInput, hasActiveSession }: {
+function DesktopSettings({ open, onClose, onSendInput, hasActiveSession, onOpenThemeMarketplace }: {
   open: boolean;
   onClose: () => void;
   onSendInput: (text: string) => void;
   hasActiveSession: boolean;
+  onOpenThemeMarketplace?: () => void;
 }) {
   const [config, setConfig] = useState<RemoteConfig | null>(null);
   const [tailscale, setTailscale] = useState<TailscaleInfo | null>(null);
@@ -1316,7 +1319,7 @@ function DesktopSettings({ open, onClose, onSendInput, hasActiveSession }: {
     <>
       <div className="flex-1 px-4 py-4 space-y-6">
 
-        <ThemeButton onSendInput={onSendInput} />
+        <ThemeButton onSendInput={onSendInput} onOpenMarketplace={onOpenThemeMarketplace} />
 
         <SoundSettings />
 

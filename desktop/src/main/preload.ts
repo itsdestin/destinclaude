@@ -61,6 +61,11 @@ const IPC = {
   WINDOW_MINIMIZE: 'window:minimize',
   WINDOW_MAXIMIZE: 'window:maximize',
   WINDOW_CLOSE: 'window:close',
+  // Theme marketplace
+  THEME_MARKETPLACE_LIST: 'theme-marketplace:list',
+  THEME_MARKETPLACE_DETAIL: 'theme-marketplace:detail',
+  THEME_MARKETPLACE_INSTALL: 'theme-marketplace:install',
+  THEME_MARKETPLACE_UNINSTALL: 'theme-marketplace:uninstall',
   FIRST_RUN_STATE: 'first-run:state',
   FIRST_RUN_RETRY: 'first-run:retry',
   FIRST_RUN_START_AUTH: 'first-run:start-auth',
@@ -226,6 +231,12 @@ contextBridge.exposeInMainWorld('claude', {
       return () => ipcRenderer.removeListener(IPC.THEME_RELOAD, wrapped);
     },
     setTitleBarColors: (_bg: string, _fg: string) => Promise.resolve(), // deprecated — kept for compat
+    marketplace: {
+      list: (filters?: any): Promise<any[]> => ipcRenderer.invoke(IPC.THEME_MARKETPLACE_LIST, filters),
+      detail: (slug: string): Promise<any> => ipcRenderer.invoke(IPC.THEME_MARKETPLACE_DETAIL, slug),
+      install: (slug: string): Promise<any> => ipcRenderer.invoke(IPC.THEME_MARKETPLACE_INSTALL, slug),
+      uninstall: (slug: string): Promise<any> => ipcRenderer.invoke(IPC.THEME_MARKETPLACE_UNINSTALL, slug),
+    },
   },
   firstRun: {
     getState: (): Promise<any> => ipcRenderer.invoke(IPC.FIRST_RUN_STATE),

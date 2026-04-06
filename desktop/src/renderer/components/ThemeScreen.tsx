@@ -22,9 +22,9 @@ function roundnessToShape(value: number) {
   return { 'radius-sm': `${sm}px`, 'radius-md': `${md}px`, 'radius-lg': `${lg}px`, 'radius-xl': `${xl}px`, 'radius-2xl': `${xxl}px`, 'radius-full': '9999px' };
 }
 
-interface Props { onClose: () => void; onSendInput?: (text: string) => void; }
+interface Props { onClose: () => void; onSendInput?: (text: string) => void; onOpenMarketplace?: () => void; }
 
-export default function ThemeScreen({ onClose, onSendInput }: Props) {
+export default function ThemeScreen({ onClose, onSendInput, onOpenMarketplace }: Props) {
   const { allThemes, theme: activeSlug, setTheme, cycleList, setCycleList, font, setFont, activeTheme } = useTheme();
   const [fonts, setFonts] = useState<string[] | null>(null);
   const [fontSearch, setFontSearch] = useState('');
@@ -212,6 +212,19 @@ export default function ThemeScreen({ onClose, onSendInput }: Props) {
             <span className="text-fg-muted text-xs">›</span>
           </button>
         </div>
+
+        {/* Browse marketplace */}
+        {onOpenMarketplace && (
+          <button
+            onClick={() => {
+              onOpenMarketplace();
+              onClose();
+            }}
+            className="w-full py-2 rounded-lg border border-edge-dim bg-panel text-fg-2 text-xs font-medium hover:bg-inset transition-colors"
+          >
+            Browse Theme Marketplace
+          </button>
+        )}
 
         {/* Build with Claude */}
         <button

@@ -20,6 +20,7 @@ import TrustGate, { useTrustGateActive } from './components/TrustGate';
 import SettingsPanel from './components/SettingsPanel';
 import ResumeBrowser from './components/ResumeBrowser';
 import Marketplace from './components/Marketplace';
+import ThemeMarketplace from './components/ThemeMarketplace';
 import SkillManager from './components/SkillManager';
 import SkillEditor from './components/SkillEditor';
 import ShareSheet from './components/ShareSheet';
@@ -114,6 +115,7 @@ function AppInner() {
   const [resumeRequested, setResumeRequested] = useState(false);
   const [managerOpen, setManagerOpen] = useState(false);
   const [marketplaceOpen, setMarketplaceOpen] = useState(false);
+  const [themeMarketplaceOpen, setThemeMarketplaceOpen] = useState(false);
   const [editorSkillId, setEditorSkillId] = useState<string | null>(null);
   const [shareSkillId, setShareSkillId] = useState<string | null>(null);
   const [createPromptOpen, setCreatePromptOpen] = useState(false);
@@ -985,6 +987,7 @@ function AppInner() {
           }
         }}
         hasActiveSession={!!sessionId}
+        onOpenThemeMarketplace={() => { setSettingsOpen(false); setThemeMarketplaceOpen(true); }}
       />
       <ResumeBrowser
         open={resumeRequested}
@@ -995,6 +998,9 @@ function AppInner() {
       />
       {marketplaceOpen && (
         <Marketplace onClose={() => setMarketplaceOpen(false)} />
+      )}
+      {themeMarketplaceOpen && (
+        <ThemeMarketplace onClose={() => setThemeMarketplaceOpen(false)} />
       )}
       {managerOpen && (
         <SkillManager

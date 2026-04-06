@@ -13,6 +13,7 @@ import { TranscriptWatcher } from './transcript-watcher';
 import { listPastSessions, loadHistory } from './session-browser';
 import { readTranscriptMeta } from './transcript-utils';
 import { startThemeWatcher, listUserThemes, userThemeDir, userThemeManifest, THEMES_DIR } from './theme-watcher';
+import { ThemeMarketplaceProvider } from './theme-marketplace-provider';
 
 // Max age for clipboard paste images (1 hour)
 const CLIPBOARD_MAX_AGE_MS = 60 * 60 * 1000;
@@ -63,6 +64,25 @@ export function registerIpcHandlers(
   });
   ipcMain.handle(IPC.WINDOW_CLOSE, () => {
     if (mainWindow && !mainWindow.isDestroyed()) mainWindow.close();
+  });
+
+  // --- Theme marketplace ---
+  const themeMarketplace = new ThemeMarketplaceProvider();
+
+  ipcMain.handle(IPC.THEME_MARKETPLACE_LIST, async (_event, filters) => {
+    return themeMarketplace.listThemes(filters);
+  });
+
+  ipcMain.handle(IPC.THEME_MARKETPLACE_DETAIL, async (_event, slug: string) => {
+    return themeMarketplace.getThemeDetail(slug);
+  });
+
+  ipcMain.handle(IPC.THEME_MARKETPLACE_INSTALL, async (_event, slug: string) => {
+    return themeMarketplace.installTheme(slug);
+  });
+
+  ipcMain.handle(IPC.THEME_MARKETPLACE_UNINSTALL, async (_event, slug: string) => {
+    return themeMarketplace.uninstallTheme(slug);
   });
 
   // Broadcast session-created events from SessionManager (covers both IPC and remote-created sessions)
