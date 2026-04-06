@@ -45,14 +45,6 @@ export function registerIpcHandlers(
     return fs.promises.readFile(manifestPath, 'utf-8');
   });
 
-  ipcMain.handle(IPC.THEME_WRITE_FILE, async (_event, slug: string, content: string) => {
-    const themeDir = path.resolve(userThemeDir(slug));
-    if (!themeDir.startsWith(THEMES_DIR + path.sep)) throw new Error('Invalid theme slug');
-    // Ensure folder structure exists
-    await fs.promises.mkdir(path.join(themeDir, 'assets'), { recursive: true });
-    await fs.promises.writeFile(path.join(themeDir, 'manifest.json'), content, 'utf-8');
-  });
-
   // Broadcast session-created events from SessionManager (covers both IPC and remote-created sessions)
   sessionManager.on('session-created', (info) => {
     send(IPC.SESSION_CREATED, info);
