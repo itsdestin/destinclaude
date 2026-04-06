@@ -1,12 +1,13 @@
 # Backup & Sync -- Spec
 
-**Version:** 4.5
+**Version:** 5.0
 **Last updated:** 2026-04-05
-**Feature location:** `core/hooks/git-sync.sh`, `core/hooks/personal-sync.sh`, `core/hooks/lib/backup-common.sh`, `core/skills/sync/SKILL.md`
+**Feature location:** `core/hooks/sync.sh`, `core/hooks/lib/backup-common.sh`, `core/skills/sync/SKILL.md`
+**Supersedes:** personal-sync-spec.md v2.3 (retired — content merged here)
 
 ## Purpose
 
-The Backup & Sync system keeps Claude Code's configuration, memory, skills, and supporting files continuously replicated via a Git + GitHub repository as one of several complementary sync mechanisms. It operates through two scripts: `git-sync.sh` (a PostToolUse hook that commits changes immediately and pushes on a debounced 15-minute interval) and `personal-sync.sh` (replicates personal data — memory, CLAUDE.md, config, encyclopedia, user-created skills — to all configured backends: Drive, GitHub, iCloud, on a 15-minute debounce). Shared utilities live in `lib/backup-common.sh`. Together they provide automatic, conflict-aware, cross-device backup with no user intervention required during normal operation.
+The Backup & Sync system replicates personal data and system config to configured cloud backends via a single unified hook, `sync.sh` (PostToolUse, Write|Edit, 15-minute debounce). It covers memory files, CLAUDE.md, encyclopedia cache, user-created skills, conversations, and system config (settings, keybindings, MCP config, history, plans, specs). Shared utilities live in `lib/backup-common.sh`. It provides automatic, cross-device backup with no user intervention during normal operation.
 
 ## User Mandates
 
@@ -17,42 +18,76 @@ The Backup & Sync system keeps Claude Code's configuration, memory, skills, and 
 - (2026-03-13) Credential/secret files (`credentials.json`, `token.json`, `.env`) MUST be excluded from backups -- enforced via `.gitignore`.
 - (2026-03-13) `node_modules/` and `__pycache__/` MUST be excluded from all backups -- enforced via `.gitignore`.
 - (2026-03-13) Manual backup commands MUST be supported via the trigger phrases listed in CLAUDE.md ("backup now", "force a full backup", "run a backup", "manual backup", "sync to Drive").
-- (2026-03-16) All Claude projects MUST be backed up to a private GitHub repo by default. When a new project is created, it should be added to git-sync.sh's project routing.
+- (2026-03-16, revised 2026-04-05) All discovered git projects MUST be offered for registration via the `/sync` skill project onboarding flow. Project discovery runs at session start via `discover_projects()` in `lib/backup-common.sh`.
 
 ## Design Decisions
 
 | Decision | Rationale | Alternatives considered |
 |----------|-----------|----------------------|
-| Immediate commit, debounced 15-minute push | Every tracked file change is committed to the local Git repo immediately (preserving full history). Pushes to GitHub are debounced to a 15-minute interval to avoid excessive API calls during active editing sessions. | Commit + push on every save (too many pushes), batch commit at push time (loses granular history), longer debounce (stale remote). |
-| `.gitignore` strategy for exclusions | Credentials, `node_modules/`, `__pycache__/`, `.claude.json`, and other machine-specific files are excluded via `.gitignore`. Simpler and more robust than per-command exclude flags. | Per-command `--exclude` flags (error-prone, must be maintained in multiple places), separate tracked-files whitelist (adds indirection). |
-| Personal-sync scope | `personal-sync.sh` handles all backend replication including encyclopedia cache and user-created skills. It absorbs the former drive-archive.sh scope and extends it to all personal data categories. | Archive everything (slow, redundant with Git), archive nothing (loses Drive as DR layer), separate per-backend scripts (duplicated logic). |
-| Personal-sync is best-effort | personal-sync.sh backend failures are logged but do not block the Git commit/push workflow. All backends are complementary — personal-sync handles data not covered by git-sync. Backend failure isolation ensures one failure does not block others. | Hard failure on backend errors (blocks primary workflow for secondary concern), silent failure (violates logging mandate). |
-| Mutex lock via `mkdir` | Both git-sync and personal-sync acquire `~/.claude/.backup-lock/` directory as a mutex. `mkdir` is atomic on all platforms. Stale locks (>2 minutes) are auto-broken. 30-second retry with 1-second polling. | File-based lock with `flock` (not portable to Git Bash on Windows), no locking (race conditions between concurrent hooks). |
+| Single script (`sync.sh`) replaces two | `git-sync.sh` (git commit/push) + `personal-sync.sh` (cloud backends) had overlapping scope and both evolved to cover the same data. Consolidated into `sync.sh` built on `personal-sync.sh`'s battle-tested multi-backend architecture. No local `~/.claude/.git` repo required. | New script from scratch (rewrites working code), thin wrapper delegating to personal-sync (two files doing one job). |
+| Write registry update before debounce | The registry must be updated on every write (immediate), regardless of whether a full sync is due (15-min debounce). Separating these two responsibilities — registry update (immediate) and cloud sync (debounced) — prevents `write-guard.sh` from having stale registry entries between sync cycles. | Update registry only at sync time (leaves 15-min window where concurrent sessions are undetected). |
+| Sync scope includes system config | Settings, keybindings, MCP config, history, plans, and specs are now synced (previously only covered by the local git repo). Grouped under `system-backup/` on all remote backends so they don't clutter the top-level personal data folders. | Continue excluding (data loss risk if machine dies), mix with personal data root (confusing for users browsing Drive). |
+| Sync is best-effort | sync.sh backend failures are logged but do not block the session. All backends are complementary. Backend failure isolation ensures one failure does not block others. | Hard failure on backend errors (blocks primary workflow for secondary concern), silent failure (violates logging mandate). |
+| Mutex lock via `mkdir` | sync.sh acquires `~/.claude/toolkit-state/.sync-lock/` as a mutex. `mkdir` is atomic on all platforms. Stale locks are auto-broken. | File-based lock with `flock` (not portable to Git Bash on Windows), no locking (race conditions between concurrent hooks). |
 | Symlink ownership detection | Symlinks into TOOLKIT_ROOT determine file ownership — toolkit-owned files are never backed up by personal-sync. This cleanly separates toolkit code (handled by the public repo) from personal data (handled by personal-sync). | Path-prefix allowlist (must be maintained separately), manual tagging (error-prone). |
 | Migration framework | Schema-versioned backups with sequential migration runner. `v1.json` defines the baseline schema; `migrate.sh` runs vN-to-vN+1 scripts in order when restoring from an older backup. Enables safe evolution of the backup format without breaking restores. | Single-format backups (breaks on schema changes), no migration (forces manual recovery). |
 | Toolkit integrity check | Session-start verifies repo completeness, auto-repairs identical copies to symlinks, warns about modified copies. Prevents silent drift between installed copies and toolkit source. | Post-install-only check (misses runtime drift), no check (silent failures as seen in pre-v2.4 installs). |
-| Skills: full directory add on commit | When a skill file changes, the entire skill directory is staged (not just the changed file). Skills are coherent units; partial commits could leave broken state. | Single-file skill commit (risk of inconsistency), tarball (adds compression overhead). |
+| Skills synced as directories | When syncing skills, the entire skill directory is copied (not just the changed file). Skills are coherent units; partial sync could leave broken state on the remote. | Single-file sync (risk of inconsistency), tarball (adds compression overhead). |
 | Log rotation at 1000 lines | `backup.log` is trimmed to the last 500 lines when it exceeds 1000. Keeps logs useful without unbounded growth. | Fixed file size limit (harder to implement in bash), external log rotation (added dependency). |
 | `rclone copyto` with `--checksum` for Drive sync | personal-sync.sh uses checksum comparison rather than modification time to decide whether to upload to Drive. More reliable across platforms where mtime may not be preserved. | `--update` flag (mtime-based, unreliable cross-platform), no flag (always copies, wasteful). |
 | `.claude.json` excluded from backups | Machine-specific file (`numStartups`, feature flags, usage stats) that always diverges between machines. Regenerates automatically. | Keep in backups (guaranteed cross-machine conflict noise, minimal disaster recovery value). |
-| Hook output via `hookSpecificOutput` JSON | `git-sync.sh` emits structured JSON so Claude Code surfaces the message in the conversation, not just in verbose mode. | Plain stdout (only visible in verbose mode), stderr (same issue). |
-| Write guard via centralized registry | Same-machine concurrency protection using a PreToolUse hook that checks `~/.claude/.write-registry.json` before Write/Edit. Blocks if a different, still-running PID last wrote the file. Registry updated in `git-sync.sh` PostToolUse, shared mutex serializes access. | Per-session tracking (catches manual edits but adds cleanup burden), file-system watcher (robust but adds daemon), no protection (silent overwrites). |
-| Multi-project support via path-based routing | A single `git-sync.sh` hook routes files to the correct Git repo based on path prefix. Each project gets independent push markers and rebase-fail counters. Branch detection is automatic via `git symbolic-ref`. | Separate hook scripts per project (duplicated logic, harder to maintain), monorepo (loses independent history and permissions). |
+| Hook output via `hookSpecificOutput` JSON | `sync.sh` emits structured JSON so Claude Code surfaces error messages in the conversation, not just in verbose mode. | Plain stdout (only visible in verbose mode), stderr (same issue). |
+| Write guard via centralized registry | Same-machine concurrency protection using a PreToolUse hook that checks `~/.claude/.write-registry.json` before Write/Edit. Blocks if a different, still-running PID last wrote the file. Registry updated in `sync.sh` PostToolUse (before debounce check), shared mutex serializes access. | Per-session tracking (catches manual edits but adds cleanup burden), file-system watcher (robust but adds daemon), no protection (silent overwrites). |
 | Project discovery via `discover_projects()` | `session-start.sh` scans 7 common directories (`~/projects/`, `~/repos/`, `~/code/`, `~/dev/`, `~/src/`, `~/Documents/`, `~/Desktop/`) at depth 1 for git repos not already tracked by git-sync or registered in `tracked-projects.json`. Results written to `~/.claude/.unsynced-projects` for the `/sync` skill to consume. | Manual-only registration (users forget), recursive scan (too slow on large filesystems), file watcher daemon (added complexity). |
 | `/sync` skill as the resolution layer | The detect → display → resolve pipeline: `session-start.sh` detects issues and writes `.sync-warnings`; `statusline.sh` displays them with a `/sync for info` hint; the `/sync` skill provides interactive resolution (status dashboard, warning resolution, project onboarding, force sync). The skill reads state files but does not duplicate hook logic. | Automatic resolution in hooks (too opinionated, may take unwanted actions), separate command per warning type (fragmented UX). |
 | Portable/local config split | `config.json` holds portable user preferences (synced). `config.local.json` holds machine-specific values — platform, toolkit_root, binary paths — rebuilt by `session-start.sh` every session. `config_get()` reads local first, portable second. Eliminates cross-device conflicts from machine-specific data in synced config. See cross-device-sync-design (03-25-2026) D1. | Key-level merge during sync (complex bash merge logic), environment variables (not persistent). |
 | mcp-config.json excluded from sync | `mcp-config.json` is extracted from `.claude.json` for local readability but NOT git-committed or synced. Contains absolute paths and platform-specific servers that break on other devices. Each device rebuilds its own via `.claude.json` extraction in session-start. **Reversal of v4.2 decision** which included mcp-config.json in tracked files. See cross-device-sync-design (03-25-2026) D2. | Sync with path rewriting (fragile), per-platform config files (proliferation). |
-| Git repo health check, not requirement | Session-start warns if `GIT_REMOTE` is configured but `~/.claude/.git` doesn't exist. `/sync` can repair. git-sync bails early with log warning if no repo. Git is not required — personal-sync provides full functionality independently. See cross-device-sync-design (03-25-2026) D8. | Require git (excludes non-technical users), silent failure (prior broken state). |
+| No local git repo required | `sync.sh` does not maintain a `~/.claude/.git` repository. Cloud backends (Drive file versions, GitHub commit history via personal-sync-repo) provide version history. This eliminates `GIT:NOT_INITIALIZED` warnings, rebase conflict handling, and the confusing two-repo setup. See sync-consolidation-design (04-01-2026) D2. | Require git (excludes non-technical users), keep local repo (added complexity with no unique value vs. cloud version history). |
 
 ## Current Implementation
 
-### Tracked Projects
+### Synced Scope
 
-The hook tracks the `~/.claude/` Git repository:
+`sync.sh` fires on every PostToolUse Write|Edit and exits immediately if the changed file does not match a synced path. Synced categories:
 
-| Project | Local path | GitHub repo | Branch |
-|---------|-----------|-------------|--------|
-| Claude Config | `~/.claude/` | `{github-user}/claude-config` (private) | `main` |
+| Content | Local path | Remote path |
+|---------|-----------|-------------|
+| Memory files | `*/projects/*/memory/*` | `memory/{project-key}/` |
+| CLAUDE.md | `*/CLAUDE.md` | `CLAUDE.md` |
+| Conversations | `*/projects/*/*.jsonl` | `conversations/{slug}/` |
+| Encyclopedia cache | `*/encyclopedia/*` | `encyclopedia/` |
+| User-created skills | `*/skills/*` (non-symlinks) | `skills/{name}/` |
+| Toolkit config | `*/toolkit-state/config.json` | `system-backup/config.json` |
+| Settings | `*/settings.json` | `system-backup/settings.json` |
+| Keybindings | `*/keybindings.json` | `system-backup/keybindings.json` |
+| MCP config | `*/mcp.json` | `system-backup/mcp.json` |
+| History | `*/history.jsonl` | `system-backup/history.jsonl` |
+| Plans | `*/plans/*` | `system-backup/plans/` |
+| Specs | `*/specs/*` | `system-backup/specs/` |
+
+**Excluded (machine-specific):** `config.local.json`, `mcp-config.json`, `settings.local.json`, credentials/tokens, toolkit-owned symlinks, `node_modules/`, `__pycache__/`
+
+### Remote Storage Layout (all backends)
+
+```
+{root}/                          # gdrive:{DRIVE_ROOT}/Backup/personal/
+├── CLAUDE.md
+├── memory/
+│   └── {project-key}/
+├── conversations/
+│   └── {slug}/
+├── encyclopedia/
+├── skills/
+│   └── {skill-name}/
+└── system-backup/
+    ├── config.json
+    ├── settings.json
+    ├── keybindings.json
+    ├── mcp.json
+    ├── history.jsonl
+    ├── plans/
+    └── specs/
+```
 
 ### Project Discovery & Registration
 
@@ -81,7 +116,7 @@ The `/sync` skill consumes `.unsynced-projects` and walks the user through regis
 
 The `/sync` skill (`core/skills/sync/SKILL.md`) completes the detect → display → resolve pipeline for sync health. It provides four capabilities:
 
-1. **Status dashboard** — reads state files (`.sync-status`, `.push-marker`, `.personal-sync-marker`, `backup-meta.json`, `tracked-projects.json`, `.sync-warnings`) and displays a unified overview of Git sync, personal data sync, skill backup, and project tracking status.
+1. **Status dashboard** — reads state files (`.sync-marker`, `backup-meta.json`, `tracked-projects.json`, `.sync-warnings`) and displays a unified overview of personal data sync, skill backup, and project tracking status.
 
 2. **Warning resolution** — walks through each active warning from `.sync-warnings` with targeted diagnosis and actionable options:
    - `OFFLINE` → advisory (resolves automatically)
@@ -92,7 +127,7 @@ The `/sync` skill (`core/skills/sync/SKILL.md`) completes the detect → display
 
 3. **Project onboarding** — interactive per-project flow reading `.unsynced-projects`: detect git/remote status, offer to create GitHub repos, register in `tracked-projects.json`, or ignore.
 
-4. **Force sync** — manual trigger (`/sync now` or trigger phrases from mandate) that resets debounce markers and runs git-sync + personal-sync immediately. Fulfills the manual backup mandate.
+4. **Force sync** — manual trigger (`/sync now` or trigger phrases from mandate) that resets the debounce marker and runs `sync.sh` immediately. Fulfills the manual backup mandate.
 
 ### Interactive Restore (Setup Wizard)
 
@@ -105,71 +140,40 @@ After restore, the wizard runs an abbreviated dependency check and skips persona
 
 The manual `restore.sh` script (in the private config repo) remains available as a power-user alternative.
 
-### Tracked Files (Claude Config)
-
-The hook fires on every PostToolUse for Write/Edit but immediately exits if the changed file does not match a tracked project path. For the Claude Config repo, `.gitignore` controls which files within `~/.claude/` are tracked. Currently tracked categories:
-
-| Category | Pattern(s) |
-|----------|-----------|
-| Memory files | `*/memory/*` |
-| CLAUDE.md | `*CLAUDE.md` |
-| Settings | `*settings.json`, `*settings.local.json`, `*keybindings.json` |
-| MCP config | `*mcp.json` |
-| Hook scripts | `*git-sync.sh`, `*personal-sync.sh`, `*write-guard.sh`, `*check-inbox.sh`, `*statusline.sh`, `*usage-fetch.js`, `*prune-backups.sh` |
-| OAuth | `*gws/client_secret.json` |
-| Plugins | `*installed_plugins.json`, `*blocklist.json` |
-| Skills | `*/skills/*` |
-| MCP servers | `*/mcp-servers/*` (excludes `mcp-config.json` — machine-specific, not git-committed since v4.3) |
-| Plans | `*/plans/*` |
-| Specs | `*/specs/*` |
-| History | `*history.jsonl` |
-| Restore guides | `*RESTORE.md`, `*README.md` |
-| Conversations | `~/.claude/projects/*/*.jsonl` |
-| Conversation index | `~/.claude/conversation-index.json` |
-
-### Git Sync Flow (`git-sync.sh`)
-
-1. **Parse stdin JSON** -- extracts `tool_input.file_path`, normalizes backslashes to forward slashes.
-2. **Project routing** -- matches file path to `~/.claude/`. Exits silently if no match.
-3. **Branch detection** -- reads the repo's default branch via `git symbolic-ref refs/remotes/origin/HEAD`.
-4. **gitignore check** -- exits silently if the file is ignored by the project's `.gitignore`.
-5. **Update write registry** -- records `{pid, timestamp, content_hash}` for the written file in `~/.claude/.write-registry.json` so the PreToolUse write guard (`write-guard.sh`) can detect concurrent same-machine edits.
-6. **Git commit** -- stages the changed file and commits immediately with an auto-generated message (`auto: <filename>`).
-7. **Debounced push** -- checks the project-specific push marker for the last push timestamp. If 15+ minutes have elapsed (or no marker exists), pushes to GitHub and updates the marker.
-8. **Symlink filter** -- skips files that are symlinks into TOOLKIT_ROOT (toolkit-owned, not backed up).
-9. **Report** -- emits success/failure JSON via `hookSpecificOutput` and writes status to `~/.claude/.sync-status`.
+### Sync Flow (`sync.sh`)
 
 ### Key State Files
 
 | File | Purpose | Written by |
 |------|---------|-----------|
-| `~/.claude/.push-marker` | Last push timestamp for Claude Config (15-min debounce) | git-sync |
-| `~/.claude/.sync-status` | Human-readable status for statusline display | git-sync |
-| `~/.claude/backup.log` | Persistent log of all backup operations | both scripts |
-| `~/.claude/.write-registry.json` | Write guard: last-writer PID + hash per tracked file | git-sync (via `update_registry`) |
-| `~/.claude/backup-meta.json` | Schema version and toolkit version stamp, written by personal-sync after each successful sync cycle | personal-sync |
-| `~/.claude/.unsynced-projects` | Discovered git repos not tracked by git-sync or registered | session-start (via `discover_projects()`) |
+| `~/.claude/toolkit-state/.sync-marker` | Last sync timestamp (15-min debounce) | sync.sh |
+| `~/.claude/toolkit-state/.sync-lock/` | Mutex — prevents concurrent sync instances | sync.sh (cleaned up on exit) |
+| `~/.claude/backup.log` | Persistent log of all backup operations | sync.sh |
+| `~/.claude/.write-registry.json` | Write guard: last-writer PID + hash per tracked file | sync.sh (before debounce) |
+| `~/.claude/backup-meta.json` | Schema version and toolkit version stamp, written after each successful sync cycle | sync.sh |
+| `~/.claude/.unsynced-projects` | Discovered git repos not registered | session-start (via `discover_projects()`) |
 | `~/.claude/tracked-projects.json` | Project registry — tracked and ignored project paths | `/sync` skill |
 | `~/.claude/toolkit-state/config.local.json` | Machine-specific config (platform, toolkit_root, binary paths). Rebuilt every session start. Never synced. | session-start (`rebuild_local_config`) |
 | `~/.claude/toolkit-state/.legacy-conversations-migrated` | Marker for one-time legacy conversation migration | session-start |
-| `~/.claude/conversation-index.json` | Session-to-topic mapping for cross-device topic display. Synced to `system-backup/` on all backends. | personal-sync, session-end-sync |
+| `~/.claude/conversation-index.json` | Session-to-topic mapping for cross-device topic display. Synced to `system-backup/` on all backends. | sync.sh, session-end-sync |
 
 ## Dependencies
 
 - **Depends on:**
-  - `git` -- all version control operations (add, commit, push, pull). Must be installed and configured with GitHub remote.
-  - `rclone` -- Drive archive operations only. Must be installed and configured with a `gdrive:` remote.
-  - `node` (Node.js) -- used to parse stdin JSON in `git-sync.sh` (extracts `tool_input.file_path`).
-  - `date`, `find`, `mkdir`, `sed`, `wc`, `head`, `tail`, `basename`, `hostname` -- standard Unix utilities (available in Git Bash on Windows).
-  - Claude Code hook system -- `git-sync.sh` relies on PostToolUse hook invocation with JSON on stdin.
-  - `~/.claude/RESTORE.md` -- included in the Git repository (must exist locally).
+  - `rclone` (Drive backend) — must be installed and configured with a `gdrive:` remote.
+  - `git` + `gh` (GitHub backend) — must be installed and authenticated. Not required for Drive or iCloud backends.
+  - iCloud app (iCloud backend) — for local folder sync on macOS/Windows.
+  - `node` (Node.js) — used to parse stdin JSON (extracts `tool_input.file_path`) and update write registry.
+  - `date`, `find`, `mkdir`, `rsync` — standard Unix utilities (available in Git Bash on Windows).
+  - Claude Code hook system — PostToolUse hook invocation with JSON on stdin.
+  - `lib/backup-common.sh` — shared utilities (debounce, mutex, logging, atomic write).
 
 - **Depended on by:**
-  - **Statusline** (`~/.claude/statusline.sh`) -- reads `~/.claude/.sync-status` to display backup state in the Claude Code status bar.
-  - **All tracked files** -- any file matching the tracked-files filter implicitly depends on this system for cross-device persistence.
-  - **CLAUDE.md manual backup instructions** -- references the hook scripts directly and documents trigger phrases.
-  - **Specs INDEX** (`~/.claude/specs/INDEX.md`) -- lists this spec.
-  - **`/sync` skill** (`core/skills/sync/SKILL.md`) -- reads state files to provide status dashboard and interactive resolution.
+  - **All synced files** — any file matching the sync path filter depends on this system for cross-device persistence.
+  - **CLAUDE.md manual backup instructions** — references the hook and documents trigger phrases.
+  - **Specs INDEX** (`~/.claude/specs/INDEX.md`) — lists this spec.
+  - **`/sync` skill** (`core/skills/sync/SKILL.md`) — reads state files to provide status dashboard and interactive resolution.
+  - **`session-start.sh`** — pulls from preferred backend on session start, calls `sync.sh` for stale-sync catch-up.
 
 ## Known Issues & Planned Updates
 
@@ -179,7 +183,7 @@ See [GitHub Issues](https://github.com/itsdestin/destinclaude/issues) for known 
 
 | Date | Version | What changed | Type | Approved by |
 |------|---------|-------------|------|-------------|
-| 2026-04-05 | 4.5 | Added conversation index (`conversation-index.json`) to tracked files and key state files. Index provides cross-device topic/title continuity for `/resume`. Synced to `system-backup/` on all backends. See conversation-index-spec.md. | Update | owner |
+| 2026-04-05 | 5.0 | Sync consolidation: merged git-sync.sh + personal-sync.sh into single sync.sh. Removed local ~/.claude git repo requirement. Expanded sync scope to include settings, keybindings, mcp.json, history, plans, specs under system-backup/ on remote. Write registry update moved from git-sync.sh into sync.sh (before debounce). Renamed .personal-sync-marker → .sync-marker, removed .push-marker and .sync-status. GIT_REMOTE config key retired. Added conversation index to sync scope. See sync-consolidation-design (04-01-2026) and conversation-index-spec.md. personal-sync-spec.md retired — content merged here. | Architecture | owner |
 | 2026-03-26 | 4.4 | Revised error visibility mandate: session-start network operations now run in background with failure-specific warnings (GIT:PULL_FAILED, PERSONAL:PULL_FAILED, MIGRATION:FAILED) surfaced via .sync-warnings instead of hookSpecificOutput. Statusline and /sync skill provide the visibility path. | Update | owner |
 | 2026-03-25 | 4.3 | Cross-device sync: portable/local config split (D1), mcp-config.json excluded from sync (D2, reversal of v4.2), conversations added to personal-sync scope, home-directory conversation aggregation via symlinks, git repo health check (D8), renamed get_primary_backend to get_preferred_backend. All backends now documented as complementary (no primary/secondary hierarchy). See cross-device-sync-design (03-25-2026). Removed Claude Mobile (`~/claude-mobile/`) as a tracked project — git-sync.sh now only tracks `~/.claude/`. Removed associated state files and project discovery skip entry. | Update | owner |
 | 2026-03-24 | 4.2 | Added `/sync` skill and project discovery. `discover_projects()` in backup-common.sh scans common directories for untracked git repos; session-start.sh now actively writes `.unsynced-projects`. The `/sync` skill provides status dashboard, warning resolution, project onboarding, and force sync — fulfilling the manual backup mandate (line 19). New state files: `.unsynced-projects`, `tracked-projects.json`. New design decisions: project discovery, `/sync` as resolution layer. | Update | owner |

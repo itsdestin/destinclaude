@@ -47,7 +47,7 @@ A real-time information display system for Claude Code sessions. Four components
 [Statusline render] → statusline.sh
   ├─ Parses session JSON (model, context %, session_id)
   ├─ Reads ~/.claude/topics/topic-{session_id} for topic
-  ├─ Reads ~/.claude/.sync-status for sync display
+  ├─ Reads ~/.claude/toolkit-state/.sync-marker for sync display
   ├─ Resolves symlinks to find real script location
   ├─ Calls usage-fetch.js (sibling file) for rate-limit data
   ├─ Reads toolkit-state/update-status.json for version
@@ -91,7 +91,7 @@ A real-time information display system for Claude Code sessions. Four components
 | `~/.claude/topics/.prune-marker` | Last-prune timestamp | Persistent |
 | `~/.claude/.usage-cache.json` | Cached API usage response | Overwritten every 5 min |
 | `~/.claude/.announcement-cache.json` | Written by announcement-fetch.js; read by statusline.sh on every render | Overwritten on each session start |
-| `~/.claude/.sync-status` | Written by git-sync.sh | Updated on each backup |
+| `~/.claude/toolkit-state/.sync-marker` | Last sync timestamp (used by /sync for staleness display) | Updated by sync.sh after each cycle |
 | `~/.claude/.sync-warnings` | Sync health warnings written by session-start.sh | Reset each session start |
 | `~/.claude/toolkit-state/update-status.json` | Toolkit version check result | Written by session-start.sh |
 | `~/.claude/statusline.log` | Stderr from statusline Node.js calls | Appended; for debugging |
@@ -107,7 +107,7 @@ A real-time information display system for Claude Code sessions. Four components
 
 ## Dependencies
 
-- Depends on: git-sync.sh (writes `.sync-status`), session-start.sh (writes `update-status.json`), Node.js, Anthropic OAuth credentials (`~/.claude/.credentials.json` or macOS Keychain), Claude Code session JSON (stdin), announcement-fetch.js (writes `.announcement-cache.json`), Node.js 18+ (`fetch` built-in required for announcement-fetch.js)
+- Depends on: sync.sh (updates `.sync-marker`), session-start.sh (writes `update-status.json`), Node.js, Anthropic OAuth credentials (`~/.claude/.credentials.json` or macOS Keychain), Claude Code session JSON (stdin), announcement-fetch.js (writes `.announcement-cache.json`), Node.js 18+ (`fetch` built-in required for announcement-fetch.js)
 - Depended on by: CLAUDE.md Auto-Title instructions (define Claude's behavior when it sees the reminder)
 
 ## Known Issues & Planned Updates

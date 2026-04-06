@@ -35,13 +35,7 @@
     ],
     "PostToolUse": [
       {
-        "command": "bash ~/.claude/hooks/git-sync.sh",
-        "matcher": "Write|Edit",
-        "timeout": 30,
-        "required": true
-      },
-      {
-        "command": "bash ~/.claude/hooks/personal-sync.sh",
+        "command": "bash ~/.claude/hooks/sync.sh",
         "matcher": "Write|Edit",
         "timeout": 120,
         "required": true

@@ -25,8 +25,7 @@ Read ALL of these before showing anything:
 cat ~/.claude/.sync-warnings 2>/dev/null        # Active warnings from session-start
 cat ~/.claude/.sync-status 2>/dev/null           # Git sync status line
 cat ~/.claude/backup-meta.json 2>/dev/null       # Last personal sync metadata
-cat ~/.claude/toolkit-state/.personal-sync-marker 2>/dev/null  # Personal sync debounce timestamp
-cat ~/.claude/.push-marker 2>/dev/null           # Git-sync push debounce timestamp
+cat ~/.claude/toolkit-state/.sync-marker 2>/dev/null  # Sync debounce timestamp
 
 cat ~/.claude/.unsynced-projects 2>/dev/null     # Discovered but unregistered projects
 cat ~/.claude/tracked-projects.json 2>/dev/null  # Project registry (may not exist yet)
@@ -106,7 +105,7 @@ Walk through each active warning. Present one at a time, wait for user response.
 
 ### PERSONAL:STALE
 Diagnose the cause:
-1. Check if `personal-sync.sh` is registered as a PostToolUse hook in `~/.claude/settings.json`
+1. Check if `sync.sh` is registered as a PostToolUse hook in `~/.claude/settings.json`
 2. Check if the backend is reachable (rclone/git)
 3. Check the debounce marker age
 4. Check `backup.log` for recent errors
@@ -241,22 +240,16 @@ cd ~/.claude && git add tracked-projects.json && git commit -m "auto: update tra
 Triggered by `/sync now` or trigger phrases ("backup now", "force a full backup", "run a backup", "manual backup", "sync to Drive").
 
 ```bash
-# Reset debounce markers so hooks will fire immediately
-touch -t 202001010000 ~/.claude/toolkit-state/.personal-sync-marker 2>/dev/null
-touch -t 202001010000 ~/.claude/.push-marker 2>/dev/null
+# Reset debounce marker so sync.sh will fire immediately
+touch -t 202001010000 ~/.claude/toolkit-state/.sync-marker 2>/dev/null
 
-# Run git-sync
-cd ~/.claude && git add -A 2>/dev/null && git diff --cached --quiet 2>/dev/null || git commit -m "manual: force sync" --no-gpg-sign 2>/dev/null
-git push origin $(git symbolic-ref --short HEAD) 2>/dev/null && echo "✓ Git push: ~/.claude" || echo "⚠ Git push failed: ~/.claude"
-
-# Run personal-sync directly
-bash ~/.claude/hooks/personal-sync.sh <<< '{"tool_input":{"file_path":"'"$HOME/.claude/CLAUDE.md"'"}}'
+# Run sync directly
+bash ~/.claude/hooks/sync.sh <<< '{"tool_input":{"file_path":"'"$HOME/.claude/CLAUDE.md"'"}}'
 ```
 
 Report results:
 ```
 Force sync complete:
-  Git (claude-config): ✓ pushed
   Personal data: ✓ synced to Drive / ⚠ failed
 ```
 

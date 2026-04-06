@@ -1,7 +1,7 @@
 # Specs System — Spec
 
-**Version:** 3.1
-**Last updated:** 2026-03-26
+**Version:** 3.2
+**Last updated:** 2026-04-05
 **Feature location:** `~/.claude/specs/` (system specs), `~/.claude/skills/{name}/specs/{name}-spec.md` (skill specs), `~/.claude/plans/` (system plans/designs), `~/.claude/skills/{name}/plans/` (skill plans/designs)
 
 ## Purpose
@@ -62,9 +62,8 @@ A `## Specs System` section in CLAUDE.md establishes hard rules:
 8. If no spec exists for a feature being modified or created, and that feature has behavior/workflow logic a future session would need to understand, offer to create one
 
 ### Backup
-- System specs (`~/.claude/specs/*.md`) are tracked by Git and archived to Drive on each push via `git-sync.sh`
+- System specs (`~/.claude/specs/*.md`) are synced to configured backends on each sync cycle via `sync.sh`
 - Skill specs are automatically included because skill folders are already backed up as directories
-- Pull-before-push merges remote specs on full snapshot
 
 ### Skill-creator integration
 When a new skill is created via skill-creator, a first-draft spec is generated and presented for approval before saving.
@@ -92,3 +91,4 @@ See [GitHub Issues](https://github.com/itsdestin/destinclaude/issues) for known 
 | 2026-03-16 | 2.4 | Added naming convention mandates for specs/designs/plans, separate plans/ directories, revised ephemeral design docs policy to preserve in plans/, updated skill spec naming to {name}-spec.md | Architecture | — | |
 | 2026-03-23 | 3.0 | Migrated Planned Updates and Known Bugs tracking to GitHub Issues. Specs now contain a pointer section instead of inline content. Updated mandate, design decision, and template description. | Architecture | — | |
 | 2026-03-26 | 3.1 | Added mandate: skills must never direct users to run commands — Claude runs all commands via Bash tool | Mandate | — | |
+| 2026-04-05 | 3.2 | Sync consolidation: updated git-sync.sh reference in Backup section to sync.sh; removed stale pull-before-push note. | Update | owner | |
