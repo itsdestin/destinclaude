@@ -47,5 +47,14 @@ export function validateTheme(raw: unknown): ThemeDefinition {
     }
   }
 
+  // Clamp radius-2xl to 36px max to prevent bubble content clipping
+  const shape = t.shape as Record<string, string> | undefined;
+  if (shape && shape['radius-2xl']) {
+    const val = parseInt(shape['radius-2xl'], 10);
+    if (!isNaN(val) && val > 36) {
+      shape['radius-2xl'] = '36px';
+    }
+  }
+
   return raw as ThemeDefinition;
 }

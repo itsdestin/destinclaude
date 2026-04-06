@@ -370,8 +370,10 @@ html, body, #root {
 [data-bubble-style="pill"] .assistant-bubble,
 [data-bubble-style="pill"] .user-bubble {
   border-radius: var(--radius-full);
-  padding-left: 16px;
-  padding-right: 16px;
+  padding-left: 24px;
+  padding-right: 24px;
+  padding-top: 14px;
+  padding-bottom: 14px;
 }
 
 [data-bubble-style="flat"] .assistant-bubble,

@@ -44,11 +44,11 @@ function LoginScreen({ onLogin }: { onLogin: (password: string) => Promise<void>
           placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="px-3 py-2 rounded bg-inset border border-edge text-sm focus:outline-none focus:border-fg-muted"
+          className="px-3 py-2 rounded-sm bg-inset border border-edge text-sm focus:outline-none focus:border-fg-muted"
           autoFocus
           disabled={loading}
         />
-        <button type="submit" disabled={loading} className="px-3 py-2 rounded bg-blue-600 hover:bg-blue-500 text-sm font-medium disabled:opacity-50">
+        <button type="submit" disabled={loading} className="px-3 py-2 rounded-sm bg-blue-600 hover:bg-blue-500 text-sm font-medium disabled:opacity-50">
           {loading ? 'Connecting...' : 'Connect'}
         </button>
         {error && (

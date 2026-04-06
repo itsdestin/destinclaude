@@ -433,8 +433,9 @@ export default function SessionStrip({
           {/* ── Dropdown menu ──────────────────────────────── */}
           {menuOpen && (
             <div
-              className="fixed top-auto mt-1 w-72 bg-panel border border-edge rounded-lg shadow-lg overflow-hidden z-50"
+              className="absolute mt-1 w-72 bg-panel border border-edge rounded-lg shadow-lg overflow-hidden z-50"
               style={{
+                top: '100%',
                 left: '50%',
                 animation: 'dropdown-in 120ms cubic-bezier(0.16, 1, 0.3, 1) both',
               }}
