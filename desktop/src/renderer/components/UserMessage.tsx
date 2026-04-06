@@ -9,7 +9,7 @@ interface Props {
 export default React.memo(function UserMessage({ message }: Props) {
   return (
     <div className="flex justify-end px-4 py-2">
-      <div className="max-w-[80%] rounded-2xl rounded-br-sm bg-accent px-4 py-2.5 text-sm text-on-accent whitespace-pre-wrap">
+      <div className="user-bubble max-w-[80%] rounded-2xl rounded-br-sm bg-accent px-4 py-3 text-sm text-on-accent whitespace-pre-wrap overflow-hidden">
         <LinkableText text={message.content} />
       </div>
     </div>

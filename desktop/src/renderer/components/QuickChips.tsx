@@ -34,7 +34,7 @@ export default function QuickChips({ onChipTap }: Props) {
         <button
           key={chip.label}
           onClick={() => onChipTap(chip)}
-          className={`shrink-0 ${isAndroid() ? 'h-8 px-3' : 'h-6 px-2.5'} rounded bg-panel border border-edge-dim text-[11px] text-fg-2 hover:bg-inset hover:text-fg transition-colors`}
+          className={`shrink-0 ${isAndroid() ? 'h-8 px-3' : 'h-6 px-2.5'} rounded-md bg-panel border border-edge-dim text-[11px] text-fg-2 hover:bg-inset hover:text-fg transition-colors`}
         >
           {chip.label}
         </button>

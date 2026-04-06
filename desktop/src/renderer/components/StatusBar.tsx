@@ -196,13 +196,13 @@ export default function StatusBar({ statusData, onRunSync, model, onCycleModel, 
       <div className="relative" ref={menuRef}>
         <button
           onClick={() => setMenuOpen((v) => !v)}
-          className="flex items-center justify-center w-5 h-5 rounded bg-panel border border-edge-dim cursor-pointer hover:bg-inset transition-colors"
+          className="flex items-center justify-center w-5 h-5 rounded-sm bg-panel border border-edge-dim cursor-pointer hover:bg-inset transition-colors"
           title="Customize Status Bar"
         >
           <PencilIcon />
         </button>
         {menuOpen && (
-          <div className="absolute bottom-full left-0 mb-1 w-44 rounded border border-edge-dim bg-panel shadow-lg z-50 py-1 text-[11px]">
+          <div className="absolute bottom-full left-0 mb-1 w-44 rounded-md border border-edge-dim bg-panel shadow-lg z-50 py-1 text-[11px]">
             <div className="px-2 py-1 text-fg-faint font-semibold border-b border-edge-dim text-[10px] uppercase tracking-wide">
               Status Bar Widgets
             </div>
@@ -253,7 +253,7 @@ export default function StatusBar({ statusData, onRunSync, model, onCycleModel, 
       {show('usage-5h') && usage?.five_hour != null && (
         <button
           onClick={() => window.claude.shell.openExternal('https://claude.ai/settings/usage')}
-          className="flex items-center gap-1 sm:gap-1.5 px-1.5 py-0.5 rounded bg-panel border border-edge-dim cursor-pointer hover:bg-inset transition-colors"
+          className="flex items-center gap-1 sm:gap-1.5 px-1.5 py-0.5 rounded-sm bg-panel border border-edge-dim cursor-pointer hover:bg-inset transition-colors"
           title="View usage on claude.ai"
         >
           <span>5h:</span>
@@ -266,7 +266,7 @@ export default function StatusBar({ statusData, onRunSync, model, onCycleModel, 
       {show('usage-7d') && usage?.seven_day != null && (
         <button
           onClick={() => window.claude.shell.openExternal('https://claude.ai/settings/usage')}
-          className="flex items-center gap-1 sm:gap-1.5 px-1.5 py-0.5 rounded bg-panel border border-edge-dim cursor-pointer hover:bg-inset transition-colors"
+          className="flex items-center gap-1 sm:gap-1.5 px-1.5 py-0.5 rounded-sm bg-panel border border-edge-dim cursor-pointer hover:bg-inset transition-colors"
           title="View usage on claude.ai"
         >
           <span>7d:</span>
@@ -291,7 +291,7 @@ export default function StatusBar({ statusData, onRunSync, model, onCycleModel, 
       {model && (
         <button
           onClick={onCycleModel}
-          className="px-1.5 py-0.5 rounded border cursor-pointer hover:brightness-125 transition-colors"
+          className="px-1.5 py-0.5 rounded-sm border cursor-pointer hover:brightness-125 transition-colors"
           style={{
             backgroundColor: MODEL_DISPLAY[model].bg,
             color: MODEL_DISPLAY[model].color,
@@ -308,7 +308,7 @@ export default function StatusBar({ statusData, onRunSync, model, onCycleModel, 
         <button
           key={i}
           onClick={onRunSync}
-          className={`px-1.5 py-0.5 rounded border text-[9px] sm:text-[10px] ${warnStyles[w.level]} ${onRunSync ? 'cursor-pointer hover:brightness-125 transition-all' : ''}`}
+          className={`px-1.5 py-0.5 rounded-sm border text-[9px] sm:text-[10px] ${warnStyles[w.level]} ${onRunSync ? 'cursor-pointer hover:brightness-125 transition-all' : ''}`}
         >
           {w.text}
         </button>
@@ -318,7 +318,7 @@ export default function StatusBar({ statusData, onRunSync, model, onCycleModel, 
       {show('theme') && (
         <button
           onClick={cycleTheme}
-          className="px-1.5 py-0.5 rounded bg-panel border border-edge-dim cursor-pointer hover:bg-inset transition-colors"
+          className="px-1.5 py-0.5 rounded-sm bg-panel border border-edge-dim cursor-pointer hover:bg-inset transition-colors"
           title="Click to cycle theme"
         >
           {activeTheme.name}
@@ -329,7 +329,7 @@ export default function StatusBar({ statusData, onRunSync, model, onCycleModel, 
       {show('version') && updateStatus && (
         <button
           onClick={() => window.claude.shell.openChangelog()}
-          className="px-1.5 py-0.5 rounded bg-panel border border-edge-dim cursor-pointer hover:bg-inset transition-colors ml-auto hidden sm:inline-flex"
+          className="px-1.5 py-0.5 rounded-sm bg-panel border border-edge-dim cursor-pointer hover:bg-inset transition-colors ml-auto hidden sm:inline-flex"
         >
           {updateStatus.update_available ? (
             <span className="text-[#FF9800]">
