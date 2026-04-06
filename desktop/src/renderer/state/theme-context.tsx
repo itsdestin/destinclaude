@@ -5,7 +5,7 @@ import hljsDarkCss from 'highlight.js/styles/github-dark.css?inline';
 import hljsLightCss from 'highlight.js/styles/github.css?inline';
 
 import { validateTheme } from '../themes/theme-validator';
-import { applyThemeToDom, buildBackgroundStyle, buildPatternStyle } from '../themes/theme-engine';
+import { applyThemeToDom, applyThemeFont, buildBackgroundStyle, buildPatternStyle } from '../themes/theme-engine';
 import type { ThemeDefinition, LoadedTheme } from '../themes/theme-types';
 import { resolveAllAssetPaths } from '../themes/theme-asset-resolver';
 
@@ -137,9 +137,22 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     applyThemeToDom(activeTheme);
     applyHighlightTheme(activeTheme.dark);
+
+    // If the theme declares a font, adopt it as the active font.
+    // This syncs React state so the font picker reflects the theme's choice.
+    // If no theme font, restore the user's manually-chosen font.
+    if (activeTheme.font?.family) {
+      setFontState(activeTheme.font.family);
+      // applyThemeToDom already called applyThemeFont, so CSS vars are set
+    } else {
+      // Theme has no font preference — apply user's stored font
+      const userFont = getStored(FONT_KEY, DEFAULT_FONT_FAMILY);
+      setFontState(userFont);
+      applyFont(userFont);
+    }
   }, [activeTheme]);
 
-  // Apply font on change
+  // Apply font on manual change (user picks from font picker)
   useEffect(() => { applyFont(font); }, [font]);
 
   const setTheme = useCallback((slug: string) => {

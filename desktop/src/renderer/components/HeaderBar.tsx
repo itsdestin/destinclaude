@@ -115,7 +115,7 @@ export default function HeaderBar({
           <div className="flex bg-inset rounded-md p-0.5 gap-0.5">
             <button
               onClick={() => onToggleView('chat')}
-              className={`px-1.5 sm:px-2.5 py-1 rounded transition-colors flex items-center gap-1.5 ${
+              className={`px-1.5 sm:px-2.5 py-1 rounded-[--radius-toggle] transition-colors flex items-center gap-1.5 ${
                 viewMode === 'chat'
                   ? 'bg-accent text-on-accent'
                   : 'text-fg-dim hover:text-fg-2'
@@ -127,7 +127,7 @@ export default function HeaderBar({
             </button>
             <button
               onClick={() => onToggleView('terminal')}
-              className={`px-1.5 sm:px-2.5 py-1 rounded transition-colors flex items-center gap-1.5 ${
+              className={`px-1.5 sm:px-2.5 py-1 rounded-[--radius-toggle] transition-colors flex items-center gap-1.5 ${
                 viewMode === 'terminal'
                   ? 'bg-accent text-on-accent'
                   : 'text-fg-dim hover:text-fg-2'
@@ -142,7 +142,7 @@ export default function HeaderBar({
         <div className="bg-inset rounded-md p-0.5 hidden sm:block">
           <button
             onClick={onToggleGamePanel}
-            className={`px-2 py-1 rounded transition-colors flex items-center gap-1 ${
+            className={`px-2 py-1 rounded-[--radius-toggle] transition-colors flex items-center gap-1 ${
               gamePanelOpen
                 ? 'bg-accent text-on-accent'
                 : challengePending && !gamePanelOpen

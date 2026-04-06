@@ -17,10 +17,20 @@ export interface ThemeTokens {
 }
 
 export interface ThemeShape {
+  'radius'?: string;
   'radius-sm'?: string;
   'radius-md'?: string;
   'radius-lg'?: string;
+  'radius-xl'?: string;
+  'radius-2xl'?: string;
   'radius-full'?: string;
+}
+
+export interface ThemeFont {
+  /** CSS font-family value, e.g. "'Victor Mono', 'Cascadia Mono', monospace" */
+  family: string;
+  /** Google Fonts @import URL. Injected as a <link> at theme load time. */
+  'google-font-url'?: string;
 }
 
 export interface ThemeBackground {
@@ -79,6 +89,7 @@ export interface ThemeDefinition {
   created?: string;
   tokens: ThemeTokens;
   shape?: ThemeShape;
+  font?: ThemeFont;
   background?: ThemeBackground;
   layout?: ThemeLayout;
   effects?: ThemeEffects;

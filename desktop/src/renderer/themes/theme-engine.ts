@@ -1,4 +1,4 @@
-import type { ThemeTokens, ThemeShape, ThemeBackground, ThemeLayout, ThemeDefinition } from './theme-types';
+import type { ThemeTokens, ThemeShape, ThemeFont, ThemeBackground, ThemeLayout, ThemeDefinition } from './theme-types';
 
 /** Returns CSS custom property map for all 15 color tokens. */
 export function buildTokenCSS(tokens: ThemeTokens): Record<string, string> {
@@ -46,6 +46,42 @@ export function buildPatternStyle(
     backgroundSize: 'auto',
     opacity: String(opacity ?? 0.06),
   };
+}
+
+const GOOGLE_FONT_LINK_ID = 'theme-google-font';
+
+/** Injects or removes a Google Fonts <link> in <head>. Returns the font-family string if set. */
+export function applyThemeFont(font: ThemeFont | undefined): string | null {
+  let linkEl = document.getElementById(GOOGLE_FONT_LINK_ID) as HTMLLinkElement | null;
+
+  if (!font) {
+    // No theme font — clean up any previously injected link
+    if (linkEl) linkEl.remove();
+    return null;
+  }
+
+  // Inject or update Google Font <link> if URL is provided
+  const url = font['google-font-url'];
+  if (url) {
+    if (!linkEl) {
+      linkEl = document.createElement('link');
+      linkEl.id = GOOGLE_FONT_LINK_ID;
+      linkEl.rel = 'stylesheet';
+      document.head.appendChild(linkEl);
+    }
+    linkEl.href = url;
+  } else if (linkEl) {
+    linkEl.remove();
+  }
+
+  // Apply font-family to CSS variables
+  if (font.family) {
+    document.documentElement.style.setProperty('--font-sans', font.family);
+    document.documentElement.style.setProperty('--font-mono', font.family);
+    return font.family;
+  }
+
+  return null;
 }
 
 /** Returns data-attribute key/value pairs to set on <body>. */
@@ -122,6 +158,9 @@ export function applyThemeToDom(theme: ThemeDefinition): void {
   } else if (customEl) {
     customEl.textContent = '';
   }
+
+  // 7. Theme font — inject Google Font <link> and set --font-sans/--font-mono
+  applyThemeFont(theme.font);
 }
 
 const TOKEN_CSS_PROPS = [
@@ -135,9 +174,16 @@ export function clearThemeFromDom(): void {
   const root = document.documentElement;
   const body = document.body;
   root.removeAttribute('data-panels-blur');
-  const propsToRemove = [...TOKEN_CSS_PROPS, '--panels-blur', '--panel-glass', '--radius-sm', '--radius-md', '--radius-lg', '--radius-xl', '--radius-2xl', '--radius-full'];
+  const propsToRemove = [
+    ...TOKEN_CSS_PROPS,
+    '--panels-blur', '--panel-glass',
+    '--radius', '--radius-sm', '--radius-md', '--radius-lg', '--radius-xl', '--radius-2xl', '--radius-full',
+    '--font-sans', '--font-mono',
+  ];
   for (const p of propsToRemove) root.style.removeProperty(p);
   for (const a of LAYOUT_ATTRS) body.removeAttribute(a);
   const customEl = document.getElementById('theme-custom') as HTMLStyleElement | null;
   if (customEl) customEl.textContent = '';
+  // Remove injected Google Font link
+  document.getElementById(GOOGLE_FONT_LINK_ID)?.remove();
 }

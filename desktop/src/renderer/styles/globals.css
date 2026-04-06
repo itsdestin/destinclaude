@@ -30,12 +30,14 @@
   --link-hover: #1D4ED8;
   --hl-theme: light;
   color-scheme: light;
+  --radius: 4px;
   --radius-sm: 4px;
   --radius-md: 8px;
   --radius-lg: 12px;
   --radius-xl: 16px;
   --radius-2xl: 24px;
   --radius-full: 9999px;
+  --radius-toggle: calc(var(--radius-md) - 2px);
 }
 
 /* ─── Dark ─── */
@@ -60,12 +62,14 @@
   --link-hover: #88CCFF;
   --hl-theme: dark;
   color-scheme: dark;
+  --radius: 4px;
   --radius-sm: 4px;
   --radius-md: 8px;
   --radius-lg: 12px;
   --radius-xl: 16px;
   --radius-2xl: 24px;
   --radius-full: 9999px;
+  --radius-toggle: calc(var(--radius-md) - 2px);
 }
 
 /* ─── Midnight ─── */
@@ -90,12 +94,14 @@
   --link-hover: #79C0FF;
   --hl-theme: dark;
   color-scheme: dark;
+  --radius: 4px;
   --radius-sm: 4px;
   --radius-md: 8px;
   --radius-lg: 12px;
   --radius-xl: 16px;
   --radius-2xl: 24px;
   --radius-full: 9999px;
+  --radius-toggle: calc(var(--radius-md) - 2px);
 }
 
 /* ─── Crème ─── */
@@ -120,12 +126,14 @@
   --link-hover: #3D3219;
   --hl-theme: light;
   color-scheme: light;
+  --radius: 4px;
   --radius-sm: 4px;
   --radius-md: 8px;
   --radius-lg: 12px;
   --radius-xl: 16px;
   --radius-2xl: 24px;
   --radius-full: 9999px;
+  --radius-toggle: calc(var(--radius-md) - 2px);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -154,6 +162,7 @@
   --color-edge-dim: var(--edge-dim);
 
   /* Border radius scale — maps Tailwind rounded-* utilities to theme variables */
+  --radius: var(--radius);
   --radius-sm: var(--radius-sm);
   --radius-md: var(--radius-md);
   --radius-lg: var(--radius-lg);
