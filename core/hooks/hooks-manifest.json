@@ -31,6 +31,12 @@
         "matcher": "mcp__claude_ai_Gmail.*|mcp__claude_ai_Google_Calendar.*",
         "timeout": 10,
         "required": false
+      },
+      {
+        "command": "bash ~/.claude/hooks/journal-vault-guard.sh",
+        "matcher": "Bash|Read",
+        "timeout": 30,
+        "required": false
       }
     ],
     "PostToolUse": [
@@ -70,6 +76,11 @@
         "command": "bash ~/.claude/hooks/session-end-sync.sh",
         "timeout": 15,
         "required": true
+      },
+      {
+        "command": "bash ~/.claude/hooks/journal-vault-lock.sh",
+        "timeout": 15,
+        "required": false
       }
     ]
   }
