@@ -13,7 +13,9 @@ function getXtermTheme(): { background: string; foreground: string; cursor: stri
   const s = getComputedStyle(document.documentElement);
   const bg = s.getPropertyValue('--canvas').trim() || '#0A0A0A';
   const fg = s.getPropertyValue('--fg').trim() || '#E0E0E0';
-  return { background: bg, foreground: fg, cursor: fg, selectionBackground: '#264f78' };
+  const accent = s.getPropertyValue('--accent').trim() || '#264f78';
+  // Selection: accent at 30% opacity
+  return { background: bg, foreground: fg, cursor: fg, selectionBackground: accent + '4D' };
 }
 
 interface Props {
@@ -25,14 +27,19 @@ export default function TerminalView({ sessionId, visible }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
-  const { theme, font } = useTheme();
+  const { theme, font, activeTheme } = useTheme();
 
-  // Sync xterm theme when app theme changes
+  // Sync xterm theme when app theme changes (activeTheme changes on hot-reload too,
+  // not just slug switches — so we depend on the full object, not just the slug)
   useEffect(() => {
-    if (terminalRef.current) {
-      terminalRef.current.options.theme = getXtermTheme();
-    }
-  }, [theme]);
+    if (!terminalRef.current) return;
+    // Microtask delay: CSS variables may not be painted yet when this effect fires
+    requestAnimationFrame(() => {
+      if (terminalRef.current) {
+        terminalRef.current.options.theme = getXtermTheme();
+      }
+    });
+  }, [activeTheme]);
 
   // Sync xterm font when app font changes
   useEffect(() => {
