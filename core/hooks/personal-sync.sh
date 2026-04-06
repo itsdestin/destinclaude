@@ -13,7 +13,9 @@ FILE_PATH=$(echo "$INPUT" | node -e "
     try{const j=JSON.parse(d);const p=j.tool_input&&j.tool_input.file_path||j.file_path||'';
     console.log(p.split(String.fromCharCode(92)).join('/'))}catch{console.log('')}
   })" 2>/dev/null)
-[[ -z "$FILE_PATH" ]] && exit 0
+# If FILE_PATH is empty, we were invoked from SessionStart — skip path filter and run a full sync.
+SESSION_START_TRIGGER=false
+[[ -z "$FILE_PATH" ]] && SESSION_START_TRIGGER=true
 
 # Source shared backup utilities
 HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -31,24 +33,26 @@ fi
 # Ensure is_toolkit_owned() has TOOLKIT_ROOT to check against
 TOOLKIT_ROOT=$(config_get "toolkit_root" "")
 
-# --- Path filter: only sync personal data files ---
+# --- Path filter: only sync personal data files (skipped when invoked from SessionStart) ---
 CLAUDE_DIR="${CLAUDE_DIR:-$HOME/.claude}"
 
-case "$FILE_PATH" in
-    */toolkit-state/config.local.json) exit 0 ;;   # Machine-specific, never sync (D1)
-    */mcp-servers/mcp-config.json) exit 0 ;;        # Machine-specific, never sync (D2)
-    */projects/*/*.jsonl) ;;                        # Conversation transcripts (D3)
-    */projects/*/memory/*) ;;
-    */CLAUDE.md) ;;
-    */toolkit-state/config.json) ;;
-    */encyclopedia/*) ;;
-    */skills/*)
-        if type is_toolkit_owned &>/dev/null && is_toolkit_owned "$FILE_PATH"; then
-            exit 0
-        fi
-        ;;
-    *) exit 0 ;;
-esac
+if [[ "$SESSION_START_TRIGGER" == "false" ]]; then
+    case "$FILE_PATH" in
+        */toolkit-state/config.local.json) exit 0 ;;   # Machine-specific, never sync (D1)
+        */mcp-servers/mcp-config.json) exit 0 ;;        # Machine-specific, never sync (D2)
+        */projects/*/*.jsonl) ;;                        # Conversation transcripts (D3)
+        */projects/*/memory/*) ;;
+        */CLAUDE.md) ;;
+        */toolkit-state/config.json) ;;
+        */encyclopedia/*) ;;
+        */skills/*)
+            if type is_toolkit_owned &>/dev/null && is_toolkit_owned "$FILE_PATH"; then
+                exit 0
+            fi
+            ;;
+        *) exit 0 ;;
+    esac
+fi
 
 # --- Read config ---
 CONFIG_FILE="${CONFIG_FILE:-$CLAUDE_DIR/toolkit-state/config.json}"
@@ -160,7 +164,7 @@ sync_drive() {
             _enc_configured=$(grep -o '"encyclopedia_remote_path"[[:space:]]*:[[:space:]]*"[^"]*"' "$CONFIG_FILE" 2>/dev/null | head -1 | sed 's/.*"encyclopedia_remote_path"[[:space:]]*:[[:space:]]*"//' | sed 's/"$//' || true)
             [[ -n "$_enc_configured" ]] && _enc_remote_path="$_enc_configured"
         fi
-        rclone copy "$CLAUDE_DIR/encyclopedia/" "gdrive:$DRIVE_ROOT/$_enc_remote_path/" \
+        rclone copy "$CLAUDE_DIR/encyclopedia/" "${PERSONAL_DRIVE_REMOTE}:$DRIVE_ROOT/$_enc_remote_path/" \
             --update --max-depth 1 --include "*.md" 2>/dev/null || \
             log_backup "WARN" "Encyclopedia sync to The Journal/System failed"
     fi
