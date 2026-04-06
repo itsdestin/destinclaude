@@ -207,7 +207,7 @@ function configSet(key, value) {
  * @returns {string}
  */
 function vaultHeaderPath() {
-  return path.join(vaultDir(), 'vault-header.json');
+  return path.join(CLAUDE_DIR, 'vault-header.json');
 }
 
 /**
@@ -419,9 +419,10 @@ async function cmdInit() {
     fs.mkdirSync(VAULT_STATE_DIR, { recursive: true });
   }
   fs.writeFileSync(path.join(VAULT_STATE_DIR, '.unlocked'), '', 'utf8');
+  fs.writeFileSync(path.join(VAULT_STATE_DIR, '.last-access'), new Date().toISOString());
 
   // Cache DEK for lock/unlock cycle
-  fs.writeFileSync(path.join(VAULT_STATE_DIR, '.dek'), dek.toString('base64'), 'utf8');
+  fs.writeFileSync(path.join(VAULT_STATE_DIR, '.dek-cache'), dek.toString('base64'), 'utf8');
 
   // Set config
   configSet('vault_enabled', true);
@@ -432,6 +433,9 @@ async function cmdInit() {
   process.stderr.write(recoveryKey.toString('base64') + '\n');
   process.stderr.write('========================================\n');
   process.stderr.write('\nVault initialized with ' + sourceFiles.length + ' files.\n');
+
+  // Spawn watchdog (vault is left unlocked after init)
+  spawnWatchdog();
 
   // Machine-readable status to stdout
   process.stdout.write('INITIALIZED\n');
@@ -501,9 +505,10 @@ async function cmdUnlock() {
     fs.mkdirSync(VAULT_STATE_DIR, { recursive: true });
   }
   fs.writeFileSync(path.join(VAULT_STATE_DIR, '.unlocked'), '', 'utf8');
+  fs.writeFileSync(path.join(VAULT_STATE_DIR, '.last-access'), new Date().toISOString());
 
   // Cache DEK
-  fs.writeFileSync(path.join(VAULT_STATE_DIR, '.dek'), dek.toString('base64'), 'utf8');
+  fs.writeFileSync(path.join(VAULT_STATE_DIR, '.dek-cache'), dek.toString('base64'), 'utf8');
 
   // Spawn watchdog
   spawnWatchdog();
@@ -523,7 +528,7 @@ async function cmdLock() {
   }
 
   // Load cached DEK
-  const dekPath = path.join(VAULT_STATE_DIR, '.dek');
+  const dekPath = path.join(VAULT_STATE_DIR, '.dek-cache');
   if (!fs.existsSync(dekPath)) {
     process.stderr.write('No cached DEK found. Cannot lock.\n');
     process.exit(1);
@@ -641,7 +646,7 @@ function wipeVaultState() {
  * Spawn the watchdog process (detached).
  */
 function spawnWatchdog() {
-  const timeout = configGet('vault_timeout_minutes', 30);
+  const timeout = configGet('vault_timeout_minutes', 15);
   const watchdogScript = path.join(path.dirname(__filename), 'journal-vault-watchdog.sh');
 
   if (!fs.existsSync(watchdogScript)) {
@@ -687,7 +692,7 @@ function cmdStatus() {
     const header = JSON.parse(fs.readFileSync(headerPath, 'utf8'));
     // Try to read manifest if unlocked
     if (unlocked) {
-      const dekPath = path.join(VAULT_STATE_DIR, '.dek');
+      const dekPath = path.join(VAULT_STATE_DIR, '.dek-cache');
       if (fs.existsSync(dekPath)) {
         const dek = Buffer.from(fs.readFileSync(dekPath, 'utf8').trim(), 'base64');
         try {
@@ -720,6 +725,10 @@ function cmdStatus() {
   }
 
   process.stderr.write(`VAULT: ${state}\n`);
+  const lastAccessPath = path.join(VAULT_STATE_DIR, '.last-access');
+  if (fs.existsSync(lastAccessPath)) {
+    console.log('Last access: ' + fs.readFileSync(lastAccessPath, 'utf8').trim());
+  }
   if (fileCount >= 0) {
     process.stderr.write(`Files: ${fileCount}\n`);
   }
@@ -780,7 +789,9 @@ async function cmdChangePassword() {
   header.kdf.r = DEFAULT_SCRYPT_PARAMS.r;
   header.kdf.p = DEFAULT_SCRYPT_PARAMS.p;
 
-  fs.writeFileSync(headerPath, JSON.stringify(header, null, 2), 'utf8');
+  const tmp = headerPath + '.tmp.' + process.pid;
+  fs.writeFileSync(tmp, JSON.stringify(header, null, 2) + '\n');
+  fs.renameSync(tmp, headerPath);
 
   process.stderr.write('Password changed successfully.\n');
   process.stdout.write('PASSWORD_CHANGED\n');
@@ -842,7 +853,9 @@ async function cmdRecover() {
   header.kdf.r = DEFAULT_SCRYPT_PARAMS.r;
   header.kdf.p = DEFAULT_SCRYPT_PARAMS.p;
 
-  fs.writeFileSync(headerPath, JSON.stringify(header, null, 2), 'utf8');
+  const tmp = headerPath + '.tmp.' + process.pid;
+  fs.writeFileSync(tmp, JSON.stringify(header, null, 2) + '\n');
+  fs.renameSync(tmp, headerPath);
 
   process.stderr.write('Vault recovered. Password has been reset.\n');
   process.stdout.write('RECOVERED\n');
@@ -859,7 +872,7 @@ function cmdRotateRecovery() {
   }
 
   // Load cached DEK
-  const dekPath = path.join(VAULT_STATE_DIR, '.dek');
+  const dekPath = path.join(VAULT_STATE_DIR, '.dek-cache');
   if (!fs.existsSync(dekPath)) {
     process.stderr.write('No cached DEK found. Unlock the vault first.\n');
     process.exit(1);
@@ -878,7 +891,9 @@ function cmdRotateRecovery() {
 
   // Update header
   header.recoveryWrappedDEK = newRecoveryWrappedDEK.toString('base64');
-  fs.writeFileSync(headerPath, JSON.stringify(header, null, 2), 'utf8');
+  const tmp = headerPath + '.tmp.' + process.pid;
+  fs.writeFileSync(tmp, JSON.stringify(header, null, 2) + '\n');
+  fs.renameSync(tmp, headerPath);
 
   // Display new recovery key
   process.stderr.write('\n========================================\n');
