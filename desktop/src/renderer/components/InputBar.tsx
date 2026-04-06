@@ -48,10 +48,6 @@ const InputBar = forwardRef<InputBarHandle, Props>(function InputBar({ sessionId
     },
   }));
 
-  useEffect(() => {
-    inputRef.current?.focus();
-  }, [sessionId]);
-
   // Auto-focus input when user starts typing anywhere in the app
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -300,7 +296,6 @@ const InputBar = forwardRef<InputBarHandle, Props>(function InputBar({ sessionId
             onPaste={handlePaste}
             placeholder={disabled ? 'Waiting for approval...' : 'Message Claude...'}
             disabled={disabled}
-            autoFocus
             className="flex-1 bg-transparent text-sm text-fg placeholder-fg-muted outline-none disabled:opacity-50 resize-none overflow-y-hidden leading-snug"
           />
           <button
