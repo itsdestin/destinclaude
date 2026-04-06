@@ -455,12 +455,26 @@ export function registerIpcHandlers(
     const updateStatus = readJsonFile(updateStatusPath);
     const syncStatus = readTextFile(syncStatusPath);
     const syncWarnings = readTextFile(syncWarningsPath);
-    return { usage, announcement, updateStatus, syncStatus, syncWarnings };
+
+    // Read per-session context remaining % (written by statusline.sh)
+    const contextMap: Record<string, number> = {};
+    for (const [desktopId, claudeId] of sessionIdMap) {
+      const raw = readTextFile(path.join(os.homedir(), '.claude', `.context-${claudeId}`));
+      if (raw != null) {
+        const num = parseInt(raw, 10);
+        if (!isNaN(num)) contextMap[desktopId] = num;
+      }
+    }
+
+    return { usage, announcement, updateStatus, syncStatus, syncWarnings, contextMap };
   }
 
   // Push status data every 10s — store handle so it can be cleared on shutdown
   const statusInterval = setInterval(() => {
-    send(IPC.STATUS_DATA, buildStatusData());
+    const data = buildStatusData();
+    send(IPC.STATUS_DATA, data);
+    // Feed context map to remote server for browser clients
+    if (remoteServer && data.contextMap) remoteServer.setContextMap(data.contextMap);
   }, 10000);
 
   // Also push immediately on first hook event (session is active)
@@ -469,7 +483,9 @@ export function registerIpcHandlers(
     hookRelay.on('hook-event', () => {
       if (!sentInitialStatus) {
         sentInitialStatus = true;
-        send(IPC.STATUS_DATA, buildStatusData());
+        const data = buildStatusData();
+        send(IPC.STATUS_DATA, data);
+        if (remoteServer && data.contextMap) remoteServer.setContextMap(data.contextMap);
       }
     });
   }
@@ -613,8 +629,13 @@ export function registerIpcHandlers(
       }
       topicWatchers.delete(sessionId);
       lastTopics.delete(sessionId);
-      sessionIdMap.delete(sessionId);
     }
+    // Clean up context cache file
+    const claudeId = sessionIdMap.get(sessionId);
+    if (claudeId) {
+      fs.unlink(path.join(os.homedir(), '.claude', `.context-${claudeId}`), () => {});
+    }
+    sessionIdMap.delete(sessionId);
   });
 
   // --- Permission response (blocking hooks) ---

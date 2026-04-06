@@ -34,6 +34,9 @@ IFS=$(printf '\037') read -r SESSION_NAME MODEL REMAINING SESSION_ID <<< "$PARSE
 MODEL=${MODEL:-unknown}
 REMAINING=${REMAINING:-100}
 
+# Persist context remaining for desktop app status bar
+[[ -n "$SESSION_ID" ]] && printf '%s' "$REMAINING" > "$HOME/.claude/.context-${SESSION_ID}" 2>/dev/null
+
 # Fall back to topic file if session_name is empty, default to "New Session"
 if [[ -z "$SESSION_NAME" && -n "$SESSION_ID" ]]; then
     TOPIC_FILE="$HOME/.claude/topics/topic-${SESSION_ID}"

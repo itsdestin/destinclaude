@@ -192,47 +192,23 @@ export default function StatusBar({ statusData, onRunSync, model, onCycleModel, 
 
   return (
     <div className="status-bar flex flex-wrap items-center gap-x-2 gap-y-1 px-2 sm:px-3 py-1 text-[10px] text-fg-muted border-t border-edge-dim">
-      {/* Customize widget — pencil icon */}
-      <div className="relative" ref={menuRef}>
+      {/* Model selector chip — always first */}
+      {model && (
         <button
-          onClick={() => setMenuOpen((v) => !v)}
-          className="flex items-center justify-center w-5 h-5 rounded-sm bg-panel border border-edge-dim cursor-pointer hover:bg-inset transition-colors"
-          title="Customize Status Bar"
+          onClick={onCycleModel}
+          className="px-1.5 py-0.5 rounded-sm border cursor-pointer hover:brightness-125 transition-colors"
+          style={{
+            backgroundColor: MODEL_DISPLAY[model].bg,
+            color: MODEL_DISPLAY[model].color,
+            borderColor: MODEL_DISPLAY[model].border,
+          }}
+          title={`Model: ${MODEL_DISPLAY[model].label} (click to cycle)`}
         >
-          <PencilIcon />
+          {MODEL_DISPLAY[model].label}
         </button>
-        {menuOpen && (
-          <div className="absolute bottom-full left-0 mb-1 w-44 rounded-md border border-edge-dim bg-panel shadow-lg z-50 py-1 text-[11px]">
-            <div className="px-2 py-1 text-fg-faint font-semibold border-b border-edge-dim text-[10px] uppercase tracking-wide">
-              Status Bar Widgets
-            </div>
-            {WIDGET_DEFS.map((w) => (
-              <button
-                key={w.id}
-                onClick={() => toggle(w.id)}
-                className="flex items-center gap-2 w-full px-2 py-1 hover:bg-inset transition-colors text-left"
-              >
-                <span
-                  className={`w-3 h-3 rounded-sm border flex-shrink-0 flex items-center justify-center ${
-                    visible.has(w.id)
-                      ? 'bg-accent border-accent text-on-accent'
-                      : 'border-edge-dim'
-                  }`}
-                >
-                  {visible.has(w.id) && (
-                    <svg width="8" height="8" viewBox="0 0 16 16" fill="currentColor">
-                      <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z" />
-                    </svg>
-                  )}
-                </span>
-                <span className="text-fg">{w.label}</span>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
+      )}
 
-      {/* Permission mode chip */}
+      {/* Permission mode chip — always second */}
       {permissionMode && (
         <button
           onClick={onCyclePermission}
@@ -277,30 +253,15 @@ export default function StatusBar({ statusData, onRunSync, model, onCycleModel, 
         </button>
       )}
 
-      {/* Context */}
+      {/* Context remaining */}
       {show('context') && contextPercent != null && (
-        <span>
-          Ctx:{' '}
+        <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-sm bg-panel border border-edge-dim">
+          <span>Context:</span>
           <span className={contextColor(contextPercent)}>
             {contextPercent}%
           </span>
+          <span>Remaining</span>
         </span>
-      )}
-
-      {/* Model selector chip */}
-      {model && (
-        <button
-          onClick={onCycleModel}
-          className="px-1.5 py-0.5 rounded-sm border cursor-pointer hover:brightness-125 transition-colors"
-          style={{
-            backgroundColor: MODEL_DISPLAY[model].bg,
-            color: MODEL_DISPLAY[model].color,
-            borderColor: MODEL_DISPLAY[model].border,
-          }}
-          title={`Model: ${MODEL_DISPLAY[model].label} (click to cycle)`}
-        >
-          {MODEL_DISPLAY[model].label}
-        </button>
       )}
 
       {/* Sync warnings */}
@@ -325,11 +286,11 @@ export default function StatusBar({ statusData, onRunSync, model, onCycleModel, 
         </button>
       )}
 
-      {/* Version — pushed to end, hidden on very narrow screens */}
+      {/* Version — hidden on very narrow screens */}
       {show('version') && updateStatus && (
         <button
           onClick={() => window.claude.shell.openChangelog()}
-          className="px-1.5 py-0.5 rounded-sm bg-panel border border-edge-dim cursor-pointer hover:bg-inset transition-colors ml-auto hidden sm:inline-flex"
+          className="px-1.5 py-0.5 rounded-sm bg-panel border border-edge-dim cursor-pointer hover:bg-inset transition-colors hidden sm:inline-flex"
         >
           {updateStatus.update_available ? (
             <span className="text-[#FF9800]">
@@ -340,6 +301,46 @@ export default function StatusBar({ statusData, onRunSync, model, onCycleModel, 
           )}
         </button>
       )}
+
+      {/* Customize widget — pencil icon, always last */}
+      <div className="relative ml-auto" ref={menuRef}>
+        <button
+          onClick={() => setMenuOpen((v) => !v)}
+          className="flex items-center justify-center w-5 h-5 rounded-sm bg-panel border border-edge-dim cursor-pointer hover:bg-inset transition-colors"
+          title="Customize Status Bar"
+        >
+          <PencilIcon />
+        </button>
+        {menuOpen && (
+          <div className="absolute bottom-full right-0 mb-1 w-44 rounded-md border border-edge-dim bg-panel shadow-lg z-50 py-1 text-[11px]">
+            <div className="px-2 py-1 text-fg-faint font-semibold border-b border-edge-dim text-[10px] uppercase tracking-wide">
+              Status Bar Widgets
+            </div>
+            {WIDGET_DEFS.map((w) => (
+              <button
+                key={w.id}
+                onClick={() => toggle(w.id)}
+                className="flex items-center gap-2 w-full px-2 py-1 hover:bg-inset transition-colors text-left"
+              >
+                <span
+                  className={`w-3 h-3 rounded-sm border flex-shrink-0 flex items-center justify-center ${
+                    visible.has(w.id)
+                      ? 'bg-accent border-accent text-on-accent'
+                      : 'border-edge-dim'
+                  }`}
+                >
+                  {visible.has(w.id) && (
+                    <svg width="8" height="8" viewBox="0 0 16 16" fill="currentColor">
+                      <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z" />
+                    </svg>
+                  )}
+                </span>
+                <span className="text-fg">{w.label}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

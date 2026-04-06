@@ -45,6 +45,8 @@ export class RemoteServer {
   private failedAttempts = new Map<string, { count: number; resetAt: number }>();
   // Last-known topic names, fed by ipc-handlers.ts via setLastTopic()
   private lastTopics = new Map<string, string>();
+  // Last-known context remaining %, fed by ipc-handlers.ts via setContextMap()
+  private contextMap: Record<string, number> = {};
 
   constructor(
     private sessionManager: SessionManager,
@@ -140,6 +142,7 @@ export class RemoteServer {
         updateStatus: readJsonFile(updateStatusPath),
         syncStatus: readTextFile(syncStatusPath),
         syncWarnings: readTextFile(syncWarningsPath),
+        contextMap: this.contextMap,
       };
       this.broadcast({ type: 'status:data', payload: data });
     }, 10_000);
@@ -157,6 +160,11 @@ export class RemoteServer {
   /** Store a topic name for replay on new connections. Called by ipc-handlers.ts. */
   setLastTopic(desktopId: string, name: string): void {
     this.lastTopics.set(desktopId, name);
+  }
+
+  /** Update per-session context remaining %. Called by ipc-handlers.ts. */
+  setContextMap(map: Record<string, number>): void {
+    this.contextMap = map;
   }
 
   stop(): void {

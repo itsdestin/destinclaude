@@ -38,7 +38,7 @@ interface StatusDataState {
   announcement: any;
   updateStatus: any;
   model: string | null;
-  contextPercent: number | null;
+  contextMap: Record<string, number>;
   syncStatus: string | null;
   syncWarnings: string | null;
 }
@@ -49,7 +49,7 @@ function AppInner() {
   const [viewModes, setViewModes] = useState<Map<string, ViewMode>>(new Map());
   const [statusData, setStatusData] = useState<StatusDataState>({
     usage: null, announcement: null, updateStatus: null,
-    model: null, contextPercent: null,
+    model: null, contextMap: {},
     syncStatus: null, syncWarnings: null,
   });
 
@@ -340,6 +340,7 @@ function AppInner() {
         updateStatus: data.updateStatus,
         syncStatus: data.syncStatus,
         syncWarnings: data.syncWarnings,
+        contextMap: data.contextMap || prev.contextMap,
       }));
     });
 
@@ -821,7 +822,7 @@ function AppInner() {
                   statusData={{
                     usage: statusData.usage,
                     updateStatus: statusData.updateStatus,
-                    contextPercent: statusData.contextPercent,
+                    contextPercent: sessionId ? (statusData.contextMap[sessionId] ?? null) : null,
                     syncStatus: statusData.syncStatus,
                     syncWarnings: statusData.syncWarnings,
                   }}
