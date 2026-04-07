@@ -31,6 +31,7 @@ Three layers, each a standalone [Claude Code plugin](https://docs.anthropic.com/
 - **Specs system** — structured, versioned documentation that persists across conversations
 - **Memory templates** — organized persistent memory for Claude
 - **Commands** — `/setup-wizard`, `/update`, `/health`, `/diagnose`, `/sync`, `/toolkit`, `/theme-builder`
+- **Theme builder** — build immersive DestinCode theme packs with custom colors, wallpapers, mascots, and effects
 - **Contribution detector** — notices your improvements and offers to share them upstream
 
 ### Life Features
