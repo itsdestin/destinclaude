@@ -251,8 +251,9 @@ Every concept card MUST render an **app mockup** that uses the exact same CSS cl
     - Noise: `<div class="effect-noise" style="--noise-opacity: 0.04;"></div>`
     - Scan-lines: `<div class="effect-scanlines" style="--scanline-opacity: 0.08;"></div>`
     These are cosmetic overlays — only include them when the theme concept uses these effects.
-14. **Layout presets work in the app.** `data-chrome-style`, `data-input-style`, `data-bubble-style`, `data-header-style`, and `data-statusbar-style` are wired to the real app's DOM via the theme engine. `chrome-style: "floating"` elevates all chrome bars (header, input, status) into detached rounded cards; individual `*-style` keys override per element. Input style presets require the `input-bar-container` class on the input wrapper.
+14. **Layout presets work in the app.** `data-chrome-style`, `data-input-style`, `data-bubble-style`, `data-header-style`, and `data-statusbar-style` are wired to the real app's DOM via the theme engine. `chrome-style: "floating"` elevates all chrome bars (header, input, status) into detached rounded cards; individual `*-style` keys override per element. Input style presets require the `input-bar-container` class on the input wrapper. **The bottom chrome order is: status bar → input bar** (status sits directly above the input area).
 15. **No absolute positioning on layout-flow elements**: Never use `position: absolute` on `.status-bar`, `.input-bar-container`, or other elements that participate in the app's flex column layout. Absolute positioning removes them from document flow and causes overlaps with adjacent elements. The floating chrome aesthetic uses `align-self`, `width: fit-content`, `margin`, `border-radius`, and `box-shadow` instead.
+16. **Static asset serving**: The visual companion server only serves non-HTML files under the `/files/` URL prefix (e.g. `GET /files/wallpaper.jpg`). A bare reference like `src="wallpaper.jpg"` resolves to `GET /wallpaper.jpg`, which returns 404. All `<img>`, `background-image: url(...)`, and other asset references in preview HTML **MUST** use the `/files/` prefix (e.g. `src="/files/wallpaper.jpg"`, `url('/files/wallpaper.jpg')`). Additionally, the asset file must exist inside the server's `screen_dir` (the `content/` directory) — files in the theme pack folder (`<slug>/assets/`) are in a different directory tree and are not accessible to the server. Always copy downloaded wallpapers and any other binary assets into `screen_dir` immediately after downloading them, then reference them as `/files/<filename>` in all HTML.
 
 ---
 
@@ -264,12 +265,15 @@ Every concept card MUST render an **app mockup** that uses the exact same CSS cl
 
 After the user approves a concept direction, Claude generates and shows each visual element one at a time in the concept browser for tweaking. Each screen is a separate HTML file pushed to the visual companion's `screen_dir`. Claude iterates on each screen until the user approves or says "skip" / "looks good" / "next", then moves to the next screen. After all screens are approved, proceed to the full theme pack generation in Step 1 below.
 
+**IMPORTANT — Wallpaper in previews**: If the theme uses a wallpaper image (not just a CSS gradient), download it **before** rendering Screen 1. Save it to both `<slug>/assets/wallpaper.<ext>` AND copy it into `screen_dir` so the preview server can serve it. Reference it in HTML as `/files/wallpaper.<ext>` (see Critical Rendering Rule 16). Concept card mockups in Phase 1 should also use the real wallpaper in `#theme-bg` instead of a CSS gradient stand-in — otherwise the user evaluates glassmorphism themes without seeing how the wallpaper actually looks through frosted panels, which defeats the purpose.
+
 **Screen 1: Background & Atmosphere**
 - Show the wallpaper or gradient Claude plans to use as a full-width preview (filling most of the viewport)
 - Show the pattern overlay if applicable, rendered as a tiled preview panel beside or below the wallpaper
 - Show glassmorphism settings: a panel sample with the planned blur level and panel opacity, overlaid on the wallpaper so the user sees the actual frosted-glass effect
 - Show the particle effect choice as a label badge (particles are static in preview)
 - Use concept card CSS classes for panels/surfaces; use custom layout for the large wallpaper preview area
+- All wallpaper references must use `/files/wallpaper.<ext>` (not bare filenames or relative paths — see Critical Rendering Rule 16)
 - User can say "try a different wallpaper", "less blur", "no pattern", "more opacity", etc.
 
 **Screen 2: Mascot Crossovers**
@@ -317,6 +321,7 @@ mkdir -p ~/.claude/destinclaude-themes/<slug>/assets
 - Use WebSearch to find high-quality official or fan art wallpapers
 - Use WebFetch to download the image
 - Save to `<slug>/assets/wallpaper.png` (or appropriate extension)
+- **Also copy to `screen_dir`** so the preview server can serve it (see Critical Rendering Rule 16)
 - Prefer 1920x1080 or higher resolution
 - Prioritize images that work well as a subtle background (not too busy, good as a blurred backdrop)
 
@@ -325,6 +330,7 @@ mkdir -p ~/.claude/destinclaude-themes/<slug>/assets
 - Use WebFetch to download the image
 - Alternatively, use a CSS gradient in `background.value` if no wallpaper is needed
 - Save to `<slug>/assets/wallpaper.png`
+- **Also copy to `screen_dir`** if a wallpaper image was downloaded (see Critical Rendering Rule 16)
 
 ### Step 3: Generate SVG Assets
 
@@ -581,7 +587,7 @@ Write `<slug>/manifest.json` matching this schema exactly:
 - `font.family` is applied to `--font-sans` and `--font-mono` CSS variables. Always include `'Cascadia Mono', monospace` as fallbacks
 - `font.google-font-url` is a Google Fonts `@import` URL. The app injects this into the `<head>` at theme load time. Omit if using a system font
 - `shape.radius` controls bare `rounded` elements (status bar pills, quick chips, permission buttons). Defaults to `radius-sm` if omitted
-- **`chrome-style: "floating"`** elevates ALL chrome bars at once — header, input, and status bar gain margins, rounded corners, and subtle shadows so they appear as detached floating cards. Individual element `*-style` keys (e.g. `input-style`, `header-style`) still override the chrome-style for that specific element. Never use `position: absolute` on layout-flow elements in `custom_css` — the floating aesthetic is achieved with `align-self`, `width: fit-content`, `margin`, `border-radius`, and `box-shadow`.
+- **`chrome-style: "floating"`** elevates ALL chrome bars at once — header, input, and status bar gain margins, rounded corners, and subtle shadows so they appear as detached floating cards. The bottom chrome order is **status bar above input bar** (header → chat → status → input). Individual element `*-style` keys (e.g. `input-style`, `header-style`) still override the chrome-style for that specific element. Never use `position: absolute` on layout-flow elements in `custom_css` — the floating aesthetic is achieved with `align-self`, `width: fit-content`, `margin`, `border-radius`, and `box-shadow`.
 
 ### Step 6: Write Custom CSS Aggressively
 
@@ -592,9 +598,28 @@ Use the `custom_css` field for visual effects the schema cannot express. Include
 ::selection { background: rgba(ACCENT_R, ACCENT_G, ACCENT_B, 0.3); color: ACCENT_ON; }
 ```
 
-**REQUIRED when `panels-blur > 0` (glassmorphism themes with wallpaper):**
+**REQUIRED when the theme has a pattern overlay:**
 
-When a theme has `background.panels-blur > 0`, the app sets `data-panels-blur` on `<html>` and renders the wallpaper on `<body>`. You MUST include the following glassmorphism CSS block in `custom_css`. The wallpaper shows through because the app makes the body background the wallpaper image — all content layers above need to be either transparent or frosted glass.
+The pattern MUST be added as a `body::after` fixed overlay in `custom_css`. This renders ON TOP of the terminal's WebGL canvas (which is opaque), making the pattern visible in both chat and terminal views. Do NOT use `body::before` for this — `::before` renders behind body's children and will be hidden by the WebGL canvas.
+
+The wallpaper image itself does NOT need an overlay — the app disables the WebGL renderer when glassmorphism is active, so `body` background-image (set by the theme engine) shows through the terminal via the DOM renderer's CSS transparency.
+
+```css
+/* Pattern overlay — visible in both chat and terminal views */
+body::after {
+  content: ''; position: fixed; inset: 0;
+  background-image: url('theme-asset://SLUG/assets/pattern.svg');
+  background-size: 30px 30px; background-repeat: repeat;
+  opacity: 0.10;
+  pointer-events: none; z-index: 0;
+}
+```
+
+Omit `body::after` if the theme has no pattern. Use `theme-asset://SLUG/...` URLs to reference local theme assets.
+
+**ALSO REQUIRED when `panels-blur > 0` (glassmorphism themes):**
+
+When a theme has `background.panels-blur > 0`, the app sets `data-panels-blur` on `<html>` and renders the wallpaper on `<body>`. You MUST include the following glassmorphism CSS block in `custom_css`. The glassmorphism effect blurs the body background through frosted panels in chat view — all content layers above need to be either transparent or frosted glass.
 
 Adjust the opacity percentages to taste (lower = more transparent/wallpaper visible):
 - **Bars** (header, status, input): 78-88% panel opacity, blur 20-28px
@@ -623,8 +648,8 @@ Adjust the opacity percentages to taste (lower = more transparent/wallpaper visi
   background-color: color-mix(in srgb, var(--panel) 82%, transparent);
 }
 
-/* Input bar — frosted glass */
-[data-panels-blur] .border-t.shrink-0:has(form) {
+/* Input bar — frosted glass (skipped for minimal input-style, which stays fully transparent) */
+[data-panels-blur]:not([data-input-style="minimal"]) .border-t.shrink-0:has(form) {
   backdrop-filter: blur(24px) saturate(1.2);
   -webkit-backdrop-filter: blur(24px) saturate(1.2);
   background-color: color-mix(in srgb, var(--panel) 82%, transparent);
@@ -649,7 +674,7 @@ Key notes for glassmorphism:
 - `color-mix(in srgb, var(--token) N%, transparent)` creates semi-transparent versions of theme tokens without needing to know their RGB values
 - `saturate(1.2)` boosts the blurred wallpaper color through the frost — makes it feel warm/alive rather than washed out
 - The header becomes `position: absolute` so chat content scrolls underneath the frosted bar
-- The terminal view also gets frosted glass automatically (handled by TerminalView.tsx when `data-panels-blur` is set)
+- The terminal view disables WebGL when glassmorphism is active, so `body` background-image (wallpaper) shows through via the DOM renderer. Patterns use `body::after` overlays which render on top of the canvas regardless of renderer
 
 **Consider including (when they fit the theme):**
 ```css
@@ -807,7 +832,7 @@ When the vibe is ambiguous, include at least one dark and one light concept amon
 
 For a complete, production-quality theme manifest with all features, read:
 ```
-desktop/src/renderer/themes/community/golden-sunbreak/manifest.json
+destincode/desktop/src/renderer/themes/community/golden-sunbreak/manifest.json
 ```
 This demonstrates correct token ratios, glassmorphism values, effect calibration, asset paths, layout presets, and custom CSS. Use it as a quality reference — not a template to copy from.
 
@@ -830,7 +855,7 @@ This demonstrates correct token ratios, glassmorphism values, effect calibration
 ## Rules
 
 - NEVER modify files in `src/renderer/themes/builtin/` — those are built-in themes
-- NEVER write to any path inside the app bundle (`desktop/src/`)
+- NEVER write to any path inside the app bundle (`destincode/desktop/src/`)
 - Always validate that `slug` is kebab-case with no spaces
 - If the user gives a theme name with spaces, auto-convert: "Tokyo Rain" -> "tokyo-rain"
 - All asset paths in manifest.json MUST be relative to the theme folder (e.g. `assets/wallpaper.png`)

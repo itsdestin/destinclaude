@@ -3,93 +3,117 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DestinClaude — A Toolkit for Claude Code by Anthropic</title>
-<meta name="description" content="A modular toolkit that transforms Claude Code into a personal knowledge system, journal, task manager, and more.">
+<title>DestinCode — Claude Code on Every Device</title>
+<meta name="description" content="An open-source app that puts Claude Code into a real chat UI with themes, a skill marketplace, and multiplayer games. Windows, macOS, Linux, Android.">
 
-<!-- OG / Social Meta Tags (#13) -->
-<meta property="og:title" content="DestinClaude — A Toolkit for Claude Code">
-<meta property="og:description" content="A modular toolkit that transforms Claude Code into a personal knowledge system, journal, task manager, and more.">
+<!-- OG / Social Meta Tags -->
+<meta property="og:title" content="DestinCode — Claude Code on Every Device">
+<meta property="og:description" content="An open-source app that puts Claude Code into a real chat UI with themes, a skill marketplace, and multiplayer games.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://itsdestin.github.io/destinclaude/">
 <meta property="og:image" content="https://itsdestin.github.io/destinclaude/og-image.png">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="DestinClaude — A Toolkit for Claude Code">
-<meta name="twitter:description" content="A modular toolkit that transforms Claude Code into a personal knowledge system, journal, task manager, and more.">
+<meta name="twitter:title" content="DestinCode — Claude Code on Every Device">
+<meta name="twitter:description" content="An open-source app that puts Claude Code into a real chat UI with themes, a skill marketplace, and multiplayer games.">
 <meta name="twitter:image" content="https://itsdestin.github.io/destinclaude/og-image.png">
 
 <link rel="icon" href="favicon-light.svg" id="favicon">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-
-  /* (#9) Fix: only hide outlines for mouse, preserve for keyboard */
   * { -webkit-tap-highlight-color: transparent; }
   *:focus { outline: none; }
   *:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
 
+  /* ===== MIDNIGHT (default) — cool neutral two-tone ===== */
   :root {
-    --bg-deep: #faf6f1;
-    --bg-surface: #f5efe8;
-    --bg-card: #ffffff;
-    --bg-card-hover: #fef9f4;
-    --text-primary: #2d2418;
-    --text-secondary: #6b5d4f;
-    --text-dim: #9a8d7f;
-    --accent: #e07840;
-    --accent-glow: rgba(224, 120, 64, 0.12);
-    --accent-subtle: rgba(224, 120, 64, 0.06);
-    --accent-warm: #f0965c;
-    --border: rgba(45, 36, 24, 0.1);
-    --border-accent: rgba(224, 120, 64, 0.3);
+    --bg-deep: #0D1117;
+    --bg-surface: #161B22;
+    --bg-card: #1c2129;
+    --bg-card-hover: #222830;
+    --text-primary: #C9D1D9;
+    --text-secondary: #A0AAB4;
+    --text-dim: #8B949E;
+    --text-muted: #6E7681;
+    --text-faint: #484F58;
+    --accent: #B1BAC4;
+    --accent-glow: rgba(177, 186, 196, 0.10);
+    --accent-subtle: rgba(177, 186, 196, 0.05);
+    --accent-warm: #cdd5de;
+    --cyan: #8b949e;
+    --cyan-glow: rgba(139, 148, 158, 0.08);
+    --yellow: #8b949e;
+    --border: #30363D;
+    --border-accent: rgba(177, 186, 196, 0.25);
+    --border-dim: rgba(48, 54, 61, 0.5);
     --font-display: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     --font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
     --radius: 12px;
     --radius-sm: 8px;
     --nav-height: 56px;
-
-    /* Demo terminal — light mode */
-    --demo-bg: #ffffff;
-    --demo-titlebar: #f5efe8;
-    --demo-border: rgba(45, 36, 24, 0.08);
-    --demo-shadow: rgba(0, 0, 0, 0.06);
-    --demo-titlebar-text: rgba(45, 36, 24, 0.4);
-    --demo-text: #6b5d4f;
-    --demo-user: #2d2418;
-    --demo-response: #6b5d4f;
-    --demo-action: #1e8a4a;
-    --demo-dim: #9a8d7f;
+    --selection-bg: rgba(177, 186, 196, 0.2);
+    --selection-fg: #ffffff;
+    --heading-shadow: none;
+    --title-highlight: #8b949e;
   }
 
-  /* (#2) Dark mode */
-  [data-theme="dark"] {
-    --bg-deep: #1a1612;
-    --bg-surface: #231e19;
-    --bg-card: #2a2420;
-    --bg-card-hover: #332c26;
-    --text-primary: #f0e8dd;
-    --text-secondary: #b8a898;
-    --text-dim: #7a6e62;
-    --accent: #e8945c;
-    --accent-glow: rgba(232, 148, 92, 0.15);
-    --accent-subtle: rgba(232, 148, 92, 0.08);
-    --accent-warm: #f0a06c;
-    --border: rgba(240, 232, 221, 0.1);
-    --border-accent: rgba(232, 148, 92, 0.3);
-
-    /* Demo terminal — dark mode */
-    --demo-bg: #1e1a16;
-    --demo-titlebar: #2a2420;
-    --demo-border: rgba(255, 255, 255, 0.06);
-    --demo-shadow: rgba(0, 0, 0, 0.25);
-    --demo-titlebar-text: rgba(255, 255, 255, 0.35);
-    --demo-text: #d4c8b8;
-    --demo-user: #f0e8dd;
-    --demo-response: #b8a898;
-    --demo-action: #5dbe88;
-    --demo-dim: #7a6e62;
+  /* ===== CRÈME — warm parchment, neutral tones, linen texture ===== */
+  [data-theme="creme"] {
+    --bg-deep: #F0E6D6;
+    --bg-surface: #EBE1D1;
+    --bg-card: #ffffff;
+    --bg-card-hover: #faf5ed;
+    --text-primary: #2C2418;
+    --text-secondary: #5C4F3E;
+    --text-dim: #7A6E5D;
+    --text-muted: #9E9283;
+    --text-faint: #BEB3A4;
+    --accent: #3D3229;
+    --accent-glow: rgba(61, 50, 41, 0.08);
+    --accent-subtle: rgba(61, 50, 41, 0.04);
+    --accent-warm: #564537;
+    --cyan: #564537;
+    --cyan-glow: rgba(86, 69, 55, 0.06);
+    --yellow: #8a7a66;
+    --border: #CBBFAD;
+    --border-accent: rgba(61, 50, 41, 0.25);
+    --border-dim: rgba(203, 191, 173, 0.5);
+    --selection-bg: rgba(61, 50, 41, 0.15);
+    --selection-fg: #2C2418;
+    --heading-shadow: none;
+    --title-highlight: #9E9283;
   }
+
+  /* ===== HALFTONE DIMENSION — cyberpunk manga ===== */
+  [data-theme="halftone"] {
+    --bg-deep: #08060e;
+    --bg-surface: #100e1c;
+    --bg-card: #181430;
+    --bg-card-hover: #1e1a38;
+    --text-primary: #f0e8f8;
+    --text-secondary: #d4cae4;
+    --text-dim: #a498c0;
+    --text-muted: #7468a0;
+    --text-faint: #443870;
+    --accent: #e8234a;
+    --accent-glow: rgba(232, 35, 74, 0.15);
+    --accent-subtle: rgba(232, 35, 74, 0.08);
+    --accent-warm: #ff3860;
+    --cyan: #00b8ff;
+    --cyan-glow: rgba(0, 184, 255, 0.12);
+    --yellow: #ffea00;
+    --border: #322850;
+    --border-accent: rgba(232, 35, 74, 0.4);
+    --border-dim: rgba(50, 40, 80, 0.5);
+    --selection-bg: rgba(232, 35, 74, 0.3);
+    --selection-fg: #ffffff;
+    --heading-shadow: -1.5px 0 rgba(232, 35, 74, 0.3), 1.5px 0 rgba(0, 184, 255, 0.3);
+    --title-highlight: #e8234a;
+  }
+
+  ::selection { background: var(--selection-bg); color: var(--selection-fg); }
 
   html { scroll-behavior: smooth; }
 
@@ -101,45 +125,170 @@
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
     padding-top: var(--nav-height);
+    position: relative;
+    transition: background 0.5s;
   }
 
-  /* --- Ambient background --- */
+  /* --- Background layers (theme-dependent) --- */
   body::before {
     content: '';
     position: fixed;
-    top: -40%;
-    left: -20%;
-    width: 80%;
-    height: 80%;
-    background: radial-gradient(ellipse, rgba(224, 120, 64, 0.06) 0%, transparent 70%);
+    inset: 0;
     pointer-events: none;
     z-index: 0;
+    transition: opacity 0.5s;
   }
+
   body::after {
     content: '';
     position: fixed;
-    bottom: -30%;
-    right: -20%;
-    width: 70%;
-    height: 70%;
-    background: radial-gradient(ellipse, rgba(240, 150, 92, 0.05) 0%, transparent 70%);
+    inset: 0;
     pointer-events: none;
     z-index: 0;
+    transition: opacity 0.5s;
   }
 
-  /* (#1) Sticky nav */
+  /* Midnight background — subtle cool neutral glow */
+  :root body::before {
+    background: radial-gradient(ellipse at 30% 20%, rgba(177, 186, 196, 0.03) 0%, transparent 60%),
+                radial-gradient(ellipse at 70% 80%, rgba(139, 148, 158, 0.02) 0%, transparent 60%);
+    opacity: 1;
+  }
+  :root body::after { opacity: 0; }
+
+  /* Crème background — subtle diagonal linen + warm gradient */
+  [data-theme="creme"] body::before {
+    background: linear-gradient(160deg, #F0E6D6 0%, #e8dcc8 30%, #F0E6D6 50%, #ece0ce 75%, #F0E6D6 100%);
+    opacity: 1;
+  }
+  [data-theme="creme"] body::after {
+    background-image: repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 1px,
+      rgba(44, 36, 24, 0.018) 1px,
+      rgba(44, 36, 24, 0.018) 2px
+    );
+    background-size: 8px 8px;
+    opacity: 1;
+  }
+
+  /* Halftone background — gradient + dot pattern */
+  [data-theme="halftone"] body::before {
+    background: linear-gradient(135deg, #08060e 0%, #18102e 25%, #200e3a 50%, rgba(232,35,74,0.07) 70%, rgba(0,184,255,0.05) 85%, #08060e 100%);
+    opacity: 1;
+  }
+  [data-theme="halftone"] body::after {
+    background-image: url('assets/halftone-pattern.svg');
+    background-size: 30px 30px;
+    opacity: 0.10;
+  }
+
+  /* --- Scanlines (halftone only) --- */
+  .scanlines {
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 0, 0, 0.03) 2px,
+      rgba(0, 0, 0, 0.03) 4px
+    );
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0;
+    transition: opacity 0.5s;
+  }
+  [data-theme="halftone"] .scanlines { opacity: 1; }
+
+  /* --- Vignette (halftone only) --- */
+  .vignette {
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at center, transparent 50%, rgba(8, 6, 14, 0.5) 100%);
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0;
+    transition: opacity 0.5s;
+  }
+  [data-theme="halftone"] .vignette { opacity: 1; }
+
+  .container {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 0 24px;
+    position: relative;
+    z-index: 1;
+  }
+
+  a { color: var(--accent); text-decoration: none; transition: color 0.3s; }
+  a:hover { color: var(--cyan); }
+
+  /* Smooth theme transitions on key elements */
+  .nav, .intro-box, .prereq-card, .feature-card, .faq-item,
+  .download-card, .integration-tag, .floating-cta, .back-to-top,
+  footer, .title-box, .step-icon-wrap, .mock-frame {
+    transition: background 0.5s, border-color 0.5s, color 0.5s, box-shadow 0.5s;
+  }
+
+  .divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border), transparent);
+    margin: 48px 0;
+  }
+
+  /* --- Section labels & titles --- */
+  .section-label {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+
+  .section-title {
+    font-size: clamp(1.5rem, 4vw, 2.2rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    margin-bottom: 32px;
+    text-shadow: var(--heading-shadow);
+  }
+
+  /* --- Toolkit badge --- */
+  .toolkit-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--cyan);
+    background: rgba(0, 184, 255, 0.1);
+    border: 1px solid rgba(0, 184, 255, 0.25);
+    padding: 2px 8px;
+    border-radius: 100px;
+    vertical-align: middle;
+    margin-left: 6px;
+  }
+
+  /* --- STICKY NAV --- */
   .nav {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
-    z-index: 100;
-    background: var(--bg-deep);
-    border-bottom: 1px solid var(--border);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
     height: var(--nav-height);
-    transition: background 0.3s, border-color 0.3s;
+    backdrop-filter: blur(24px) saturate(1.2);
+    -webkit-backdrop-filter: blur(24px) saturate(1.2);
+    background-color: color-mix(in srgb, var(--bg-surface) 82%, transparent);
+    border-bottom: 1px solid var(--border-accent);
+    z-index: 100;
   }
 
   .nav-inner {
@@ -153,21 +302,16 @@
   }
 
   .nav-logo {
-    font-family: var(--font-display);
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    text-decoration: none;
     display: flex;
     align-items: center;
     gap: 8px;
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: var(--text-primary);
+    text-decoration: none;
   }
-
-  .nav-icon { flex-shrink: 0; }
-  .nav-icon-dark { display: none; }
-  .nav-icon-light { display: block; }
-  [data-theme="dark"] .nav-icon-dark { display: block; }
-  [data-theme="dark"] .nav-icon-light { display: none; }
+  .nav-logo:hover { color: var(--text-primary); }
+  .nav-icon { width: 22px; height: 22px; }
 
   .nav-links {
     display: flex;
@@ -175,93 +319,47 @@
     gap: 24px;
     list-style: none;
   }
-
   .nav-links a {
     font-size: 0.85rem;
     font-weight: 500;
-    color: var(--text-secondary);
-    text-decoration: none;
+    color: var(--text-dim);
     transition: color 0.2s;
   }
   .nav-links a:hover { color: var(--accent); }
 
-  /* Mobile menu button — hidden on desktop */
-  .mobile-menu-btn {
-    display: none;
-    width: 24px;
-    height: 24px;
-    background: var(--bg-surface);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    color: var(--text-secondary);
-    transition: border-color 0.2s, color 0.2s;
-    flex-shrink: 0;
-    padding: 0;
-  }
-  .mobile-menu-btn:hover { border-color: var(--border-accent); color: var(--accent); }
-
-  /* Mobile-right group — hidden on desktop */
-  .nav-mobile-right {
-    display: none;
-    align-items: center;
-    gap: 10px;
-  }
-
-  /* (#2) Dark mode toggle */
   .theme-toggle {
-    background: var(--bg-surface);
+    background: none;
     border: 1px solid var(--border);
-    border-radius: 100px;
-    width: 36px;
-    height: 36px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    color: var(--text-dim);
     cursor: pointer;
-    transition: background 0.2s, border-color 0.2s;
+    padding: 6px;
+    border-radius: 8px;
     font-size: 1rem;
-    color: var(--text-secondary);
-    flex-shrink: 0;
+    line-height: 1;
+    transition: border-color 0.2s, color 0.2s;
   }
-  .theme-toggle:hover { border-color: var(--border-accent); }
-  .theme-toggle .icon-sun { display: none; }
-  .theme-toggle .icon-moon { display: inline; }
-  [data-theme="dark"] .theme-toggle .icon-sun { display: inline; }
-  [data-theme="dark"] .theme-toggle .icon-moon { display: none; }
+  .theme-toggle:hover { border-color: var(--accent); color: var(--accent); }
 
-  .container {
-    max-width: 960px;
-    margin: 0 auto;
-    padding: 0 24px;
-    position: relative;
-    z-index: 1;
+  /* Nav mobile */
+  .nav-mobile-right { display: none; }
+  .mobile-menu-btn {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    padding: 4px;
   }
 
-  a { color: var(--accent); text-decoration: none; transition: color 0.2s; }
-  a:hover { color: #e8a87c; }
+  /* --- HERO --- */
+  .hero { padding: 64px 0 0; text-align: center; }
 
-  /* --- HERO (#4 improved) --- */
-  .hero {
-    padding: 80px 0 0;
-    text-align: center;
-  }
-
-  .hero-badge {
+  .title-box {
     display: inline-block;
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
-    font-weight: 500;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--accent);
+    padding: 16px 28px 14px;
     background: var(--accent-subtle);
     border: 1px solid var(--border-accent);
-    padding: 6px 16px;
-    border-radius: 100px;
-    margin-bottom: 32px;
+    border-radius: 16px;
+    margin-bottom: 0;
   }
 
   .hero h1 {
@@ -269,23 +367,11 @@
     font-weight: 700;
     letter-spacing: -0.03em;
     line-height: 1.1;
-    margin-bottom: 0;
     color: var(--text-primary);
+    text-shadow: var(--heading-shadow);
   }
 
-  .title-box {
-    display: inline-block;
-    padding: 16px 28px 14px;
-    background: rgba(224, 120, 64, 0.07);
-    border: 1px solid rgba(224, 120, 64, 0.15);
-    border-radius: 16px;
-    margin-bottom: 0;
-  }
-
-  [data-theme="dark"] .title-box {
-    background: rgba(232, 148, 92, 0.08);
-    border-color: rgba(232, 148, 92, 0.2);
-  }
+  .title-accent { color: var(--title-highlight); }
 
   .title-sub {
     font-family: var(--font-mono);
@@ -294,121 +380,69 @@
     letter-spacing: 0.05em;
     margin-top: 6px;
   }
+  .title-sub a { color: var(--accent); text-decoration: none; }
 
-  .title-accent { color: var(--accent); }
-
-  /* (#4) Tagline + CTA */
   .hero-tagline {
-    font-size: 0.9rem;
+    font-size: 1.1rem;
     color: var(--text-secondary);
-    margin: 6px 0 0;
-    line-height: 1.4;
-    letter-spacing: 0.01em;
+    margin: 16px 0 0;
+    line-height: 1.5;
+    max-width: 560px;
+    margin-left: auto;
+    margin-right: auto;
   }
 
-  .hero-personal {
-    font-size: 0.78rem;
-    color: var(--text-dim);
-    font-style: italic;
-    margin: 1px 0 0;
+  .hero-platforms {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 28px;
   }
 
-  .hero-cta {
+  .hero-btn {
     display: inline-flex;
     align-items: center;
     gap: 8px;
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+
+  .hero-btn-primary {
     background: var(--accent);
     color: #fff;
-    font-family: var(--font-display);
-    font-size: 1rem;
-    font-weight: 600;
-    padding: 14px 32px;
-    border-radius: 100px;
-    border: none;
-    cursor: pointer;
-    text-decoration: none;
-    transition: transform 0.2s, box-shadow 0.2s;
-    box-shadow: 0 4px 24px rgba(224, 120, 64, 0.3);
+    box-shadow: 0 0 20px rgba(232, 35, 74, 0.3), 0 0 40px rgba(232, 35, 74, 0.1);
   }
-  .hero-cta:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 32px rgba(224, 120, 64, 0.4);
+  .hero-btn-primary:hover {
     color: #fff;
-  }
-  .hero-cta-arrow {
-    transition: transform 0.2s;
-  }
-  .hero-cta:hover .hero-cta-arrow {
-    transform: translateX(3px);
+    box-shadow: 0 0 28px rgba(232, 35, 74, 0.5), 0 0 56px rgba(232, 35, 74, 0.15);
+    transform: translateY(-1px);
   }
 
-  .hero-link {
-    font-family: var(--font-mono);
-    font-size: 0.85rem;
-    color: var(--accent);
-    border-bottom: 1px dashed var(--border-accent);
-    padding-bottom: 1px;
-    transition: border-color 0.2s, color 0.2s;
+  .hero-btn-secondary {
+    background: rgba(0, 184, 255, 0.08);
+    color: var(--cyan);
+    border: 1px solid rgba(0, 184, 255, 0.25);
   }
-  .hero-link:hover { color: #e8a87c; border-color: #e8a87c; }
+  .hero-btn-secondary:hover {
+    color: var(--cyan);
+    background: rgba(0, 184, 255, 0.15);
+    transform: translateY(-1px);
+  }
 
-  /* --- SECTION SHARED --- */
-  section { padding: 24px 0; }
+  .hero-btn svg { width: 16px; height: 16px; fill: currentColor; }
 
-  .section-label {
-    font-family: var(--font-mono);
+  .hero-note {
     font-size: 0.75rem;
-    font-weight: 500;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--text-dim);
-    margin-bottom: 12px;
-    text-align: center;
+    color: var(--text-muted);
+    margin-top: 16px;
   }
 
-  .section-title {
-    font-size: clamp(1.5rem, 3vw, 2rem);
-    font-weight: 700;
-    letter-spacing: -0.02em;
-    margin-bottom: 40px;
-    text-align: center;
-  }
-
-  /* (#3) Scroll-triggered animations */
-  .reveal {
-    opacity: 0;
-    transform: translateY(24px);
-    transition: opacity 0.6s ease, transform 0.6s ease;
-  }
-  .reveal.visible {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  .reveal-d1 { transition-delay: 0.1s; }
-  .reveal-d2 { transition-delay: 0.2s; }
-  .reveal-d3 { transition-delay: 0.3s; }
-  .reveal-d4 { transition-delay: 0.4s; }
-
-  /* Hero still uses load-time animation */
-  .animate {
-    opacity: 0;
-    animation: fadeUp 0.6s ease forwards;
-  }
-  .animate-d1 { animation-delay: 0.1s; }
-  .animate-d2 { animation-delay: 0.2s; }
-  .animate-d3 { animation-delay: 0.3s; }
-  .animate-d4 { animation-delay: 0.4s; }
-
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  /* --- (#11) HOW IT WORKS --- */
-  .how-it-works {
-    padding: 48px 0 24px;
-  }
-
+  /* --- 3-STEP FLOW --- */
   .steps-flow {
     display: flex;
     align-items: flex-start;
@@ -417,11 +451,7 @@
     margin-bottom: 0;
   }
 
-  .step-item {
-    text-align: center;
-    flex: 1;
-    max-width: 240px;
-  }
+  .step-item { text-align: center; flex: 1; max-width: 240px; }
 
   .step-icon-wrap {
     width: 64px;
@@ -433,7 +463,6 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.6rem;
   }
 
   .step-num {
@@ -443,20 +472,11 @@
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--accent);
-    margin-bottom: 6px;
+    margin-bottom: 4px;
   }
 
-  .step-item h3 {
-    font-size: 1rem;
-    font-weight: 600;
-    margin-bottom: 6px;
-  }
-
-  .step-item p {
-    font-size: 0.85rem;
-    color: var(--text-secondary);
-    line-height: 1.5;
-  }
+  .step-item h3 { font-size: 1rem; font-weight: 600; margin-bottom: 6px; }
+  .step-item p { font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5; }
 
   .step-arrow {
     display: flex;
@@ -464,731 +484,971 @@
     padding-top: 20px;
     color: var(--border-accent);
     font-size: 1.5rem;
-    flex-shrink: 0;
+    opacity: 0.6;
   }
 
-  /* --- FEATURES GRID --- */
-  .features-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 16px;
-    margin-bottom: 24px;
-  }
-
-  .feature-card {
-    background: var(--bg-card);
-    border: 2px solid var(--border-accent);
+  /* --- ABOUT / INTRO --- */
+  .intro-box {
+    background: color-mix(in srgb, var(--bg-card) 70%, transparent);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: 28px 24px;
-    transition: background 0.25s, border-color 0.25s, transform 0.25s;
-    box-shadow: 0 0 40px var(--accent-glow), 0 0 80px rgba(56, 189, 248, 0.05);
-  }
-  .feature-card:hover {
-    background: var(--bg-card-hover);
-    border-color: var(--border-accent);
-    transform: translateY(-2px);
+    padding: 32px;
+    font-size: 0.92rem;
+    color: var(--text-secondary);
+    line-height: 1.8;
   }
 
-  .feature-icon {
-    width: 36px;
+  .intro-box p + p { margin-top: 16px; }
+
+  .intro-box strong { color: var(--text-primary); font-weight: 600; }
+  .intro-box em { color: var(--text-dim); }
+
+  .permission-note {
+    margin-top: 20px !important;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  /* --- DEMO APP MOCKUP --- */
+  .demo-section { padding: 16px 0; }
+
+  .demo-app {
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(232, 35, 74, 0.1);
+    max-width: 680px;
+    margin: 0 auto;
+    position: relative;
+    /* Midnight theme initial state */
+    --demo-canvas: #0D1117;
+    --demo-panel: #161B22;
+    --demo-inset: #21262D;
+    --demo-accent: #B1BAC4;
+    --demo-on-accent: #0D1117;
+    --demo-fg: #C9D1D9;
+    --demo-fg-dim: #8B949E;
+    --demo-fg-muted: #6E7681;
+    --demo-edge: #30363D;
+    transition: all 1.8s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .demo-app.theme-golden {
+    --demo-canvas: #08080e;
+    --demo-panel: #140e1a;
+    --demo-inset: #1c1428;
+    --demo-accent: #ffc030;
+    --demo-on-accent: #000000;
+    --demo-fg: #f8e8c8;
+    --demo-fg-dim: #b09060;
+    --demo-fg-muted: #806840;
+    --demo-edge: #281e10;
+  }
+
+  .demo-wallpaper {
+    position: absolute;
+    inset: 0;
+    background: url('assets/golden-sunbreak-wallpaper.jpg') center/cover;
+    opacity: 0;
+    transition: opacity 2s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 0;
+  }
+
+  .demo-app.theme-golden .demo-wallpaper { opacity: 0.95; }
+
+  .demo-header {
     height: 36px;
-    margin-bottom: 14px;
+    background: var(--demo-panel);
+    border-bottom: 1px solid var(--demo-edge);
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    gap: 8px;
+    position: relative;
+    z-index: 2;
+    transition: all 1.8s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .demo-app.theme-golden .demo-header {
+    backdrop-filter: blur(24px) saturate(1.2);
+    -webkit-backdrop-filter: blur(24px) saturate(1.2);
+    background: color-mix(in srgb, var(--demo-panel) 82%, transparent);
+  }
+
+  .demo-header-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    opacity: 0.6;
+  }
+  .demo-header-dot.red { background: #ff5f57; }
+  .demo-header-dot.yellow { background: #febc2e; }
+  .demo-header-dot.green { background: #28c840; }
+
+  .demo-header-tabs {
+    display: flex;
+    gap: 2px;
+    margin-left: auto;
+    font-size: 0.6rem;
+    font-family: var(--font-mono);
+  }
+
+  .demo-header-tab {
+    padding: 3px 8px;
+    border-radius: 4px;
+    color: var(--demo-fg-muted);
+    transition: all 1.8s;
+  }
+  .demo-header-tab.active {
+    background: var(--demo-inset);
+    color: var(--demo-fg);
+    transition: all 1.8s;
+  }
+
+  .demo-header-session {
+    font-size: 0.65rem;
+    font-family: var(--font-mono);
+    color: var(--demo-fg-dim);
+    margin-left: 12px;
+    transition: color 1.8s;
+  }
+
+  .demo-chat {
+    background: var(--demo-canvas);
+    min-height: 260px;
+    padding: 16px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    position: relative;
+    z-index: 1;
+    transition: background 1.8s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .demo-app.theme-golden .demo-chat {
+    background: transparent;
+  }
+
+  .demo-bubble {
+    max-width: 80%;
+    padding: 10px 16px;
+    border-radius: 16px;
+    font-size: 0.8rem;
+    line-height: 1.5;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.4s, transform 0.4s, background 1.8s, color 1.8s, border-color 1.8s, box-shadow 1.8s, backdrop-filter 1.8s;
+  }
+
+  .demo-bubble.show {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .demo-bubble.user {
+    align-self: flex-end;
+    background: var(--demo-accent);
+    color: var(--demo-on-accent);
+    border-radius: 16px 16px 4px 16px;
+  }
+
+  .demo-app.theme-golden .demo-bubble.user {
+    backdrop-filter: blur(16px) saturate(1.1);
+    -webkit-backdrop-filter: blur(16px) saturate(1.1);
+    background: color-mix(in srgb, var(--demo-accent) 55%, transparent);
+    box-shadow: 0 0 18px rgba(255, 192, 48, 0.2);
+  }
+
+  .demo-bubble.assistant {
+    align-self: flex-start;
+    background: var(--demo-inset);
+    color: var(--demo-fg);
+    border-radius: 16px 16px 16px 4px;
+  }
+
+  .demo-app.theme-golden .demo-bubble.assistant {
+    backdrop-filter: blur(16px) saturate(1.1);
+    -webkit-backdrop-filter: blur(16px) saturate(1.1);
+    background: color-mix(in srgb, var(--demo-inset) 85%, transparent);
+  }
+
+  .demo-tool-card {
+    align-self: flex-start;
+    max-width: 85%;
+    background: var(--demo-inset);
+    border: 1px solid var(--demo-edge);
+    border-radius: 12px;
+    padding: 8px 14px;
+    font-size: 0.72rem;
+    font-family: var(--font-mono);
+    color: var(--demo-fg-dim);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.4s, transform 0.4s, background 1.8s, border-color 1.8s, color 1.8s, backdrop-filter 1.8s;
+  }
+
+  .demo-tool-card.show {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .demo-app.theme-golden .demo-tool-card {
+    backdrop-filter: blur(16px) saturate(1.1);
+    -webkit-backdrop-filter: blur(16px) saturate(1.1);
+    background: color-mix(in srgb, var(--demo-inset) 85%, transparent);
+  }
+
+  .demo-spinner {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border: 2px solid var(--demo-fg-muted);
+    border-top-color: var(--demo-accent);
+    border-radius: 50%;
+    animation: demo-spin 0.8s linear infinite;
+    transition: border-color 1.8s;
+  }
+
+  .demo-check {
+    color: #4CAF50;
+    font-weight: 700;
+  }
+
+  @keyframes demo-spin { to { transform: rotate(360deg); } }
+
+  .demo-statusbar {
+    height: 24px;
+    background: var(--demo-panel);
+    border-top: 1px solid var(--demo-edge);
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    gap: 12px;
+    font-size: 0.55rem;
+    font-family: var(--font-mono);
+    color: var(--demo-fg-muted);
+    position: relative;
+    z-index: 2;
+    transition: all 1.8s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .demo-app.theme-golden .demo-statusbar {
+    backdrop-filter: blur(24px) saturate(1.2);
+    -webkit-backdrop-filter: blur(24px) saturate(1.2);
+    background: color-mix(in srgb, var(--demo-panel) 82%, transparent);
+  }
+
+  .demo-model-badge {
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: rgba(129, 140, 248, 0.15);
+    color: #818CF8;
+    font-weight: 600;
+  }
+
+  .demo-inputbar {
+    height: 44px;
+    background: var(--demo-panel);
+    border-top: 1px solid var(--demo-edge);
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    gap: 8px;
+    position: relative;
+    z-index: 2;
+    transition: all 1.8s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .demo-app.theme-golden .demo-inputbar {
+    backdrop-filter: blur(24px) saturate(1.2);
+    -webkit-backdrop-filter: blur(24px) saturate(1.2);
+    background: color-mix(in srgb, var(--demo-panel) 82%, transparent);
+  }
+
+  .demo-input-field {
+    flex: 1;
+    height: 28px;
+    background: var(--demo-inset);
+    border: 1px solid var(--demo-edge);
+    border-radius: 8px;
+    padding: 0 10px;
+    font-size: 0.72rem;
+    font-family: var(--font-mono);
+    color: var(--demo-fg-dim);
+    display: flex;
+    align-items: center;
+    transition: all 1.8s;
+  }
+
+  .demo-send-btn {
+    width: 28px;
+    height: 28px;
+    background: var(--demo-accent);
+    border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 8px;
-    font-size: 1.1rem;
-    background: var(--accent-subtle);
-    border: 1px solid var(--border-accent);
+    transition: all 1.8s;
+  }
+
+  .demo-app.theme-golden .demo-send-btn {
+    box-shadow: 0 0 12px rgba(255, 192, 48, 0.4);
+  }
+
+  .demo-send-btn svg {
+    width: 14px;
+    height: 14px;
+    fill: var(--demo-on-accent);
+    transition: fill 1.8s;
+  }
+
+  /* --- Showcase static mockups --- */
+  .showcase-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 48px;
+    margin-top: 48px;
+  }
+
+  .showcase-item {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    align-items: center;
+  }
+
+  .showcase-item.reverse { direction: rtl; }
+  .showcase-item.reverse > * { direction: ltr; }
+
+  .showcase-text { display: flex; flex-direction: column; gap: 12px; }
+
+  .showcase-label {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
     color: var(--accent);
   }
 
-  .feature-card h3 {
-    font-size: 1.05rem;
-    font-weight: 600;
-    margin-bottom: 8px;
-    letter-spacing: -0.01em;
+  .showcase-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    line-height: 1.3;
+    text-shadow: var(--heading-shadow);
   }
 
-  .feature-card p {
+  .showcase-desc {
     font-size: 0.88rem;
     color: var(--text-secondary);
     line-height: 1.6;
   }
 
-  .features-note {
-    text-align: center;
-    color: var(--text-dim);
-    font-size: 0.9rem;
-    margin-top: 8px;
+  /* Static mockup — Golden Sunbreak themed */
+  .mock-golden {
+    --m-canvas: #08080e;
+    --m-panel: #140e1a;
+    --m-inset: #1c1428;
+    --m-accent: #ffc030;
+    --m-on-accent: #000000;
+    --m-fg: #f8e8c8;
+    --m-fg-dim: #b09060;
+    --m-fg-muted: #806840;
+    --m-edge: #281e10;
   }
 
-  /* --- INTRO BOX --- */
-  .intro-box {
-    background: var(--bg-card);
-    border: 2px solid var(--border-accent);
-    border-radius: var(--radius);
-    padding: 32px 28px;
-    box-shadow: 0 0 40px var(--accent-glow), 0 0 80px rgba(224, 120, 64, 0.05);
-    line-height: 1.7;
+  .mock-frame {
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(232, 35, 74, 0.1);
+    position: relative;
   }
 
-  .intro-box p {
-    font-size: 0.95rem;
-    color: var(--text-secondary);
-    margin-bottom: 12px;
+  .mock-wallpaper {
+    position: absolute;
+    inset: 0;
+    background: url('assets/golden-sunbreak-wallpaper.jpg') center/cover;
+    opacity: 0.95;
+    z-index: 0;
   }
 
-  .intro-box p:last-child { margin-bottom: 0; }
-
-  .intro-box strong { color: var(--text-primary); }
-
-  .intro-box .permission-note {
-    font-weight: 400;
-    color: var(--accent);
-    font-style: italic;
-    margin: 16px auto 0;
-    text-align: center;
-    background: var(--bg-surface);
-    border: 1px solid var(--border-accent);
-    border-radius: var(--radius-sm);
-    padding: 8px 16px;
-    display: block;
-    width: fit-content;
-    font-size: 0.88rem;
+  .mock-header {
+    height: 36px;
+    backdrop-filter: blur(24px) saturate(1.2);
+    -webkit-backdrop-filter: blur(24px) saturate(1.2);
+    background: color-mix(in srgb, var(--m-panel) 82%, transparent);
+    border-bottom: 1px solid var(--m-edge);
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    gap: 8px;
+    position: relative;
+    z-index: 2;
   }
 
-  /* --- PREREQ GRID --- */
+  .mock-dot { width: 10px; height: 10px; border-radius: 50%; opacity: 0.6; }
+  .mock-dot.red { background: #ff5f57; }
+  .mock-dot.yellow { background: #febc2e; }
+  .mock-dot.green { background: #28c840; }
+
+  .mock-header-text {
+    font-size: 0.65rem;
+    font-family: var(--font-mono);
+    color: var(--m-fg-dim);
+    margin-left: 12px;
+  }
+
+  .mock-tabs {
+    display: flex;
+    gap: 2px;
+    margin-left: auto;
+    font-size: 0.6rem;
+    font-family: var(--font-mono);
+  }
+
+  .mock-tab {
+    padding: 3px 8px;
+    border-radius: 4px;
+    color: var(--m-fg-muted);
+  }
+  .mock-tab.active {
+    background: color-mix(in srgb, var(--m-inset) 85%, transparent);
+    backdrop-filter: blur(8px);
+    color: var(--m-fg);
+  }
+
+  .mock-chat {
+    min-height: 280px;
+    padding: 16px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .mock-bubble {
+    max-width: 82%;
+    padding: 10px 16px;
+    font-size: 0.78rem;
+    line-height: 1.55;
+  }
+
+  .mock-bubble.user {
+    align-self: flex-end;
+    backdrop-filter: blur(16px) saturate(1.1);
+    -webkit-backdrop-filter: blur(16px) saturate(1.1);
+    background: color-mix(in srgb, var(--m-accent) 55%, transparent);
+    color: var(--m-on-accent);
+    border-radius: 16px 16px 4px 16px;
+    box-shadow: 0 0 18px rgba(255, 192, 48, 0.2);
+  }
+
+  .mock-bubble.assistant {
+    align-self: flex-start;
+    backdrop-filter: blur(16px) saturate(1.1);
+    -webkit-backdrop-filter: blur(16px) saturate(1.1);
+    background: color-mix(in srgb, var(--m-inset) 85%, transparent);
+    color: var(--m-fg);
+    border-radius: 16px 16px 16px 4px;
+  }
+
+  .mock-tool {
+    align-self: flex-start;
+    max-width: 85%;
+    backdrop-filter: blur(16px) saturate(1.1);
+    -webkit-backdrop-filter: blur(16px) saturate(1.1);
+    background: color-mix(in srgb, var(--m-inset) 85%, transparent);
+    border: 1px solid var(--m-edge);
+    border-radius: 12px;
+    padding: 8px 14px;
+    font-size: 0.7rem;
+    font-family: var(--font-mono);
+    color: var(--m-fg-dim);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .mock-check { color: #4CAF50; font-weight: 700; }
+
+  .mock-statusbar {
+    height: 24px;
+    backdrop-filter: blur(24px) saturate(1.2);
+    -webkit-backdrop-filter: blur(24px) saturate(1.2);
+    background: color-mix(in srgb, var(--m-panel) 82%, transparent);
+    border-top: 1px solid var(--m-edge);
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    gap: 12px;
+    font-size: 0.55rem;
+    font-family: var(--font-mono);
+    color: var(--m-fg-muted);
+    position: relative;
+    z-index: 2;
+  }
+
+  .mock-model {
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: rgba(129, 140, 248, 0.15);
+    color: #818CF8;
+    font-weight: 600;
+  }
+
+  .mock-inputbar {
+    height: 44px;
+    backdrop-filter: blur(24px) saturate(1.2);
+    -webkit-backdrop-filter: blur(24px) saturate(1.2);
+    background: color-mix(in srgb, var(--m-panel) 82%, transparent);
+    border-top: 1px solid var(--m-edge);
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    gap: 8px;
+    position: relative;
+    z-index: 2;
+  }
+
+  .mock-input {
+    flex: 1;
+    height: 28px;
+    backdrop-filter: blur(8px);
+    background: color-mix(in srgb, var(--m-inset) 80%, transparent);
+    border: 1px solid var(--m-edge);
+    border-radius: 8px;
+    padding: 0 10px;
+    font-size: 0.72rem;
+    font-family: var(--font-mono);
+    color: var(--m-fg-dim);
+    display: flex;
+    align-items: center;
+  }
+
+  .mock-send {
+    width: 28px;
+    height: 28px;
+    background: var(--m-accent);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 12px rgba(255, 192, 48, 0.4);
+  }
+  .mock-send svg { width: 14px; height: 14px; fill: var(--m-on-accent); }
+
+  /* --- Connect 4 mockup --- */
+  .mock-game-layout {
+    display: flex;
+    position: relative;
+    z-index: 1;
+  }
+
+  .mock-game-chat {
+    flex: 1;
+    min-height: 280px;
+    padding: 16px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .mock-game-panel {
+    width: 220px;
+    border-left: 1px solid var(--m-edge);
+    backdrop-filter: blur(16px) saturate(1.1);
+    -webkit-backdrop-filter: blur(16px) saturate(1.1);
+    background: color-mix(in srgb, var(--m-panel) 85%, transparent);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    z-index: 2;
+  }
+
+  .mock-game-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--m-edge);
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--m-fg);
+  }
+
+  .mock-game-turn {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 12px;
+    font-size: 0.65rem;
+    color: var(--m-fg-dim);
+  }
+
+  .mock-game-turn-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 4px;
+    vertical-align: middle;
+  }
+
+  .mock-game-turn-badge {
+    font-size: 0.6rem;
+    padding: 2px 8px;
+    border-radius: 100px;
+    background: color-mix(in srgb, var(--m-inset) 80%, transparent);
+    color: var(--m-fg-dim);
+  }
+
+  .mock-c4-board {
+    margin: 8px;
+    background: #1d4ed8;
+    border-radius: 10px;
+    padding: 6px;
+    display: flex;
+    gap: 3px;
+  }
+
+  .mock-c4-col { display: flex; flex-direction: column; gap: 3px; flex: 1; }
+
+  .mock-c4-cell {
+    aspect-ratio: 1;
+    border-radius: 50%;
+    transition: background 0.2s;
+  }
+  .mock-c4-cell.empty { background: var(--m-panel); }
+  .mock-c4-cell.red { background: #ef4444; }
+  .mock-c4-cell.yellow { background: #facc15; }
+  .mock-c4-cell.red.win { background: #ef4444; box-shadow: 0 0 0 2px #fff; }
+  .mock-c4-cell.yellow.win { background: #facc15; box-shadow: 0 0 0 2px #fff; }
+
+  .mock-game-chat-area {
+    flex: 1;
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    overflow: hidden;
+  }
+
+  .mock-game-msg {
+    font-size: 0.62rem;
+    color: var(--m-fg-dim);
+    line-height: 1.4;
+  }
+  .mock-game-msg strong { color: var(--m-fg); font-weight: 600; }
+
+  .mock-game-input {
+    height: 32px;
+    border-top: 1px solid var(--m-edge);
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    gap: 6px;
+  }
+
+  .mock-game-input-field {
+    flex: 1;
+    height: 22px;
+    background: color-mix(in srgb, var(--m-inset) 80%, transparent);
+    border: 1px solid var(--m-edge);
+    border-radius: 6px;
+    font-size: 0.6rem;
+    color: var(--m-fg-muted);
+    padding: 0 8px;
+    display: flex;
+    align-items: center;
+  }
+
+  @media (max-width: 768px) {
+    .showcase-item, .showcase-item.reverse {
+      grid-template-columns: 1fr;
+      direction: ltr;
+    }
+    .mock-game-panel { width: 180px; }
+  }
+
+  @media (max-width: 480px) {
+    .mock-game-panel { display: none; }
+  }
+
+  /* --- PREREQUISITES --- */
   .prereq-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 14px;
-    margin-bottom: 20px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 32px;
   }
 
   .prereq-card {
-    position: relative;
-    background: var(--bg-card);
+    background: color-mix(in srgb, var(--bg-card) 70%, transparent);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: 20px;
+    padding: 24px;
   }
 
-  .prereq-header {
-    display: flex;
-    align-items: flex-start;
-    gap: 8px;
-    margin-bottom: 8px;
-  }
-
-  .prereq-badges {
-    position: absolute;
-    top: 16px;
-    right: 16px;
-    display: flex;
-    gap: 6px;
-    flex-shrink: 0;
-  }
-
-  .prereq-header h3 {
-    font-size: 1.15rem;
-    font-weight: 700;
-    color: var(--text-primary);
-  }
+  .prereq-badges { display: flex; gap: 6px; margin-bottom: 12px; }
 
   .prereq-badge {
     font-family: var(--font-mono);
-    font-size: 0.65rem;
+    font-size: 0.6rem;
     font-weight: 600;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.05em;
     text-transform: uppercase;
-    padding: 3px 8px;
-    border-radius: 4px;
+    padding: 2px 8px;
+    border-radius: 100px;
   }
+  .prereq-badge.required { background: rgba(232, 35, 74, 0.12); color: var(--accent); border: 1px solid rgba(232, 35, 74, 0.25); }
+  .prereq-badge.paid { background: rgba(255, 234, 0, 0.08); color: var(--yellow); border: 1px solid rgba(255, 234, 0, 0.2); }
+  .prereq-badge.free { background: rgba(76, 175, 80, 0.1); color: #4CAF50; border: 1px solid rgba(76, 175, 80, 0.2); }
 
-  .prereq-badge.required {
-    background: rgba(224, 120, 64, 0.12);
-    color: var(--accent);
-    border: 1px solid rgba(224, 120, 64, 0.25);
-  }
-
-  .prereq-badge.optional {
-    background: rgba(45, 36, 24, 0.05);
-    color: var(--text-dim);
-    border: 1px solid var(--border);
-  }
-
-  .prereq-badge.paid {
-    background: rgba(220, 53, 53, 0.1);
-    color: #c0392b;
-    border: 1px solid rgba(220, 53, 53, 0.25);
-  }
-
-  [data-theme="dark"] .prereq-badge.paid {
-    background: rgba(220, 100, 100, 0.15);
-    color: #e88;
-    border-color: rgba(220, 100, 100, 0.3);
-  }
-
-  .prereq-badge.free {
-    background: rgba(39, 174, 96, 0.1);
-    color: #27ae60;
-    border: 1px solid rgba(39, 174, 96, 0.25);
-  }
-
-  [data-theme="dark"] .prereq-badge.free {
-    background: rgba(39, 174, 96, 0.15);
-    color: #5dbe88;
-    border-color: rgba(39, 174, 96, 0.3);
-  }
-
-  .prereq-card p {
-    font-size: 0.85rem;
-    color: var(--text-secondary);
-    line-height: 1.5;
-  }
-
+  .prereq-header h3 { font-size: 1rem; font-weight: 600; margin-bottom: 6px; }
+  .prereq-card p { font-size: 0.82rem; color: var(--text-secondary); line-height: 1.5; }
   .prereq-link {
-    display: block;
-    margin-top: 10px;
-    margin-left: auto;
-    margin-right: 0;
-    width: fit-content;
-    text-align: right;
-    font-family: var(--font-mono);
+    display: inline-block;
+    margin-top: 12px;
     font-size: 0.78rem;
-    font-weight: 600;
-    color: var(--accent);
-    background: var(--accent-subtle);
-    border: 1px solid var(--border-accent);
-    border-radius: 6px;
-    padding: 6px 14px;
-    text-decoration: none;
-    transition: background 0.2s, transform 0.2s;
-  }
-  .prereq-link:hover {
-    background: rgba(224, 120, 64, 0.12);
-    transform: translateY(-1px);
+    font-weight: 500;
     color: var(--accent);
   }
 
   .prereq-note {
-    font-size: 0.85rem;
-    color: var(--text-dim);
-    text-align: center;
-    font-style: italic;
-  }
-
-  /* --- INSTALL --- */
-  .install-box {
-    background: var(--bg-card);
-    border: 2px solid var(--border-accent);
-    border-radius: var(--radius);
-    overflow: hidden;
-    box-shadow: 0 0 40px var(--accent-glow), 0 0 80px rgba(56, 189, 248, 0.05);
-  }
-
-  .install-tabs {
-    display: flex;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .install-tab {
-    flex: 1;
-    padding: 14px 20px;
-    font-family: var(--font-mono);
-    font-size: 0.95rem;
-    font-weight: 700;
-    text-align: center;
-    color: var(--text-primary);
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    transition: color 0.2s, background 0.2s;
-    letter-spacing: 0.04em;
-  }
-  .install-tab:hover { color: var(--text-secondary); }
-  .install-tab.active {
-    color: var(--accent);
-    background: var(--accent-subtle);
-    box-shadow: inset 0 -2px 0 var(--accent);
-  }
-
-  .install-panel {
-    display: none;
-    padding: 24px;
-  }
-  .install-panel.active { display: block; }
-
-  .install-cmd {
-    background: var(--bg-surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    padding: 16px 20px 52px;
-    font-family: var(--font-mono);
-    font-size: 0.82rem;
-    line-height: 1.6;
-    color: var(--text-primary);
-    overflow-x: auto;
-    white-space: pre-wrap;
-    word-break: break-all;
-    position: relative;
-    user-select: none;
-  }
-
-  .install-cmd .prompt { color: var(--accent); }
-
-  .copy-btn {
-    position: absolute;
-    bottom: 10px;
-    right: 12px;
-    background: var(--accent);
-    border: none;
-    border-radius: 6px;
-    padding: 8px 16px;
-    font-family: var(--font-display);
     font-size: 0.8rem;
-    font-weight: 600;
-    color: #fff;
-    cursor: pointer;
-    transition: background 0.2s, transform 0.2s;
-    letter-spacing: 0.02em;
-  }
-  .copy-btn:hover { background: #c86830; transform: scale(1.05); }
-
-  .install-step {
-    font-size: 0.9rem;
-    color: var(--text-secondary);
-    margin-bottom: 16px;
-    line-height: 1.6;
-  }
-  .install-step strong { color: var(--text-primary); }
-
-  .install-step-label {
-    font-size: 0.85rem;
     color: var(--text-dim);
-    margin-bottom: 10px;
-    font-family: var(--font-mono);
-  }
-
-  kbd {
-    display: inline-block;
-    background: var(--bg-deep);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 2px 7px;
-    font-family: var(--font-mono);
-    font-size: 0.8em;
-    color: var(--text-primary);
-    box-shadow: 0 1px 0 var(--border);
-    vertical-align: baseline;
-  }
-
-  /* --- NEXT STEP CARD --- */
-  .next-step-section { padding-top: 0; }
-
-  .next-step-card {
-    background: var(--bg-card);
-    border: 2px solid var(--border-accent);
-    border-radius: var(--radius);
-    padding: 40px 32px;
-    text-align: center;
-    box-shadow: 0 0 40px var(--accent-glow), 0 0 80px rgba(56, 189, 248, 0.05);
-  }
-
-  .next-step-instruction {
-    font-size: 0.95rem;
-    color: var(--text-primary);
-    font-weight: 600;
-    margin-bottom: 16px;
-    line-height: 1.7;
-  }
-  .next-step-instruction kbd { margin: 0 2px; }
-
-  .next-step-cmd {
-    display: inline-flex;
-    align-items: center;
-    gap: 12px;
-    background: var(--bg-surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    padding: 14px 28px;
-    margin-bottom: 20px;
-  }
-
-  .prompt-big {
-    font-family: var(--font-mono);
-    font-size: 1.1rem;
-    color: var(--accent);
-    user-select: none;
-  }
-
-  .cmd-text {
-    font-family: var(--font-mono);
-    font-size: 1.3rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    letter-spacing: 0.02em;
-  }
-
-  .claude-prompt {
-    display: inline-flex;
-    margin-bottom: 20px;
-  }
-
-  .prompt-claude {
-    font-family: var(--font-mono);
-    font-size: 1.3rem;
-    font-weight: 600;
-    color: var(--accent);
-    user-select: none;
-    margin-right: 12px;
-  }
-
-  .next-step-sub {
-    font-size: 0.88rem;
-    color: var(--text-primary);
-    font-weight: 600;
-    max-width: 480px;
-    margin: 0 auto 16px;
-    line-height: 1.7;
-  }
-
-  .next-step-reassurance {
-    font-size: 0.82rem;
-    color: var(--text-secondary);
-    font-weight: 400;
-    max-width: 520px;
-    margin: 16px auto 0;
-    line-height: 1.6;
-    font-style: italic;
-  }
-
-  /* --- WHILE YOU WAIT --- */
-  .while-you-wait {
-    text-align: center;
-    margin-top: 40px;
-  }
-
-  .wait-sub {
-    font-size: 0.88rem;
-    color: var(--text-dim);
-    line-height: 1.6;
-  }
-  .wait-sub a { color: var(--text-secondary); }
-  .wait-sub a:hover { color: var(--accent); }
-
-  /* --- (#7) DEMO SECTION --- */
-  .demo-section {
-    padding: 48px 0 24px;
-  }
-
-  .demo-terminal {
-    background: var(--demo-bg);
-    border: 2px solid var(--border-accent);
-    border-radius: var(--radius);
-    overflow: hidden;
-    box-shadow: 0 0 60px var(--accent-glow), 0 8px 32px var(--demo-shadow);
-    transition: background 0.3s, box-shadow 0.3s;
-  }
-
-  .demo-titlebar {
-    background: var(--demo-titlebar);
-    padding: 10px 16px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    border-bottom: 1px solid var(--demo-border);
-    transition: background 0.3s;
-  }
-
-  .demo-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-  }
-  .demo-dot.red { background: #ff5f57; }
-  .demo-dot.yellow { background: #ffbd2e; }
-  .demo-dot.green { background: #28ca41; }
-
-  .demo-titlebar-text {
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
-    color: var(--demo-titlebar-text);
-    margin-left: 8px;
-    transition: color 0.3s;
-  }
-
-  .demo-body {
-    padding: 20px 24px;
-    font-family: var(--font-mono);
-    font-size: 0.82rem;
-    line-height: 1.8;
-    color: var(--demo-text);
-    min-height: 280px;
-    position: relative;
-    transition: color 0.3s;
-  }
-
-  .demo-line {
-    opacity: 0;
-    transform: translateY(4px);
-    transition: opacity 0.4s ease, transform 0.4s ease;
-  }
-  .demo-line.show { opacity: 1; transform: translateY(0); }
-
-  .demo-prompt { color: var(--accent); }
-  .demo-user { color: var(--demo-user); }
-  .demo-response { color: var(--demo-response); }
-  .demo-action { color: var(--demo-action); }
-  .demo-dim { color: var(--demo-dim); }
-
-  .demo-controls {
-    text-align: center;
     margin-top: 16px;
+    line-height: 1.6;
   }
 
-  .demo-replay-btn {
-    background: var(--accent-subtle);
-    border: 1px solid var(--border-accent);
-    border-radius: 100px;
-    padding: 8px 20px;
-    font-family: var(--font-mono);
-    font-size: 0.78rem;
-    color: var(--accent);
-    cursor: pointer;
-    transition: background 0.2s;
-  }
-  .demo-replay-btn:hover { background: rgba(224, 120, 64, 0.12); }
-
-  /* --- DOCS GRID --- */
-  .docs-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 16px;
-  }
-
-  .doc-card {
-    display: block;
-    background: var(--bg-card);
-    border: 2px solid var(--border-accent);
-    border-radius: var(--radius);
-    padding: 24px;
-    transition: background 0.25s, border-color 0.25s, transform 0.25s;
-    text-decoration: none;
-    box-shadow: 0 0 40px var(--accent-glow), 0 0 80px rgba(56, 189, 248, 0.05);
-  }
-  .doc-card:hover {
-    background: var(--bg-card-hover);
-    border-color: var(--border-accent);
-    transform: translateY(-2px);
-    color: var(--text-primary);
-  }
-
-  .doc-card h3 {
-    font-size: 0.95rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin-bottom: 6px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .doc-card h3::after {
-    content: '\2192';
-    font-size: 0.85rem;
-    color: var(--accent);
-    opacity: 0;
-    transform: translateX(-4px);
-    transition: opacity 0.2s, transform 0.2s;
-  }
-  .doc-card:hover h3::after {
-    opacity: 1;
-    transform: translateX(0);
-  }
-
-  .doc-card p {
-    font-size: 0.85rem;
-    color: var(--text-secondary);
-    line-height: 1.5;
-  }
-
-  /* --- (#10) FAQ ACCORDION --- */
-  .faq-section {
-    padding: 24px 0 48px;
-  }
-
-  .faq-list {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
-  }
-
-  .faq-item {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    overflow: hidden;
-    transition: border-color 0.2s;
-  }
-  .faq-item:hover { border-color: var(--border-accent); }
-
-  .faq-question {
-    width: 100%;
-    padding: 18px 24px;
-    background: transparent;
-    border: none;
-    text-align: left;
-    font-family: var(--font-display);
-    font-size: 0.95rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-  }
-
-  .faq-chevron {
-    font-size: 0.75rem;
-    color: var(--text-dim);
-    transition: transform 0.3s;
-    flex-shrink: 0;
-  }
-
-  .faq-item.open .faq-chevron {
-    transform: rotate(180deg);
-  }
-
-  .faq-answer {
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.3s ease;
-  }
-
-  .faq-answer-inner {
-    padding: 0 24px 18px;
-    font-size: 0.88rem;
-    color: var(--text-secondary);
-    line-height: 1.7;
-  }
-
-  /* --- INTEGRATIONS --- */
-  .integrations-section {
-    margin-top: 28px;
-    padding-top: 24px;
-    border-top: 1px solid var(--border);
-  }
-
+  /* --- Integrations --- */
+  .integrations-section { margin-top: 32px; }
   .integrations-title {
-    font-size: 0.95rem;
+    font-size: 1rem;
     font-weight: 600;
-    color: var(--text-primary);
-    letter-spacing: -0.01em;
-    margin-bottom: 6px;
-    text-align: center;
+    margin-bottom: 8px;
   }
-
   .integrations-intro {
-    font-size: 0.85rem;
-    color: var(--text-secondary);
-    margin-bottom: 14px;
-    text-align: center;
+    font-size: 0.82rem;
+    color: var(--text-dim);
+    margin-bottom: 16px;
   }
 
   .integrations-tags {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    margin-bottom: 12px;
-    justify-content: center;
   }
 
-  /* (#9) Integration tags: proper button elements */
   .integration-tag {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    font-size: 0.8rem;
-    font-weight: 500;
-    color: var(--text-secondary);
-    background: var(--bg-surface);
+    padding: 6px 14px;
+    background: color-mix(in srgb, var(--bg-card) 70%, transparent);
     border: 1px solid var(--border);
     border-radius: 100px;
-    padding: 4px 12px;
-    font-family: var(--font-display);
-  }
-
-  .tag-icon {
-    width: 16px;
-    height: 16px;
-    flex-shrink: 0;
-    object-fit: contain;
-  }
-
-  [data-theme="dark"] .tag-icon {
-    filter: brightness(1.2);
-  }
-
-  .integration-tag.soon {
-    color: var(--text-dim);
-    border-style: dashed;
-  }
-
-  .integration-tag.soon .tag-icon {
-    opacity: 0.5;
-  }
-
-  .integration-tag[data-desc] {
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--text-secondary);
     cursor: pointer;
-    transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+    transition: border-color 0.2s, background 0.2s;
+    font-family: inherit;
   }
-
-  .integration-tag[data-desc]:hover {
-    border-color: var(--border-accent);
-    box-shadow: 0 0 12px var(--accent-glow);
+  .integration-tag:hover { border-color: var(--accent); background: var(--accent-subtle); }
+  .integration-tag.active { border-color: var(--accent); background: var(--accent-subtle); color: var(--text-primary); }
+  .integration-tag.soon {
+    cursor: default;
+    color: var(--text-muted);
+    border-style: dashed;
+    font-style: italic;
   }
-
-  .integration-tag.active {
-    background: var(--accent-subtle);
-    border-color: var(--accent);
-  }
+  .tag-icon { width: 16px; height: 16px; }
 
   .integration-desc {
-    display: none;
-    background: var(--bg-surface);
-    border: 1px solid var(--border);
+    margin-top: 12px;
+    padding: 14px 18px;
+    background: var(--accent-subtle);
+    border: 1px solid var(--border-accent);
     border-radius: var(--radius-sm);
-    padding: 12px 16px;
-    margin-top: 10px;
-    font-size: 0.85rem;
+    font-size: 0.82rem;
     color: var(--text-secondary);
     line-height: 1.6;
+    display: none;
+  }
+  .integration-desc.visible { display: block; }
+  .integration-desc-name { color: var(--accent); font-weight: 600; }
+
+  /* --- DOWNLOAD SECTION --- */
+  .download-section { padding: 16px 0; }
+
+  .download-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    max-width: 520px;
+    margin: 0 auto;
   }
 
-  .integration-desc.visible {
-    display: block;
-    animation: fadeUp 0.3s ease;
+  .download-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+    background: color-mix(in srgb, var(--bg-card) 70%, transparent);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    text-decoration: none;
+    color: var(--text-primary);
+    transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+  }
+  .download-card:hover {
+    border-color: var(--accent);
+    color: var(--text-primary);
+    transform: translateY(-2px);
+    box-shadow: 0 0 20px rgba(232, 35, 74, 0.15);
   }
 
-  .integration-desc-name {
+  .download-card svg { width: 24px; height: 24px; fill: var(--text-dim); flex-shrink: 0; }
+  .download-card-text { display: flex; flex-direction: column; }
+  .download-card-label { font-size: 0.7rem; color: var(--text-muted); }
+  .download-card-platform { font-size: 0.9rem; font-weight: 600; }
+
+  .download-note {
+    text-align: center;
+    font-size: 0.78rem;
+    color: var(--text-dim);
+    margin-top: 20px;
+  }
+
+  /* --- FEATURES --- */
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+
+  .feature-card {
+    background: color-mix(in srgb, var(--bg-card) 70%, transparent);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    transition: border-color 0.2s;
+  }
+  .feature-card:hover { border-color: var(--border-accent); }
+
+  .feature-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: var(--accent-subtle);
+    border: 1px solid var(--border-accent);
+    border-radius: 10px;
+    font-size: 1.1rem;
+    margin-bottom: 12px;
+  }
+
+  .feature-card h3 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+
+  .feature-card p {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+
+  .features-note {
+    font-size: 0.82rem;
+    color: var(--text-dim);
+    margin-top: 20px;
+    text-align: center;
+  }
+
+  /* --- FAQ --- */
+  .faq-section { padding: 16px 0; }
+
+  .faq-list { display: flex; flex-direction: column; gap: 8px; }
+
+  .faq-item {
+    background: color-mix(in srgb, var(--bg-card) 70%, transparent);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+  }
+
+  .faq-question {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    background: none;
+    border: none;
+    font: inherit;
+    font-size: 0.9rem;
     font-weight: 600;
     color: var(--text-primary);
+    cursor: pointer;
+    text-align: left;
+  }
+  .faq-question:hover { color: var(--accent); }
+
+  .faq-chevron {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    transition: transform 0.3s;
   }
 
-  /* --- (#6) FOOTER --- */
+  .faq-item.open .faq-chevron { transform: rotate(180deg); }
+
+  .faq-answer {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease;
+  }
+
+  .faq-answer-inner {
+    padding: 0 20px 16px;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    line-height: 1.7;
+  }
+
+  /* --- FOOTER --- */
   footer {
-    padding: 48px 0;
-    text-align: center;
+    padding: 32px 0;
     border-top: 1px solid var(--border);
     margin-top: 32px;
   }
 
   .footer-inner {
     display: flex;
-    flex-direction: column;
     align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
     gap: 16px;
   }
 
@@ -1197,36 +1457,54 @@
     align-items: center;
     gap: 8px;
     font-weight: 700;
-    font-size: 1rem;
+    font-size: 0.9rem;
     color: var(--text-primary);
     text-decoration: none;
   }
 
-
   .footer-links {
     display: flex;
     align-items: center;
-    gap: 20px;
+    gap: 16px;
+    font-size: 0.8rem;
   }
-
   .footer-links a {
-    font-size: 0.85rem;
-    color: var(--text-secondary);
-    text-decoration: none;
     display: flex;
     align-items: center;
     gap: 6px;
+    color: var(--text-dim);
   }
   .footer-links a:hover { color: var(--accent); }
-
-  .footer-links svg {
-    width: 16px;
-    height: 16px;
-  }
+  .footer-links svg { width: 16px; height: 16px; }
 
   .footer-legal {
-    font-size: 0.8rem;
-    color: var(--text-dim);
+    font-size: 0.7rem;
+    color: var(--text-faint);
+  }
+
+  /* --- FLOATING CTA & BACK TO TOP --- */
+  .floating-cta {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    padding: 10px 24px;
+    background: var(--accent);
+    color: #fff;
+    font-weight: 600;
+    font-size: 0.85rem;
+    border-radius: 100px;
+    text-decoration: none;
+    box-shadow: 0 0 24px rgba(232, 35, 74, 0.4);
+    z-index: 90;
+    opacity: 0;
+    transition: transform 0.4s, opacity 0.4s;
+    pointer-events: none;
+  }
+  .floating-cta.visible {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+    pointer-events: auto;
   }
 
   .back-to-top {
@@ -1235,96 +1513,67 @@
     right: 24px;
     width: 40px;
     height: 40px;
-    background: var(--accent);
-    color: #fff;
-    border: none;
-    border-radius: 50%;
+    background: color-mix(in srgb, var(--bg-surface) 90%, transparent);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text-dim);
     font-size: 1.1rem;
     cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    z-index: 90;
     opacity: 0;
-    transform: translateY(12px);
-    transition: opacity 0.3s, transform 0.3s;
-    z-index: 50;
-    box-shadow: 0 2px 12px rgba(224, 120, 64, 0.3);
-  }
-  .back-to-top.visible {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  .back-to-top:hover { background: #c86830; }
-
-  /* Floating Get Started pill */
-  .floating-cta {
-    position: fixed;
-    bottom: 24px;
-    left: 50%;
-    transform: translateX(-50%) translateY(0);
-    background: var(--accent);
-    color: #fff;
-    font-family: var(--font-display);
-    font-size: 0.9rem;
-    font-weight: 600;
-    padding: 12px 28px;
-    border-radius: 100px;
-    border: none;
-    cursor: pointer;
-    z-index: 50;
-    box-shadow: 0 4px 24px rgba(224, 120, 64, 0.35);
-    transition: opacity 0.3s, transform 0.3s, box-shadow 0.2s;
-    opacity: 0;
+    transition: opacity 0.3s, border-color 0.2s;
     pointer-events: none;
-    text-decoration: none;
   }
-  .floating-cta.visible {
-    opacity: 1;
-    pointer-events: auto;
-  }
-  .floating-cta:hover {
-    box-shadow: 0 6px 32px rgba(224, 120, 64, 0.45);
-    color: #fff;
-  }
+  .back-to-top.visible { opacity: 1; pointer-events: auto; }
+  .back-to-top:hover { border-color: var(--accent); color: var(--accent); }
 
-  /* --- DIVIDER --- */
-  .divider {
-    width: 48px;
-    height: 1px;
-    background: var(--border);
-    margin: 0 auto;
+  /* --- SCROLL REVEAL --- */
+  .reveal {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
   }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+  .reveal-d1 { transition-delay: 0.08s; }
+  .reveal-d2 { transition-delay: 0.16s; }
+  .reveal-d3 { transition-delay: 0.24s; }
+  .reveal-d4 { transition-delay: 0.32s; }
+  .reveal-d5 { transition-delay: 0.40s; }
+  .reveal-d6 { transition-delay: 0.48s; }
+
+  /* Load animations */
+  .animate { opacity: 0; transform: translateY(16px); animation: fadeUp 0.6s ease forwards; }
+  .animate-d1 { animation-delay: 0.1s; }
+  .animate-d2 { animation-delay: 0.25s; }
+  .animate-d3 { animation-delay: 0.4s; }
+  @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
 
   /* --- RESPONSIVE --- */
   @media (max-width: 768px) {
-    .hero { padding: 48px 0 0; }
-    .features-grid { grid-template-columns: 1fr; }
+    .steps-flow { flex-direction: column; align-items: center; gap: 16px; }
+    .step-arrow { transform: rotate(90deg); padding: 0; }
+    .step-item { max-width: 280px; }
+
     .prereq-grid { grid-template-columns: 1fr; }
-    .docs-grid { grid-template-columns: 1fr; }
-    .faq-list { grid-template-columns: 1fr; }
-    section { padding: 20px 0; }
-    .steps-flow { gap: 0; }
-    .step-item { max-width: none; }
-    .step-icon-wrap { width: 48px; height: 48px; font-size: 1.2rem; border-radius: 12px; }
+    .features-grid { grid-template-columns: 1fr; }
+    .download-grid { grid-template-columns: 1fr; }
+
+    .hero h1 { font-size: clamp(2rem, 8vw, 2.8rem); }
+    .hero-platforms { flex-direction: column; align-items: center; }
+    .hero-btn { width: 100%; max-width: 260px; justify-content: center; }
+
+    .footer-inner { flex-direction: column; text-align: center; }
+  }
+
+  @media (max-width: 480px) {
+    .step-icon-wrap { width: 48px; height: 48px; border-radius: 12px; }
     .step-num { font-size: 0.6rem; }
     .step-item h3 { font-size: 0.85rem; }
     .step-item p { font-size: 0.75rem; }
-    .step-arrow { font-size: 1rem; padding-top: 14px; }
+    .step-arrow { font-size: 1rem; }
 
-    /* Hide wordmark text, show only icon */
-    .nav-logo span { display: none; }
-    /* Enlarge nav icon on mobile */
-    .nav-logo .nav-icon { width: 28px; height: 28px; }
-
-    /* Show mobile-right group, hide desktop theme toggle */
-    .nav-mobile-right { display: flex; }
-    .nav-theme-desktop { display: none; }
-
-    /* Enlarge mobile buttons to match icon */
-    .mobile-menu-btn { display: flex; width: 28px; height: 28px; }
-    .nav-mobile-right .theme-toggle { width: 28px; height: 28px; font-size: 0.85rem; }
-
-    /* Collapse nav links into dropdown */
     .nav-links {
       display: none;
       position: absolute;
@@ -1332,54 +1581,51 @@
       left: 0;
       right: 0;
       flex-direction: column;
-      background: var(--bg-deep);
+      background: color-mix(in srgb, var(--bg-surface) 95%, transparent);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
       border-bottom: 1px solid var(--border);
-      padding: 12px 24px 16px;
-      gap: 4px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+      padding: 8px 24px;
     }
     .nav-links.open { display: flex; }
+    .nav-links a { display: block; padding: 10px 0; font-size: 0.9rem; border-bottom: 1px solid var(--border); }
     .nav-links li { list-style: none; }
-    .nav-links a {
-      display: block;
-      padding: 10px 0;
-      font-size: 0.9rem;
-      font-weight: 500;
-      color: var(--text-secondary);
-      border-bottom: 1px solid var(--border);
-    }
     .nav-links li:last-child a { border-bottom: none; }
+    .nav-mobile-right { display: flex; align-items: center; gap: 8px; }
+    .nav-logo span { display: none; }
+    .nav-logo .nav-icon { width: 28px; height: 28px; }
+    .nav-theme-desktop { display: none; }
   }
 </style>
 </head>
 <body>
 
-  <!-- (#1) STICKY NAV -->
+  <!-- Overlay effects -->
+  <div class="scanlines"></div>
+  <div class="vignette"></div>
+
+  <!-- STICKY NAV -->
   <nav class="nav" role="navigation" aria-label="Main navigation">
     <div class="nav-inner">
       <a href="#" class="nav-logo">
-        <img src="favicon-light.svg" alt="DestinClaude" class="nav-icon nav-icon-light" width="22" height="22">
-        <img src="favicon-dark.svg" alt="DestinClaude" class="nav-icon nav-icon-dark" width="22" height="22">
-        <span>Destin<span style="color: var(--accent)">Claude</span></span>
+        <img src="favicon-dark.svg" alt="DestinCode" class="nav-icon theme-icon-img" width="22" height="22">
+        <span>Destin<span style="color: var(--title-highlight)">Code</span></span>
       </a>
       <ul class="nav-links" id="nav-links">
         <li><a href="#about">About</a></li>
-        <li><a href="#prerequisites">Prerequisites</a></li>
-        <li><a href="#install">Install</a></li>
+        <li><a href="#demo">Demo</a></li>
         <li><a href="#features">Features</a></li>
-        <li><a href="#documentation">Docs</a></li>
+        <li><a href="#download">Download</a></li>
         <li><a href="#faq">FAQ</a></li>
         <li class="nav-theme-desktop">
-          <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode" title="Toggle dark mode">
-            <span class="icon-moon" aria-hidden="true">&#9790;</span>
-            <span class="icon-sun" aria-hidden="true">&#9728;</span>
+          <button class="theme-toggle" id="theme-toggle" aria-label="Cycle theme" title="Cycle theme">
+            <span class="theme-icon" aria-hidden="true">&#9790;</span>
           </button>
         </li>
       </ul>
       <div class="nav-mobile-right">
-        <button class="theme-toggle" id="theme-toggle-mobile" aria-label="Toggle dark mode" title="Toggle dark mode">
-          <span class="icon-moon" aria-hidden="true">&#9790;</span>
-          <span class="icon-sun" aria-hidden="true">&#9728;</span>
+        <button class="theme-toggle" id="theme-toggle-mobile" aria-label="Cycle theme" title="Cycle theme">
+          <span class="theme-icon" aria-hidden="true">&#9790;</span>
         </button>
         <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Open menu" aria-expanded="false">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect y="2" width="16" height="2" rx="0.5" fill="currentColor"/><rect y="7" width="16" height="2" rx="0.5" fill="currentColor"/><rect y="12" width="16" height="2" rx="0.5" fill="currentColor"/></svg>
@@ -1388,19 +1634,29 @@
     </div>
   </nav>
 
-  <!-- HERO (#4 improved) -->
+  <!-- HERO -->
   <header class="hero" id="top">
     <div class="container">
       <div class="title-box animate animate-d1">
-        <h1>Destin<span class="title-accent">Claude</span></h1>
-        <p class="title-sub">For <a href="https://docs.anthropic.com/en/docs/claude-code" style="color: var(--accent); text-decoration: none;">Claude Code</a> by Anthropic</p>
+        <h1>Destin<span class="title-accent">Code</span></h1>
+        <p class="title-sub">For <a href="https://docs.anthropic.com/en/docs/claude-code">Claude Code</a> by Anthropic</p>
       </div>
-      <p class="hero-tagline animate animate-d2">Your life, organized by conversation.</p>
-      <p class="hero-personal animate animate-d3">I promise it's cool.</p>
+      <p class="hero-tagline animate animate-d2">Claude Code as a real app. Themes, games, and a skill marketplace — all open source.</p>
+      <div class="hero-platforms animate animate-d3">
+        <a href="#download" class="hero-btn hero-btn-primary">
+          <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+          Download
+        </a>
+        <a href="https://github.com/itsdestin/destincode" target="_blank" class="hero-btn hero-btn-secondary">
+          <svg viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          View Source
+        </a>
+      </div>
+      <p class="hero-note animate animate-d3">Windows &middot; macOS &middot; Linux &middot; Android &middot; Remote Web Access</p>
     </div>
   </header>
 
-  <!-- (#11) HOW IT WORKS -->
+  <!-- 3-STEP FLOW -->
   <section class="how-it-works" id="how-it-works">
     <div class="container">
       <div class="steps-flow reveal">
@@ -1409,17 +1665,17 @@
             <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><line x1="14" y1="4" x2="14" y2="18" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round"/><polyline points="9,14 14,19 19,14" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="6" y1="23" x2="22" y2="23" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round"/></svg>
           </div>
           <p class="step-num">Step 1</p>
-          <h3>Install</h3>
-          <p>Run one command in your terminal. The setup wizard handles everything.</p>
+          <h3>Download</h3>
+          <p>Grab the app for your platform. Windows, macOS, Linux, or Android.</p>
         </div>
         <div class="step-arrow">&rarr;</div>
         <div class="step-item">
           <div class="step-icon-wrap">
-            <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><path d="M6 20 L6 8 Q6 5.5 8.5 5.5 L19.5 5.5 Q22 5.5 22 8 L22 16 Q22 18.5 19.5 18.5 L10 18.5 L6 22 Z" stroke="var(--accent)" stroke-width="1.8" stroke-linejoin="round" fill="none"/><line x1="10" y1="10" x2="18" y2="10" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/><line x1="10" y1="14" x2="15" y2="14" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/></svg>
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><rect x="5" y="4" width="18" height="20" rx="3" stroke="var(--accent)" stroke-width="1.8" fill="none"/><circle cx="14" cy="11" r="3" stroke="var(--accent)" stroke-width="1.5" fill="none"/><line x1="9" y1="18" x2="19" y2="18" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/></svg>
           </div>
           <p class="step-num">Step 2</p>
-          <h3>Chat</h3>
-          <p>Journal, vent, plan, ask questions. Just type naturally.</p>
+          <h3>Make It Yours</h3>
+          <p>Pick a theme, install skills, set up your preferred integrations.</p>
         </div>
         <div class="step-arrow">&rarr;</div>
         <div class="step-item">
@@ -1427,8 +1683,8 @@
             <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><circle cx="14" cy="14" r="9" stroke="var(--accent)" stroke-width="1.8" fill="none"/><polyline points="9.5,14.5 12.5,17.5 18.5,11" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
           </div>
           <p class="step-num">Step 3</p>
-          <h3>It just works</h3>
-          <p>Calendar events, tasks, a living record of your life — built automatically.</p>
+          <h3>Get Stuff Done</h3>
+          <p>Chat, build, play, journal. Claude handles the rest.</p>
         </div>
       </div>
     </div>
@@ -1436,48 +1692,307 @@
 
   <div class="container"><div class="divider"></div></div>
 
-  <!-- INTRO -->
+  <!-- ABOUT -->
   <section id="about">
     <div class="container">
       <p class="section-label reveal">What is this?</p>
-      <h2 class="section-title reveal">A tool to remember everything that matters.</h2>
+      <h2 class="section-title reveal">Claude Code, but it's actually an app.</h2>
       <div class="intro-box reveal">
-        <p>Claude Code is an AI tool developed by Anthropic. However, this AI tool is nothing like the ChatGPT or Gemini you might be familiar with. Claude can <strong>create every type of file</strong>, <strong>search the web</strong>, <strong>open any app</strong>, and <strong>navigate your screen</strong> if you desire. Destin's modifications turn all of that into a personal system that helps you stay on top of the things you care about — without the overhead of actually organizing them yourself.</p>
-        <p>Snap a screenshot of a flyer for an event next month, and it lands on your calendar. Forward yourself a rambling voice memo and the action items get pulled out. Journal about your day to decompress, and DestinClaude quietly picks up on the rest — a goal you mentioned making progress on, a dentist appointment you need to schedule, an overdue assignment worth surfacing before you close the laptop. <strong>You just talk. The structure happens on its own.</strong></p>
+        <p>Claude Code is an AI tool developed by Anthropic. However, this AI tool is nothing like the ChatGPT or Gemini you might be familiar with. Claude can <strong>create every type of file</strong>, <strong>search the web</strong>, <strong>open any app</strong>, and <strong>navigate your screen</strong> if you desire. DestinCode puts all of that into a real app with a chat interface, custom themes, a skill marketplace, and even multiplayer games you can play while Claude works.</p>
+        <p>With the optional DestinClaude toolkit <span class="toolkit-badge">add-on</span>, it goes even further. Snap a screenshot of a flyer for an event next month, and it lands on your calendar. Forward yourself a rambling voice memo and the action items get pulled out. Journal about your day to decompress, and DestinClaude quietly picks up on the rest — a goal you mentioned making progress on, a dentist appointment you need to schedule, an overdue assignment worth surfacing before you close the laptop. <strong>You just talk. The structure happens on its own.</strong></p>
         <p>Over time, it builds a living record of your life — the kind of thing you'd never sit down and write yourself, but wish you had. Who you met at that conference two years ago. What your friend's kid's name is. The argument that changed your mind about something. The details that make you <em>you</em>, preserved so you can actually find them when they matter most.</p>
-        <p class="permission-note">Nothing happens without your permission. DestinClaude will always ask before taking any action.</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- (#7) DEMO SECTION -->
-  <section class="demo-section" id="demo">
-    <div class="container">
-      <p class="section-label reveal">See it in action</p>
-      <h2 class="section-title reveal">What a session looks like</h2>
-      <div class="demo-terminal reveal" id="demo-terminal">
-        <div class="demo-titlebar">
-          <div class="demo-dot red"></div>
-          <div class="demo-dot yellow"></div>
-          <div class="demo-dot green"></div>
-          <span class="demo-titlebar-text">DestinClaude — Terminal</span>
-        </div>
-        <div class="demo-body" id="demo-body">
-          <div class="demo-line" data-delay="200"><span class="demo-prompt">&gt; </span><span class="demo-user">Let's journal. Today was a long one — had that meeting with Sarah about the nonprofit rebrand, then spent the afternoon prepping my talk for Friday.</span></div>
-          <div class="demo-line" data-delay="1400"><br><span class="demo-response">Got it. How did the meeting with Sarah go? Any decisions made on the rebrand direction?</span></div>
-          <div class="demo-line" data-delay="2600"><br><span class="demo-prompt">&gt; </span><span class="demo-user">Yeah, we're going with the warm palette. She wants a first draft by March 28th. Oh, and remind me — I need to email Jake the slide deck before my talk.</span></div>
-          <div class="demo-line" data-delay="3800"><br><span class="demo-action">&#10003; Created task: "Email Jake slide deck" — due Friday morning</span></div>
-          <div class="demo-line" data-delay="4400"><span class="demo-action">&#10003; Created task: "Nonprofit rebrand first draft" — due March 28</span></div>
-          <div class="demo-line" data-delay="5000"><span class="demo-action">&#10003; Updated Encyclopedia: Sarah &rarr; nonprofit rebrand collaboration</span></div>
-          <div class="demo-line" data-delay="5600"><span class="demo-dim">Journal saved &rarr; 2026-03-18.md</span></div>
-        </div>
+        <p class="permission-note">Nothing happens without your permission. DestinCode will always ask before taking any action.</p>
       </div>
     </div>
   </section>
 
   <div class="container"><div class="divider"></div></div>
 
-  <!-- BEFORE YOU BEGIN -->
+  <!-- DEMO — Theme Builder (animated) -->
+  <section class="demo-section" id="demo">
+    <div class="container">
+      <p class="section-label reveal">See it in action</p>
+      <h2 class="section-title reveal">Build a theme just by describing it.</h2>
+      <div class="demo-app reveal" id="demo-app">
+        <div class="demo-wallpaper"></div>
+        <div class="demo-header">
+          <div class="demo-header-dot red"></div>
+          <div class="demo-header-dot yellow"></div>
+          <div class="demo-header-dot green"></div>
+          <span class="demo-header-session">Session 1</span>
+          <div class="demo-header-tabs">
+            <span class="demo-header-tab active">Chat</span>
+            <span class="demo-header-tab">Terminal</span>
+            <span class="demo-header-tab">Games</span>
+          </div>
+        </div>
+        <div class="demo-chat" id="demo-chat">
+          <div class="demo-bubble user" data-delay="300">build me a theme with the vibe of outdoor anime art</div>
+          <div class="demo-bubble assistant" data-delay="1400">I'll create a warm, atmospheric theme inspired by outdoor anime scenes — think golden hour light, lush landscapes, and that hand-painted glow. Let me build that for you.</div>
+          <div class="demo-tool-card" data-delay="2400">
+            <span class="demo-spinner" id="demo-tool-spinner"></span>
+            <span id="demo-tool-text">Writing theme manifest&hellip;</span>
+          </div>
+          <div class="demo-tool-card" data-delay="3200" id="demo-tool-2" style="display:none;">
+            <span class="demo-check">&#10003;</span>
+            <span>Theme "Golden Sunbreak" installed &mdash; applying now</span>
+          </div>
+        </div>
+        <div class="demo-statusbar">
+          <span class="demo-model-badge">Opus 1M</span>
+          <span>context 24%</span>
+          <span style="margin-left: auto;">midnight</span>
+        </div>
+        <div class="demo-inputbar">
+          <div class="demo-input-field">Type a message&hellip;</div>
+          <div class="demo-send-btn">
+            <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- SHOWCASE: Additional mockups -->
+      <div class="showcase-grid">
+
+        <!-- Journaling -->
+        <div class="showcase-item reveal">
+          <div class="showcase-text">
+            <span class="showcase-label">Journaling <span class="toolkit-badge">add-on</span></span>
+            <h3 class="showcase-title">Talk about your day. The structure happens on its own.</h3>
+            <p class="showcase-desc">Just start talking — about work, people, whatever's on your mind. Claude asks follow-up questions, pulls out tasks and calendar events, and builds a searchable journal over time. No templates, no forms. You talk, it organizes.</p>
+          </div>
+          <div class="mock-frame mock-golden reveal">
+            <div class="mock-wallpaper"></div>
+            <div class="mock-header">
+              <div class="mock-dot red"></div>
+              <div class="mock-dot yellow"></div>
+              <div class="mock-dot green"></div>
+              <span class="mock-header-text">Session 2</span>
+              <div class="mock-tabs">
+                <span class="mock-tab active">Chat</span>
+                <span class="mock-tab">Terminal</span>
+                <span class="mock-tab">Games</span>
+              </div>
+            </div>
+            <div class="mock-chat">
+              <div class="mock-bubble user">let's journal. today was a lot — had that meeting with Sarah about the nonprofit rebrand, then spent the afternoon prepping my talk for Friday.</div>
+              <div class="mock-bubble assistant">Got it. How did the meeting with Sarah go? Any decisions made on the direction?</div>
+              <div class="mock-bubble user">yeah, we're going with the warm palette. she wants a first draft by March 28th. oh, and remind me — I need to email Jake the slide deck before my talk.</div>
+              <div class="mock-tool"><span class="mock-check">&#10003;</span> Created task: "Email Jake slide deck" — due Friday morning</div>
+              <div class="mock-tool"><span class="mock-check">&#10003;</span> Created task: "Nonprofit rebrand first draft" — due March 28</div>
+              <div class="mock-tool"><span class="mock-check">&#10003;</span> Updated Encyclopedia: Sarah &rarr; nonprofit rebrand collaboration</div>
+              <div class="mock-bubble assistant">All captured. The slide deck task is set for Friday morning so you'll see it before your talk. What else happened today — anything outside of work?</div>
+            </div>
+            <div class="mock-statusbar">
+              <span class="mock-model">Opus 1M</span>
+              <span>context 31%</span>
+              <span style="margin-left: auto;">golden-sunbreak</span>
+            </div>
+            <div class="mock-inputbar">
+              <div class="mock-input">Type a message&hellip;</div>
+              <div class="mock-send"><svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Personal Librarian Brief -->
+        <div class="showcase-item reverse reveal">
+          <div class="showcase-text">
+            <span class="showcase-label">Personal Librarian <span class="toolkit-badge">add-on</span></span>
+            <h3 class="showcase-title">Brief me on anyone. Pull together everything about anything.</h3>
+            <p class="showcase-desc">The Librarian mines your journal, texts, and encyclopedia to produce targeted briefings — before a meeting, a job application, or just because you forgot the details. Career briefs, person profiles, topic deep dives, six-month reviews. All from data you already have.</p>
+          </div>
+          <div class="mock-frame mock-golden reveal">
+            <div class="mock-wallpaper"></div>
+            <div class="mock-header">
+              <div class="mock-dot red"></div>
+              <div class="mock-dot yellow"></div>
+              <div class="mock-dot green"></div>
+              <span class="mock-header-text">Session 1</span>
+              <div class="mock-tabs">
+                <span class="mock-tab active">Chat</span>
+                <span class="mock-tab">Terminal</span>
+                <span class="mock-tab">Games</span>
+              </div>
+            </div>
+            <div class="mock-chat">
+              <div class="mock-bubble user">brief me on Sarah — I have a call with her tomorrow and I can't remember half of what we've discussed</div>
+              <div class="mock-tool"><span class="mock-check">&#10003;</span> Reading encyclopedia: People Database</div>
+              <div class="mock-tool"><span class="mock-check">&#10003;</span> Searching journal entries for "Sarah"</div>
+              <div class="mock-tool"><span class="mock-check">&#10003;</span> Deep searching text messages</div>
+              <div class="mock-bubble assistant"><strong>Sarah Chen — Person Briefing</strong><br><br><strong>Who:</strong> Creative director at Bright Futures Nonprofit. Met at the Austin Design Conference (Oct 2025). Connected through mutual friend Jake.<br><br><strong>Current project:</strong> Nonprofit rebrand — you're collaborating on the visual identity. Decided on warm palette (March 18). First draft due March 28.<br><br><strong>Recent context:</strong> She texted you last week about moving the deadline to April 2. You haven't responded yet.<br><br><strong>Personal notes:</strong> Has a daughter named Lily (age 7). Mentioned she's training for a half marathon. Prefers morning meetings.</div>
+            </div>
+            <div class="mock-statusbar">
+              <span class="mock-model">Opus 1M</span>
+              <span>context 48%</span>
+              <span style="margin-left: auto;">golden-sunbreak</span>
+            </div>
+            <div class="mock-inputbar">
+              <div class="mock-input">Type a message&hellip;</div>
+              <div class="mock-send"><svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Connect 4 -->
+        <div class="showcase-item reveal">
+          <div class="showcase-text">
+            <span class="showcase-label">Multiplayer Games</span>
+            <h3 class="showcase-title">Play with friends while Claude works.</h3>
+            <p class="showcase-desc">Claude Code takes time on big tasks. Instead of staring at a spinner, challenge a friend to Connect 4 right inside the app. Real-time multiplayer, in-game chat, powered by Cloudflare. More games coming.</p>
+          </div>
+          <div class="mock-frame mock-golden reveal">
+            <div class="mock-wallpaper"></div>
+            <div class="mock-header">
+              <div class="mock-dot red"></div>
+              <div class="mock-dot yellow"></div>
+              <div class="mock-dot green"></div>
+              <span class="mock-header-text">Session 1</span>
+              <div class="mock-tabs">
+                <span class="mock-tab">Chat</span>
+                <span class="mock-tab">Terminal</span>
+                <span class="mock-tab active">Games</span>
+              </div>
+            </div>
+            <div class="mock-game-layout">
+              <!-- Chat side (Claude working in background) -->
+              <div class="mock-game-chat">
+                <div class="mock-bubble user" style="font-size:0.72rem;">refactor the authentication module to use JWT tokens instead of sessions</div>
+                <div class="mock-bubble assistant" style="font-size:0.72rem;">I'll refactor the auth module. This will touch several files — let me start by reading the current implementation.</div>
+                <div class="mock-tool"><span class="mock-check">&#10003;</span> Reading auth/session-manager.ts</div>
+                <div class="mock-tool"><span class="mock-check">&#10003;</span> Reading auth/middleware.ts</div>
+                <div class="mock-tool" style="border-color: rgba(255,192,48,0.3);">
+                  <span style="display:inline-block;width:12px;height:12px;border:2px solid #806840;border-top-color:#ffc030;border-radius:50%;animation:demo-spin 0.8s linear infinite;"></span>
+                  Writing auth/jwt-provider.ts&hellip;
+                </div>
+              </div>
+              <!-- Game panel -->
+              <div class="mock-game-panel">
+                <div class="mock-game-panel-header">
+                  <span>Connect 4</span>
+                  <span style="font-size:0.65rem;color:var(--m-fg-muted);font-weight:400;">&#10005;</span>
+                </div>
+                <div class="mock-game-turn">
+                  <span><span class="mock-game-turn-dot" style="background:#ef4444;"></span>You (red)</span>
+                  <span class="mock-game-turn-badge">Your turn</span>
+                  <span><span class="mock-game-turn-dot" style="background:#facc15;"></span>Jake</span>
+                </div>
+                <div class="mock-c4-board" id="mock-c4">
+                  <!-- 7 columns x 6 rows, rendered by JS -->
+                </div>
+                <div class="mock-game-chat-area">
+                  <div class="mock-game-msg"><strong>Jake:</strong> nice move lol</div>
+                  <div class="mock-game-msg"><strong>You:</strong> get ready to lose</div>
+                  <div class="mock-game-msg"><strong>Jake:</strong> we'll see about that 😤</div>
+                </div>
+                <div class="mock-game-input">
+                  <div class="mock-game-input-field">Message&hellip;</div>
+                </div>
+              </div>
+            </div>
+            <div class="mock-statusbar">
+              <span class="mock-model">Opus 1M</span>
+              <span>context 15%</span>
+              <span style="margin-left: auto;">golden-sunbreak</span>
+            </div>
+            <div class="mock-inputbar">
+              <div class="mock-input">Type a message&hellip;</div>
+              <div class="mock-send"><svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <div class="container"><div class="divider"></div></div>
+
+  <!-- FEATURES -->
+  <section id="features">
+    <div class="container">
+      <p class="section-label reveal">What you get</p>
+      <h2 class="section-title reveal">Everything Claude Code can do, plus all of this.</h2>
+      <div class="features-grid">
+        <div class="feature-card reveal reveal-d1">
+          <div class="feature-icon">&#127912;</div>
+          <h3>Themes</h3>
+          <p>Wallpapers, glassmorphism, particles, mascots, custom scrollbars. Share them with friends or build your own with <code>/theme-builder</code>.</p>
+        </div>
+        <div class="feature-card reveal reveal-d2">
+          <div class="feature-icon">&#9889;</div>
+          <h3>Skill Marketplace</h3>
+          <p>150+ skills for everything from writing to data analysis. Install what you need, share what you build.</p>
+        </div>
+        <div class="feature-card reveal reveal-d3">
+          <div class="feature-icon">&#127918;</div>
+          <h3>Multiplayer Games</h3>
+          <p>Play with friends while Claude works. Because waiting for AI doesn't have to be boring.</p>
+        </div>
+        <div class="feature-card reveal reveal-d4">
+          <div class="feature-icon">&#128241;</div>
+          <h3>Runs Everywhere</h3>
+          <p>Windows, macOS, Linux, Android — plus remote access from any web browser. Your setup follows you.</p>
+        </div>
+        <div class="feature-card reveal reveal-d5">
+          <div class="feature-icon">&#128214;</div>
+          <h3>Journaling &amp; Encyclopedia <span class="toolkit-badge">add-on</span></h3>
+          <p>Talk about your day and it gets organized automatically. Over time, Claude builds a living record of your life.</p>
+        </div>
+        <div class="feature-card reveal reveal-d6">
+          <div class="feature-icon">&#128736;</div>
+          <h3>Tasks &amp; Messaging <span class="toolkit-badge">add-on</span></h3>
+          <p>Process your Todoist inbox, read and send texts, manage your calendar — all through conversation.</p>
+        </div>
+      </div>
+      <p class="features-note reveal">Features marked <span class="toolkit-badge" style="margin-left: 2px;">add-on</span> require the free <a href="https://github.com/itsdestin/destinclaude">DestinClaude toolkit</a>, installable from within the app.</p>
+    </div>
+  </section>
+
+  <div class="container"><div class="divider"></div></div>
+
+  <!-- DOWNLOAD -->
+  <section class="download-section" id="download">
+    <div class="container">
+      <p class="section-label reveal">Get started</p>
+      <h2 class="section-title reveal">Download DestinCode</h2>
+      <div class="download-grid reveal">
+        <a href="#" class="download-card">
+          <svg viewBox="0 0 24 24"><path d="M3 5.548l7.396-1.01v7.138H3V5.548zm0 12.904l7.396 1.01v-7.138H3v6.128zm8.267 1.122L21 21V12.324H11.267v7.25zm0-14.148v7.25H21V3L11.267 5.426z"/></svg>
+          <div class="download-card-text">
+            <span class="download-card-label">Download for</span>
+            <span class="download-card-platform">Windows</span>
+          </div>
+        </a>
+        <a href="#" class="download-card">
+          <svg viewBox="0 0 24 24"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+          <div class="download-card-text">
+            <span class="download-card-label">Download for</span>
+            <span class="download-card-platform">macOS</span>
+          </div>
+        </a>
+        <a href="#" class="download-card">
+          <svg viewBox="0 0 24 24"><path d="M12.504 0c-.155 0-.315.008-.48.021-4.226.333-3.105 4.807-3.17 6.298-.076 1.092-.3 1.953-1.05 3.02-.885 1.051-2.127 2.75-2.716 4.521-.278.832-.41 1.684-.287 2.489a7.112 7.112 0 0 0 .352 1.413c.225.585.535 1.15.925 1.625.39.473.86.846 1.39 1.084.265.119.543.2.83.24.286.04.58.04.867-.003.287-.043.567-.127.835-.249.268-.121.524-.281.764-.476a5.25 5.25 0 0 0 .982-1.064c.27-.389.457-.727.545-.966a4.87 4.87 0 0 0 .195-.552c.108-.364.168-.735.168-1.097 0-.255-.026-.5-.076-.735-.05-.234-.13-.46-.23-.668A10.57 10.57 0 0 0 12 14.17c.025-.102.069-.21.133-.315l.004-.007c.166-.287.447-.491.782-.58.336-.088.692-.048 1.003.113.156.081.298.185.424.304.126.119.238.253.335.397.192.29.34.608.45.937.055.165.095.318.12.45a4.305 4.305 0 0 1 .077.762c0 .652-.13 1.327-.394 1.999a6.332 6.332 0 0 1-.652 1.25 6.98 6.98 0 0 1-.872 1.043c.351-.048.686-.16.99-.33.304-.17.58-.398.82-.676.24-.277.441-.6.603-.96.162-.36.28-.755.353-1.172a5.88 5.88 0 0 0 .075-1.088c0-.32-.03-.649-.09-.977a6.68 6.68 0 0 0-.273-1.012 5.236 5.236 0 0 0-.485-1.004c.26.103.477.297.622.553.145.255.22.557.22.87 0 .218-.03.439-.087.656a3.312 3.312 0 0 1-.261.65c.196-.175.363-.384.494-.618.13-.234.225-.494.28-.77a3.28 3.28 0 0 0 .062-.717c-.003-.38-.087-.742-.244-1.07a2.604 2.604 0 0 0-.7-.878 2.583 2.583 0 0 0-1.022-.498 3.482 3.482 0 0 0-1.188-.091c-.406.047-.8.175-1.16.374-.36.199-.685.47-.954.8a5.832 5.832 0 0 0-.693 1.116c-.196.42-.34.858-.428 1.3a6.189 6.189 0 0 0-.096 1.143c.003.454.057.89.163 1.298.106.408.265.786.47 1.13.206.345.457.654.748.92.291.267.622.49.984.66a4.687 4.687 0 0 0 2.358.402 4.469 4.469 0 0 0 2.136-.885c.644-.497 1.152-1.15 1.497-1.9.345-.75.522-1.593.522-2.46 0-.576-.069-1.143-.206-1.682a6.005 6.005 0 0 0-.594-1.524 5.307 5.307 0 0 0-.96-1.292 4.944 4.944 0 0 0-1.304-.954 6.152 6.152 0 0 0-1.617-.56 7.67 7.67 0 0 0-1.792-.182z"/></svg>
+          <div class="download-card-text">
+            <span class="download-card-label">Download for</span>
+            <span class="download-card-platform">Linux</span>
+          </div>
+        </a>
+        <a href="#" class="download-card">
+          <svg viewBox="0 0 24 24"><path d="M17.523 15.341c-.5 0-.889.137-1.334.399l-1.258-.756c.324-.537.504-1.17.504-1.843 0-.672-.18-1.303-.502-1.842l1.256-.759c.445.264.836.4 1.334.4 1.457 0 2.477-1.1 2.477-2.485S18.98 6 17.523 6c-1.455 0-2.477 1.07-2.477 2.455 0 .505.137.945.387 1.352L14.17 10.57c-.632-.484-1.418-.765-2.17-.765-.75 0-1.535.281-2.17.765L8.567 9.807c.25-.407.387-.847.387-1.352C8.954 7.07 7.932 6 6.477 6S4 7.07 4 8.455s1.02 2.485 2.477 2.485c.498 0 .889-.136 1.334-.4l1.258.759c-.324.539-.504 1.17-.504 1.842s.18 1.306.504 1.843l-1.258.756c-.445-.262-.836-.399-1.334-.399C5.02 15.341 4 16.41 4 17.796S5.02 20.28 6.477 20.28c1.455 0 2.477-1.07 2.477-2.455 0-.504-.137-.943-.387-1.351L9.83 15.71c.635.484 1.42.766 2.17.766.752 0 1.538-.282 2.17-.766l1.263.764c-.25.408-.387.847-.387 1.351 0 1.385 1.022 2.455 2.477 2.455 1.457 0 2.477-1.1 2.477-2.484s-1.02-2.455-2.477-2.455z"/></svg>
+          <div class="download-card-text">
+            <span class="download-card-label">Download for</span>
+            <span class="download-card-platform">Android</span>
+          </div>
+        </a>
+      </div>
+      <p class="download-note reveal">Free and open source. Just bring your <a href="https://claude.ai/upgrade" target="_blank">Claude Pro or Max</a> plan.</p>
+    </div>
+  </section>
+
+  <div class="container"><div class="divider"></div></div>
+
+  <!-- PREREQUISITES -->
   <section id="prerequisites">
     <div class="container">
       <p class="section-label reveal">Before you begin</p>
@@ -1491,7 +2006,7 @@
           <div class="prereq-header">
             <h3>Anthropic</h3>
           </div>
-          <p>Requires a subscription for Claude Code, which underlies the system.</p>
+          <p>Requires a subscription for Claude Code, which powers the entire experience.</p>
           <a href="https://claude.ai/upgrade" target="_blank" class="prereq-link">Subscribe to Claude Pro &rarr;</a>
         </div>
         <div class="prereq-card reveal reveal-d2">
@@ -1502,7 +2017,7 @@
           <div class="prereq-header">
             <h3>Google or Apple</h3>
           </div>
-          <p>DestinClaude stores all of your personal information in your own Google Drive or Apple iCloud account.</p>
+          <p>The DestinClaude toolkit stores your personal data in your own Google Drive or iCloud account.</p>
           <a href="https://accounts.google.com/signup" target="_blank" class="prereq-link">Create Google Account &rarr;</a>
         </div>
         <div class="prereq-card reveal reveal-d3">
@@ -1519,14 +2034,14 @@
       </div>
       <div class="integrations-section reveal">
         <h3 class="integrations-title">Available Integrations</h3>
-        <p class="integrations-intro">DestinClaude is designed to link with all of the following services:</p>
+        <p class="integrations-intro">The DestinClaude toolkit can link with all of the following services:</p>
         <div class="integrations-tags">
           <button class="integration-tag" tabindex="0" data-desc="DestinClaude can automatically back up your journal entries, Encyclopedia, and system files to Google Drive — keeping everything safe and synced across sessions."><img class="tag-icon" src="icons/google-drive.svg" alt="">Google Drive</button>
           <button class="integration-tag" tabindex="0" data-desc="DestinClaude can create, read, and edit documents — drafting cover letters, memos, reports, and more directly in Google Docs."><img class="tag-icon" src="icons/google-docs.svg" alt="">Google Docs</button>
           <button class="integration-tag" tabindex="0" data-desc="DestinClaude can create and analyze spreadsheets — building trackers, organizing data, and working with structured information in Google Sheets."><img class="tag-icon" src="icons/google-sheets.svg" alt="">Google Sheets</button>
           <button class="integration-tag" tabindex="0" data-desc="DestinClaude can create and edit slide decks and visual presentations in Google Slides."><img class="tag-icon" src="icons/google-slides.svg" alt="">Google Slides</button>
           <button class="integration-tag" tabindex="0" data-desc="DestinClaude can read and create events on your Google Calendar. Mention an appointment in conversation or screenshot a flyer, and it can get scheduled automatically."><img class="tag-icon" src="icons/google-calendar.svg" alt="">Google Calendar</button>
-          <button class="integration-tag" tabindex="0" data-desc="DestinClaude can search your inbox, read threads, and compose replies in Gmail — all without leaving the terminal."><img class="tag-icon" src="icons/gmail.svg" alt="">Gmail</button>
+          <button class="integration-tag" tabindex="0" data-desc="DestinClaude can search your inbox, read threads, and compose replies in Gmail — all without leaving the app."><img class="tag-icon" src="icons/gmail.svg" alt="">Gmail</button>
           <button class="integration-tag" tabindex="0" data-desc="DestinClaude can read your SMS and RCS conversations and send texts on your behalf through Google Messages."><img class="tag-icon" src="icons/google-messages.svg" alt="">Google Messages</button>
           <button class="integration-tag" tabindex="0" data-desc="DestinClaude can access your Apple Messages conversations and send texts through iMessage."><img class="tag-icon" src="icons/imessage.svg" alt="">iMessage</button>
           <button class="integration-tag" tabindex="0" data-desc="DestinClaude can automatically back up your journal entries, Encyclopedia, and system files to iCloud Drive — keeping everything safe and synced across sessions."><img class="tag-icon" src="icons/icloud.svg" alt="">iCloud</button>
@@ -1542,125 +2057,14 @@
           <span class="integration-tag soon">More coming soon...</span>
         </div>
         <div class="integration-desc" id="integration-desc"></div>
-        <p class="prereq-note"><strong>NOTE:</strong> Some integrations require account authorization or additional setup. While you may link any of these services at any time, I strongly encourage registering them during the initial installation with the built-in setup wizard if prompted.</p>
-        <p class="prereq-note"><strong>If you want to know more about how to use integrations, just ask Claude!</strong></p>
-      </div>
-    </div>
-  </section>
-
-  <!-- INSTALL -->
-  <section id="install">
-    <div class="container">
-      <p class="section-label reveal">Get started</p>
-      <h2 class="section-title reveal">Step 1: Run the installer</h2>
-      <div class="install-box reveal">
-        <div class="install-tabs" role="tablist">
-          <button class="install-tab active" role="tab" aria-selected="true" aria-controls="panel-mac" id="tab-mac" data-tab="mac"><strong>MacOS</strong></button>
-          <button class="install-tab" role="tab" aria-selected="false" aria-controls="panel-win" id="tab-win" data-tab="win"><strong>Windows</strong></button>
-        </div>
-        <div class="install-panel active" id="panel-mac" role="tabpanel" aria-labelledby="tab-mac">
-          <p class="install-step"><strong>Open Terminal:</strong> Press <kbd>Cmd</kbd> + <kbd>Space</kbd> to open Spotlight, type <strong>Terminal</strong>, and press Enter. A window with a blinking cursor will appear.</p>
-          <p class="install-step-label">Paste this and press Enter:</p>
-          <div class="install-cmd" id="cmd-mac" data-cmd="curl -fsSL https://raw.githubusercontent.com/itsdestin/destinclaude/master/bootstrap/install.sh -o /tmp/install.sh && bash /tmp/install.sh"><span class="prompt">$ </span>curl -fsSL https://raw.githubusercontent.com/itsdestin/destinclaude/master/bootstrap/install.sh -o /tmp/install.sh && bash /tmp/install.sh<button class="copy-btn" onclick="copyCmd('mac')">Copy</button></div>
-        </div>
-        <div class="install-panel" id="panel-win" role="tabpanel" aria-labelledby="tab-win">
-          <p class="install-step"><strong>Open Windows Terminal:</strong> Press the <kbd>Windows</kbd> key, type <strong>Terminal</strong>, and press Enter. A window with a blinking cursor will appear.</p>
-          <p class="install-step-label">Paste this and press Enter:</p>
-          <div class="install-cmd" id="cmd-win" data-cmd='powershell -ExecutionPolicy Bypass -c "iwr -useb https://raw.githubusercontent.com/itsdestin/destinclaude/master/bootstrap/install.ps1 -OutFile install.ps1; .\install.ps1"'><span class="prompt">&gt; </span>powershell -ExecutionPolicy Bypass -c "iwr -useb https://raw.githubusercontent.com/itsdestin/destinclaude/master/bootstrap/install.ps1 -OutFile install.ps1; .\install.ps1"<button class="copy-btn" onclick="copyCmd('win')">Copy</button></div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- NEXT STEP: OPEN CLAUDE -->
-  <section class="next-step-section">
-    <div class="container">
-      <h2 class="section-title reveal">Step 2: Talk to DestinClaude</h2>
-      <div class="next-step-card reveal">
-        <div class="next-step-inner">
-          <p class="next-step-instruction">In that same terminal window, type:</p>
-          <div class="next-step-cmd">
-            <span class="prompt-big">$</span>
-            <span class="cmd-text">claude</span>
-          </div>
-          <p class="next-step-instruction">Then, press <kbd>Enter</kbd>. DestinClaude will open. Type:</p>
-          <div class="next-step-cmd claude-prompt">
-            <span class="prompt-claude">&gt;</span>
-            <span class="cmd-text">/setup-wizard</span>
-          </div>
-          <p class="next-step-sub">DestinClaude will walk you through the rest — choosing what to install, setting up your preferences, linking your external accounts, and making sure everything works.</p>
-          <p class="next-step-reassurance"><span style="color: var(--accent); font-weight: 700; font-style: normal;">WARNING:</span> You may see lots of red "error" text and be asked for a multitude of confirmations while DestinClaude completes this process. Don't worry; this is to be expected. Trust DestinClaude (he is all-knowing) and approve any prompts.</p>
-        </div>
-      </div>
-      <div class="while-you-wait" id="while-you-wait">
-        <p class="wait-sub">If you'd like to know more, review the <a href="#documentation">additional documentation</a> at the bottom of this page.</p>
+        <p class="prereq-note"><strong>NOTE:</strong> Some integrations require account authorization or additional setup. You can link these services at any time from within the app.</p>
       </div>
     </div>
   </section>
 
   <div class="container"><div class="divider"></div></div>
 
-  <!-- FEATURES -->
-  <section id="features">
-    <div class="container">
-      <h2 class="section-title reveal">DestinClaude helps install what you need.</h2>
-      <div class="features-grid">
-        <div class="feature-card reveal reveal-d1">
-          <span class="feature-icon">&#9670;</span>
-          <h3>Core</h3>
-          <p>The foundation. Session hooks, git sync, write guards, a specs system for documenting features, persistent memory, and commands for updates and contributions.</p>
-        </div>
-        <div class="feature-card reveal reveal-d2">
-          <span class="feature-icon">&#9733;</span>
-          <h3>Life</h3>
-          <p>A personal knowledge system. Conversational journaling, a living encyclopedia that DestinClaude maintains about you, and automatic Google Drive backup.</p>
-        </div>
-        <div class="feature-card reveal reveal-d3">
-          <span class="feature-icon">&#9889;</span>
-          <h3>Productivity</h3>
-          <p>Task management and communication. Process your Todoist inbox, build custom skills, and read or send text messages through DestinClaude.</p>
-        </div>
-        <div class="feature-card reveal reveal-d4">
-          <span class="feature-icon">&#10070;</span>
-          <h3>Modules</h3>
-          <p>Optional add-ons for specific domains. Install additional skills tailored to your work or interests.</p>
-        </div>
-      </div>
-      <p class="features-note reveal">Each layer is independent. Life and Productivity both build on Core, but don't depend on each other. <a href="https://github.com/itsdestin/destinclaude/blob/master/docs/system-architecture.md">Want the technical details?</a></p>
-    </div>
-  </section>
-
-  <div class="container"><div class="divider"></div></div>
-
-  <!-- DOCUMENTATION -->
-  <section id="documentation">
-    <div class="container">
-      <p class="section-label reveal">Learn more</p>
-      <h2 class="section-title reveal">Documentation</h2>
-      <div class="docs-grid">
-        <a href="https://github.com/itsdestin/destinclaude/blob/master/docs/quickstart.md" class="doc-card reveal reveal-d1">
-          <h3>Quickstart</h3>
-          <p>Already use Claude Code? Four steps and you're done.</p>
-        </a>
-        <a href="https://github.com/itsdestin/destinclaude/blob/master/docs/for-beginners/00-what-is-claude.md" class="doc-card reveal reveal-d2">
-          <h3>Beginner's Guide</h3>
-          <p>Never used Claude Code? Start from the very beginning.</p>
-        </a>
-        <a href="https://github.com/itsdestin/destinclaude/blob/master/docs/system-architecture.md" class="doc-card reveal reveal-d3">
-          <h3>System Architecture</h3>
-          <p>Technical deep dive into layers, hooks, specs, and data flow.</p>
-        </a>
-        <a href="https://github.com/itsdestin/destinclaude/blob/master/core/specs/INDEX.md" class="doc-card reveal reveal-d4">
-          <h3>Specs Index</h3>
-          <p>Feature documentation and design decisions.</p>
-        </a>
-      </div>
-    </div>
-  </section>
-
-  <div class="container"><div class="divider"></div></div>
-
-  <!-- (#10) FAQ SECTION -->
+  <!-- FAQ -->
   <section class="faq-section" id="faq">
     <div class="container">
       <p class="section-label reveal">Common questions</p>
@@ -1672,7 +2076,7 @@
             <span class="faq-chevron">&#9660;</span>
           </button>
           <div class="faq-answer" role="region">
-            <div class="faq-answer-inner">Everything DestinClaude creates — journal entries, your Encyclopedia, tasks — is stored in <strong>your own</strong> Google Drive or iCloud account. Nothing is sent to third-party servers beyond the services you explicitly connect. Your data stays yours.</div>
+            <div class="faq-answer-inner">Everything DestinCode and its toolkit create — journal entries, your Encyclopedia, tasks — is stored in <strong>your own</strong> Google Drive or iCloud account. Nothing is sent to third-party servers beyond the services you explicitly connect. Your data stays yours.</div>
           </div>
         </div>
         <div class="faq-item reveal">
@@ -1681,25 +2085,16 @@
             <span class="faq-chevron">&#9660;</span>
           </button>
           <div class="faq-answer" role="region">
-            <div class="faq-answer-inner">The $20 goes to Anthropic for a Claude Pro subscription, which gives you access to Claude Code — the underlying AI that powers everything. DestinClaude itself is free and open source. You're paying for the AI, not the toolkit.</div>
+            <div class="faq-answer-inner">The $20 goes to Anthropic for a Claude Pro subscription, which gives you access to Claude Code — the AI that powers everything. DestinCode itself is free and open source. You're paying for the AI, not the app.</div>
           </div>
         </div>
         <div class="faq-item reveal">
           <button class="faq-question" aria-expanded="false">
-            Can I use this without Google?
+            What platforms does it run on?
             <span class="faq-chevron">&#9660;</span>
           </button>
           <div class="faq-answer" role="region">
-            <div class="faq-answer-inner">Yes. DestinClaude supports Apple's ecosystem as an alternative — iCloud Drive for storage, Apple Calendar, Apple Mail, iMessage, Apple Notes, and Apple Reminders. You can also mix and match (e.g., Google Drive + Apple Calendar).</div>
-          </div>
-        </div>
-        <div class="faq-item reveal">
-          <button class="faq-question" aria-expanded="false">
-            What if I break something?
-            <span class="faq-chevron">&#9660;</span>
-          </button>
-          <div class="faq-answer" role="region">
-            <div class="faq-answer-inner">DestinClaude always asks for permission before taking actions, so it's hard to break things accidentally. If something does go wrong, the system uses git version control under the hood — you can always roll back. And you can reinstall from scratch at any time with the same one-line command.</div>
+            <div class="faq-answer-inner">Windows, macOS, Linux, and Android are all fully supported with native apps. You can also access DestinCode remotely from any web browser. Apple ecosystem integrations (iMessage, Apple Notes, etc.) are only available on macOS.</div>
           </div>
         </div>
         <div class="faq-item reveal">
@@ -1708,33 +2103,41 @@
             <span class="faq-chevron">&#9660;</span>
           </button>
           <div class="faq-answer" role="region">
-            <div class="faq-answer-inner">Not at all. You'll copy one command into a terminal window, and the setup wizard handles the rest conversationally. If you can send a text message, you can use DestinClaude.</div>
+            <div class="faq-answer-inner">Not at all. DestinCode was built entirely by a non-developer using Claude Code itself. The app is designed for everyone — students, professionals, anyone who uses AI regularly. If you can send a text message, you can use DestinCode.</div>
           </div>
         </div>
         <div class="faq-item reveal">
           <button class="faq-question" aria-expanded="false">
-            Does it work on Mac and Windows?
+            Can I make my own themes?
             <span class="faq-chevron">&#9660;</span>
           </button>
           <div class="faq-answer" role="region">
-            <div class="faq-answer-inner">Yes, both are fully supported. The installer auto-detects your platform and configures everything accordingly. Apple ecosystem integrations (iMessage, Apple Notes, etc.) are only available on Mac.</div>
+            <div class="faq-answer-inner">Yes — just describe the vibe you want and Claude builds it. Use <code>/theme-builder</code> inside the app. Themes support wallpapers, glassmorphism, particle effects, mascots, custom icons, and more. You can share your themes with friends or publish them to the community marketplace.</div>
+          </div>
+        </div>
+        <div class="faq-item reveal">
+          <button class="faq-question" aria-expanded="false">
+            What if I break something?
+            <span class="faq-chevron">&#9660;</span>
+          </button>
+          <div class="faq-answer" role="region">
+            <div class="faq-answer-inner">DestinCode always asks for permission before taking actions, so it's hard to break things accidentally. If something does go wrong, the system uses git version control under the hood — you can always roll back.</div>
           </div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- (#6) FOOTER -->
+  <!-- FOOTER -->
   <footer>
     <div class="container">
       <div class="footer-inner">
         <a href="#top" class="footer-logo">
-          <img src="favicon-light.svg" alt="DestinClaude" class="nav-icon nav-icon-light" width="20" height="20">
-          <img src="favicon-dark.svg" alt="DestinClaude" class="nav-icon nav-icon-dark" width="20" height="20">
-          <span>Destin<span style="color: var(--accent)">Claude</span></span>
+          <img src="favicon-dark.svg" alt="DestinCode" class="nav-icon theme-icon-img" width="20" height="20">
+          <span>Destin<span style="color: var(--title-highlight)">Code</span></span>
         </a>
         <div class="footer-links">
-          <a href="https://github.com/itsdestin/destinclaude" target="_blank">
+          <a href="https://github.com/itsdestin/destincode" target="_blank">
             <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
             GitHub
           </a>
@@ -1747,73 +2150,140 @@
   </footer>
 
   <!-- Floating Get Started pill -->
-  <a href="#prerequisites" class="floating-cta" id="floating-cta">Get Started &darr;</a>
+  <a href="#download" class="floating-cta" id="floating-cta">Download &darr;</a>
 
-  <!-- (#6) Back to top button -->
+  <!-- Back to top button -->
   <button class="back-to-top" id="back-to-top" aria-label="Back to top">&uarr;</button>
 
   <script>
-    // (#2) Dark mode toggle — uses CSS-based icon switching, no innerHTML
-    var themeToggle = document.getElementById('theme-toggle');
+    // --- Theme cycling: midnight → creme → halftone → midnight ---
+    var THEMES = ['midnight', 'creme', 'halftone'];
+    // Icons: ☾ moon (next=creme shows sun), ☀ sun (next=halftone shows diamond), ◆ diamond (next=midnight shows moon)
+    var THEME_ICONS = { midnight: '\u263D', creme: '\u2726', halftone: '\u263E' };
+    var THEME_ATTRS = { midnight: null, creme: 'creme', halftone: 'halftone' };
     var htmlEl = document.documentElement;
 
-    function getPreferredTheme() {
+    function getStoredTheme() {
       var stored = localStorage.getItem('dc-theme');
-      if (stored) return stored;
-      return 'dark';
+      if (stored && THEMES.indexOf(stored) !== -1) return stored;
+      return 'midnight';
     }
 
     function applyTheme(theme) {
-      var favicon = document.getElementById('favicon');
-      if (theme === 'dark') {
-        htmlEl.setAttribute('data-theme', 'dark');
-        if (favicon) favicon.href = 'favicon-dark.svg';
+      if (THEME_ATTRS[theme]) {
+        htmlEl.setAttribute('data-theme', THEME_ATTRS[theme]);
       } else {
         htmlEl.removeAttribute('data-theme');
-        if (favicon) favicon.href = 'favicon-light.svg';
       }
+      // Update favicon + all DC icons per theme
+      var faviconMap = { midnight: 'favicon-dark.svg', creme: 'favicon-light.svg', halftone: 'favicon-halftone.svg' };
+      var src = faviconMap[theme] || 'favicon-dark.svg';
+      var favicon = document.getElementById('favicon');
+      if (favicon) favicon.href = src;
+      document.querySelectorAll('.theme-icon-img').forEach(function(img) { img.src = src; });
+      // Update toggle icons to show what's NEXT
+      var nextIdx = (THEMES.indexOf(theme) + 1) % THEMES.length;
+      var nextTheme = THEMES[nextIdx];
+      var icon = THEME_ICONS[nextTheme];
+      document.querySelectorAll('.theme-icon').forEach(function(el) {
+        el.textContent = icon;
+      });
     }
 
-    applyTheme(getPreferredTheme());
-
-    themeToggle.addEventListener('click', function() {
-      var current = htmlEl.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
-      var next = current === 'dark' ? 'light' : 'dark';
+    function cycleTheme() {
+      var current = getStoredTheme();
+      var nextIdx = (THEMES.indexOf(current) + 1) % THEMES.length;
+      var next = THEMES[nextIdx];
       localStorage.setItem('dc-theme', next);
       applyTheme(next);
-    });
+    }
 
-    // (#8) OS auto-detection for install tabs
-    (function autoDetectOS() {
-      var ua = navigator.userAgent || navigator.platform || '';
-      // Default to macOS; only switch to Windows if positively detected
-      var targetTab = /Win/i.test(ua) ? 'win' : 'mac';
-      document.querySelectorAll('.install-tab').forEach(function(t) {
-        t.classList.remove('active');
-        t.setAttribute('aria-selected', 'false');
+    // Apply on load
+    applyTheme(getStoredTheme());
+
+    // Bind both toggle buttons
+    document.getElementById('theme-toggle').addEventListener('click', cycleTheme);
+    var mobileToggle = document.getElementById('theme-toggle-mobile');
+    if (mobileToggle) mobileToggle.addEventListener('click', cycleTheme);
+
+    // --- Demo app mockup animation ---
+    function runDemo() {
+      var app = document.getElementById('demo-app');
+      var chat = document.getElementById('demo-chat');
+      var elements = chat.querySelectorAll('.demo-bubble, .demo-tool-card');
+      var tool2 = document.getElementById('demo-tool-2');
+      var spinner = document.getElementById('demo-tool-spinner');
+      var toolText = document.getElementById('demo-tool-text');
+      var statusTheme = app.querySelector('.demo-statusbar span:last-child');
+
+      // Reset
+      app.classList.remove('theme-golden');
+      tool2.style.display = 'none';
+      if (spinner) { spinner.className = 'demo-spinner'; spinner.innerHTML = ''; }
+      if (toolText) { toolText.innerHTML = 'Writing theme manifest\u2026'; }
+      if (statusTheme) { statusTheme.textContent = 'midnight'; }
+      elements.forEach(function(el) { el.classList.remove('show'); });
+
+      // Animate messages in sequence
+      elements.forEach(function(el) {
+        var delay = parseInt(el.getAttribute('data-delay') || 0);
+        setTimeout(function() { el.classList.add('show'); }, delay);
       });
-      document.querySelectorAll('.install-panel').forEach(function(p) { p.classList.remove('active'); });
-      var tab = document.querySelector('[data-tab="' + targetTab + '"]');
-      if (tab) { tab.classList.add('active'); tab.setAttribute('aria-selected', 'true'); }
-      var panel = document.getElementById('panel-' + targetTab);
-      if (panel) panel.classList.add('active');
+
+      // Spinner completes
+      setTimeout(function() {
+        if (spinner) { spinner.className = 'demo-check'; spinner.innerHTML = '\u2713'; }
+        if (toolText) { toolText.textContent = 'Theme manifest written'; }
+      }, 3800);
+
+      // Show install card
+      setTimeout(function() {
+        tool2.style.display = 'flex';
+        tool2.classList.add('show');
+      }, 4200);
+
+      // Transition to Golden Sunbreak
+      setTimeout(function() {
+        app.classList.add('theme-golden');
+        if (statusTheme) { statusTheme.textContent = 'golden-sunbreak'; }
+      }, 5000);
+    }
+
+    var demoApp = document.getElementById('demo-app');
+    var demoObserver = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) { runDemo(); }
+      });
+    }, { threshold: 0.3 });
+    demoObserver.observe(demoApp);
+
+    // --- Render Connect 4 board ---
+    (function renderC4Board() {
+      var board = document.getElementById('mock-c4');
+      if (!board) return;
+      var state = [
+        [1, 0, 0, 0, 0, 0],
+        [2, 1, 0, 0, 0, 0],
+        [1, 2, 1, 0, 0, 0],
+        [2, 1, 2, 1, 0, 0],
+        [1, 2, 0, 0, 0, 0],
+        [2, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0],
+      ];
+      for (var col = 0; col < 7; col++) {
+        var colDiv = document.createElement('div');
+        colDiv.className = 'mock-c4-col';
+        for (var row = 5; row >= 0; row--) {
+          var cell = document.createElement('div');
+          var v = state[col][row];
+          cell.className = 'mock-c4-cell ' + (v === 1 ? 'red' : v === 2 ? 'yellow' : 'empty');
+          colDiv.appendChild(cell);
+        }
+        board.appendChild(colDiv);
+      }
     })();
 
-    // Tab switching (manual override)
-    document.querySelectorAll('.install-tab').forEach(function(tab) {
-      tab.addEventListener('click', function() {
-        document.querySelectorAll('.install-tab').forEach(function(t) {
-          t.classList.remove('active');
-          t.setAttribute('aria-selected', 'false');
-        });
-        document.querySelectorAll('.install-panel').forEach(function(p) { p.classList.remove('active'); });
-        tab.classList.add('active');
-        tab.setAttribute('aria-selected', 'true');
-        document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
-      });
-    });
-
-    // (#9) Integration descriptions — uses textContent and createTextNode (safe DOM methods)
+    // --- Integration descriptions ---
     document.querySelectorAll('.integration-tag[data-desc]').forEach(function(tag) {
       tag.addEventListener('click', function() {
         var desc = document.getElementById('integration-desc');
@@ -1826,7 +2296,6 @@
         }
         document.querySelectorAll('.integration-tag.active').forEach(function(t) { t.classList.remove('active'); });
         tag.classList.add('active');
-        // Clear previous content safely
         while (desc.firstChild) { desc.removeChild(desc.firstChild); }
         var nameSpan = document.createElement('span');
         nameSpan.className = 'integration-desc-name';
@@ -1837,64 +2306,17 @@
       });
     });
 
-    // Copy command
-    function copyCmd(platform) {
-      var el = document.getElementById('cmd-' + platform);
-      var text = el.getAttribute('data-cmd');
-      navigator.clipboard.writeText(text).then(function() {
-        var btn = el.querySelector('.copy-btn');
-        btn.textContent = 'Copied!';
-        setTimeout(function() { btn.textContent = 'Copy'; }, 2000);
-      });
-    }
-
-    // (#3) Scroll-triggered animations via IntersectionObserver
-    var revealObserver = new IntersectionObserver(function(entries) {
-      entries.forEach(function(entry) {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('visible');
-          revealObserver.unobserve(entry.target);
-        }
-      });
-    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
-
-    document.querySelectorAll('.reveal').forEach(function(el) { revealObserver.observe(el); });
-
-    // (#7) Demo terminal animation
-    function runDemo() {
-      var lines = document.querySelectorAll('#demo-body .demo-line');
-      lines.forEach(function(line) { line.classList.remove('show'); });
-      lines.forEach(function(line) {
-        var delay = parseInt(line.getAttribute('data-delay') || 0);
-        setTimeout(function() { line.classList.add('show'); }, delay);
-      });
-    }
-
-    // Run demo when it scrolls into view, replay each time
-    var demoObserver = new IntersectionObserver(function(entries) {
-      entries.forEach(function(entry) {
-        if (entry.isIntersecting) {
-          runDemo();
-        }
-      });
-    }, { threshold: 0.3 });
-
-    demoObserver.observe(document.getElementById('demo-terminal'));
-
-    // (#10) FAQ accordion
+    // --- FAQ accordion ---
     document.querySelectorAll('.faq-question').forEach(function(btn) {
       btn.addEventListener('click', function() {
         var item = btn.parentElement;
         var answer = item.querySelector('.faq-answer');
         var isOpen = item.classList.contains('open');
-
-        // Close all others
         document.querySelectorAll('.faq-item.open').forEach(function(openItem) {
           openItem.classList.remove('open');
           openItem.querySelector('.faq-answer').style.maxHeight = '0';
           openItem.querySelector('.faq-question').setAttribute('aria-expanded', 'false');
         });
-
         if (!isOpen) {
           item.classList.add('open');
           answer.style.maxHeight = answer.scrollHeight + 'px';
@@ -1903,69 +2325,56 @@
       });
     });
 
-    // (#6) Back to top button
+    // --- Scroll reveal ---
+    var revealObserver = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          revealObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+    document.querySelectorAll('.reveal').forEach(function(el) { revealObserver.observe(el); });
+
+    // --- Back to top ---
     var backToTop = document.getElementById('back-to-top');
     window.addEventListener('scroll', function() {
-      if (window.scrollY > 400) {
-        backToTop.classList.add('visible');
-      } else {
-        backToTop.classList.remove('visible');
-      }
+      backToTop.classList.toggle('visible', window.scrollY > 400);
     });
-
     backToTop.addEventListener('click', function() {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
 
-    // Mobile menu toggle
+    // --- Mobile menu ---
     var menuBtn = document.getElementById('mobile-menu-btn');
     var navLinks = document.getElementById('nav-links');
-    menuBtn.addEventListener('click', function() {
-      var isOpen = navLinks.classList.contains('open');
-      navLinks.classList.toggle('open');
-      menuBtn.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
-    });
-    // Close menu when a link is clicked
-    navLinks.querySelectorAll('a').forEach(function(link) {
-      link.addEventListener('click', function() {
-        navLinks.classList.remove('open');
-        menuBtn.setAttribute('aria-expanded', 'false');
+    if (menuBtn) {
+      menuBtn.addEventListener('click', function() {
+        var isOpen = navLinks.classList.contains('open');
+        navLinks.classList.toggle('open');
+        menuBtn.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
       });
-    });
-
-    // Mobile theme toggle (synced with desktop)
-    var themeToggleMobile = document.getElementById('theme-toggle-mobile');
-    if (themeToggleMobile) {
-      themeToggleMobile.addEventListener('click', function() {
-        var current = htmlEl.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
-        var next = current === 'dark' ? 'light' : 'dark';
-        localStorage.setItem('dc-theme', next);
-        applyTheme(next);
+      navLinks.querySelectorAll('a').forEach(function(link) {
+        link.addEventListener('click', function() {
+          navLinks.classList.remove('open');
+          menuBtn.setAttribute('aria-expanded', 'false');
+        });
       });
     }
 
-    // Floating "Get Started" pill — visible until prerequisites section is in view
+    // --- Floating CTA visibility ---
     var floatingCta = document.getElementById('floating-cta');
-    var prereqSection = document.getElementById('prerequisites');
-    if (floatingCta && prereqSection) {
-      // Show immediately on load
+    var downloadSection = document.getElementById('download');
+    if (floatingCta && downloadSection) {
       floatingCta.classList.add('visible');
-
       var ctaObserver = new IntersectionObserver(function(entries) {
         entries.forEach(function(entry) {
-          if (entry.isIntersecting) {
-            floatingCta.classList.remove('visible');
-          } else {
-            floatingCta.classList.add('visible');
-          }
+          floatingCta.classList.toggle('visible', !entry.isIntersecting);
         });
       }, { threshold: 0.2 });
-      ctaObserver.observe(prereqSection);
-
-      // Also hide once scrolled past prereqs
+      ctaObserver.observe(downloadSection);
       window.addEventListener('scroll', function() {
-        var rect = prereqSection.getBoundingClientRect();
-        if (rect.bottom < 0) {
+        if (downloadSection.getBoundingClientRect().bottom < 0) {
           floatingCta.classList.remove('visible');
         }
       });
