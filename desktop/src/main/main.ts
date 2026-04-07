@@ -143,7 +143,9 @@ function createWindow(firstRunManager?: FirstRunManager) {
     height: 800,
     icon,
     // macOS: hide native title bar but keep traffic lights
-    ...(isMac ? { titleBarStyle: 'hiddenInset' } : {}),
+    // Windows: titleBarStyle 'hidden' is required for titleBarOverlay to work
+    ...(isMac ? { titleBarStyle: 'hiddenInset' as const } : {}),
+    ...(isWin ? { titleBarStyle: 'hidden' as const } : {}),
     // Windows: custom overlay colors on the native caption buttons
     ...(isWin ? {
       titleBarOverlay: {
