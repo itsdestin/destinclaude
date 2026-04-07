@@ -169,6 +169,7 @@ Every concept card MUST render an **app mockup** that uses the exact same CSS cl
 
   <!-- App mockup — this is what the user is really evaluating -->
   <div class="app-mockup"
+       data-chrome-style="default"
        data-input-style="floating"
        data-bubble-style="default"
        data-header-style="default"
@@ -232,7 +233,7 @@ Every concept card MUST render an **app mockup** that uses the exact same CSS cl
 
 1. **All colors come from CSS custom properties** — never hardcode hex values in element styles except on the scoping `style="--canvas: ..."` attribute.
 2. **Use the exact CSS classes** from `theme-preview.css`: `.bg-panel`, `.bg-canvas`, `.text-fg`, `.border-edge`, `.chat-bubble.user`, `.chat-bubble.assistant`, etc.
-3. **Layout presets are data attributes** on `.app-mockup`: `data-input-style`, `data-bubble-style`, `data-header-style`, `data-statusbar-style`. The CSS handles the visual changes.
+3. **Layout presets are data attributes** on `.app-mockup`: `data-chrome-style`, `data-input-style`, `data-bubble-style`, `data-header-style`, `data-statusbar-style`. The CSS handles the visual changes.
 4. **Glassmorphism** requires BOTH:
    - `data-panels-blur` attribute on `.app-mockup` (or a wrapper)
    - `style="--panels-blur: Npx; --panel-glass: rgba(R,G,B,OPACITY);"` on the same element
@@ -250,8 +251,8 @@ Every concept card MUST render an **app mockup** that uses the exact same CSS cl
     - Noise: `<div class="effect-noise" style="--noise-opacity: 0.04;"></div>`
     - Scan-lines: `<div class="effect-scanlines" style="--scanline-opacity: 0.08;"></div>`
     These are cosmetic overlays — only include them when the theme concept uses these effects.
-14. **Layout presets work in the app.** `data-input-style`, `data-bubble-style`, `data-header-style`, and `data-statusbar-style` are wired to the real app's DOM via the theme engine. Bubble, header, and status bar presets apply at runtime. Input style presets require the `input-bar-container` class on the input wrapper — ensure the manifest includes the intended `input-style` value.
-15. **No absolute positioning on layout-flow elements**: Never use `position: absolute` on `.status-bar`, `.input-bar-container`, or other elements that participate in the app's flex column layout. Absolute positioning removes them from document flow and causes overlaps with adjacent elements. The app's built-in layout styles handle floating/pill appearances using `align-self`, `width: fit-content`, and `margin: auto` instead.
+14. **Layout presets work in the app.** `data-chrome-style`, `data-input-style`, `data-bubble-style`, `data-header-style`, and `data-statusbar-style` are wired to the real app's DOM via the theme engine. `chrome-style: "floating"` elevates all chrome bars (header, input, status) into detached rounded cards; individual `*-style` keys override per element. Input style presets require the `input-bar-container` class on the input wrapper.
+15. **No absolute positioning on layout-flow elements**: Never use `position: absolute` on `.status-bar`, `.input-bar-container`, or other elements that participate in the app's flex column layout. Absolute positioning removes them from document flow and causes overlaps with adjacent elements. The floating chrome aesthetic uses `align-self`, `width: fit-content`, `margin`, `border-radius`, and `box-shadow` instead.
 
 ---
 
@@ -531,10 +532,11 @@ Write `<slug>/manifest.json` matching this schema exactly:
   },
 
   "layout": {
+    "chrome-style": "default | floating",
     "input-style": "default | floating | minimal | terminal",
     "bubble-style": "default | pill | flat | bordered",
     "header-style": "default | minimal | hidden",
-    "statusbar-style": "default | minimal | floating"
+    "statusbar-style": "default | minimal"
   },
 
   "effects": {
@@ -579,7 +581,7 @@ Write `<slug>/manifest.json` matching this schema exactly:
 - `font.family` is applied to `--font-sans` and `--font-mono` CSS variables. Always include `'Cascadia Mono', monospace` as fallbacks
 - `font.google-font-url` is a Google Fonts `@import` URL. The app injects this into the `<head>` at theme load time. Omit if using a system font
 - `shape.radius` controls bare `rounded` elements (status bar pills, quick chips, permission buttons). Defaults to `radius-sm` if omitted
-- **Floating chrome is cohesive**: Setting `statusbar-style: "floating"` automatically elevates ALL chrome bars — the status bar becomes a centered pill, the header bar and input bar gain margins, rounded corners, and subtle shadows so they appear detached from the window edges. This is handled entirely by CSS; you do NOT need to separately set `header-style` or `input-style` to get the floating look. Never use `position: absolute` on layout-flow elements in `custom_css` — the floating aesthetic is achieved with `align-self`, `width: fit-content`, `margin`, `border-radius`, and `box-shadow`.
+- **`chrome-style: "floating"`** elevates ALL chrome bars at once — header, input, and status bar gain margins, rounded corners, and subtle shadows so they appear as detached floating cards. Individual element `*-style` keys (e.g. `input-style`, `header-style`) still override the chrome-style for that specific element. Never use `position: absolute` on layout-flow elements in `custom_css` — the floating aesthetic is achieved with `align-self`, `width: fit-content`, `margin`, `border-radius`, and `box-shadow`.
 
 ### Step 6: Write Custom CSS Aggressively
 

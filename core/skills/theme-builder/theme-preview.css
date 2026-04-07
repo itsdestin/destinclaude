@@ -169,7 +169,21 @@ body {
   border-top: none;
   font-size: 9px;
 }
-[data-statusbar-style="floating"] .status-bar {
+/* Floating chrome — elevate all bars into detached rounded cards.
+   Activated by layout.chrome-style: "floating" in a theme manifest. */
+[data-chrome-style="floating"] .header-bar {
+  margin: 6px 8px 0;
+  border-radius: var(--radius-lg, 16px);
+  border: 1px solid var(--edge-dim);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+}
+[data-chrome-style="floating"] .input-bar-container {
+  margin: 0 8px;
+  border-radius: var(--radius-lg, 16px);
+  border: 1px solid var(--edge-dim);
+  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.15);
+}
+[data-chrome-style="floating"] .status-bar {
   align-self: center;
   width: fit-content;
   max-width: 95%;
@@ -178,20 +192,6 @@ body {
   margin: 4px auto;
   border: 1px solid var(--edge-dim);
   background: var(--panel);
-}
-
-/* Floating chrome — elevate all bars when statusbar is floating */
-[data-statusbar-style="floating"] .header-bar {
-  margin: 6px 8px 0;
-  border-radius: var(--radius-lg, 16px);
-  border: 1px solid var(--edge-dim);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
-}
-[data-statusbar-style="floating"] .input-bar-container {
-  margin: 0 8px;
-  border-radius: var(--radius-lg, 16px);
-  border: 1px solid var(--edge-dim);
-  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.15);
 }
 
 /* Scrollbar — matches app responsive sizing */

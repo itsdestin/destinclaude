@@ -470,7 +470,26 @@ html, body, #root {
   font-size: 9px;
 }
 
-[data-statusbar-style="floating"] .status-bar {
+/* Floating chrome — elevate all chrome bars into detached, rounded cards.
+   Activated by layout.chrome-style: "floating" in a theme manifest.
+   Individual element *-style overrides still take precedence (later in cascade). */
+[data-chrome-style="floating"] .header-bar {
+  margin: 6px 8px 0;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--edge);
+  border-bottom: 1px solid var(--edge);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+}
+
+[data-chrome-style="floating"] .input-bar-container {
+  margin: 0 8px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--edge);
+  border-top: 1px solid var(--edge);
+  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.15);
+}
+
+[data-chrome-style="floating"] .status-bar {
   align-self: center;
   width: fit-content;
   max-width: 95%;
@@ -480,24 +499,6 @@ html, body, #root {
   border-top: 1px solid var(--edge);
   padding: 2px 12px;
   margin: 4px auto;
-}
-
-/* Floating chrome — when statusbar is floating, elevate all chrome bars
-   so the entire UI has a cohesive detached/floating aesthetic. */
-[data-statusbar-style="floating"] .header-bar {
-  margin: 6px 8px 0;
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--edge);
-  border-bottom: 1px solid var(--edge);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
-}
-
-[data-statusbar-style="floating"] .input-bar-container {
-  margin: 0 8px;
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--edge);
-  border-top: 1px solid var(--edge);
-  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.15);
 }
 
 @keyframes breathe {

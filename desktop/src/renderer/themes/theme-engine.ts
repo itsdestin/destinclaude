@@ -88,6 +88,7 @@ export function applyThemeFont(font: ThemeFont | undefined): string | null {
 export function buildLayoutAttrs(layout: ThemeLayout | undefined): Record<string, string> {
   if (!layout) return {};
   const result: Record<string, string> = {};
+  if (layout['chrome-style']) result['data-chrome-style'] = layout['chrome-style'];
   if (layout['input-style']) result['data-input-style'] = layout['input-style'];
   if (layout['bubble-style']) result['data-bubble-style'] = layout['bubble-style'];
   if (layout['header-style']) result['data-header-style'] = layout['header-style'];
@@ -143,7 +144,7 @@ function removeEffectDiv(id: string): void {
   document.getElementById(id)?.remove();
 }
 
-const LAYOUT_ATTRS = ['data-input-style', 'data-bubble-style', 'data-header-style', 'data-statusbar-style'] as const;
+const LAYOUT_ATTRS = ['data-chrome-style', 'data-input-style', 'data-bubble-style', 'data-header-style', 'data-statusbar-style'] as const;
 
 /** Applies a full ThemeDefinition to the live DOM. Only call from renderer process. */
 export function applyThemeToDom(theme: ThemeDefinition): void {

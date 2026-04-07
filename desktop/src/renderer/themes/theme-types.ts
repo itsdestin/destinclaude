@@ -46,10 +46,12 @@ export interface ThemeBackground {
 export type InputStyle = 'default' | 'floating' | 'minimal' | 'terminal';
 export type BubbleStyle = 'default' | 'pill' | 'flat' | 'bordered';
 export type HeaderStyle = 'default' | 'minimal' | 'hidden';
-export type StatusbarStyle = 'default' | 'minimal' | 'floating';
+export type StatusbarStyle = 'default' | 'minimal';
+export type ChromeStyle = 'default' | 'floating';
 export type ParticlePreset = 'none' | 'rain' | 'dust' | 'ember' | 'snow' | 'custom';
 
 export interface ThemeLayout {
+  'chrome-style'?: ChromeStyle;
   'input-style'?: InputStyle;
   'bubble-style'?: BubbleStyle;
   'header-style'?: HeaderStyle;
