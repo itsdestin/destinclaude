@@ -370,21 +370,32 @@ html, body, #root {
   padding-left: 78px;
 }
 
-/* Custom caption buttons (Windows/Linux) — themed to match the header */
-.caption-buttons {
+/* Header needs position:relative so caption buttons can anchor to it */
+.header-bar {
+  position: relative;
+}
+
+/* Custom caption buttons — small strip pinned to top-right of header */
+.caption-strip {
+  position: absolute;
+  top: 0;
+  right: 0;
   display: flex;
   align-items: center;
-  height: 100%;
-  -webkit-app-region: no-drag;
+  z-index: 50;
 }
 .caption-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 46px;
-  height: 100%;
+  width: 32px;
+  height: 22px;
   color: var(--fg-muted);
   transition: background-color 0.1s, color 0.1s;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: default;
 }
 .caption-btn:hover {
   background-color: var(--inset);

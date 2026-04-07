@@ -14,19 +14,19 @@ function CaptionButtons() {
   if (!claude?.window) return null;
 
   return (
-    <div className="caption-buttons">
+    <div className="caption-strip" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
       <button className="caption-btn" onClick={() => claude.window.minimize()} title="Minimize">
-        <svg width="10" height="1" viewBox="0 0 10 1"><rect fill="currentColor" width="10" height="1" /></svg>
+        <svg width="8" height="1" viewBox="0 0 8 1"><rect fill="currentColor" width="8" height="1" /></svg>
       </button>
       <button className="caption-btn" onClick={() => claude.window.maximize()} title="Maximize">
-        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1">
-          <rect x="0.5" y="0.5" width="9" height="9" />
+        <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1">
+          <rect x="0.5" y="0.5" width="7" height="7" />
         </svg>
       </button>
       <button className="caption-btn caption-btn-close" onClick={() => claude.window.close()} title="Close">
-        <svg width="10" height="10" viewBox="0 0 10 10" stroke="currentColor" strokeWidth="1.2">
-          <line x1="0" y1="0" x2="10" y2="10" />
-          <line x1="10" y1="0" x2="0" y2="10" />
+        <svg width="8" height="8" viewBox="0 0 8 8" stroke="currentColor" strokeWidth="1.2">
+          <line x1="0" y1="0" x2="8" y2="8" />
+          <line x1="8" y1="0" x2="0" y2="8" />
         </svg>
       </button>
     </div>
@@ -175,9 +175,10 @@ export default function HeaderBar({
           </button>
         </div>
 
-        {/* Custom caption buttons (Windows/Linux only) */}
-        {showCaptionButtons && <CaptionButtons />}
       </div>
+
+      {/* Custom caption buttons — fixed to top-right corner above the header content */}
+      {showCaptionButtons && <CaptionButtons />}
     </div>
   );
 }
