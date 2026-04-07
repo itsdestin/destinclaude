@@ -482,6 +482,24 @@ html, body, #root {
   margin: 4px auto;
 }
 
+/* Floating chrome — when statusbar is floating, elevate all chrome bars
+   so the entire UI has a cohesive detached/floating aesthetic. */
+[data-statusbar-style="floating"] .header-bar {
+  margin: 6px 8px 0;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--edge);
+  border-bottom: 1px solid var(--edge);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+}
+
+[data-statusbar-style="floating"] .input-bar-container {
+  margin: 0 8px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--edge);
+  border-top: 1px solid var(--edge);
+  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.15);
+}
+
 @keyframes breathe {
   0%, 100% { opacity: 0.3; }
   50% { opacity: 1; }

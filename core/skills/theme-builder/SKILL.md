@@ -579,7 +579,7 @@ Write `<slug>/manifest.json` matching this schema exactly:
 - `font.family` is applied to `--font-sans` and `--font-mono` CSS variables. Always include `'Cascadia Mono', monospace` as fallbacks
 - `font.google-font-url` is a Google Fonts `@import` URL. The app injects this into the `<head>` at theme load time. Omit if using a system font
 - `shape.radius` controls bare `rounded` elements (status bar pills, quick chips, permission buttons). Defaults to `radius-sm` if omitted
-- **Layout overlap prevention**: The `statusbar-style: "floating"` option renders the status bar as a centered pill using `align-self: center; width: fit-content; margin: auto;` — it stays in normal document flow and does NOT use `position: absolute`. Never add `position: absolute` to the status bar, input bar, or other layout-flow elements in `custom_css`, as this removes them from the flex layout and causes overlaps with adjacent elements (e.g., the status bar overlapping the input area). If a theme needs an element to appear "floating", use `align-self: center`, `width: fit-content`, `border-radius`, and `margin` instead of absolute positioning.
+- **Floating chrome is cohesive**: Setting `statusbar-style: "floating"` automatically elevates ALL chrome bars — the status bar becomes a centered pill, the header bar and input bar gain margins, rounded corners, and subtle shadows so they appear detached from the window edges. This is handled entirely by CSS; you do NOT need to separately set `header-style` or `input-style` to get the floating look. Never use `position: absolute` on layout-flow elements in `custom_css` — the floating aesthetic is achieved with `align-self`, `width: fit-content`, `margin`, `border-radius`, and `box-shadow`.
 
 ### Step 6: Write Custom CSS Aggressively
 
@@ -832,6 +832,7 @@ This demonstrates correct token ratios, glassmorphism values, effect calibration
 - No absolute paths or external URLs allowed in saved manifests — all assets must be local
 - Download external images at theme creation time, save to `assets/`
 - Use `custom_css` for effects the schema doesn't cover (CSS animations, ::before overlays, etc.)
+- NEVER set `border-radius` on `.assistant-bubble`, `.user-bubble`, or any variable-height content container in `custom_css`. Use the `bubble-style` layout preset and `shape` radius values instead. Setting `border-radius: 9999px` or `var(--radius-full)` on bubbles creates semicircular caps that clip multi-line content — only fixed-height elements (input bars, status pills, dots) are safe for `radius-full`.
 - The preview CSS file and the app's globals.css are a CONTRACT — they define the same classes. If either changes, both must stay in sync.
 - When generating mascot SVGs, ALWAYS start from the base templates above. Never create mascots from scratch.
 - Particle shape SVGs should be simple enough to render at 8-16px without losing detail.

@@ -180,6 +180,20 @@ body {
   background: var(--panel);
 }
 
+/* Floating chrome — elevate all bars when statusbar is floating */
+[data-statusbar-style="floating"] .header-bar {
+  margin: 6px 8px 0;
+  border-radius: var(--radius-lg, 16px);
+  border: 1px solid var(--edge-dim);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+}
+[data-statusbar-style="floating"] .input-bar-container {
+  margin: 0 8px;
+  border-radius: var(--radius-lg, 16px);
+  border: 1px solid var(--edge-dim);
+  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.15);
+}
+
 /* Scrollbar — matches app responsive sizing */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 @media (min-width: 640px) {
