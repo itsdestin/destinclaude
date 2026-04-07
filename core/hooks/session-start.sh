@@ -540,7 +540,7 @@ _session_sync_background() {
                         continue  # copy from toolkit repo — canonical source is the repo itself
                     fi
                 fi
-                # Check if the skill directory is inside the ~/.claude/ git repo (backed up by git-sync)
+                # Check if the skill directory is tracked by git (backed up by sync.sh)
                 if git -C "$CLAUDE_DIR" ls-files --error-unmatch "$_SKILL_DIR/SKILL.md" &>/dev/null 2>&1; then
                     continue  # tracked by git — will be backed up
                 fi
@@ -561,7 +561,7 @@ _session_sync_background() {
             echo "SKILLS:unrouted:$_UNROUTED_SKILLS" >> "$WARNINGS_FILE"
         fi
 
-        # 3. Unsynced projects — discover git repos not tracked by git-sync or registered
+        # 3. Unsynced projects — discover git repos not tracked by sync.sh or registered
         if type discover_projects &>/dev/null; then
             local _DISCOVERED
             _DISCOVERED=$(discover_projects 2>/dev/null) || {
