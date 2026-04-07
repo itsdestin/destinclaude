@@ -224,36 +224,39 @@ export default function ThemeDetail({ entry, onBack, onInstallComplete }: ThemeD
       </div>
 
       {/* Action buttons */}
-      <div className="px-4 py-3 border-t border-edge shrink-0 flex gap-2">
-        {isInstalled ? (
-          <>
-            <button
-              onClick={handleApply}
-              className="flex-1 py-2 text-xs font-medium rounded-lg bg-accent text-on-accent hover:brightness-110 transition-colors"
-            >
-              Apply Theme
-            </button>
-            <button
-              onClick={handleUninstall}
-              disabled={uninstalling}
-              className="py-2 px-4 text-xs font-medium rounded-lg border border-edge-dim text-fg-muted hover:text-fg hover:border-edge transition-colors disabled:opacity-50"
-            >
-              {uninstalling ? 'Removing...' : 'Uninstall'}
-            </button>
-          </>
-        ) : (
-          <>
-            <button
-              onClick={handleTry}
-              disabled={!manifest && !fetchingManifest}
-              className={`py-2 px-4 text-xs font-medium rounded-lg border transition-colors ${
-                trying
-                  ? 'border-accent text-accent bg-accent/10 hover:bg-accent/20'
-                  : 'border-edge-dim text-fg-muted hover:text-fg hover:border-edge'
-              } disabled:opacity-50`}
-            >
-              {fetchingManifest ? 'Loading...' : trying ? 'Revert' : 'Try Theme'}
-            </button>
+      <div className="px-4 py-3 border-t border-edge shrink-0 space-y-2">
+        {/* Preview button — always visible */}
+        <button
+          onClick={handleTry}
+          disabled={!manifest && !fetchingManifest}
+          className={`w-full py-2 text-xs font-medium rounded-lg border transition-colors ${
+            trying
+              ? 'border-accent text-accent bg-accent/10 hover:bg-accent/20'
+              : 'border-edge-dim text-fg-2 hover:text-fg hover:border-edge'
+          } disabled:opacity-50`}
+        >
+          {fetchingManifest ? 'Loading preview...' : trying ? 'Revert to Previous Theme' : 'Preview Theme'}
+        </button>
+
+        {/* Install / Apply / Uninstall */}
+        <div className="flex gap-2">
+          {isInstalled ? (
+            <>
+              <button
+                onClick={handleApply}
+                className="flex-1 py-2 text-xs font-medium rounded-lg bg-accent text-on-accent hover:brightness-110 transition-colors"
+              >
+                Apply Theme
+              </button>
+              <button
+                onClick={handleUninstall}
+                disabled={uninstalling}
+                className="py-2 px-4 text-xs font-medium rounded-lg border border-edge-dim text-fg-muted hover:text-fg hover:border-edge transition-colors disabled:opacity-50"
+              >
+                {uninstalling ? 'Removing...' : 'Uninstall'}
+              </button>
+            </>
+          ) : (
             <button
               onClick={handleInstall}
               disabled={installing}
@@ -261,8 +264,8 @@ export default function ThemeDetail({ entry, onBack, onInstallComplete }: ThemeD
             >
               {installing ? 'Installing...' : 'Install Theme'}
             </button>
-          </>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );

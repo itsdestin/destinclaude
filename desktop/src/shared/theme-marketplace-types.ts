@@ -11,6 +11,16 @@ export interface ThemeRegistryEntry {
   description?: string;
   /** URL to a preview image (PNG) hosted on GitHub Pages */
   preview?: string;
+  /** Subset of token colors for rendering CSS-based preview cards */
+  previewTokens?: {
+    canvas: string;
+    panel: string;
+    accent: string;
+    'on-accent': string;
+    fg: string;
+    'fg-muted': string;
+    edge: string;
+  };
   version?: string;
   created?: string;
   updated?: string;
