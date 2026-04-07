@@ -18,7 +18,7 @@ function roundnessToShape(value: number) {
   const md  = Math.round(value * 16);
   const lg  = Math.round(value * 24);
   const xl  = Math.round(value * 32);
-  const xxl = Math.round(value * 48);
+  const xxl = Math.min(Math.round(value * 48), 36); // cap at 36px to prevent bubble content clipping
   return { 'radius-sm': `${sm}px`, 'radius-md': `${md}px`, 'radius-lg': `${lg}px`, 'radius-xl': `${xl}px`, 'radius-2xl': `${xxl}px`, 'radius-full': '9999px' };
 }
 
