@@ -670,8 +670,11 @@ Key notes for glassmorphism:
 }
 @keyframes border-rotate { to { --angle: 360deg; } }
 
-/* Themed focus rings */
-[data-theme="SLUG"] *:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; box-shadow: 0 0 8px rgba(ACCENT_R, ACCENT_G, ACCENT_B, 0.3); }
+/* Themed focus rings — target buttons/links/selects only, NOT textarea/input
+   (textarea focus creates an ugly colored box around the text input area) */
+[data-theme="SLUG"] button:focus-visible,
+[data-theme="SLUG"] a:focus-visible,
+[data-theme="SLUG"] select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; box-shadow: 0 0 8px rgba(ACCENT_R, ACCENT_G, ACCENT_B, 0.3); }
 
 /* Subtle text shadow on headings */
 [data-theme="SLUG"] h1, [data-theme="SLUG"] h2 { text-shadow: 0 0 12px rgba(ACCENT_R, ACCENT_G, ACCENT_B, 0.2); }

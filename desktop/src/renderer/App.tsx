@@ -835,7 +835,7 @@ function AppInner() {
       <div className="flex-1 flex flex-col overflow-hidden relative">
         {sessions.length > 0 && sessionId && currentSession ? (
           <>
-            <div ref={headerRef} className="bg-canvas">
+            <div ref={headerRef} className="chrome-wrapper bg-canvas">
               <HeaderBar
                 sessions={sessions}
                 activeSessionId={sessionId}
@@ -921,7 +921,7 @@ function AppInner() {
               )}
             </div>
             {(currentViewMode === 'chat' || getPlatform() !== 'electron') && (
-              <div ref={bottomBarRef} className="bg-canvas">
+              <div ref={bottomBarRef} className="chrome-wrapper bg-canvas">
                 {isTerminalTouch && sessionId && (
                   <TerminalToolbar sessionId={sessionId} />
                 )}
