@@ -117,7 +117,7 @@ _sync_pid_alive() {
     local pid="$1"
     [[ -z "$pid" || "$pid" == "0" ]] && return 1
     case "$(uname -s)" in
-        MINGW*|MSYS*|CYGWIN*) tasklist //FI "PID eq $pid" 2>/dev/null | grep -q "^[^ ]" ;;
+        MINGW*|MSYS*|CYGWIN*) tasklist //FI "PID eq $pid" 2>/dev/null | grep -qv 'INFO: No tasks' ;;
         *) kill -0 "$pid" 2>/dev/null ;;
     esac
 }

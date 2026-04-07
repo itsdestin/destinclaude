@@ -102,10 +102,17 @@ cd "$SCRIPT_DIR"
 # Resolve the harness PID (grandparent of this script).
 # $PPID is the ephemeral shell the harness spawned to run us — it dies
 # when this script exits. The harness itself is $PPID's parent.
-OWNER_PID="$(ps -o ppid= -p "$PPID" 2>/dev/null | tr -d ' ')"
-if [[ -z "$OWNER_PID" || "$OWNER_PID" == "1" ]]; then
-  OWNER_PID="$PPID"
-fi
+# Note: ps -o ppid= is not available on MINGW/MSYS — default to $PPID.
+OWNER_PID="$PPID"
+case "$(uname -s)" in
+  MINGW*|MSYS*|CYGWIN*) ;;  # ps -o ppid= not supported on Windows
+  *)
+    _resolved="$(ps -o ppid= -p "$PPID" 2>/dev/null | tr -d ' ')"
+    if [[ -n "$_resolved" && "$_resolved" != "1" ]]; then
+      OWNER_PID="$_resolved"
+    fi
+    ;;
+esac
 
 # Foreground mode for environments that reap detached/background processes.
 if [[ "$FOREGROUND" == "true" ]]; then

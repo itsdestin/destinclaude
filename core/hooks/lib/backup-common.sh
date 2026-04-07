@@ -106,6 +106,7 @@ is_toolkit_owned() {
     local resolved_root
     resolved_root=$(realpath "$TOOLKIT_ROOT" 2>/dev/null \
         || readlink -f "$TOOLKIT_ROOT" 2>/dev/null \
+        || python3 -c "import os,sys; print(os.path.realpath(sys.argv[1]))" "$TOOLKIT_ROOT" 2>/dev/null \
         || echo "$TOOLKIT_ROOT")
 
     # Walk up the directory tree checking for symlinks into TOOLKIT_ROOT
@@ -114,7 +115,8 @@ is_toolkit_owned() {
         if [[ -L "$check_path" ]]; then
             local target
             target=$(realpath "$check_path" 2>/dev/null \
-                || readlink -f "$check_path" 2>/dev/null) || return 1
+                || readlink -f "$check_path" 2>/dev/null \
+                || python3 -c "import os,sys; print(os.path.realpath(sys.argv[1]))" "$check_path" 2>/dev/null) || return 1
             [[ "$target" == "$resolved_root/"* || "$target" == "$resolved_root" ]] && return 0
         fi
         check_path=$(dirname "$check_path")

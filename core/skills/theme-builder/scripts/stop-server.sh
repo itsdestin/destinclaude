@@ -16,6 +16,16 @@ fi
 STATE_DIR="${SESSION_DIR}/state"
 PID_FILE="${STATE_DIR}/server.pid"
 
+# Portable PID liveness check (kill -0 doesn't work for Windows PIDs in Git Bash)
+_pid_alive() {
+  local pid="$1"
+  [[ -z "$pid" || "$pid" == "0" ]] && return 1
+  case "$(uname -s)" in
+    MINGW*|MSYS*|CYGWIN*) tasklist //FI "PID eq $pid" 2>/dev/null | grep -qv 'INFO: No tasks' ;;
+    *) kill -0 "$pid" 2>/dev/null ;;
+  esac
+}
+
 if [[ -f "$PID_FILE" ]]; then
   pid=$(cat "$PID_FILE")
 
@@ -24,21 +34,21 @@ if [[ -f "$PID_FILE" ]]; then
 
   # Wait for graceful shutdown (up to ~2s)
   for i in {1..20}; do
-    if ! kill -0 "$pid" 2>/dev/null; then
+    if ! _pid_alive "$pid"; then
       break
     fi
     sleep 0.1
   done
 
   # If still running, escalate to SIGKILL
-  if kill -0 "$pid" 2>/dev/null; then
+  if _pid_alive "$pid"; then
     kill -9 "$pid" 2>/dev/null || true
 
     # Give SIGKILL a moment to take effect
     sleep 0.1
   fi
 
-  if kill -0 "$pid" 2>/dev/null; then
+  if _pid_alive "$pid"; then
     echo '{"status": "failed", "error": "process still running"}'
     exit 1
   fi
