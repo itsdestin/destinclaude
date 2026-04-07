@@ -1006,7 +1006,7 @@ Store the selected backends as comma-separated `PERSONAL_SYNC_BACKEND` in config
 # Trigger personal-sync manually to test
 source ~/.claude/hooks/lib/backup-common.sh
 # Touch the debounce marker in the past to force sync
-touch -t 202001010000 ~/.claude/toolkit-state/.personal-sync-marker 2>/dev/null
+touch -t 202001010000 ~/.claude/toolkit-state/.sync-marker 2>/dev/null
 ```
 
 Tell the user the result: "Backup configured! Your personal data will sync to [backends] automatically."
