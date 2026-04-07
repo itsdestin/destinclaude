@@ -135,11 +135,11 @@ body {
 [data-bubble-style="pill"] .chat-bubble,
 [data-bubble-style="pill"] .assistant-bubble,
 [data-bubble-style="pill"] .user-bubble {
-  border-radius: var(--radius-full, 9999px);
+  border-radius: var(--radius-2xl, 24px);
   padding-left: 24px;
   padding-right: 24px;
-  padding-top: 14px;
-  padding-bottom: 14px;
+  padding-top: 16px;
+  padding-bottom: 16px;
 }
 [data-bubble-style="flat"] .chat-bubble,
 [data-bubble-style="flat"] .assistant-bubble,

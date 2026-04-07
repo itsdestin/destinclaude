@@ -429,14 +429,16 @@ html, body, #root {
   border-top: 1px solid var(--edge);
 }
 
-/* Bubble styles */
+/* Bubble styles — "pill" uses the largest non-infinite radius so the shape
+   stays rounded without creating semicircular caps that eat into content.
+   radius-full (9999px) is NOT safe for multi-line content. */
 [data-bubble-style="pill"] .assistant-bubble,
 [data-bubble-style="pill"] .user-bubble {
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-2xl);
   padding-left: 24px;
   padding-right: 24px;
-  padding-top: 14px;
-  padding-bottom: 14px;
+  padding-top: 16px;
+  padding-bottom: 16px;
 }
 
 [data-bubble-style="flat"] .assistant-bubble,
