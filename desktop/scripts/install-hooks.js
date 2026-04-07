@@ -152,16 +152,12 @@ When you see an \`[Auto-Title]\` reminder, **immediately** use Bash to write a 3
   }
 
   // --- Statusline ---
-  // Register the statusline script so Claude Code pipes session JSON to it.
-  // Prefer the toolkit version (has sync/announcement lines); fall back to bundled.
+  // Always use the app-bundled statusline script (app owns context % display).
   // Only set if unset or pointing to a known destinclaude/app path — don't overwrite
   // custom user scripts.
-  const toolkitStatuslinePath = path.join(require('os').homedir(), '.claude', 'plugins', 'destinclaude', 'core', 'hooks', 'statusline.sh');
   const rawStatuslinePath = path.resolve(__dirname, '..', 'hook-scripts', 'statusline.sh');
   const unpackedStatuslinePath = rawStatuslinePath.replace(`app.asar${path.sep}`, `app.asar.unpacked${path.sep}`);
-  const STATUSLINE_PATH = fs.existsSync(unpackedStatuslinePath) ? unpackedStatuslinePath : rawStatuslinePath;
-
-  const activeStatuslinePath = fs.existsSync(toolkitStatuslinePath) ? toolkitStatuslinePath : STATUSLINE_PATH;
+  const activeStatuslinePath = fs.existsSync(unpackedStatuslinePath) ? unpackedStatuslinePath : rawStatuslinePath;
   const currentStatuslineCmd = settings.statusLine?.command || '';
   const isOurStatusline = !currentStatuslineCmd
     || currentStatuslineCmd.includes('statusline.sh')
@@ -176,8 +172,7 @@ When you see an \`[Auto-Title]\` reminder, **immediately** use Bash to write a 3
   }
 
   fs.writeFileSync(SETTINGS_PATH, JSON.stringify(settings, null, 2));
-  const statuslineSource = fs.existsSync(toolkitStatuslinePath) ? 'toolkit' : 'bundled';
-  console.log('Hooks installed for ' + FIRE_AND_FORGET_EVENTS.length + ' fire-and-forget events + PermissionRequest (blocking) + auto-title + statusline (' + statuslineSource + ')');
+  console.log('Hooks installed for ' + FIRE_AND_FORGET_EVENTS.length + ' fire-and-forget events + PermissionRequest (blocking) + auto-title + statusline');
 }
 
 installHooks();
