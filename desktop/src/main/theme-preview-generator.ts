@@ -16,7 +16,7 @@ export async function generateThemePreview(
   themeDir: string,
   manifest: Record<string, any>,
 ): Promise<string> {
-  const html = buildPreviewHTML(manifest);
+  const html = buildPreviewHTML(manifest, themeDir);
   const outputPath = path.join(themeDir, 'preview.png');
 
   // Create an offscreen window
@@ -53,7 +53,7 @@ export async function generateThemePreview(
  * Builds a self-contained HTML string that mocks the DestinCode UI
  * using the theme's color tokens.
  */
-function buildPreviewHTML(manifest: Record<string, any>): string {
+function buildPreviewHTML(manifest: Record<string, any>, themeDir: string): string {
   const tokens = manifest.tokens || {};
   const dark = manifest.dark ?? true;
   const name = manifest.name || 'Theme';
@@ -74,6 +74,50 @@ function buildPreviewHTML(manifest: Record<string, any>): string {
   const isPill = bubbleStyle === 'pill';
   const isFloating = inputStyle === 'floating';
 
+  // Wallpaper support: embed image as base64 data URI if available
+  const bg = manifest.background || {};
+  let wallpaperDataUri = '';
+  if (bg.type === 'image' && bg.value) {
+    // Resolve asset path — strip theme-asset:// protocol or use relative path
+    let assetRelPath = bg.value;
+    if (assetRelPath.startsWith('theme-asset://')) {
+      const url = new URL(assetRelPath);
+      assetRelPath = decodeURIComponent(url.pathname.replace(/^\//, ''));
+    }
+    const wallpaperPath = path.join(themeDir, assetRelPath);
+    if (fs.existsSync(wallpaperPath)) {
+      const ext = path.extname(wallpaperPath).toLowerCase();
+      const mime = ext === '.png' ? 'image/png' : ext === '.webp' ? 'image/webp' : 'image/jpeg';
+      const b64 = fs.readFileSync(wallpaperPath).toString('base64');
+      wallpaperDataUri = `data:${mime};base64,${b64}`;
+    }
+  } else if (bg.type === 'gradient' && bg.value) {
+    wallpaperDataUri = ''; // handled via CSS background property
+  }
+
+  const hasWallpaper = !!wallpaperDataUri;
+  const hasGradient = bg.type === 'gradient' && bg.value;
+  const panelsBlur = bg['panels-blur'] || 0;
+  const panelsOpacity = bg['panels-opacity'] ?? 1;
+  const hasGlass = panelsBlur > 0 && (hasWallpaper || hasGradient);
+
+  // Compute semi-transparent panel color for glassmorphism
+  const panelColor = tokens.panel || '#1a1a1a';
+  const glassPanel = hasGlass
+    ? `color-mix(in srgb, ${panelColor} ${Math.round(panelsOpacity * 100)}%, transparent)`
+    : 'var(--panel)';
+  const blurCSS = hasGlass
+    ? `backdrop-filter: blur(${panelsBlur}px) saturate(1.2); -webkit-backdrop-filter: blur(${panelsBlur}px) saturate(1.2);`
+    : '';
+
+  // Body background: wallpaper image, gradient, or solid canvas
+  let bodyBg = 'var(--canvas)';
+  if (hasWallpaper) {
+    bodyBg = `url("${wallpaperDataUri}") center/cover no-repeat`;
+  } else if (hasGradient) {
+    bodyBg = bg.value;
+  }
+
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -87,7 +131,7 @@ function buildPreviewHTML(manifest: Record<string, any>): string {
     body {
       width: ${PREVIEW_WIDTH}px;
       height: ${PREVIEW_HEIGHT}px;
-      background: var(--canvas);
+      background: ${bodyBg};
       font-family: system-ui, -apple-system, sans-serif;
       overflow: hidden;
       display: flex;
@@ -97,7 +141,8 @@ function buildPreviewHTML(manifest: Record<string, any>): string {
     /* Header */
     .header {
       height: 44px;
-      background: var(--panel);
+      background: ${hasGlass ? glassPanel : 'var(--panel)'};
+      ${blurCSS}
       border-bottom: 1px solid var(--edge);
       display: flex;
       align-items: center;
@@ -131,6 +176,7 @@ function buildPreviewHTML(manifest: Record<string, any>): string {
       flex-direction: column;
       gap: 16px;
       overflow: hidden;
+      ${hasGlass ? 'background: transparent;' : ''}
     }
 
     /* Bubbles */
@@ -148,7 +194,8 @@ function buildPreviewHTML(manifest: Record<string, any>): string {
     }
     .bubble.assistant {
       align-self: flex-start;
-      background: var(--panel);
+      background: ${hasGlass ? glassPanel : 'var(--panel)'};
+      ${blurCSS}
       color: var(--fg);
       border: 1px solid var(--edge-dim);
     }
@@ -186,7 +233,8 @@ function buildPreviewHTML(manifest: Record<string, any>): string {
     /* Input bar */
     .input-bar {
       padding: 12px 16px;
-      background: ${isFloating ? 'transparent' : 'var(--panel)'};
+      background: ${isFloating ? 'transparent' : (hasGlass ? glassPanel : 'var(--panel)')};
+      ${!isFloating && hasGlass ? blurCSS : ''}
       border-top: ${isFloating ? 'none' : '1px solid var(--edge)'};
       flex-shrink: 0;
     }
@@ -194,7 +242,8 @@ function buildPreviewHTML(manifest: Record<string, any>): string {
       display: flex;
       align-items: center;
       gap: 8px;
-      background: ${isFloating ? 'var(--panel)' : 'var(--well)'};
+      background: ${isFloating ? (hasGlass ? glassPanel : 'var(--panel)') : 'var(--well)'};
+      ${isFloating && hasGlass ? blurCSS : ''}
       border: 1px solid var(--edge-dim);
       border-radius: ${isFloating ? 'var(--radius-xl, 16px)' : 'var(--radius-md, 8px)'};
       padding: 10px 14px;
@@ -218,7 +267,8 @@ function buildPreviewHTML(manifest: Record<string, any>): string {
     /* Status bar */
     .status-bar {
       height: 28px;
-      background: var(--panel);
+      background: ${hasGlass ? glassPanel : 'var(--panel)'};
+      ${blurCSS}
       border-top: 1px solid var(--edge);
       display: flex;
       align-items: center;
