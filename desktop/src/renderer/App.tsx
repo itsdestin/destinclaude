@@ -650,20 +650,24 @@ function AppInner() {
     });
   }, [model]);
 
-  const handleResumeSession = useCallback(async (claudeSessionId: string, projectSlug: string) => {
+  const handleResumeSession = useCallback(async (claudeSessionId: string, projectSlug: string, resumeModel?: string, resumeDangerous?: boolean) => {
     const slugToPath = (s: string) => {
       if (/^[A-Z]--/.test(s)) return s.replace(/^([A-Z])--/, '$1:\\').replace(/-/g, '\\');
       return s.replace(/-/g, '/');
     };
     const cwd = slugToPath(projectSlug);
+    const m = resumeModel || model;
+    if (resumeModel && MODELS.includes(resumeModel as any)) {
+      setModel(resumeModel as ModelAlias);
+    }
 
     // Pass --resume flag so Claude Code boots directly into the resumed session
     const newSession = await (window.claude.session.create as any)({
       name: 'Resuming...',
       cwd,
-      skipPermissions: false,
+      skipPermissions: resumeDangerous || false,
       resumeSessionId: claudeSessionId,
-      model,
+      model: m,
     });
     if (!newSession?.id) return;
 
@@ -737,21 +741,8 @@ function AppInner() {
   // Parse announcement
   const announcementText = statusData.announcement?.message || null;
 
-  // Still loading first-run check
-  if (isFirstRun === null) {
-    return <div className="flex-1 flex items-center justify-center bg-gray-950" />;
-  }
-
-  // First-run mode — show setup UI instead of normal app
-  if (isFirstRun) {
-    return (
-      <div className="h-screen flex flex-col bg-gray-950">
-        <FirstRunView onComplete={handleFirstRunComplete} />
-      </div>
-    );
-  }
-
-  // Report header/bottom bar heights to native Android side for terminal overlay sizing
+  // Report header/bottom bar heights to native Android side for terminal overlay sizing.
+  // Must be before early returns to maintain consistent hook ordering across renders.
   useEffect(() => {
     if (getPlatform() !== 'android') return;
     const header = headerRef.current;
@@ -775,6 +766,20 @@ function AppInner() {
     report();
     return () => observer.disconnect();
   }, [sessionId, currentViewMode]);
+
+  // Still loading first-run check
+  if (isFirstRun === null) {
+    return <div className="flex-1 flex items-center justify-center bg-gray-950" />;
+  }
+
+  // First-run mode — show setup UI instead of normal app
+  if (isFirstRun) {
+    return (
+      <div className="h-screen flex flex-col bg-gray-950">
+        <FirstRunView onComplete={handleFirstRunComplete} />
+      </div>
+    );
+  }
 
   return (
     <div className="app-shell flex w-screen h-full bg-canvas text-fg">
@@ -934,6 +939,8 @@ function AppInner() {
         open={resumeRequested}
         onClose={() => setResumeRequested(false)}
         onResume={handleResumeSession}
+        defaultModel={sessionDefaults.model}
+        defaultSkipPermissions={sessionDefaults.skipPermissions}
       />
       {marketplaceOpen && (
         <Marketplace onClose={() => setMarketplaceOpen(false)} />

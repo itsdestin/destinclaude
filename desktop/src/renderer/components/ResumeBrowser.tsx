@@ -1,4 +1,11 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { MODELS, type ModelAlias } from './StatusBar';
+
+const MODEL_LABELS: Record<string, string> = {
+  sonnet: 'Sonnet',
+  'opus[1m]': 'Opus 1M',
+  haiku: 'Haiku',
+};
 
 function formatRelativeTime(epochMs: number): string {
   const diff = Date.now() - epochMs;
@@ -31,19 +38,27 @@ interface PastSession {
 interface Props {
   open: boolean;
   onClose: () => void;
-  onResume: (sessionId: string, projectSlug: string) => void;
+  onResume: (sessionId: string, projectSlug: string, model: string, dangerous: boolean) => void;
+  defaultModel?: string;
+  defaultSkipPermissions?: boolean;
 }
 
-export default function ResumeBrowser({ open, onClose, onResume }: Props) {
+export default function ResumeBrowser({ open, onClose, onResume, defaultModel, defaultSkipPermissions }: Props) {
   const [sessions, setSessions] = useState<PastSession[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const searchRef = useRef<HTMLInputElement>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [resumeModel, setResumeModel] = useState<string>(defaultModel || 'sonnet');
+  const [resumeDangerous, setResumeDangerous] = useState(defaultSkipPermissions || false);
 
   // Fetch sessions when opened
   useEffect(() => {
     if (open) {
       setSearch('');
+      setExpandedId(null);
+      setResumeModel(defaultModel || 'sonnet');
+      setResumeDangerous(defaultSkipPermissions || false);
       setLoading(true);
       (window as any).claude.session.browse()
         .then((list: PastSession[]) => setSessions(list))
@@ -58,11 +73,14 @@ export default function ResumeBrowser({ open, onClose, onResume }: Props) {
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        if (expandedId) { setExpandedId(null); }
+        else { onClose(); }
+      }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [open, onClose]);
+  }, [open, onClose, expandedId]);
 
   const filtered = useMemo(() => {
     if (!search.trim()) return sessions;
@@ -86,7 +104,100 @@ export default function ResumeBrowser({ open, onClose, onResume }: Props) {
     return groups;
   }, [filtered, search]);
 
+  const handleSelectSession = (sessionId: string) => {
+    if (expandedId === sessionId) {
+      setExpandedId(null);
+    } else {
+      setExpandedId(sessionId);
+      setResumeModel(defaultModel || 'sonnet');
+      setResumeDangerous(defaultSkipPermissions || false);
+    }
+  };
+
+  const handleConfirmResume = (s: PastSession) => {
+    onResume(s.sessionId, s.projectSlug, resumeModel, resumeDangerous);
+    onClose();
+  };
+
   if (!open) return null;
+
+  const renderExpandedOptions = (s: PastSession) => (
+    <div className="px-4 pb-2">
+      <div className="rounded-lg bg-inset/50 border border-edge-dim p-3 flex flex-col gap-2">
+        {/* Model selector */}
+        <div>
+          <label className="text-[10px] uppercase tracking-wider text-fg-muted mb-1 block">Model</label>
+          <div className="flex gap-1">
+            {MODELS.map((m) => (
+              <button
+                key={m}
+                onClick={() => setResumeModel(m)}
+                className={`flex-1 px-1 py-1 rounded-sm text-[10px] transition-colors ${
+                  resumeModel === m
+                    ? 'bg-accent text-on-accent font-medium'
+                    : 'bg-inset text-fg-dim hover:bg-edge'
+                }`}
+              >
+                {MODEL_LABELS[m] || m}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Skip Permissions */}
+        <div className="flex items-center justify-between">
+          <label className="text-[10px] uppercase tracking-wider text-fg-muted">Skip Permissions</label>
+          <button
+            onClick={() => setResumeDangerous(!resumeDangerous)}
+            className={`w-8 h-4.5 rounded-full relative transition-colors ${resumeDangerous ? 'bg-[#DD4444]' : 'bg-inset'}`}
+          >
+            <span className={`absolute top-0.5 w-3.5 h-3.5 rounded-full bg-white transition-transform ${resumeDangerous ? 'left-[calc(100%-16px)]' : 'left-0.5'}`} />
+          </button>
+        </div>
+        {resumeDangerous && (
+          <p className="text-[10px] text-[#DD4444]">Claude will execute tools without asking for approval.</p>
+        )}
+
+        {/* Resume button */}
+        <button
+          onClick={() => handleConfirmResume(s)}
+          className={`w-full text-sm font-medium rounded-md py-1.5 transition-colors ${
+            resumeDangerous
+              ? 'bg-[#DD4444] hover:bg-[#E55555] text-white'
+              : 'bg-accent hover:bg-accent text-on-accent'
+          }`}
+        >
+          {resumeDangerous ? 'Resume (Dangerous)' : 'Resume Session'}
+        </button>
+      </div>
+    </div>
+  );
+
+  const renderSessionRow = (s: PastSession, showPath?: boolean) => (
+    <div key={s.sessionId}>
+      <button
+        onClick={() => handleSelectSession(s.sessionId)}
+        className={`w-full text-left px-4 py-2 flex items-center gap-3 transition-colors ${
+          expandedId === s.sessionId
+            ? 'bg-inset text-fg'
+            : 'text-fg-dim hover:bg-inset hover:text-fg'
+        }`}
+      >
+        <div className="flex-1 min-w-0">
+          <div className="text-sm truncate">{s.name}</div>
+          <div className="text-[10px] text-fg-faint">
+            {showPath
+              ? s.projectPath.replace(/\\/g, '/').split('/').pop()
+              : formatSize(s.size)}
+          </div>
+        </div>
+        <span className="text-[10px] text-fg-faint shrink-0">
+          {formatRelativeTime(s.lastModified)}
+        </span>
+      </button>
+      {expandedId === s.sessionId && renderExpandedOptions(s)}
+    </div>
+  );
 
   return (
     <>
@@ -138,42 +249,12 @@ export default function ResumeBrowser({ open, onClose, onResume }: Props) {
                       {projectPath.replace(/\\/g, '/').split('/').pop() || projectPath}
                     </span>
                   </div>
-                  {items.map((s) => (
-                    <button
-                      key={s.sessionId}
-                      onClick={() => { onResume(s.sessionId, s.projectSlug); onClose(); }}
-                      className="w-full text-left px-4 py-2 flex items-center gap-3 text-fg-dim hover:bg-inset hover:text-fg transition-colors"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm truncate">{s.name}</div>
-                        <div className="text-[10px] text-fg-faint">{formatSize(s.size)}</div>
-                      </div>
-                      <span className="text-[10px] text-fg-faint shrink-0">
-                        {formatRelativeTime(s.lastModified)}
-                      </span>
-                    </button>
-                  ))}
+                  {items.map((s) => renderSessionRow(s))}
                 </div>
               ))
             ) : (
               // Flat search results
-              filtered.map((s) => (
-                <button
-                  key={s.sessionId}
-                  onClick={() => { onResume(s.sessionId, s.projectSlug); onClose(); }}
-                  className="w-full text-left px-4 py-2 flex items-center gap-3 text-fg-dim hover:bg-inset hover:text-fg transition-colors"
-                >
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm truncate">{s.name}</div>
-                    <div className="text-[10px] text-fg-faint">
-                      {s.projectPath.replace(/\\/g, '/').split('/').pop()}
-                    </div>
-                  </div>
-                  <span className="text-[10px] text-fg-faint shrink-0">
-                    {formatRelativeTime(s.lastModified)}
-                  </span>
-                </button>
-              ))
+              filtered.map((s) => renderSessionRow(s, true))
             )}
           </div>
         </div>
