@@ -32,7 +32,7 @@ if [[ -z "$VERSION" ]]; then
   exit 1
 fi
 
-TAG="desktop-v$VERSION"
+TAG="v$VERSION"
 
 # Detect platform
 detect_platform() {
