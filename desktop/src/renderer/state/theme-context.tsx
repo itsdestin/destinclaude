@@ -30,8 +30,8 @@ export const DEFAULT_FONT_FAMILY = "'Cascadia Mono', 'Cascadia Code', 'Fira Code
 const STORAGE_KEY = 'destincode-theme';
 const CYCLE_KEY = 'destincode-theme-cycle';
 const FONT_KEY = 'destincode-font';
-const DEFAULT_THEME = 'light';
-const DEFAULT_CYCLE = ['light', 'dark'];
+const DEFAULT_THEME = 'midnight';
+const DEFAULT_CYCLE = ['midnight', 'dark'];
 /** Reserved slug for live-preview during /theme-builder — auto-switches on write, reverts on delete. */
 const PREVIEW_SLUG = '_preview';
 
@@ -167,6 +167,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     applyThemeToDom(activeTheme);
     applyHighlightTheme(activeTheme.dark);
+
+    // Update title bar overlay colors to match theme (Windows overlay + macOS implicit)
+    try {
+      const claude = (window as any).claude;
+      claude?.theme?.setTitleBarColors?.(activeTheme.tokens.panel, activeTheme.tokens.fg);
+    } catch { /* not in Electron or method unavailable */ }
 
     // If the theme declares a font, adopt it as the active font.
     // This syncs React state so the font picker reflects the theme's choice.

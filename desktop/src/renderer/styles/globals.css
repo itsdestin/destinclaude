@@ -345,6 +345,32 @@ html, body, #root {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   Window chrome — title bar integration
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* HeaderBar is the window drag region (macOS hiddenInset + Windows overlay).
+   All interactive children must opt out so clicks work normally. */
+.header-bar button,
+.header-bar a,
+.header-bar input,
+.header-bar [role="button"],
+.header-bar select {
+  -webkit-app-region: no-drag;
+}
+
+/* SessionStrip is a complex interactive component — exclude the whole thing */
+.header-bar .session-strip {
+  -webkit-app-region: no-drag;
+}
+
+/* macOS traffic lights need space — add left padding when title bar is hidden */
+@supports (-webkit-app-region: drag) {
+  .mac-titlebar-inset .header-bar {
+    padding-left: 78px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    Visual effects — managed overlay divs created by theme-engine.ts
    ═══════════════════════════════════════════════════════════════════════════ */
 

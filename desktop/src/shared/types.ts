@@ -234,6 +234,7 @@ export const IPC = {
   THEME_READ_FILE: 'theme:read-file', // Renderer -> Main: read a user theme JSON by slug
   THEME_WRITE_FILE: 'theme:write-file',
   THEME_READ_ASSET: 'theme:read-asset',
+  THEME_SET_TITLEBAR: 'theme:set-titlebar', // Renderer -> Main: update title bar overlay colors
   // First-run
   FIRST_RUN_STATE: 'first-run:state',
   FIRST_RUN_RETRY: 'first-run:retry',

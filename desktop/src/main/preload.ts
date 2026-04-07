@@ -58,6 +58,7 @@ const IPC = {
   THEME_READ_FILE: 'theme:read-file', // Renderer -> Main: read a user theme JSON by slug
   THEME_WRITE_FILE: 'theme:write-file',
   THEME_READ_ASSET: 'theme:read-asset',
+  THEME_SET_TITLEBAR: 'theme:set-titlebar',
   FIRST_RUN_STATE: 'first-run:state',
   FIRST_RUN_RETRY: 'first-run:retry',
   FIRST_RUN_START_AUTH: 'first-run:start-auth',
@@ -217,6 +218,7 @@ contextBridge.exposeInMainWorld('claude', {
       ipcRenderer.on(IPC.THEME_RELOAD, wrapped);
       return () => ipcRenderer.removeListener(IPC.THEME_RELOAD, wrapped);
     },
+    setTitleBarColors: (bg: string, fg: string) => ipcRenderer.invoke(IPC.THEME_SET_TITLEBAR, { bg, fg }),
   },
   firstRun: {
     getState: (): Promise<any> => ipcRenderer.invoke(IPC.FIRST_RUN_STATE),

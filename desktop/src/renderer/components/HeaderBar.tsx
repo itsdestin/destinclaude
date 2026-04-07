@@ -50,7 +50,7 @@ export default function HeaderBar({
   defaultModel, defaultSkipPermissions, defaultProjectFolder,
 }: Props) {
   return (
-    <div className="header-bar flex items-center h-10 px-2 sm:px-3 border-b border-edge shrink-0">
+    <div className="header-bar flex items-center h-10 px-2 sm:px-3 border-b border-edge shrink-0" style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}>
       {/* Left — settings + remote/announcement badges */}
       <div className="flex-1 flex items-center gap-1 sm:gap-2 min-w-0">
         <button

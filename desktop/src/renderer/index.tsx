@@ -4,12 +4,17 @@ import './styles/globals.css';
 import App from './App';
 
 // Apply theme + font before React mounts to prevent FOUC (flash of unstyled content)
-const storedTheme = localStorage.getItem('destincode-theme') || 'light';
+const storedTheme = localStorage.getItem('destincode-theme') || 'midnight';
 document.documentElement.setAttribute('data-theme', storedTheme);
 const storedFont = localStorage.getItem('destincode-font');
 if (storedFont) {
   document.documentElement.style.setProperty('--font-sans', storedFont);
   document.documentElement.style.setProperty('--font-mono', storedFont);
+}
+
+// macOS with hiddenInset title bar needs extra left padding for traffic lights
+if (navigator.platform === 'MacIntel' || navigator.platform === 'MacPPC') {
+  document.body.classList.add('mac-titlebar-inset');
 }
 
 /** Minimal login screen for remote browser access. */

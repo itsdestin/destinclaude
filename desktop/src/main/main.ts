@@ -135,10 +135,23 @@ function createWindow(firstRunManager?: FirstRunManager) {
   const iconPath = path.join(__dirname, '../../assets/icon.png');
   const icon = nativeImage.createFromPath(iconPath);
 
+  const isMac = process.platform === 'darwin';
+  const isWin = process.platform === 'win32';
+
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
     icon,
+    // macOS: hide native title bar but keep traffic lights
+    ...(isMac ? { titleBarStyle: 'hiddenInset' } : {}),
+    // Windows: custom overlay colors on the native caption buttons
+    ...(isWin ? {
+      titleBarOverlay: {
+        color: '#191919',
+        symbolColor: '#E0E0E0',
+        height: 40,
+      },
+    } : {}),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,

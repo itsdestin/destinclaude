@@ -52,6 +52,16 @@ export function registerIpcHandlers(
     await fs.promises.writeFile(path.join(themeDir, 'manifest.json'), content, 'utf-8');
   });
 
+  // Update title bar overlay colors when theme changes (Windows only)
+  ipcMain.handle(IPC.THEME_SET_TITLEBAR, async (_event, colors: { bg: string; fg: string }) => {
+    if (process.platform === 'win32' && mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.setTitleBarOverlay({
+        color: colors.bg,
+        symbolColor: colors.fg,
+      });
+    }
+  });
+
   // Broadcast session-created events from SessionManager (covers both IPC and remote-created sessions)
   sessionManager.on('session-created', (info) => {
     send(IPC.SESSION_CREATED, info);
