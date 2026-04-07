@@ -12,11 +12,9 @@ if (storedFont) {
   document.documentElement.style.setProperty('--font-mono', storedFont);
 }
 
-// Platform-specific title bar padding classes
+// macOS traffic lights need left padding on the header bar
 if (navigator.platform === 'MacIntel' || navigator.platform === 'MacPPC') {
   document.body.classList.add('mac-titlebar-inset');
-} else if (navigator.platform === 'Win32') {
-  document.body.classList.add('win-titlebar-overlay');
 }
 
 /** Minimal login screen for remote browser access. */

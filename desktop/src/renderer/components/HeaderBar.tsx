@@ -5,6 +5,34 @@ import type { SessionStatusColor } from './StatusDot';
 import type { PermissionMode } from '../../shared/types';
 import { isAndroid, isRemoteMode } from '../platform';
 
+/** Custom window caption buttons for Windows/Linux (macOS uses native traffic lights). */
+const showCaptionButtons = typeof navigator !== 'undefined'
+  && navigator.platform === 'Win32';
+
+function CaptionButtons() {
+  const claude = (window as any).claude;
+  if (!claude?.window) return null;
+
+  return (
+    <div className="caption-buttons">
+      <button className="caption-btn" onClick={() => claude.window.minimize()} title="Minimize">
+        <svg width="10" height="1" viewBox="0 0 10 1"><rect fill="currentColor" width="10" height="1" /></svg>
+      </button>
+      <button className="caption-btn" onClick={() => claude.window.maximize()} title="Maximize">
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1">
+          <rect x="0.5" y="0.5" width="9" height="9" />
+        </svg>
+      </button>
+      <button className="caption-btn caption-btn-close" onClick={() => claude.window.close()} title="Close">
+        <svg width="10" height="10" viewBox="0 0 10 10" stroke="currentColor" strokeWidth="1.2">
+          <line x1="0" y1="0" x2="10" y2="10" />
+          <line x1="10" y1="0" x2="0" y2="10" />
+        </svg>
+      </button>
+    </div>
+  );
+}
+
 interface SessionEntry {
   id: string;
   name: string;
@@ -146,6 +174,9 @@ export default function HeaderBar({
           )}
           </button>
         </div>
+
+        {/* Custom caption buttons (Windows/Linux only) */}
+        {showCaptionButtons && <CaptionButtons />}
       </div>
     </div>
   );

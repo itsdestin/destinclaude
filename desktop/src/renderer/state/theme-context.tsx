@@ -168,12 +168,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     applyThemeToDom(activeTheme);
     applyHighlightTheme(activeTheme.dark);
 
-    // Update title bar overlay colors to match theme (Windows overlay + macOS implicit)
-    try {
-      const claude = (window as any).claude;
-      claude?.theme?.setTitleBarColors?.(activeTheme.tokens.panel, activeTheme.tokens.fg);
-    } catch { /* not in Electron or method unavailable */ }
-
     // If the theme declares a font, adopt it as the active font.
     // This syncs React state so the font picker reflects the theme's choice.
     // If no theme font, restore the user's manually-chosen font.

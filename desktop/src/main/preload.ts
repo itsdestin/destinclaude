@@ -58,7 +58,9 @@ const IPC = {
   THEME_READ_FILE: 'theme:read-file', // Renderer -> Main: read a user theme JSON by slug
   THEME_WRITE_FILE: 'theme:write-file',
   THEME_READ_ASSET: 'theme:read-asset',
-  THEME_SET_TITLEBAR: 'theme:set-titlebar',
+  WINDOW_MINIMIZE: 'window:minimize',
+  WINDOW_MAXIMIZE: 'window:maximize',
+  WINDOW_CLOSE: 'window:close',
   FIRST_RUN_STATE: 'first-run:state',
   FIRST_RUN_RETRY: 'first-run:retry',
   FIRST_RUN_START_AUTH: 'first-run:start-auth',
@@ -209,6 +211,11 @@ contextBridge.exposeInMainWorld('claude', {
   getGitHubAuth: () => ipcRenderer.invoke('github:auth'),
   // Async IPC — renderer must await this (was sendSync before v2.2.0)
   getHomePath: (): Promise<string> => ipcRenderer.invoke('get-home-path'),
+  window: {
+    minimize: () => ipcRenderer.invoke(IPC.WINDOW_MINIMIZE),
+    maximize: () => ipcRenderer.invoke(IPC.WINDOW_MAXIMIZE),
+    close: () => ipcRenderer.invoke(IPC.WINDOW_CLOSE),
+  },
   theme: {
     list: () => ipcRenderer.invoke(IPC.THEME_LIST),
     readFile: (slug: string) => ipcRenderer.invoke(IPC.THEME_READ_FILE, slug),
@@ -218,7 +225,7 @@ contextBridge.exposeInMainWorld('claude', {
       ipcRenderer.on(IPC.THEME_RELOAD, wrapped);
       return () => ipcRenderer.removeListener(IPC.THEME_RELOAD, wrapped);
     },
-    setTitleBarColors: (bg: string, fg: string) => ipcRenderer.invoke(IPC.THEME_SET_TITLEBAR, { bg, fg }),
+    setTitleBarColors: (_bg: string, _fg: string) => Promise.resolve(), // deprecated — kept for compat
   },
   firstRun: {
     getState: (): Promise<any> => ipcRenderer.invoke(IPC.FIRST_RUN_STATE),

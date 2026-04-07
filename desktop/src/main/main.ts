@@ -143,17 +143,8 @@ function createWindow(firstRunManager?: FirstRunManager) {
     height: 800,
     icon,
     // macOS: hide native title bar but keep traffic lights
-    // Windows: titleBarStyle 'hidden' is required for titleBarOverlay to work
-    ...(isMac ? { titleBarStyle: 'hiddenInset' as const } : {}),
-    ...(isWin ? { titleBarStyle: 'hidden' as const } : {}),
-    // Windows: custom overlay colors on the native caption buttons
-    ...(isWin ? {
-      titleBarOverlay: {
-        color: '#191919',
-        symbolColor: '#E0E0E0',
-        height: 40,
-      },
-    } : {}),
+    // Windows/Linux: hide native title bar entirely — custom caption buttons in HeaderBar
+    titleBarStyle: isMac ? 'hiddenInset' as const : 'hidden' as const,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,

@@ -52,14 +52,17 @@ export function registerIpcHandlers(
     await fs.promises.writeFile(path.join(themeDir, 'manifest.json'), content, 'utf-8');
   });
 
-  // Update title bar overlay colors when theme changes (Windows only)
-  ipcMain.handle(IPC.THEME_SET_TITLEBAR, async (_event, colors: { bg: string; fg: string }) => {
-    if (process.platform === 'win32' && mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.setTitleBarOverlay({
-        color: colors.bg,
-        symbolColor: colors.fg,
-      });
+  // Window controls — used by custom caption buttons on Windows/Linux
+  ipcMain.handle(IPC.WINDOW_MINIMIZE, () => {
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.minimize();
+  });
+  ipcMain.handle(IPC.WINDOW_MAXIMIZE, () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.isMaximized() ? mainWindow.unmaximize() : mainWindow.maximize();
     }
+  });
+  ipcMain.handle(IPC.WINDOW_CLOSE, () => {
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.close();
   });
 
   // Broadcast session-created events from SessionManager (covers both IPC and remote-created sessions)

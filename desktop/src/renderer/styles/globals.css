@@ -370,10 +370,29 @@ html, body, #root {
   padding-left: 78px;
 }
 
-/* Windows caption buttons (min/max/close) overlay top-right — add right padding
-   so header content doesn't sit behind them. 138px ≈ 46px × 3 buttons. */
-.win-titlebar-overlay .header-bar {
-  padding-right: 140px;
+/* Custom caption buttons (Windows/Linux) — themed to match the header */
+.caption-buttons {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  -webkit-app-region: no-drag;
+}
+.caption-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 100%;
+  color: var(--fg-muted);
+  transition: background-color 0.1s, color 0.1s;
+}
+.caption-btn:hover {
+  background-color: var(--inset);
+  color: var(--fg);
+}
+.caption-btn-close:hover {
+  background-color: #e81123;
+  color: #ffffff;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
