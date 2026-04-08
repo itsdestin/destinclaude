@@ -91,26 +91,29 @@ body {
   background-color: color-mix(in srgb, var(--panel) 88%, transparent);
 }
 
-/* Assistant bubbles — lighter frosted glass */
+/* Assistant bubbles — frosted glass using theme CSS variables.
+   --bubble-blur and --bubble-opacity are set by the theme engine from
+   background.bubble-blur and background.bubble-opacity manifest fields. */
 [data-panels-blur] .chat-bubble.assistant,
 [data-panels-blur] .assistant-bubble,
 [data-panels-blur] .bg-inset {
-  backdrop-filter: blur(16px) saturate(1.1);
-  -webkit-backdrop-filter: blur(16px) saturate(1.1);
-  background-color: color-mix(in srgb, var(--inset) 90%, transparent);
+  backdrop-filter: blur(var(--bubble-blur, 16px)) saturate(1.1);
+  -webkit-backdrop-filter: blur(var(--bubble-blur, 16px)) saturate(1.1);
+  background-color: color-mix(in srgb, var(--inset) calc(var(--bubble-opacity, 0.88) * 100%), transparent);
 }
 
 /* User bubbles — frosted accent */
 [data-panels-blur] .chat-bubble.user,
 [data-panels-blur] .user-bubble,
 [data-panels-blur] .bg-accent {
-  backdrop-filter: blur(16px) saturate(1.1);
-  -webkit-backdrop-filter: blur(16px) saturate(1.1);
-  background-color: color-mix(in srgb, var(--accent) 90%, transparent);
+  backdrop-filter: blur(var(--bubble-blur, 16px)) saturate(1.1);
+  -webkit-backdrop-filter: blur(var(--bubble-blur, 16px)) saturate(1.1);
+  background-color: color-mix(in srgb, var(--accent) calc(var(--bubble-opacity, 0.88) * 100%), transparent);
 }
 
-/* Chat area needs top padding when glassmorphism is active
-   so content scrolls behind the header */
+/* Chat area padding for glassmorphism — the app handles both top and
+   bottom padding automatically, so themes should NOT set this. In the
+   preview mockup, only top padding is needed (no real scroll-behind). */
 [data-panels-blur] .chat-area {
   padding-top: 3rem;
 }

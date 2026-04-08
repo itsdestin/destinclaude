@@ -252,7 +252,7 @@ Every concept card MUST render an **app mockup** that uses the exact same CSS cl
     - Scan-lines: `<div class="effect-scanlines" style="--scanline-opacity: 0.08;"></div>`
     These are cosmetic overlays — only include them when the theme concept uses these effects.
 14. **Layout presets work in the app.** `data-chrome-style`, `data-input-style`, `data-bubble-style`, `data-header-style`, and `data-statusbar-style` are wired to the real app's DOM via the theme engine. `chrome-style: "floating"` elevates all chrome bars (header, input, status) into detached rounded cards; individual `*-style` keys override per element. Input style presets require the `input-bar-container` class on the input wrapper. **The bottom chrome order is: status bar → input bar** (status sits directly above the input area).
-15. **No absolute positioning on layout-flow elements**: Never use `position: absolute` on `.status-bar`, `.input-bar-container`, or other elements that participate in the app's flex column layout. Absolute positioning removes them from document flow and causes overlaps with adjacent elements. The floating chrome aesthetic uses `align-self`, `width: fit-content`, `margin`, `border-radius`, and `box-shadow` instead.
+15. **No absolute positioning on layout-flow elements in custom_css**: Themes must NOT add `position: absolute` to `.status-bar`, `.input-bar-container`, or other flex-column elements — the app handles bottom-chrome positioning automatically via the `.bottom-float` class when glassmorphism is active. Chat messages scroll behind the frosted input/status bars just as they scroll behind the header. The floating chrome aesthetic uses `align-self`, `width: fit-content`, `margin`, `border-radius`, and `box-shadow` instead.
 16. **Static asset serving**: The visual companion server only serves non-HTML files under the `/files/` URL prefix (e.g. `GET /files/wallpaper.jpg`). A bare reference like `src="wallpaper.jpg"` resolves to `GET /wallpaper.jpg`, which returns 404. All `<img>`, `background-image: url(...)`, and other asset references in preview HTML **MUST** use the `/files/` prefix (e.g. `src="/files/wallpaper.jpg"`, `url('/files/wallpaper.jpg')`). Additionally, the asset file must exist inside the server's `screen_dir` (the `content/` directory) — files in the theme pack folder (`<slug>/assets/`) are in a different directory tree and are not accessible to the server. Always copy downloaded wallpapers and any other binary assets into `screen_dir` immediately after downloading them, then reference them as `/files/<filename>` in all HTML.
 
 ---
@@ -533,6 +533,8 @@ Write `<slug>/manifest.json` matching this schema exactly:
     "opacity": 1,
     "panels-blur": 0,
     "panels-opacity": 1.0,
+    "bubble-blur": 16,
+    "bubble-opacity": 0.88,
     "pattern": "assets/pattern.svg",
     "pattern-opacity": 0.06
   },
@@ -638,8 +640,9 @@ Adjust the opacity percentages to taste (lower = more transparent/wallpaper visi
   background-color: color-mix(in srgb, var(--panel) 82%, transparent);
 }
 
-/* Push chat content below the overlaid header (h-10 = 40px) */
-[data-panels-blur] .chat-scroll { padding-top: 3rem; }
+/* DO NOT add .chat-scroll padding — the app handles padding-top and
+   padding-bottom automatically so messages scroll behind both the
+   header and bottom chrome (input + status bars). */
 
 /* Status bar — frosted glass */
 [data-panels-blur] .status-bar {
@@ -655,19 +658,12 @@ Adjust the opacity percentages to taste (lower = more transparent/wallpaper visi
   background-color: color-mix(in srgb, var(--panel) 82%, transparent);
 }
 
-/* Assistant chat bubbles — semi-transparent with subtle blur */
-[data-panels-blur] .bg-inset {
-  backdrop-filter: blur(16px) saturate(1.1);
-  -webkit-backdrop-filter: blur(16px) saturate(1.1);
-  background-color: color-mix(in srgb, var(--inset) 85%, transparent);
-}
-
-/* User message bubbles — semi-transparent accent */
-[data-panels-blur] .bg-accent {
-  backdrop-filter: blur(16px) saturate(1.1);
-  -webkit-backdrop-filter: blur(16px) saturate(1.1);
-  background-color: color-mix(in srgb, var(--accent) 65%, transparent);
-}
+/* Chat bubble blur and opacity are now controlled by manifest fields:
+   background.bubble-blur (px) and background.bubble-opacity (0-1).
+   The app sets --bubble-blur and --bubble-opacity CSS variables
+   automatically from these fields — do NOT hardcode blur/opacity
+   rules for .bg-inset or .bg-accent in custom_css.
+   Only add box-shadow or other decorative effects here. */
 ```
 
 Key notes for glassmorphism:
@@ -728,7 +724,7 @@ After the theme pack is written, every refinement the user requests goes directl
 Common refinements:
 - "More X color" -> adjust `tokens.accent` or relevant token
 - "Rounder edges" -> increase `shape.radius-*` values
-- "More glassmorphism" -> increase `background.panels-blur`, lower `panels-opacity` to 0.7, adjust `custom_css` opacity percentages in `color-mix()` calls (lower = more transparent)
+- "More glassmorphism" -> increase `background.panels-blur`, lower `panels-opacity` to 0.7. For bubbles: increase `bubble-blur`, lower `bubble-opacity`. These are manifest fields — do NOT hardcode blur/opacity in `custom_css`
 - "Add rain particles" -> set `effects.particles: "rain"`
 - "Custom particles" -> set `effects.particles: "custom"`, generate a new particle shape SVG, update `effects.particle-shape`
 - "Change the pattern" -> regenerate `assets/pattern.svg`, adjust `background.pattern-opacity`
@@ -797,7 +793,7 @@ Use these as starting points when interpreting the user's vibe — not as rigid 
 - **Earth** (forest, stone, natural): Canvas in deep greens/browns `#0a0f08`–`#1a1810`. Accent in moss/terracotta `#6a8a4a`–`#c07040`. Pattern overlays work well (leaf shapes, organic lines).
 - **Monochrome** (minimal, clean, editorial): Pick one hue family and vary only saturation and lightness. Accent is the same hue at full saturation. Elegant but can feel sterile — add texture via pattern overlays.
 
-### Glassmorphism panels-opacity
+### Glassmorphism panels-opacity & bubble-blur/bubble-opacity
 
 When `panels-opacity < 1`, the app renders panel backgrounds as semi-transparent RGBA (panel hex color with the specified alpha). This lets the background gradient/image show through blurred panels. The concept card must replicate this by computing the `--panel-glass` CSS variable:
 
@@ -805,6 +801,8 @@ When `panels-opacity < 1`, the app renders panel backgrounds as semi-transparent
 panel hex: #161B22, panels-opacity: 0.75
 -> --panel-glass: rgba(22, 27, 34, 0.75)
 ```
+
+Chat bubbles have their own independent glass controls: `bubble-blur` (px, default 16) and `bubble-opacity` (0-1, default 0.88). These are set in the manifest `background` block — the app sets `--bubble-blur` and `--bubble-opacity` CSS variables automatically. Do NOT hardcode `.bg-inset` or `.bg-accent` blur/opacity rules in `custom_css`. The user can adjust these live via sliders in the appearance settings.
 
 ### Effect Intensity Starting Points
 
@@ -820,6 +818,8 @@ These are calibrated defaults for ambient, daily-driver themes. Increase for dra
 | `noise` | 0.02–0.05 | <0.01 (invisible) | >0.1 (TV static) |
 | `panels-blur` | 12–20px | <6 (barely frosted) | >30 (everything lost) |
 | `panels-opacity` | 0.70–0.85 | <0.5 (can't read through it) | >0.95 (no glass effect) |
+| `bubble-blur` | 8–16px | 0 (no frosting) | >24 (heavy, slow) |
+| `bubble-opacity` | 0.75–0.90 | <0.5 (hard to read) | >0.95 (no glass effect) |
 | `pattern-opacity` | 0.04–0.08 | <0.02 (invisible) | >0.15 (overpowering) |
 
 ### Dark vs. Light Mode Auto-Detection
