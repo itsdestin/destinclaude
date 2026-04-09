@@ -2,6 +2,14 @@
 
 All notable changes to DestinClaude will be documented in this file.
 
+## [2.3.2] - 2026-04-08
+
+### Added
+- **App sync coordination** — hooks skip sync when DestinCode app's native SyncService is active (.app-sync-active marker), avoiding double-sync
+
+### Changed
+- **Theme builder** — updated SKILL.md and theme-preview.css for bubble-blur/bubble-opacity manifest fields and scroll-behind behavior; themes no longer hardcode blur rules in custom_css
+
 ## [2.3.1] - 2026-04-08
 
 ### Added
