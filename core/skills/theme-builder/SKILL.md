@@ -1,11 +1,25 @@
 ---
 name: theme-builder
-description: Build immersive DestinCode theme packs. Invoke as /theme-builder "your vibe description". Two-phase — concept browser first, then full theme pack generation with assets.
+description: Build immersive DestinCode theme packs. Invoke as /theme-builder "your vibe description". Users can start from a general vibe, a specific detailed brief, or by uploading their own wallpaper. Two-phase — concept browser first, then full theme pack generation with assets.
 ---
 
 # /theme-builder
 
-Build a custom DestinCode theme pack. Claude generates concept options in a browser window first — no app changes — then builds a complete theme pack (folder with manifest + assets). The app hot-reloads from the folder.
+Build a custom DestinCode theme pack. There are three ways the user can start:
+
+- **General vibe** — a short prompt like "cozy autumn", "cyberpunk", or "Hello Kitty". Claude designs the look from scratch.
+- **Specific detailed description** — a longer brief covering palette, fonts, layout, mood, references, etc. Claude follows it precisely.
+- **Upload your own wallpaper** — the user drops in an image file and Claude builds the rest of the theme around it.
+
+Claude generates concept options in a browser window first — no app changes — then builds a complete theme pack (folder with manifest + assets). The app hot-reloads from the folder.
+
+### Wallpaper recommendation (ask early)
+
+Most themes use a wallpaper. **Always recommend the user provide their own**, and tell them why: it saves usage tokens and speeds up the process by reducing how much Claude has to guess or search. Phrase it like:
+
+> "If you have a wallpaper in mind, drop it in — it'll save tokens and speed things up since I won't have to guess or search. If you'd rather, I can find one for you."
+
+Ask this upfront whenever a wallpaper is going to be involved, before generating concepts. If the user provides one, use it as the visual anchor for the palette, mood, and effects. If they prefer Claude find one, proceed with web search as usual.
 
 ---
 
@@ -19,13 +33,15 @@ bash "core/skills/theme-builder/scripts/start-server.sh" --project-dir ~/.claude
 
 Use `run_in_background: true`. Then read the `server-info` file after 3 seconds.
 
-### Step 2: Read the Preview CSS
+### Step 2: Stage the Preview CSS
 
-```
-core/skills/theme-builder/theme-preview.css
+Copy `theme-preview.css` into `screen_dir` so the preview server can serve it:
+
+```bash
+cp core/skills/theme-builder/theme-preview.css "${screen_dir}/theme-preview.css"
 ```
 
-This CSS replicates the app's exact rendering. You MUST embed it in every HTML file you write.
+Then every HTML file you write must link to it via `<link rel="stylesheet" href="/files/theme-preview.css">` in `<head>`. Do NOT embed the CSS contents inline — linking saves ~5000 tokens per render.
 
 ### Step 3: Determine Prompt Mode
 
@@ -41,7 +57,7 @@ Analyze the user's prompt and determine the mode **automatically** — never ask
 - Claude generates all SVGs, picks complementary wallpapers from stock/Unsplash
 - Freedom to invent color stories, effects, and atmospheric touches
 
-### Step 4: Generate 3 Theme Concepts (Round 1)
+### Step 4: Generate 3 Theme Concepts
 
 Generate **3 genuinely different interpretations** of the prompt. Not 3 slight variations — 3 different creative takes. For each concept, decide:
 
@@ -90,20 +106,11 @@ Then write a `manifest.json` with **only** tokens, shape, layout, effects, and f
 - Effects that require assets (custom particles, patterns) should be omitted from the preview
 - The user can see colors, fonts, shape, layout, and screen-wide effects (vignette, noise, scan-lines) live
 - When done previewing, delete the `_preview` folder to revert: `rm -rf ~/.claude/destinclaude-themes/_preview`
-- Do NOT use quick-apply unless the user asks to see it live, or after Round 2 when they're deciding between final options
+- Do NOT use quick-apply unless the user asks to see it live, or when they're deciding between final options
 
-### Step 6: Two-Round Minimum (Mandatory)
+### Step 6: Iterate
 
-After the user picks a concept ("I like option 2", "go with Midnight Rain"), you MUST generate **3 refined variations** of that concept automatically — even if the user doesn't ask for another round. Explain: "Here are 3 refined takes on [name]. Pick your favorite, or tell me what to change."
-
-**Round 2 variations are always:**
-1. **Polished** — the chosen concept fully dialed in, final colors, all effects refined
-2. **Dialed Up** — bolder, more atmospheric, more immersive, more effects
-3. **Dialed Down** — subtler, daily-driver friendly, fewer effects, less visual intensity
-
-Only proceed to Phase 2 after the user confirms from the second (or later) round.
-
-**Iteration loop:** User requests changes -> re-render in the browser. They can request unlimited additional rounds. Proceed to Phase 2 when the user says "build it", "apply it", "go", or similar.
+User requests changes -> re-render in the browser. They can request unlimited additional rounds, or ask for refined variations of a chosen concept (e.g. polished / dialed up / dialed down). Proceed to Phase 2 when the user says "build it", "apply it", "go", or similar.
 
 ---
 
@@ -242,7 +249,7 @@ Every concept card MUST render an **app mockup** that uses the exact same CSS cl
 6. **Pattern overlay**: Use `.pattern-overlay` inside `.app-mockup` with a data-URI SVG `background-image` and `background-size` to show repeating patterns. Set opacity via the `opacity` style property. Use data-URI inline SVGs so the pattern is visible in the preview without external files.
 7. **Asset preview row**: Show thumbnails for planned assets. For wallpapers in brand mode, show the image you plan to download. For generated SVGs, show a tiny inline data-URI preview. For items that will be generated later, use a colored placeholder with an icon label.
 8. **Particles are label-only** in the preview. Show a `.particle-indicator` badge with the preset name (e.g. "rain", "custom hearts", "brand stars"). Omit it for `"none"`.
-9. **Embed the full `theme-preview.css` contents** in a `<style>` tag in the HTML `<head>`. Do NOT link to an external file.
+9. **Link to `theme-preview.css`** via `<link rel="stylesheet" href="/files/theme-preview.css">` in the HTML `<head>`. The file is staged in `screen_dir` by Phase 1 Step 2 — do NOT embed the CSS contents inline.
 10. **Page layout**: show concept cards in a responsive grid (1-3 columns). The page background should be `#1a1a1a` (neutral dark) so all themes are evaluated against the same backdrop.
 11. **Pill bubble style**: `data-bubble-style="pill"` uses `radius-2xl` (NOT `radius-full`) to create a "very rounded" look without destructive semicircular caps. It works with all content types including tool cards. The padding is 24px horizontal / 16px vertical.
 12. **Font selection**: Every theme MUST include a font choice via `--font-sans` and `--font-mono` in its CSS variables. Pick a font that reinforces the theme's vibe — e.g. a rounded sans-serif for playful themes, a strict monospace for hacker themes, a serif for literary themes. Use Google Fonts (web-safe) or well-known system fonts. The concept card scoping div must set both `--font-sans` and `--font-mono` so the mockup renders in the theme's chosen font. If using a Google Font, add `<link href="https://fonts.googleapis.com/css2?family=FONTNAME:wght@400;600;700&display=swap" rel="stylesheet">` in the HTML `<head>` so the font renders in the concept browser. The manifest stores this as `font.family`.
@@ -259,7 +266,7 @@ Every concept card MUST render an **app mockup** that uses the exact same CSS cl
 
 ## Phase 2 — Theme Pack Generation
 
-**When the user picks a concept from the second (or later) round and says "build it":**
+**When the user picks a concept and says "build it":**
 
 ### Phase 2a: Visual Refinement (before writing the theme pack)
 
@@ -291,7 +298,7 @@ After the user approves a concept direction, Claude generates and shows each vis
 - Use the theme's token colors as the page background so icons are seen in context
 - User can say "change the send icon", "make the cursor simpler", "different selection color", etc.
 
-Each screen uses the same `<style>` embed pattern (full `theme-preview.css` in `<head>`) and scopes tokens via inline `style="--canvas: ...; --accent: ...;"` on a wrapper div, just like concept cards. The layout within each screen can use custom flexbox/grid arrangements for the larger preview areas.
+Each screen uses the same `<link rel="stylesheet" href="/files/theme-preview.css">` pattern in `<head>` (the CSS is staged in `screen_dir` by Phase 1 Step 2) and scopes tokens via inline `style="--canvas: ...; --accent: ...;"` on a wrapper div, just like concept cards. The layout within each screen can use custom flexbox/grid arrangements for the larger preview areas.
 
 ### Step 1: Create the Theme Pack Folder
 
@@ -316,6 +323,8 @@ mkdir -p ~/.claude/destinclaude-themes/<slug>/assets
 ```
 
 ### Step 2: Download the Hero Wallpaper
+
+**If the user provided their own wallpaper:** copy it directly into `<slug>/assets/wallpaper.<ext>` (preserve the original extension) and into `screen_dir` for the preview server. Skip the web search entirely. The user-supplied image is the source of truth — derive the palette from it if helpful, but never replace it.
 
 **Brand/IP Mode:**
 - Use WebSearch to find high-quality official or fan art wallpapers
@@ -830,7 +839,7 @@ When interpreting the user's prompt, consider which mode the vibe naturally sugg
 - **Usually light:** pastel, kawaii, cottagecore, minimal, paper, cream, summer
 - **Could go either way:** autumn, forest, vintage, retro, steampunk
 
-When the vibe is ambiguous, include at least one dark and one light concept among the 3 options in Round 1. This gives the user a choice early rather than discovering they wanted the opposite after multiple rounds.
+When the vibe is ambiguous, include at least one dark and one light concept among the 3 initial options. This gives the user a choice early rather than discovering they wanted the opposite after multiple rounds.
 
 ### Exemplar Theme Reference
 
