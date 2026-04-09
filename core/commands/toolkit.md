@@ -64,11 +64,13 @@ Then show hooks:
 
 ```
 HOOKS (run automatically — you don't need to do anything)
-    sync ................ Backs up your data after every file change
-    session-start ....... Syncs encyclopedia + checks inbox on startup
-    write-guard ......... Prevents file conflicts between sessions
+    session-start ....... Rebuilds machine config, checks inbox, surfaces warnings on startup
+    write-guard ......... Prevents file conflicts between sessions (uses .write-registry.json)
+    write-registry ...... Records every Write/Edit so write-guard knows what's changing
     statusline .......... Shows model, context %, sync status at bottom of screen
     checklist-reminder .. Reminds about system changes at session end
+
+(Sync runs in the DestinCode app — use /sync from the toolkit for manual push/pull.)
 ```
 
 Then the phrase guide — only include phrases for installed layers:
@@ -116,7 +118,7 @@ AVAILABLE (not installed — run /setup-wizard to add)
 
 For each layer that is NOT installed, show a one-line description of what it adds:
 
-- **Life** — Daily journaling with a conversational assistant, a living Encyclopedia that builds your biography over time, and Google Drive sync for automatic backups.
+- **Life** — Daily journaling with a conversational assistant and a living Encyclopedia that builds your biography over time. (Cloud sync for backups is owned by the DestinCode desktop app.)
 - **Productivity** — Process notes from your phone via Todoist, create custom Claude skills, and read/send texts through Google Messages.
 
 If everything is installed, show: "You have everything installed! Check https://github.com/itsdestin/destinclaude for new modules."

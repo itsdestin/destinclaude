@@ -1,5 +1,10 @@
 #!/bin/bash
-# SessionStart hook: sync personal data, sync encyclopedia cache, extract MCP config, check inbox
+# SessionStart hook: rebuild machine-specific config, extract MCP config, check toolkit
+# integrity, surface health warnings (unrouted skills, untracked projects), check inbox.
+#
+# Sync decoupling: personal-data pull and backend sync used to live here. The
+# DestinCode app now owns automatic sync. CLI users who need on-demand sync can
+# invoke the manual /sync skill (core/skills/sync/SKILL.md).
 set -euo pipefail
 
 CLAUDE_DIR="${CLAUDE_DIR:-$HOME/.claude}"
@@ -112,10 +117,10 @@ rebuild_local_config
 
 # --- One-time migration: strip machine-specific keys from config.json ---
 # If config.json still has machine-specific keys, remove them so only portable
-# data remains. config.local.json now owns these. Also push cleaned config
-# to preferred backend so next pull doesn't re-introduce stale values.
+# data remains. config.local.json now owns these. The DestinCode app picks up
+# the cleaned config on its next push — toolkit no longer pushes itself.
 if [[ -f "$CONFIG_FILE" ]] && command -v node &>/dev/null; then
-    _CLEANED=$(node -e "
+    node -e "
         const fs = require('fs');
         const path = process.argv[1];
         try {
@@ -127,44 +132,9 @@ if [[ -f "$CONFIG_FILE" ]] && command -v node &>/dev/null; then
             }
             if (changed) {
                 fs.writeFileSync(path, JSON.stringify(c, null, 2) + '\n');
-                console.log('cleaned');
             }
         } catch {}
-    " "$CONFIG_FILE" 2>/dev/null) || true
-    # If we cleaned, push to preferred backend so next pull doesn't re-introduce stale keys
-    if [[ "$_CLEANED" == "cleaned" ]]; then
-        _MIG_BACKEND=""
-        type get_preferred_backend &>/dev/null && _MIG_BACKEND=$(get_preferred_backend)
-        case "$_MIG_BACKEND" in
-            drive)
-                if command -v rclone &>/dev/null; then
-                    _DR=$(config_get "DRIVE_ROOT" "Claude")
-                    rclone copyto "$CONFIG_FILE" "gdrive:$_DR/Backup/personal/system-backup/config.json" 2>/dev/null || true
-                fi
-                ;;
-            github)
-                _MIG_REPO="$CLAUDE_DIR/toolkit-state/personal-sync-repo"
-                if [[ -d "$_MIG_REPO/.git" ]]; then
-                    mkdir -p "$_MIG_REPO/toolkit-state"
-                    cp "$CONFIG_FILE" "$_MIG_REPO/toolkit-state/config.json" 2>/dev/null || true
-                fi
-                ;;
-            icloud)
-                _MIG_ICLOUD=$(config_get "ICLOUD_PATH" "")
-                if [[ -n "$_MIG_ICLOUD" && -d "$_MIG_ICLOUD" ]]; then
-                    mkdir -p "$_MIG_ICLOUD/toolkit-state"
-                    cp "$CONFIG_FILE" "$_MIG_ICLOUD/toolkit-state/config.json" 2>/dev/null || true
-                fi
-                ;;
-        esac
-    fi
-fi
-
-# --- Read DRIVE_ROOT from config (used for encyclopedia sync and backup paths) ---
-DRIVE_ROOT="Claude"
-if [[ -f "$CONFIG_FILE" ]] && command -v node &>/dev/null; then
-    _DR=$(node -e "try{const c=JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'));if(c.DRIVE_ROOT)console.log(c.DRIVE_ROOT)}catch{}" "$CONFIG_FILE" 2>/dev/null)
-    [[ -n "$_DR" ]] && DRIVE_ROOT="$_DR"
+    " "$CONFIG_FILE" 2>/dev/null || true
 fi
 
 # --- Extract MCP server config from .claude.json (before git pull, so local changes get committed) ---
@@ -220,7 +190,7 @@ if [[ -n "$TOOLKIT_ROOT" && -d "$TOOLKIT_ROOT/core/hooks" ]]; then
     _MODIFIED=""
 
     # Check all expected toolkit hook files
-    for _hook in check-inbox.sh checklist-reminder.sh contribution-detector.sh done-sound.sh session-start.sh sync.sh title-update.sh todo-capture.sh tool-router.sh worktree-guard.sh write-guard.sh; do
+    for _hook in check-inbox.sh checklist-reminder.sh contribution-detector.sh done-sound.sh session-start.sh write-registry.sh title-update.sh todo-capture.sh tool-router.sh worktree-guard.sh write-guard.sh; do
         _installed="$CLAUDE_DIR/hooks/$_hook"
         _source="$TOOLKIT_ROOT/core/hooks/$_hook"
         if [[ -f "$_installed" && ! -L "$_installed" && -f "$_source" ]]; then
@@ -279,244 +249,25 @@ fi
 mkdir -p "$ENCYCLOPEDIA_DIR"
 
 # ===========================================================================
-# Phase 2: Background network sync function
-# Design ref: session-start-optimization-design D1, D2
-# All network operations are grouped here and run in a single background
-# process. Independent operations launch in parallel; sequential post-pull
-# operations (slug rewriting, aggregation, migrations) run after all
-# parallel work completes.
+# Phase 2: Background health check
+# Sync decoupling: backend pull/push moved to the DestinCode app. This
+# background block now only runs lightweight, network-light health checks
+# (toolkit version, unrouted user skills, untracked git projects) so the
+# session start stays snappy and the /sync skill has accurate status data.
 # ===========================================================================
-_session_sync_background() {
-    # Signal that sync is in progress
-    echo "syncing $(date +%s)" > "$SYNC_STATUS_FILE" 2>/dev/null
+_session_health_background() {
+    echo "checking $(date +%s)" > "$SYNC_STATUS_FILE" 2>/dev/null
 
-    # Sync errors file — parallel sub-functions write failure warnings here.
-    # _bg_sync_health merges these into .sync-warnings after all parallel work completes.
-    local SYNC_ERRORS_FILE="$CLAUDE_DIR/toolkit-state/.session-sync-errors"
-    > "$SYNC_ERRORS_FILE" 2>/dev/null
-
-    # --- Sub-function: Personal data pull ---
-    _bg_personal_data_pull() {
-        local _PULL_BACKEND=""
-        if type get_preferred_backend &>/dev/null; then
-            _PULL_BACKEND=$(get_preferred_backend)
-        fi
-
-        if [[ -n "$_PULL_BACKEND" ]]; then
-            case "$_PULL_BACKEND" in
-                drive)
-                    local _DR
-                    _DR=$(config_get "DRIVE_ROOT" "Claude")
-                    local DRIVE_SOURCE="gdrive:$_DR/Backup/personal"
-                    if command -v rclone &>/dev/null; then
-                        local _drive_pull_ok=true
-                        # Memory files — iterate per project key so files land in
-                        # projects/{key}/memory/ (not at the project root).
-                        # Uses rclone copy, NOT sync — sync deletes local files
-                        # like conversation .jsonl that don't exist on the remote.
-                        while IFS= read -r _mem_key; do
-                            _mem_key="${_mem_key%/}"
-                            [[ -z "$_mem_key" ]] && continue
-                            mkdir -p "$CLAUDE_DIR/projects/$_mem_key/memory"
-                            rclone copy "$DRIVE_SOURCE/memory/$_mem_key/" \
-                                "$CLAUDE_DIR/projects/$_mem_key/memory/" \
-                                --update --skip-links --exclude '.DS_Store' 2>/dev/null || {
-                                log_backup "WARN" "Drive pull (memory/$_mem_key) failed"
-                                _drive_pull_ok=false
-                            }
-                        done < <(rclone lsf "$DRIVE_SOURCE/memory/" --dirs-only 2>/dev/null)
-
-                        # Parallel rclone calls for independent data categories
-                        rclone copy "$DRIVE_SOURCE/CLAUDE.md" "$CLAUDE_DIR/" \
-                            --update 2>/dev/null &
-                        rclone copy "$DRIVE_SOURCE/system-backup/config.json" "$CLAUDE_DIR/toolkit-state/" \
-                            --update 2>/dev/null &
-                        # Only copy top-level .md files — exclude subdirectories to prevent
-                        # contamination loops where stray dirs get mirrored into the cache.
-                        rclone copy "$DRIVE_SOURCE/encyclopedia/" "$CLAUDE_DIR/encyclopedia/" \
-                            --update --max-depth 1 --include "*.md" 2>/dev/null &
-                        # Conversations — pull per-slug (Design ref: D3)
-                        # Use --ignore-existing to prevent overwriting local files
-                        # with older Drive versions (direction-aware: local is authoritative)
-                        log_backup "INFO" "Pulling conversations from Drive..." "sync.pull.drive"
-                        rclone copy "$DRIVE_SOURCE/conversations/" "$CLAUDE_DIR/projects/" \
-                            --checksum --include '*.jsonl' --ignore-existing 2>/dev/null &
-                        local _conv_pull_pid=$!
-                        # Conversation index — pull to staging for post-pull merge
-                        mkdir -p "$CLAUDE_DIR/toolkit-state/.index-staging"
-                        rclone copy "gdrive:$_DR/Backup/system-backup/conversation-index.json" \
-                            "$CLAUDE_DIR/toolkit-state/.index-staging/" \
-                            --checksum 2>/dev/null &
-                        wait
-                        # Capture conversation pull exit code atomically
-                        # (fixes A3: subshell variable scoping bug)
-                        wait $_conv_pull_pid 2>/dev/null || {
-                            log_backup "WARN" "Drive pull (conversations) failed" "sync.pull.drive"
-                            _drive_pull_ok=false
-                        }
-                        if [[ "$_drive_pull_ok" == false ]]; then
-                            echo "PERSONAL:PULL_FAILED:drive" >> "$SYNC_ERRORS_FILE"
-                        fi
-                    fi
-                    ;;
-                github)
-                    local SYNC_REPO REPO_DIR
-                    SYNC_REPO=$(config_get "PERSONAL_SYNC_REPO" "")
-                    REPO_DIR="$CLAUDE_DIR/toolkit-state/personal-sync-repo"
-                    if [[ -n "$SYNC_REPO" && -d "$REPO_DIR/.git" ]]; then
-                        if ! (cd "$REPO_DIR" && git pull personal-sync main 2>/dev/null); then
-                            log_backup "WARN" "GitHub personal-sync pull failed"
-                            echo "PERSONAL:PULL_FAILED:github" >> "$SYNC_ERRORS_FILE"
-                        fi
-                        # Copy restored files to live locations
-                        [[ -d "$REPO_DIR/memory" ]] && rsync -a --update "$REPO_DIR/memory/" "$CLAUDE_DIR/projects/" 2>/dev/null || true
-                        [[ -f "$REPO_DIR/CLAUDE.md" ]] && rsync -a --update "$REPO_DIR/CLAUDE.md" "$CLAUDE_DIR/" 2>/dev/null || true
-                        [[ -f "$REPO_DIR/system-backup/config.json" ]] && rsync -a --update "$REPO_DIR/system-backup/config.json" "$CLAUDE_DIR/toolkit-state/" 2>/dev/null || true
-                        [[ -d "$REPO_DIR/encyclopedia" ]] && rsync -a --update "$REPO_DIR/encyclopedia/" "$CLAUDE_DIR/encyclopedia/" 2>/dev/null || true
-                        # Conversations
-                        if [[ -d "$REPO_DIR/conversations" ]]; then
-                            local _conv_slug _cs_name
-                            for _conv_slug in "$REPO_DIR/conversations"/*/; do
-                                [[ ! -d "$_conv_slug" ]] && continue
-                                _cs_name=$(basename "$_conv_slug")
-                                mkdir -p "$CLAUDE_DIR/projects/$_cs_name"
-                                cp -n "$_conv_slug"*.jsonl "$CLAUDE_DIR/projects/$_cs_name/" 2>/dev/null || true
-                            done
-                        fi
-                        # Conversation index — stage for post-pull merge
-                        if [[ -f "$REPO_DIR/system-backup/conversation-index.json" ]]; then
-                            mkdir -p "$CLAUDE_DIR/toolkit-state/.index-staging"
-                            cp "$REPO_DIR/system-backup/conversation-index.json" \
-                                "$CLAUDE_DIR/toolkit-state/.index-staging/" 2>/dev/null || true
-                        fi
-                    fi
-                    ;;
-                icloud)
-                    local ICLOUD_PATH
-                    ICLOUD_PATH=$(config_get "ICLOUD_PATH" "")
-                    # Auto-detect if not configured
-                    if [[ -z "$ICLOUD_PATH" ]]; then
-                        local _try
-                        for _try in "$HOME/Library/Mobile Documents/com~apple~CloudDocs/DestinClaude" \
-                                    "$HOME/iCloudDrive/DestinClaude" \
-                                    "$HOME/Apple/CloudDocs/DestinClaude"; do
-                            [[ -d "$_try" ]] && { ICLOUD_PATH="$_try"; break; }
-                        done
-                    fi
-                    if [[ -n "$ICLOUD_PATH" && -d "$ICLOUD_PATH" ]]; then
-                        [[ -d "$ICLOUD_PATH/memory" ]] && rsync -a --update "$ICLOUD_PATH/memory/" "$CLAUDE_DIR/projects/" 2>/dev/null || true
-                        [[ -f "$ICLOUD_PATH/CLAUDE.md" ]] && rsync -a --update "$ICLOUD_PATH/CLAUDE.md" "$CLAUDE_DIR/" 2>/dev/null || true
-                        [[ -f "$ICLOUD_PATH/system-backup/config.json" ]] && rsync -a --update "$ICLOUD_PATH/system-backup/config.json" "$CLAUDE_DIR/toolkit-state/" 2>/dev/null || true
-                        [[ -d "$ICLOUD_PATH/encyclopedia" ]] && rsync -a --update "$ICLOUD_PATH/encyclopedia/" "$CLAUDE_DIR/encyclopedia/" 2>/dev/null || true
-                        # Conversations
-                        if [[ -d "$ICLOUD_PATH/conversations" ]]; then
-                            local _conv_slug _cs_name
-                            for _conv_slug in "$ICLOUD_PATH/conversations"/*/; do
-                                [[ ! -d "$_conv_slug" ]] && continue
-                                _cs_name=$(basename "$_conv_slug")
-                                mkdir -p "$CLAUDE_DIR/projects/$_cs_name"
-                                rsync -a --update "$_conv_slug"*.jsonl "$CLAUDE_DIR/projects/$_cs_name/" 2>/dev/null || \
-                                    cp -n "$_conv_slug"*.jsonl "$CLAUDE_DIR/projects/$_cs_name/" 2>/dev/null || true
-                            done
-                        fi
-                        # Conversation index — stage for post-pull merge
-                        if [[ -f "$ICLOUD_PATH/system-backup/conversation-index.json" ]]; then
-                            mkdir -p "$CLAUDE_DIR/toolkit-state/.index-staging"
-                            cp "$ICLOUD_PATH/system-backup/conversation-index.json" \
-                                "$CLAUDE_DIR/toolkit-state/.index-staging/" 2>/dev/null || true
-                        fi
-                    fi
-                    ;;
-            esac
-        fi
-    }
-
-    # --- Sub-function: Legacy conversation migration (Design ref: D9) ---
-    _bg_legacy_migration() {
-        local _LEGACY_MARKER="$CLAUDE_DIR/toolkit-state/.legacy-conversations-migrated"
-        if [[ ! -f "$_LEGACY_MARKER" ]] && command -v rclone &>/dev/null; then
-            local _DR
-            _DR=$(config_get "DRIVE_ROOT" "Claude")
-            local _LEGACY_PATH="gdrive:$_DR/Backup/conversations/"
-            # Check if legacy path exists
-            if rclone lsd "$_LEGACY_PATH" &>/dev/null; then
-                log_backup "INFO" "Migrating legacy conversations from $_LEGACY_PATH..."
-                rclone copy "$_LEGACY_PATH" "gdrive:$_DR/Backup/personal/conversations/" \
-                    --checksum 2>/dev/null && {
-                    date +%s > "$_LEGACY_MARKER"
-                    log_backup "INFO" "Legacy conversation migration complete"
-                } || log_backup "WARN" "Legacy conversation migration failed (will retry next session)"
-            else
-                # No legacy path — mark as done
-                date +%s > "$_LEGACY_MARKER"
-            fi
-        fi
-    }
-
-    # --- Sub-function: Sync health check ---
+    # --- Sub-function: Health warnings (unrouted skills + untracked projects) ---
+    # The /sync skill reads .sync-warnings to surface "you have N skills that
+    # aren't backed up" hints. Backend connectivity (OFFLINE / PERSONAL:STALE)
+    # is now computed by the DestinCode app and surfaced via SyncPanel — we
+    # don't probe DNS or marker files from the toolkit anymore.
     _bg_sync_health() {
         local WARNINGS_FILE="$CLAUDE_DIR/.sync-warnings"
         > "$WARNINGS_FILE" 2>/dev/null  # reset each session
 
-        # 0. Internet connectivity (DNS lookup via node — fast, no HTTP overhead)
-        local dns_check='require("dns").lookup("github.com",e=>{process.exit(e?1:0)})'
-        local dns_ok=true
-        if command -v timeout &>/dev/null; then
-            timeout 5 node -e "$dns_check" 2>/dev/null || dns_ok=false
-        else
-            node -e "setTimeout(()=>{process.exit(1)},5000);$dns_check" 2>/dev/null || dns_ok=false
-        fi
-        if ! "$dns_ok"; then
-            echo "OFFLINE" >> "$WARNINGS_FILE"
-        fi
-
-        # 1. Personal data sync status
-        local _PS_BACKEND=""
-        if [[ -f "$CONFIG_FILE" ]] && command -v node &>/dev/null; then
-            _PS_BACKEND=$(node -e "try{const c=JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'));console.log(c.PERSONAL_SYNC_BACKEND||'none')}catch{console.log('none')}" "$CONFIG_FILE" 2>/dev/null) || _PS_BACKEND="none"
-        fi
-        # Auto-detect backend: if flag is unset but a known sync provider works, self-heal the config
-        if [[ -z "$_PS_BACKEND" || "$_PS_BACKEND" == "none" ]]; then
-            local _DETECTED=""
-            # Check Google Drive (rclone + gdrive remote)
-            if [[ -z "$_DETECTED" ]] && command -v rclone &>/dev/null && rclone lsd "gdrive:$DRIVE_ROOT/Backup/" &>/dev/null; then
-                _DETECTED="drive"
-            fi
-            # Check iCloud Drive (macOS: ~/Library/Mobile Documents/com~apple~CloudDocs/)
-            if [[ -z "$_DETECTED" ]]; then
-                local _ICLOUD="$HOME/Library/Mobile Documents/com~apple~CloudDocs"
-                if [[ -d "$_ICLOUD" ]]; then
-                    # Look for an existing Claude backup folder, or the iCloud root itself
-                    if [[ -d "$_ICLOUD/Claude/Backup" ]] || [[ -d "$_ICLOUD/Claude" ]]; then
-                        _DETECTED="icloud"
-                    fi
-                fi
-            fi
-            # Self-heal: write detected backend so this check doesn't repeat every session
-            if [[ -n "$_DETECTED" ]]; then
-                _PS_BACKEND="$_DETECTED"
-                if [[ -f "$CONFIG_FILE" ]] && command -v node &>/dev/null; then
-                    node -e "const fs=require('fs');try{const c=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));c.PERSONAL_SYNC_BACKEND=process.argv[2];fs.writeFileSync(process.argv[1],JSON.stringify(c,null,2)+'\n')}catch{}" "$CONFIG_FILE" "$_DETECTED" 2>/dev/null
-                fi
-            fi
-        fi
-        if [[ -z "$_PS_BACKEND" || "$_PS_BACKEND" == "none" ]]; then
-            echo "PERSONAL:NOT_CONFIGURED" >> "$WARNINGS_FILE"
-        else
-            # Check if last sync is stale (>24 hours)
-            local _PS_MARKER="$CLAUDE_DIR/toolkit-state/.sync-marker"
-            if [[ -f "$_PS_MARKER" ]]; then
-                local _PS_LAST _PS_NOW _PS_AGE
-                _PS_LAST=$(cat "$_PS_MARKER" 2>/dev/null || echo 0)
-                _PS_NOW=$(date +%s)
-                _PS_AGE=$((_PS_NOW - _PS_LAST))
-                if [[ $_PS_AGE -ge 86400 ]]; then
-                    echo "PERSONAL:STALE" >> "$WARNINGS_FILE"
-                fi
-            fi
-        fi
-
-        # 2. Unrouted user skills (not toolkit symlinks, not git-tracked, not in skill-routes.json)
+        # 1. Unrouted user skills (not toolkit symlinks, not git-tracked, not in skill-routes.json)
         local _UNROUTED_SKILLS=""
         local _SKILL_ROUTES_FILE="$CLAUDE_DIR/toolkit-state/skill-routes.json"
         if [[ -d "$CLAUDE_DIR/skills" ]]; then
@@ -540,7 +291,7 @@ _session_sync_background() {
                         continue  # copy from toolkit repo — canonical source is the repo itself
                     fi
                 fi
-                # Check if the skill directory is tracked by git (backed up by sync.sh)
+                # Check if the skill directory is tracked by git (backed up out-of-band)
                 if git -C "$CLAUDE_DIR" ls-files --error-unmatch "$_SKILL_DIR/SKILL.md" &>/dev/null 2>&1; then
                     continue  # tracked by git — will be backed up
                 fi
@@ -561,7 +312,7 @@ _session_sync_background() {
             echo "SKILLS:unrouted:$_UNROUTED_SKILLS" >> "$WARNINGS_FILE"
         fi
 
-        # 3. Unsynced projects — discover git repos not tracked by sync.sh or registered
+        # 2. Unsynced projects — discover git repos not yet registered for backup
         if type discover_projects &>/dev/null; then
             local _DISCOVERED
             _DISCOVERED=$(discover_projects 2>/dev/null) || {
@@ -577,13 +328,6 @@ _session_sync_background() {
             else
                 rm -f "$CLAUDE_DIR/.unsynced-projects" 2>/dev/null
             fi
-        fi
-
-        # Merge sync errors from parallel network operations (B1 mandate compliance)
-        local _ERRORS_FILE="$CLAUDE_DIR/toolkit-state/.session-sync-errors"
-        if [[ -s "$_ERRORS_FILE" ]]; then
-            cat "$_ERRORS_FILE" >> "$WARNINGS_FILE" 2>/dev/null
-            rm -f "$_ERRORS_FILE" 2>/dev/null
         fi
 
         # Remove warnings file if empty (no warnings = no statusline clutter)
@@ -629,51 +373,12 @@ VEREOF
     }
 
     # -----------------------------------------------------------------------
-    # Launch network operations in parallel
+    # Launch checks in parallel
     # -----------------------------------------------------------------------
-    _bg_personal_data_pull &
-    _bg_legacy_migration &
     _bg_version_check &
     wait
 
-    # -----------------------------------------------------------------------
-    # Sequential post-pull operations (depend on data pulled above)
-    # -----------------------------------------------------------------------
-
-    # Cross-device project slug rewriting (after pull)
-    if type rewrite_project_slugs &>/dev/null; then
-        rewrite_project_slugs "$CLAUDE_DIR/projects"
-    fi
-
-    # Home-directory conversation aggregation (Design ref: D5)
-    if type aggregate_conversations &>/dev/null; then
-        aggregate_conversations "$CLAUDE_DIR/projects"
-    fi
-
-    # Conversation index — merge remote index and regenerate topic cache
-    local _STAGED_INDEX="$CLAUDE_DIR/toolkit-state/.index-staging/conversation-index.json"
-    if [[ -f "$_STAGED_INDEX" ]] && type merge_conversation_index &>/dev/null; then
-        merge_conversation_index "$_STAGED_INDEX" "$CLAUDE_DIR/conversation-index.json"
-        rm -f "$_STAGED_INDEX"
-        rmdir "$CLAUDE_DIR/toolkit-state/.index-staging" 2>/dev/null || true
-    fi
-    if type regenerate_topic_cache &>/dev/null; then
-        regenerate_topic_cache
-    fi
-
-    # Migration check (Design ref: D7)
-    if type run_migrations &>/dev/null && [[ -f "$CLAUDE_DIR/backup-meta.json" ]]; then
-        run_migrations "$CLAUDE_DIR" || {
-            log_backup "WARN" "Backup migration failed. Some restored data may be in an old format."
-            echo "MIGRATION:FAILED" >> "$SYNC_ERRORS_FILE"
-        }
-    fi
-
-    # -----------------------------------------------------------------------
-    # Sync health check runs AFTER all operations (including migrations)
-    # so it can merge ALL failure warnings into .sync-warnings.
-    # Previously ran before migrations, causing migration errors to be lost.
-    # -----------------------------------------------------------------------
+    # Compute warnings now that version state is fresh
     _bg_sync_health
 
     # -----------------------------------------------------------------------
@@ -685,42 +390,25 @@ VEREOF
         _cmd_count=$(find "$CLAUDE_DIR/commands/" -maxdepth 1 -name '*.md' 2>/dev/null | wc -l)
         _skill_count=$(find "$CLAUDE_DIR/skills/" -maxdepth 1 -type l 2>/dev/null | wc -l)
         if (( _cmd_count == 0 || _skill_count == 0 )); then
-            log_backup "WARN" "Missing symlinks detected — running auto-refresh" "sync.selfheal"
+            log_backup "WARN" "Missing symlinks detected — running auto-refresh" "session-start.selfheal"
             bash "$TOOLKIT_ROOT/scripts/post-update.sh" refresh >> "$BACKUP_LOG" 2>&1 || true
         fi
     fi
 
     # -----------------------------------------------------------------------
-    # Staleness catch-up: if personal sync hasn't run in 24h, trigger it
-    # -----------------------------------------------------------------------
-    local _personal_marker="$CLAUDE_DIR/toolkit-state/.sync-marker"
-    if [[ -f "$_personal_marker" ]]; then
-        local _last_sync _stale_age
-        _last_sync=$(cat "$_personal_marker" 2>/dev/null || echo 0)
-        _stale_age=$(( $(date +%s) - _last_sync ))
-        if (( _stale_age > 86400 )); then
-            log_backup "INFO" "Personal sync stale (${_stale_age}s) — triggering catch-up" "sync.stale"
-            bash "$CLAUDE_DIR/hooks/sync.sh" \
-                <<< '{"tool_input":{"file_path":"'"$CLAUDE_DIR/CLAUDE.md"'"}}' &
-        fi
-    fi
-
-    # -----------------------------------------------------------------------
-    # Mark sync complete
+    # Mark health pass complete
     # -----------------------------------------------------------------------
     debounce_touch "$SYNC_DEBOUNCE_MARKER" 2>/dev/null || true
     echo "done $(date +%s)" > "$SYNC_STATUS_FILE" 2>/dev/null
 }
 
 # ===========================================================================
-# Phase 2 dispatch: background network sync with debounce
-# Design ref: session-start-optimization-design D1, D2
+# Phase 2 dispatch: background health checks with debounce
+# Sync decoupling: this used to launch a full personal-data pull. Now it runs
+# only the lightweight version check + skill/project warning generation.
 # ===========================================================================
-# Skip sync when DestinCode app handles it (config rebuild + MCP extraction above still run)
-if [[ -f "$CLAUDE_DIR/toolkit-state/.app-sync-active" ]]; then
-    log_backup "INFO" "App sync active — skipping hook sync" "session-start.skip"
-elif debounce_check "$SYNC_DEBOUNCE_MARKER" "$SYNC_DEBOUNCE_MINUTES"; then
-    _session_sync_background >> "$BACKUP_LOG" 2>&1 &
+if debounce_check "$SYNC_DEBOUNCE_MARKER" "$SYNC_DEBOUNCE_MINUTES"; then
+    _session_health_background >> "$BACKUP_LOG" 2>&1 &
     disown
 else
     echo "skipped $(date +%s)" > "$SYNC_STATUS_FILE" 2>/dev/null

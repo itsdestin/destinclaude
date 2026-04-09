@@ -36,19 +36,15 @@ Run a lightweight health check on the installed toolkit. This is the same verifi
      - Announcements: `announcement-fetch.js` is reachable (via `toolkit_root` config or as sibling)
      - Version display: `~/.claude/toolkit-state/update-status.json` exists with valid JSON
      - Rate limits: `usage-fetch.js` is reachable from where `statusline.sh` runs
-   - [ ] **Backend connectivity:** For each configured backend in `PERSONAL_SYNC_BACKEND` (comma-separated):
-     - **Drive:** `rclone lsd gdrive: 2>/dev/null` succeeds
-     - **GitHub:** `git ls-remote` on the personal-sync repo URL succeeds
-     - **iCloud:** iCloud folder exists at the configured or auto-detected path
-     If any backend is unreachable, show WARN (not FAIL — backends can be temporarily offline)
-   - [ ] **Backup schema:** If `~/.claude/backup-meta.json` exists, verify `schema_version` matches the toolkit's expected version. If it doesn't match, show WARN: "Backup schema mismatch — run /restore to migrate"
+   - [ ] **Write registry:** `~/.claude/hooks/write-registry.sh` exists and resolves. The registry file `~/.claude/.write-registry.json` is created by Claude Code on the first Write/Edit; absence is OK on a fresh install.
+   - [ ] **App sync coordination:** If `~/.claude/toolkit-state/.app-sync-active` exists, the DestinCode app is running and owns sync. Note this in the report — it's INFO, not a failure.
    - [ ] **Shared libraries:** `~/.claude/hooks/lib/backup-common.sh` and `~/.claude/hooks/lib/migrate.sh` exist and resolve (if symlinks)
    - [ ] **Migrations directory:** `~/.claude/hooks/migrations/v1.json` exists
 
    **Life (if installed):**
-   - [ ] `rclone lsd gdrive:` succeeds (Google Drive connected)
    - [ ] Encyclopedia files exist locally
    - [ ] Journal directory exists or can be created
+   - [ ] `rclone` is on PATH (only check; backend connectivity belongs to the DestinCode app's sync panel and the manual `/sync` skill)
 
    **Productivity (if installed):**
    - [ ] Todoist MCP responds (if configured)
@@ -133,9 +129,9 @@ Run a lightweight health check on the installed toolkit. This is the same verifi
      Statusline .......................... OK
 
    Life:
-     Google Drive ........................ OK
      Encyclopedia files .................. OK
      Journal directory ................... OK
+     rclone available .................... OK
 
    Productivity:
      Todoist ............................. OK

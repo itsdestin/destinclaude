@@ -1,75 +1,84 @@
 ---
 name: sync
-description: Show sync status dashboard and resolve warnings. Manage backend configuration, skill backup routing, and force syncs. Use when user says "/sync", "sync status", "check sync", "backup status", "force sync", "backup now", "conversation sync", "sync my conversations", "cross-device resume", "configure backends", "manage backends", "manage skill backups", "skill routing", when the statusline shows sync warnings, or when a session-start hook reports unsynced projects/skills.
+description: Manual sync hub for backing up personal data to cloud backends from the CLI. Use when user says "/sync", "sync status", "check sync", "force sync", "backup now", "manual backup", "push to drive", "pull from drive", "configure backends", "manage backends", "skill routing", or when session-start surfaces unrouted-skill / untracked-project warnings.
 ---
 
-# /sync — Sync Hub
+# /sync — Manual Sync Hub
 
-You are managing the user's data protection. This is an interactive hub — show the status dashboard, present an action menu, handle the user's choice, then return to the dashboard until they're done. The sync system backs up personal data and system config to configured cloud backends (Google Drive, GitHub, iCloud) via `sync.sh`.
+You are managing the user's data protection from the CLI. This is the **manual fallback** for sync — the DestinCode app owns automatic backup when it's running. Use this skill when:
 
-**Note:** The Drive remote name (`gdrive:`) and other backend paths are determined by the user's backup configuration in `~/.claude/toolkit-state/config.json`. There is no local git repo at `~/.claude/` — all backups go to cloud backends.
+- The user is on a CLI-only machine (headless server, SSH session, no app installed)
+- The user wants to trigger an immediate push or pull without waiting for the app
+- The user needs to configure backends or routes from the CLI
+
+This skill talks to the **same backends** the app uses (Google Drive via rclone, GitHub via git, iCloud via rsync) and reads/writes the **same config and state files** (`~/.claude/toolkit-state/config.json`, `~/.claude/backup-meta.json`, `~/.claude/.sync-warnings`). Anything you push from here will be visible to the app when it next pulls, and vice versa.
+
+This is an interactive hub: show the dashboard, present an action menu, handle the user's choice, then return to the dashboard until they're done.
 
 ## Parse Arguments
 
-Check if the user provided an argument:
 - No argument → full status dashboard + action menu
-- `now` (or phrases: "backup now", "force sync", "force backup", "run a backup", "sync to Drive") → force sync (skip to §5)
+- `push` (or "backup now", "force sync", "push to drive", "manual backup") → skip to §5
+- `pull` (or "pull from drive", "fetch backups", "restore latest") → skip to §6
 - `add <path>` → register a single project (skip to §4 for that path only)
 - `ignore <path>` → add path to ignored list in tracked-projects.json, remove from .unsynced-projects
 - `backends` (or "configure backends", "manage backends") → skip to §7
-- `skills` (or "skill routing", "manage skill backups", "skill backups") → skip to §8
+- `skills` (or "skill routing", "manage skill backups") → skip to §8
 
-## §1 — Setup: Read State Files
+## §1 — Read State
 
-Read ALL of these before showing anything:
+Read these before showing anything:
 
 ```bash
-cat ~/.claude/.sync-warnings 2>/dev/null        # Active warnings from session-start
-cat ~/.claude/backup-meta.json 2>/dev/null       # Last sync metadata
-cat ~/.claude/toolkit-state/.sync-marker 2>/dev/null  # Sync debounce timestamp
-
-cat ~/.claude/.unsynced-projects 2>/dev/null     # Discovered but unregistered projects
-cat ~/.claude/tracked-projects.json 2>/dev/null  # Project registry (may not exist yet)
-cat ~/.claude/toolkit-state/config.json 2>/dev/null  # Backend config
-cat ~/.claude/toolkit-state/skill-routes.json 2>/dev/null  # Skill backup routing manifest
-tail -20 ~/.claude/backup.log 2>/dev/null        # Recent backup operations
+cat ~/.claude/toolkit-state/config.json 2>/dev/null         # Backend config
+cat ~/.claude/backup-meta.json 2>/dev/null                  # Last sync metadata (written by app or last manual push)
+cat ~/.claude/toolkit-state/.app-sync-active 2>/dev/null    # If present, app is running and owns sync
+cat ~/.claude/.sync-warnings 2>/dev/null                    # Toolkit-side warnings (unrouted skills, untracked projects)
+cat ~/.claude/.unsynced-projects 2>/dev/null                # Discovered but unregistered projects
+cat ~/.claude/tracked-projects.json 2>/dev/null             # Project registry
+cat ~/.claude/toolkit-state/skill-routes.json 2>/dev/null   # Skill backup routing
+tail -30 ~/.claude/backup.log 2>/dev/null                   # Recent operations from both app + toolkit
 ```
 
-Also run live checks:
+Compute live status (the toolkit no longer maintains `.sync-marker` automatically):
+
 ```bash
-# Internet connectivity
+# Connectivity
 node -e 'require("dns").lookup("github.com",e=>{process.exit(e?1:0)})' 2>/dev/null && echo "ONLINE" || echo "OFFLINE"
 
-# Backend reachability (only check configured backends)
-# Drive: rclone lsd gdrive: 2>/dev/null
-# GitHub: git -C ~/.claude/toolkit-state/personal-sync-repo remote -v 2>/dev/null
-# iCloud: test -d "<ICLOUD_PATH>"
+# Backend reachability — only run for backends listed in PERSONAL_SYNC_BACKEND
+# Drive:  rclone lsd "gdrive:${DRIVE_ROOT:-Claude}/Backup/personal/" 2>/dev/null
+# GitHub: test -d ~/.claude/toolkit-state/personal-sync-repo/.git
+# iCloud: test -d "$ICLOUD_PATH"
 ```
 
 ## §2 — Status Dashboard
 
-Always show this first. Compute relative times from epoch timestamps. Read `PERSONAL_SYNC_BACKEND` from config.json — it's a comma-separated string like `"drive"`, `"drive,github"`, or `"drive,icloud"`.
+Read `PERSONAL_SYNC_BACKEND` from `config.json` — it's a comma-separated string like `"drive"`, `"drive,github"`, or `"drive,icloud"`.
 
 ```
 ═══════════════════════════════════════════════════
-  Sync Status
+  Sync Status     (manual mode)
 ═══════════════════════════════════════════════════
 
+  App sync:
+    ✓ DestinCode app is running — automatic sync is active
+    — OR —
+    ○ App not running — toolkit is the only sync mechanism
+
   Backends:
-    Drive: ✓ active → gdrive:{DRIVE_ROOT}/Backup/personal/
+    Drive:  ✓ active → gdrive:{DRIVE_ROOT}/Backup/personal/
     GitHub: ✓ active → {PERSONAL_SYNC_REPO}
     iCloud: ✓ active → {ICLOUD_PATH}
     — OR for each unconfigured backend —
-    Drive: not configured
+    Drive:  not configured
     — OR if no backends at all —
-    ⚠ No backends configured — run /setup-wizard or pick "Reconfigure backends" below
+    ⚠ No backends configured — run "Reconfigure backends" below
 
-  Last Sync:
-    Xm ago
+  Last successful push:
+    Xm ago (from backup-meta.json)
     — OR —
-    ⚠ Stale (last sync: Xd ago)
-    — OR —
-    Never synced
+    Never
 
   Skills:
     N synced (personal), M contributed, K skipped
@@ -86,15 +95,13 @@ Always show this first. Compute relative times from epoch timestamps. Read `PERS
 ═══════════════════════════════════════════════════
 ```
 
+For the App sync row, check whether `~/.claude/toolkit-state/.app-sync-active` exists. If it does, mention that the app is the canonical sync engine and the user normally doesn't need to run `/sync` — but they can still use it to trigger an immediate push/pull or change config.
+
 For the Skills row, count from `skill-routes.json`: skills with `"route": "personal"` are "synced", `"route": "contribute"` are "contributed", `"route": "none"` are "skipped". Any user-created skill in `~/.claude/skills/` not present in `skill-routes.json` (and not a toolkit symlink/copy) is "unrouted".
 
-If there are no warnings at all, show the dashboard and: "Everything looks good — all data is protected."
-
-Then always show the Action Menu.
+If everything looks fine, say "Everything looks good — your data is protected." Then always show the Action Menu.
 
 ## Action Menu
-
-After showing the dashboard, present a contextual action menu. Items 1–3 only appear when their condition is met. Items 4–6 are always available:
 
 ```
 What would you like to do?
@@ -103,31 +110,31 @@ What would you like to do?
   2. Configure skill backups   ← only if unrouted skills exist, or always if user wants to manage routes
   3. Register projects         ← only if .unsynced-projects has entries
   4. Reconfigure backends
-  5. Force sync now
-  6. Done
+  5. Push now (force backup)
+  6. Pull now (fetch latest)
+  7. Done
 ```
 
-Wait for the user to pick. Route to the corresponding section:
+Route to the corresponding section:
 - 1 → §3 (Warning Resolution)
 - 2 → §8 (Skill Backup Management)
 - 3 → §4 (Project Onboarding)
 - 4 → §7 (Backend Reconfiguration)
-- 5 → §5 (Force Sync)
-- 6 → End. Say "All good — your data is protected." and stop.
+- 5 → §5 (Force Push)
+- 6 → §6 (Force Pull)
+- 7 → End. Say "All good — your data is protected." and stop.
 
 ### Hub Return
 
-After completing ANY section (§3, §4, §5, §7, §8), return here:
+After completing ANY section (§3, §4, §5, §6, §7, §8), return here:
 1. Re-read the state files from §1 (they may have changed)
 2. Show a refreshed dashboard (§2)
 3. Show the action menu again
 4. Continue until the user picks "Done"
 
-This makes `/sync` a hub, not a one-shot report.
-
 ## §3 — Warning Resolution
 
-Walk through each active warning from `.sync-warnings`. Present one at a time, wait for user response.
+Walk through each active warning. Present one at a time, wait for user response.
 
 ### OFFLINE
 > No internet connection detected. Remote sync is paused.
@@ -139,56 +146,22 @@ Walk through each active warning from `.sync-warnings`. Present one at a time, w
 >
 > Options:
 > 1. Configure a backend now (goes to §7)
-> 2. Run `/setup-wizard` for full guided setup
+> 2. Install the DestinCode app for automatic sync — https://github.com/itsdestin/destincode/releases
 
 ### PERSONAL:STALE
 Diagnose the cause:
-1. Check if `sync.sh` is registered as a PostToolUse hook in `~/.claude/settings.json`
-2. Check if the backend is reachable (rclone/git)
-3. Check the debounce marker age (`~/.claude/toolkit-state/.sync-marker`)
-4. Check `backup.log` for recent errors
+1. Check whether the DestinCode app is running (`~/.claude/toolkit-state/.app-sync-active` present?)
+2. Check whether the configured backend is reachable (rclone/git/iCloud path)
+3. Check `backup.log` for recent errors
+4. Compute the age of `~/.claude/backup-meta.json` (last successful push)
 
 Report what you find, then offer:
 > Options:
-> 1. Force a sync now (resets debounce, runs sync immediately — goes to §5)
+> 1. Push now (goes to §5)
 > 2. Show recent backup.log entries for debugging
 
 ### SKILLS:unrouted:name1,name2
-For each unrouted skill:
-> `<name>` exists at `~/.claude/skills/<name>/` but has no backup route configured.
->
-> Options:
-> 1. **Personal sync** — back up to your configured backends (recommended)
-> 2. **Contribute to DestinClaude** — open a PR to share this skill upstream (also stays in personal sync as safety net)
-> 3. **No backup** — skip this skill (lives only on this machine)
-
-Write the user's choice to `~/.claude/toolkit-state/skill-routes.json`:
-```bash
-node -e "
-  const fs = require('fs');
-  const f = process.argv[1];
-  const name = process.argv[2];
-  const route = process.argv[3];
-  let routes = {};
-  try { routes = JSON.parse(fs.readFileSync(f, 'utf8')); } catch {}
-  routes[name] = { route: route, since: new Date().toISOString().slice(0, 10) };
-  fs.writeFileSync(f, JSON.stringify(routes, null, 2) + '\n');
-" ~/.claude/toolkit-state/skill-routes.json "<name>" "<personal|contribute|none>"
-```
-
-If the user picks "Contribute", also run the `/contribute` command flow to create the PR. After the PR is created, record the PR number:
-```bash
-node -e "
-  const fs = require('fs');
-  const f = process.argv[1];
-  const name = process.argv[2];
-  const pr = parseInt(process.argv[3]);
-  let routes = {};
-  try { routes = JSON.parse(fs.readFileSync(f, 'utf8')); } catch {}
-  routes[name] = { route: 'contribute', pr: pr, since: new Date().toISOString().slice(0, 10) };
-  fs.writeFileSync(f, JSON.stringify(routes, null, 2) + '\n');
-" ~/.claude/toolkit-state/skill-routes.json "<name>" "<pr-number>"
-```
+Transition to §8 — Skill Backup Management — and resolve the unrouted skills there.
 
 ### PROJECTS:N
 Transition to §4 — Project Onboarding.
@@ -238,39 +211,19 @@ Present each project one at a time:
 
 ### Execution
 
-Before creating repos, verify `gh` is available:
-```bash
-command -v gh &>/dev/null || echo "GitHub CLI (gh) not found — install from https://cli.github.com/"
-```
-
-Get the GitHub username dynamically:
+Verify `gh` is available, get the GitHub username, and use the standard `gh repo create` flow:
 ```bash
 GH_USER=$(gh api user -q '.login' 2>/dev/null)
-```
-
-**Initialize Git (if needed):**
-```bash
-cd "<path>" && git init && git add -A && git commit -m "Initial commit"
-```
-
-**Create GitHub repo:**
-```bash
-# Private:
 gh repo create "$GH_USER/<basename>" --private --source="<path>" --remote=origin --push
-# Public:
-gh repo create "$GH_USER/<basename>" --public --source="<path>" --remote=origin --push
 ```
 
 **Register in tracked-projects.json:**
 ```bash
 node -e "
     const fs = require('fs');
-    const regPath = process.argv[1];
-    const projPath = process.argv[2];
-    const remote = process.argv[3] || '';
-    const reg = JSON.parse(fs.readFileSync(regPath, 'utf8'));
-    reg.projects.push({ path: projPath, remote: remote, registered: new Date().toISOString() });
-    fs.writeFileSync(regPath, JSON.stringify(reg, null, 2) + '\n');
+    const reg = JSON.parse(fs.readFileSync(process.argv[1], 'utf8'));
+    reg.projects.push({ path: process.argv[2], remote: process.argv[3] || '', registered: new Date().toISOString() });
+    fs.writeFileSync(process.argv[1], JSON.stringify(reg, null, 2) + '\n');
 " ~/.claude/tracked-projects.json "<normalized-path>" "<owner/repo>"
 ```
 
@@ -278,54 +231,188 @@ node -e "
 ```bash
 node -e "
     const fs = require('fs');
-    const regPath = process.argv[1];
-    const projPath = process.argv[2];
-    const reg = JSON.parse(fs.readFileSync(regPath, 'utf8'));
+    const reg = JSON.parse(fs.readFileSync(process.argv[1], 'utf8'));
     if (!reg.ignored) reg.ignored = [];
-    if (!reg.ignored.includes(projPath)) reg.ignored.push(projPath);
-    fs.writeFileSync(regPath, JSON.stringify(reg, null, 2) + '\n');
+    if (!reg.ignored.includes(process.argv[2])) reg.ignored.push(process.argv[2]);
+    fs.writeFileSync(process.argv[1], JSON.stringify(reg, null, 2) + '\n');
 " ~/.claude/tracked-projects.json "<normalized-path>"
 ```
 
-### Cleanup
+After all projects are resolved, remove resolved entries from `~/.claude/.unsynced-projects` (delete the file if all are resolved).
 
-After all projects are resolved:
-1. Remove resolved entries from `~/.claude/.unsynced-projects` (delete file if all resolved)
-2. The updated `tracked-projects.json` will be synced to cloud backends on the next `sync.sh` cycle
+## §5 — Force Push
 
-## §5 — Force Sync
+Triggered by `/sync push` or trigger phrases ("backup now", "force a push", "manual backup", "push to Drive").
 
-Triggered by `/sync now` or trigger phrases ("backup now", "force a full backup", "run a backup", "manual backup", "sync to Drive").
+**Coordination:** If the DestinCode app is running (`.app-sync-active` exists), tell the user:
+> The DestinCode app is running and handles sync automatically every 15 minutes.
+> Running a manual push now is safe — it will use the same backends and the app will pick up the changes. Continue? (yes/no)
 
+**Source the shared utilities:**
 ```bash
-# Reset debounce marker so sync.sh will fire immediately
-touch -t 202001010000 ~/.claude/toolkit-state/.sync-marker 2>/dev/null
+source ~/.claude/hooks/lib/backup-common.sh
+```
 
-# Run sync directly
-bash ~/.claude/hooks/sync.sh <<< '{"tool_input":{"file_path":"'"$HOME/.claude/CLAUDE.md"'"}}'
+**Read backend config:**
+```bash
+BACKENDS=$(get_backends)              # newline-separated list
+DRIVE_ROOT=$(config_get "DRIVE_ROOT" "Claude")
+SYNC_REPO=$(config_get "PERSONAL_SYNC_REPO" "")
+ICLOUD_PATH=$(config_get "ICLOUD_PATH" "")
+```
+
+For each backend in `$BACKENDS`, push these data categories:
+
+**Memory files** (per project key, never as a single sync — sync deletes things):
+- Source: `~/.claude/projects/<key>/memory/`
+- Destination: `<backend-root>/memory/<key>/`
+
+**Conversations** (`.jsonl` files only, not symlinks):
+- Source: `~/.claude/projects/<slug>/*.jsonl`
+- Destination: `<backend-root>/conversations/<slug>/`
+
+**System files:**
+- `~/.claude/CLAUDE.md` → `<backend-root>/CLAUDE.md`
+- `~/.claude/encyclopedia/*.md` (top level only) → `<backend-root>/encyclopedia/`
+- `~/.claude/toolkit-state/config.json` → `<backend-root>/system-backup/config.json`
+- `~/.claude/settings.json` → `<backend-root>/system-backup/settings.json`
+- `~/.claude/keybindings.json`, `mcp.json`, `history.jsonl` → `<backend-root>/system-backup/`
+- `~/.claude/plans/`, `~/.claude/specs/` → `<backend-root>/system-backup/plans|specs/`
+- `~/.claude/conversation-index.json` → `<backend-root>/system-backup/conversation-index.json`
+
+**User-created skills** (skip toolkit-owned symlinks and skills routed to "none"):
+- Source: `~/.claude/skills/<name>/` (where `is_toolkit_owned` returns false)
+- Skip if `skill-routes.json` route is `"none"`
+- Destination: `<backend-root>/skills/<name>/`
+
+### Per-backend commands
+
+**Drive** (`<backend-root>` = `gdrive:$DRIVE_ROOT/Backup/personal`):
+```bash
+rclone copy "$SRC" "gdrive:$DRIVE_ROOT/Backup/personal/$DST" --update --skip-links
+```
+
+**GitHub** (`<backend-root>` = `~/.claude/toolkit-state/personal-sync-repo`):
+```bash
+REPO_DIR=~/.claude/toolkit-state/personal-sync-repo
+# If repo doesn't exist, clone or init:
+[[ -d "$REPO_DIR/.git" ]] || git clone "$SYNC_REPO" "$REPO_DIR" 2>/dev/null || {
+    mkdir -p "$REPO_DIR"
+    cd "$REPO_DIR" && git init && git remote add personal-sync "$SYNC_REPO"
+    echo "# Personal Claude Data Backup" > README.md
+    git add -A && git commit -m "Initial commit" --no-gpg-sign
+    git branch -M main && git push -u personal-sync main
+}
+# Then copy files into $REPO_DIR matching the layout above, then:
+cd "$REPO_DIR" && git add -A && git diff --cached --quiet || {
+    git commit -m "manual sync" --no-gpg-sign
+    git push personal-sync main
+}
+```
+
+**iCloud** (`<backend-root>` = `$ICLOUD_PATH`):
+```bash
+rsync -a --update "$SRC" "$ICLOUD_PATH/$DST"
+# Fall back to cp -r if rsync isn't available
+```
+
+### After the push
+
+Update `~/.claude/backup-meta.json` so the next status check shows a fresh timestamp:
+```bash
+node -e "
+  const fs = require('fs');
+  const meta = { last_sync: new Date().toISOString(), source: 'manual-push', backends: process.argv[1].split(',') };
+  fs.writeFileSync(process.argv[2], JSON.stringify(meta, null, 2) + '\n');
+" "$BACKENDS" ~/.claude/backup-meta.json
 ```
 
 Report results:
 ```
-Force sync complete:
-  Personal data: ✓ synced to Drive / ⚠ failed
+Push complete:
+  Drive:  ✓ pushed (memory, conversations, system, skills)
+  GitHub: ⚠ failed — see ~/.claude/backup.log
+  iCloud: ✓ pushed
 ```
 
-Check `backup.log` for details if there were errors.
+If any backend failed, point the user at `~/.claude/backup.log` and offer to show the last 30 lines.
 
-## §6 — Path Normalization
+## §6 — Force Pull
 
-All paths stored in `tracked-projects.json` must be normalized. Use this before storing:
+Triggered by `/sync pull` or trigger phrases ("pull from Drive", "fetch latest", "download backups").
+
+**Coordination:** If the DestinCode app is running, tell the user:
+> The app pulled on launch and continues to sync. A manual pull is only useful if data was changed on another device since you opened the app. Continue? (yes/no)
+
+**Source utilities and read backend config** (same as §5).
+
+### Pull operations (preferred backend only — first in list)
+
+**Memory** (preserves local files; uses `--update` so newer wins):
+- Pull `<backend-root>/memory/<key>/` → `~/.claude/projects/<key>/memory/`
+
+**Conversations** (`.jsonl`, never overwrite local — local is authoritative):
+- Pull `<backend-root>/conversations/` → `~/.claude/projects/`
+- Use `--ignore-existing` (rclone) or `cp -n` (rsync) so local files always win
+
+**System files** (use `--update` so newer wins):
+- `<backend-root>/CLAUDE.md` → `~/.claude/CLAUDE.md`
+- `<backend-root>/encyclopedia/*.md` → `~/.claude/encyclopedia/`
+- `<backend-root>/system-backup/config.json` → `~/.claude/toolkit-state/config.json`
+- Other system-backup files → `~/.claude/`
+
+**Conversation index** (stage to a temp file, then merge):
 ```bash
-# Normalize: backslashes to forward slashes, resolve symlinks
-normalize_path() {
-    local p="$1"
-    p="${p//\\//}"
-    realpath "$p" 2>/dev/null || readlink -f "$p" 2>/dev/null || echo "$p"
-}
+mkdir -p ~/.claude/toolkit-state/.index-staging
+# Pull <backend-root>/system-backup/conversation-index.json → .index-staging/
+merge_conversation_index ~/.claude/toolkit-state/.index-staging/conversation-index.json
+rm -rf ~/.claude/toolkit-state/.index-staging
 ```
 
-This matches the `normalize_path()` function in `lib/backup-common.sh`.
+### Per-backend commands
+
+**Drive:**
+```bash
+DRIVE_SOURCE="gdrive:$DRIVE_ROOT/Backup/personal"
+# Iterate memory project keys (don't bulk-sync — that would delete local conversations)
+while IFS= read -r key; do
+    key="${key%/}"
+    [[ -z "$key" ]] && continue
+    mkdir -p ~/.claude/projects/"$key"/memory
+    rclone copy "$DRIVE_SOURCE/memory/$key/" ~/.claude/projects/"$key"/memory/ --update --skip-links
+done < <(rclone lsf "$DRIVE_SOURCE/memory/" --dirs-only)
+rclone copy "$DRIVE_SOURCE/conversations/" ~/.claude/projects/ --include '*.jsonl' --ignore-existing
+rclone copy "$DRIVE_SOURCE/CLAUDE.md" ~/.claude/ --update
+# ...etc
+```
+
+**GitHub:**
+```bash
+cd ~/.claude/toolkit-state/personal-sync-repo && git pull personal-sync main
+# Then rsync from REPO_DIR back into ~/.claude/
+rsync -a --update memory/ ~/.claude/projects/
+rsync -a --update CLAUDE.md ~/.claude/
+# ...etc
+```
+
+**iCloud:**
+```bash
+rsync -a --update "$ICLOUD_PATH/memory/" ~/.claude/projects/
+rsync -a --update "$ICLOUD_PATH/CLAUDE.md" ~/.claude/
+# ...etc
+```
+
+### After the pull
+
+Run cross-device cleanup so `/resume` works across devices:
+```bash
+source ~/.claude/hooks/lib/backup-common.sh
+rewrite_project_slugs ~/.claude/projects
+aggregate_conversations ~/.claude/projects
+regenerate_topic_cache
+```
+
+Report results per backend, similar to §5.
 
 ## §7 — Backend Reconfiguration
 
@@ -342,16 +429,16 @@ GitHub     ✓ active         {PERSONAL_SYNC_REPO}
 iCloud     not configured   —
 ```
 
-Show all three supported backends. Mark as "active" if present in `PERSONAL_SYNC_BACKEND`, "not configured" otherwise. For active backends, show the relevant config value.
+Show all three supported backends. Mark as "active" if present in `PERSONAL_SYNC_BACKEND`, "not configured" otherwise.
 
-### Step 2: Ask what they want to do
+### Step 2: Action menu
 
 ```
 What would you like to do?
   1. Add a backend
   2. Remove a backend
   3. Change backend settings
-  4. Test all backends
+  4. Test all backends (round-trip)
   5. Back to dashboard
 ```
 
@@ -360,186 +447,64 @@ What would you like to do?
 Ask which backend to add (only show unconfigured ones):
 
 **Drive:**
-1. Check if rclone is installed: `command -v rclone &>/dev/null`
-   - If missing, show install command for the current platform:
-     - Linux: `curl https://rclone.org/install.sh | sudo bash`
-     - macOS: `brew install rclone`
-     - Windows: `winget install Rclone.Rclone`
-   - Wait for user to install, then verify
-2. Check if `gdrive:` remote exists: `rclone listremotes | grep -q '^gdrive:'`
-   - If missing, walk through: `rclone config create gdrive drive`
-   - Verify: `rclone lsd gdrive: 2>/dev/null`
+1. Verify rclone is installed; if not, show install command for the platform
+2. Verify `gdrive:` remote exists (`rclone listremotes | grep -q '^gdrive:'`); if not, walk through `rclone config create gdrive drive`
 3. Ask for Drive root folder name (default: "Claude")
-4. Run round-trip test (see Testing section below)
-5. On success, update config:
-```bash
-node -e "
-  const fs = require('fs');
-  const f = process.argv[1];
-  const c = JSON.parse(fs.readFileSync(f, 'utf8'));
-  const backends = (c.PERSONAL_SYNC_BACKEND || '').split(',').filter(Boolean);
-  if (!backends.includes('drive')) backends.push('drive');
-  c.PERSONAL_SYNC_BACKEND = backends.join(',');
-  c.DRIVE_ROOT = process.argv[2];
-  fs.writeFileSync(f, JSON.stringify(c, null, 2) + '\n');
-" ~/.claude/toolkit-state/config.json "<drive-root>"
-```
+4. Run round-trip test
+5. On success, update config (add to `PERSONAL_SYNC_BACKEND`, set `DRIVE_ROOT`)
 
 **GitHub:**
-1. Check if `gh` is installed: `command -v gh &>/dev/null`
-2. Check auth: `gh auth status 2>/dev/null`
-3. Ask for sync repo URL, or offer to create one:
-   ```bash
-   GH_USER=$(gh api user -q '.login' 2>/dev/null)
-   gh repo create "$GH_USER/claude-personal-sync" --private --description "Personal Claude data backup"
-   ```
-4. Verify repo exists: `gh repo view "<repo>" --json name 2>/dev/null`
-5. Run round-trip test
-6. On success, update config:
-```bash
-node -e "
-  const fs = require('fs');
-  const f = process.argv[1];
-  const c = JSON.parse(fs.readFileSync(f, 'utf8'));
-  const backends = (c.PERSONAL_SYNC_BACKEND || '').split(',').filter(Boolean);
-  if (!backends.includes('github')) backends.push('github');
-  c.PERSONAL_SYNC_BACKEND = backends.join(',');
-  c.PERSONAL_SYNC_REPO = process.argv[2];
-  fs.writeFileSync(f, JSON.stringify(c, null, 2) + '\n');
-" ~/.claude/toolkit-state/config.json "<repo-url>"
-```
+1. Verify `gh` is installed and authenticated
+2. Ask for sync repo URL or offer to create one (`gh repo create $USER/claude-personal-sync --private`)
+3. Run round-trip test
+4. On success, update config (add to `PERSONAL_SYNC_BACKEND`, set `PERSONAL_SYNC_REPO`)
 
 **iCloud:**
-1. Detect iCloud Drive path:
-   ```bash
-   # macOS standard
-   test -d "$HOME/Library/Mobile Documents/com~apple~CloudDocs" && echo "FOUND"
-   # Windows iCloud
-   test -d "$HOME/iCloudDrive" && echo "FOUND"
-   # Linux (rare)
-   test -d "$HOME/Apple/CloudDocs" && echo "FOUND"
-   ```
-2. If not found, ask user for their iCloud Drive path
-3. Create sync directory: `mkdir -p "<icloud-path>/DestinClaude"`
-4. Run round-trip test
-5. On success, update config:
+1. Detect iCloud Drive path (macOS standard, Windows iCloud, Linux fallback)
+2. Create sync directory if missing
+3. Run round-trip test
+4. On success, update config (add to `PERSONAL_SYNC_BACKEND`, set `ICLOUD_PATH`)
+
+### Updating config.json
+
+Use this pattern for any config write:
 ```bash
 node -e "
   const fs = require('fs');
   const f = process.argv[1];
   const c = JSON.parse(fs.readFileSync(f, 'utf8'));
   const backends = (c.PERSONAL_SYNC_BACKEND || '').split(',').filter(Boolean);
-  if (!backends.includes('icloud')) backends.push('icloud');
+  if (!backends.includes(process.argv[2])) backends.push(process.argv[2]);
   c.PERSONAL_SYNC_BACKEND = backends.join(',');
-  c.ICLOUD_PATH = process.argv[2];
+  // Set the backend-specific key from process.argv[3]/[4]
   fs.writeFileSync(f, JSON.stringify(c, null, 2) + '\n');
-" ~/.claude/toolkit-state/config.json "<icloud-path>"
+" ~/.claude/toolkit-state/config.json "<backend-name>"
 ```
+
+Atomic writes are required — use a temp file + rename if you change this pattern.
 
 ### Removing a backend
 
 1. Ask which active backend to remove
 2. Confirm: "Your data on this backend won't be deleted — it just won't be synced to anymore. Continue?"
-3. On confirm:
-```bash
-node -e "
-  const fs = require('fs');
-  const f = process.argv[1];
-  const remove = process.argv[2];
-  const c = JSON.parse(fs.readFileSync(f, 'utf8'));
-  const backends = (c.PERSONAL_SYNC_BACKEND || '').split(',').filter(b => b && b !== remove);
-  c.PERSONAL_SYNC_BACKEND = backends.length > 0 ? backends.join(',') : 'none';
-  fs.writeFileSync(f, JSON.stringify(c, null, 2) + '\n');
-" ~/.claude/toolkit-state/config.json "<backend-name>"
-```
-4. Confirm removal and show updated backend list
+3. Update config to drop the backend from `PERSONAL_SYNC_BACKEND` (set to "none" if list becomes empty)
 
-### Changing backend settings
+### Round-trip test (per backend)
 
-For the selected backend, let the user update its configuration:
-- **Drive:** change `DRIVE_ROOT` (the folder name on Google Drive)
-- **GitHub:** change `PERSONAL_SYNC_REPO` (the repo URL)
-- **iCloud:** change `ICLOUD_PATH`
-
-Update the relevant key in config.json using the same node pattern as above.
-
-### Testing backends (round-trip test)
-
-For each configured backend, run a full round-trip: write → read → verify → delete.
-
-**Important:** Respect the sync mutex. Check if a sync is currently running:
-```bash
-LOCK_DIR=~/.claude/toolkit-state/.sync-lock
-if [[ -d "$LOCK_DIR" ]]; then
-    LOCK_PID=$(cat "$LOCK_DIR/pid" 2>/dev/null || echo 0)
-    if kill -0 "$LOCK_PID" 2>/dev/null; then
-        echo "A sync is currently running (PID $LOCK_PID). Wait for it to finish or skip the test."
-        # Offer: wait or skip
-    fi
-fi
-```
-
-**Drive test:**
-```bash
-TEST_ID=$(date +%s)
-TEST_FILE="/tmp/sync-test-$TEST_ID.txt"
-echo "sync-test-$TEST_ID" > "$TEST_FILE"
-
-# Write
-rclone copyto "$TEST_FILE" "gdrive:{DRIVE_ROOT}/Backup/personal/.sync-test-$TEST_ID.txt" 2>&1
-# Read back
-READBACK=$(rclone cat "gdrive:{DRIVE_ROOT}/Backup/personal/.sync-test-$TEST_ID.txt" 2>&1)
-# Verify content matches "sync-test-$TEST_ID"
-# Delete
-rclone deletefile "gdrive:{DRIVE_ROOT}/Backup/personal/.sync-test-$TEST_ID.txt" 2>&1
-rm -f "$TEST_FILE"
-```
-
-**GitHub test:**
-```bash
-REPO_DIR=~/.claude/toolkit-state/personal-sync-repo
-TEST_ID=$(date +%s)
-echo "sync-test-$TEST_ID" > "$REPO_DIR/.sync-test"
-cd "$REPO_DIR" && git add .sync-test && git commit -m "sync test $TEST_ID" --no-gpg-sign 2>&1
-git push personal-sync main 2>&1
-# Verify push succeeded, then clean up
-git rm .sync-test && git commit -m "remove sync test" --no-gpg-sign 2>&1
-git push personal-sync main 2>&1
-```
-
-**iCloud test:**
-```bash
-TEST_ID=$(date +%s)
-ICLOUD_PATH="<configured-icloud-path>"
-echo "sync-test-$TEST_ID" > "$ICLOUD_PATH/.sync-test-$TEST_ID.txt"
-# Read back
-READBACK=$(cat "$ICLOUD_PATH/.sync-test-$TEST_ID.txt")
-# Verify content matches "sync-test-$TEST_ID"
-rm -f "$ICLOUD_PATH/.sync-test-$TEST_ID.txt"
-```
-
-**Report results per backend:**
-```
-Backend    Write   Read    Delete  Latency
-Drive      ✓       ✓       ✓       1.2s
-GitHub     ✓       ✓       ✓       0.8s
-iCloud     ✗       —       —       — (path not found)
-```
-
-For failures, show actionable errors:
+Write a small marker file → read it back → verify content → delete. Surface failures with actionable errors:
 - Drive auth expired → "Run `rclone config reconnect gdrive:` to refresh credentials"
 - GitHub push rejected → "Check repo permissions: `gh repo view <repo> --json viewerPermission`"
 - iCloud path missing → "iCloud Drive folder not found. Is iCloud installed and signed in?"
 
-After any add/remove/change/test action, return to §7 Step 1 (show updated config) and ask again. When user picks "Back to dashboard", return to the Action Menu (hub return).
+After any add/remove/change/test, return to §7 Step 1. When user picks "Back to dashboard", return to the Action Menu.
 
 ## §8 — Skill Backup Management
 
-Per-skill routing to one of three destinations. The routing manifest at `~/.claude/toolkit-state/skill-routes.json` is the single source of truth for skill backup decisions. The hooks (`sync.sh`, `session-start.sh`, `contribution-detector.sh`) all read this file.
+Per-skill routing to one of three destinations. The routing manifest at `~/.claude/toolkit-state/skill-routes.json` is the single source of truth for which user-created skills get backed up where.
 
 ### Routing options (per skill)
 
-1. **Personal sync** (`"personal"`) — back up to all configured backends via `sync.sh`
+1. **Personal sync** (`"personal"`) — back up to all configured backends during a manual push (§5) or by the app
 2. **Contribute** (`"contribute"`) — fork/branch/PR via `/contribute`, plus kept in personal sync as safety net until PR is merged
 3. **No backup** (`"none"`) — skip this skill entirely (lives only on this machine)
 
@@ -559,7 +524,7 @@ Skill Backup Routing
 
 Skill                Route              Status
 journaling           personal-sync      ✓ synced
-elections-notebook    personal-sync      ✓ synced
+elections-notebook   personal-sync      ✓ synced
 announce             contribute         PR #72 open
 fork-file            none               — skipped
 my-new-skill         ⚠ unrouted         —
@@ -569,8 +534,7 @@ my-new-skill         ⚠ unrouted         —
 
 ### Step 2: Handle unrouted skills first
 
-If any skills are unrouted, handle them before offering general management. For each unrouted skill:
-
+For each unrouted skill:
 > `<name>` has no backup route. Where should it be backed up?
 > 1. **Personal sync** — back up to your configured backends
 > 2. **Contribute to DestinClaude** — share as a PR (stays in personal sync until merged)
@@ -588,36 +552,32 @@ node -e "
 " ~/.claude/toolkit-state/skill-routes.json "<skill-name>" "<personal|contribute|none>"
 ```
 
-If "Contribute" is chosen:
-1. Run the `/contribute` command flow (fork detection, private-manifest filtering, branch, PR)
-2. After the PR is created, record the PR number:
-```bash
-node -e "
-  const fs = require('fs');
-  const f = process.argv[1];
-  let routes = {};
-  try { routes = JSON.parse(fs.readFileSync(f, 'utf8')); } catch {}
-  routes[process.argv[2]] = { route: 'contribute', pr: parseInt(process.argv[3]), since: new Date().toISOString().slice(0, 10) };
-  fs.writeFileSync(f, JSON.stringify(routes, null, 2) + '\n');
-" ~/.claude/toolkit-state/skill-routes.json "<skill-name>" "<pr-number>"
-```
+If "Contribute" is chosen, run the `/contribute` command flow and record the PR number once it's created.
 
 ### Step 3: General management
 
-After all unrouted skills are handled (or if there were none), ask:
-
+After unrouted skills are handled, ask:
 ```
 What would you like to do?
   1. Change a skill's route
   2. Back to dashboard
 ```
 
-If user picks "Change a skill's route":
-- Show the routing table again
-- Ask which skill to change
-- Present the three routing options
-- Write the new route to `skill-routes.json` using the same node command
-- If changing FROM "contribute" to another route, note that any open PR will remain open — they can close it manually if desired
-- If changing TO "contribute", run the `/contribute` flow
+If user picks "Change a skill's route", show the table again, ask which skill to change, present the three options, and update `skill-routes.json`.
 
 After any change, show the updated routing table and ask again. When user picks "Back to dashboard", return to the Action Menu (hub return).
+
+## §9 — Path Normalization
+
+All paths stored in `tracked-projects.json` must be normalized. The shared utility lives in `lib/backup-common.sh`:
+
+```bash
+source ~/.claude/hooks/lib/backup-common.sh
+NORM=$(normalize_path "$RAW_PATH")
+```
+
+If you can't source the library, fall back to:
+```bash
+p="${1//\\//}"
+realpath "$p" 2>/dev/null || readlink -f "$p" 2>/dev/null || echo "$p"
+```

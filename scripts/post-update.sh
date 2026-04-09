@@ -783,12 +783,11 @@ phase_verify() {
           ['SessionStart',      'startup',    'contribution-detector.sh'],
           ['PreToolUse',        'Write|Edit', 'write-guard.sh'],
           ['PreToolUse',        'Bash|Agent', 'worktree-guard.sh'],
-          ['PostToolUse',       'Write|Edit', 'sync.sh'],
+          ['PostToolUse',       'Write|Edit', 'write-registry.sh'],
           ['PostToolUse',       '.*',         'title-update.sh'],
           ['UserPromptSubmit',  '.*',         'todo-capture.sh'],
           ['Stop',              '.*',         'checklist-reminder.sh'],
-          ['Stop',              '.*',         'done-sound.sh'],
-          ['SessionEnd',        '.*',         'session-end-sync.sh']
+          ['Stop',              '.*',         'done-sound.sh']
         ];
       }
 
@@ -881,12 +880,14 @@ EOF
     fail_count=$((fail_count + 1))
   fi
 
-  # 2. Sync Status
-  if [ -f "$CLAUDE_HOME/hooks/sync.sh" ] || [ -L "$CLAUDE_HOME/hooks/sync.sh" ]; then
-    emit "OK" "Sync Status" "sync.sh installed"
+  # 2. Write Registry (consumed by write-guard.sh and checklist-reminder.sh)
+  # Sync decoupling: automatic backup is now owned by the DestinCode app, but
+  # the write registry is still required for same-machine concurrency protection.
+  if [ -f "$CLAUDE_HOME/hooks/write-registry.sh" ] || [ -L "$CLAUDE_HOME/hooks/write-registry.sh" ]; then
+    emit "OK" "Write Registry" "write-registry.sh installed"
     ok_count=$((ok_count + 1))
   else
-    emit "FAIL" "Sync Status" "sync.sh missing from hooks"
+    emit "FAIL" "Write Registry" "write-registry.sh missing from hooks"
     fail_count=$((fail_count + 1))
   fi
 
@@ -1520,6 +1521,30 @@ const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
 
 if (!settings.hooks) settings.hooks = {};
 const changes = [];
+
+// --- Phase 1: remove retired hooks ---
+// Sync decoupling: hooks listed in manifest.retired must be stripped from
+// settings.json so users who upgrade don't keep firing deleted scripts.
+const retired = Array.isArray(manifest.retired) ? manifest.retired : [];
+if (retired.length > 0) {
+  for (const trigger of Object.keys(settings.hooks)) {
+    const groups = settings.hooks[trigger];
+    if (!Array.isArray(groups)) continue;
+    for (let g = groups.length - 1; g >= 0; g--) {
+      const group = groups[g];
+      const hooksArr = group.hooks || [];
+      for (let h = hooksArr.length - 1; h >= 0; h--) {
+        const cmd = hooksArr[h].command || '';
+        if (retired.some(name => cmd.includes(name))) {
+          changes.push('[REMOVED] ' + trigger + ': ' + cmd.split('/').pop());
+          hooksArr.splice(h, 1);
+        }
+      }
+      // Drop empty groups so settings.json stays tidy
+      if (hooksArr.length === 0) groups.splice(g, 1);
+    }
+  }
+}
 
 for (const [trigger, desired] of Object.entries(manifest.hooks)) {
   if (!settings.hooks[trigger]) settings.hooks[trigger] = [];

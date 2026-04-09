@@ -1,5 +1,11 @@
 {
-  "_comment": "Desired-state declaration for settings.json hooks. Used by phase_settings_migrate() during /update. Timeout values are in SECONDS (matching Claude Code convention). Reconciliation: new hooks are added; missing properties are added; for timeouts, MAX(user, manifest) is enforced.",
+  "_comment": "Desired-state declaration for settings.json hooks. Used by phase_settings_migrate() during /update. Timeout values are in SECONDS (matching Claude Code convention). Reconciliation: new hooks are added; missing properties are added; for timeouts, MAX(user, manifest) is enforced. The 'retired' list names hooks that must be REMOVED from settings.json — used for sunsetting hooks across updates (e.g., sync decoupling).",
+  "retired": [
+    "sync.sh",
+    "session-end-sync.sh",
+    "git-sync.sh",
+    "personal-sync.sh"
+  ],
   "hooks": {
     "SessionStart": [
       {
@@ -35,9 +41,9 @@
     ],
     "PostToolUse": [
       {
-        "command": "bash ~/.claude/hooks/sync.sh",
+        "command": "bash ~/.claude/hooks/write-registry.sh",
         "matcher": "Write|Edit",
-        "timeout": 120,
+        "timeout": 10,
         "required": true
       },
       {
@@ -65,12 +71,6 @@
         "required": false
       }
     ],
-    "SessionEnd": [
-      {
-        "command": "bash ~/.claude/hooks/session-end-sync.sh",
-        "timeout": 15,
-        "required": true
-      }
-    ]
+    "SessionEnd": []
   }
 }

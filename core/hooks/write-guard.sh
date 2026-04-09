@@ -24,13 +24,15 @@ if [ -z "$FILE_PATH" ]; then
     exit 0
 fi
 
-# Tracked files filter — same whitelist as sync.sh
+# Tracked files filter — files we want to protect from concurrent writes.
+# Mirrors the categories the DestinCode app's SyncService and the toolkit's
+# write-registry.sh care about, plus a few hook scripts that get edited often.
 if [[ "$FILE_PATH" != *"/memory/"* ]] && \
    [[ "$FILE_PATH" != *"\\memory\\"* ]] && \
    [[ "$FILE_PATH" != *"CLAUDE.md"* ]] && \
    [[ "$FILE_PATH" != *"settings.json"* ]] && \
    [[ "$FILE_PATH" != *"mcp.json"* ]] && \
-   [[ "$FILE_PATH" != *"sync.sh"* ]] && \
+   [[ "$FILE_PATH" != *"write-registry.sh"* ]] && \
    [[ "$FILE_PATH" != *"session-start.sh"* ]] && \
    [[ "$FILE_PATH" != *"write-guard.sh"* ]] && \
    [[ "$FILE_PATH" != *"gws/client_secret.json"* ]] && \

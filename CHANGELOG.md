@@ -2,6 +2,28 @@
 
 All notable changes to DestinClaude will be documented in this file.
 
+## [Unreleased]
+
+### Changed
+- **Sync decoupling** — Automatic backup orchestration moved out of the toolkit and into the DestinCode app. The toolkit now provides:
+  - `/sync` skill — manual on-demand push/pull/configure for CLI users
+  - `/restore` command — self-contained ad-hoc restore from any backend
+  - `write-registry.sh` PostToolUse hook — lightweight replacement for `sync.sh`'s registry update logic; keeps `write-guard.sh` working without requiring sync hooks
+- **`hooks-manifest.json`** gained a `retired` list so `phase_settings_migrate` removes deleted hook entries (`sync.sh`, `session-end-sync.sh`) from users' `settings.json` on the next `/update`
+- **`session-start.sh`** trimmed by ~310 lines — no more backend pull, no more conversation index merge, no more staleness catch-up. Still rebuilds `config.local.json`, runs the version check, and surfaces unrouted-skill / untracked-project warnings
+- **`backup-system-spec.md`** rewritten as v6.0 to document the new shared-contract architecture between the toolkit and the DestinCode app
+- **`write-guard-spec.md`** updated to v1.4 — registry update lives in the new `write-registry.sh` hook
+- **`system-architecture-spec.md`** updated to v1.8 — hook count 16→14, sync flow rewritten
+- **Setup wizard** lost its restore phases (0A/0B/0C/0D), backend config phase (5.0), desktop app install phase (5b), and remote-access phase (5c) — these are all owned by the DestinCode app now
+
+### Removed
+- `core/hooks/sync.sh` (605 lines)
+- `core/hooks/session-end-sync.sh` (139 lines)
+- `core/commands/appupdate.md`
+- `scripts/install-app.sh`
+- `core/specs/personal-sync-spec.md` (was already retired)
+- Setup wizard Phase 0/0A/0B/0C/0D, Phase 5.0, Phase 5b, Phase 5c
+
 ## [2.3.2] - 2026-04-08
 
 ### Added

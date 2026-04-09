@@ -2,10 +2,10 @@
 # Stop hook — remind Claude to verify system change checklist
 # Fires on every Stop event; exits silently unless system files were touched
 #
-# PID assumption: Both sync.sh and this hook use $PPID to identify the
-# Claude Code process. This works because Claude Code spawns hook subprocesses
-# as direct children. If PIDs don't match in practice, fall back to
-# timestamp-based filtering (entries within last 12 hours).
+# PID assumption: Both write-registry.sh and this hook use $PPID to identify
+# the Claude Code process. This works because Claude Code spawns hook
+# subprocesses as direct children. If PIDs don't match in practice, fall back
+# to timestamp-based filtering (entries within last 12 hours).
 #
 # Advisory only: Stop hooks cannot block — this is a best-effort reminder.
 # The CLAUDE.md hard gate and system.md checklist are the primary enforcement.

@@ -1,7 +1,15 @@
 #!/usr/bin/env bash
-# backup-common.sh — Shared utilities for backup hooks
-# Sourced by sync.sh, session-start.sh, session-end-sync.sh
-# Design ref: backup-system-refactor-design (03-22-2026).md D1
+# backup-common.sh — Shared utilities for sync/backup operations
+#
+# Sourced by:
+#   - core/hooks/session-start.sh (config_get, debounce_check/touch, discover_projects)
+#   - core/skills/sync/SKILL.md helpers (manual on-demand push/pull)
+#   - core/commands/restore.md (rewrite_project_slugs, aggregate_conversations,
+#     merge_conversation_index, regenerate_topic_cache)
+#
+# Sync decoupling: automatic backup hooks (sync.sh, session-end-sync.sh) were
+# removed when the DestinCode app took over orchestration. These library
+# functions remain for the manual /sync skill and /restore command.
 
 # NOTE: Do not set shell options (set -euo pipefail) in sourced libraries.
 # All callers already set these. Changing them here would affect the caller's
@@ -371,9 +379,9 @@ get_preferred_backend() {
 }
 
 # --- Project discovery ---
-# Scans common working directories for git repos not already tracked by git-sync.
+# Scans common working directories for git repos not already tracked.
 # Outputs one path per line to stdout. Does NOT write any files.
-# Arguments: none (reads tracked-projects.json and git-sync hardcoded paths)
+# Arguments: none (reads tracked-projects.json)
 discover_projects() {
     local tracked_file="$CLAUDE_DIR/tracked-projects.json"
 

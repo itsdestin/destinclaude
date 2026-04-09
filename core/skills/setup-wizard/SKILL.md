@@ -11,308 +11,12 @@ You are the setup wizard for the DestinClaude toolkit. Walk the user through a c
 
 **Runtime variables:** Throughout this process, collect configuration values and store them in `~/.claude/toolkit-state/config.json`. Create the directory if it doesn't exist.
 
----
-
-## Phase 0: Prior Use Check
-
-Before inventorying the environment, find out if this is a fresh install or a restore.
-
-### Step 1: Ask the prior-use question
-
-Say exactly:
-
-```
-Before we get started — have you used DestinClaude before on another device?
-
-  1. Yes — I have a backup to restore from
-  2. No — this is my first time
-```
-
-If the user answers **2 (no)** or indicates they're new, proceed to **Phase 0.5**.
-
-If the user answers **1 (yes)** or indicates prior use, continue to Step 2.
-
-(The user may answer in plain language — treat any affirmative as option 1, any negative as option 2.)
-
-**Wait for the user's answer before proceeding.**
-
-### Step 2: Ask which backup source
-
-Say exactly:
-
-```
-Where did you back up your data?
-
-  1. GitHub (private config repo)
-  2. Google Drive
-  3. iCloud
-  4. Not sure / skip
-```
-
-- **1 (GitHub):** Proceed to **Phase 0A: GitHub Restore**.
-- **2 (Google Drive):** Proceed to **Phase 0B: Drive Restore**.
-- **3 (iCloud):** Proceed to **Phase 0C: iCloud Restore**.
-- **4 (not sure / skip):** Proceed to Phase 1 normally.
-
-**Wait for the user's answer before proceeding.**
+**Restoring from a backup?** This wizard handles fresh toolkit installs. If you have a backup of personal data (memory, conversations, encyclopedia) on another device, the easiest way to restore is to install the **DestinCode app** (https://github.com/itsdestin/destincode/releases) and let its sync system pull your data. CLI users can also run `/restore` after the toolkit is installed.
 
 ---
 
-## Phase 0A: GitHub Restore
 
-### Step 1: Get the repo URL
-
-Ask: "What's the URL of your private config repo? It should look like `https://github.com/yourusername/your-repo-name.git`"
-
-### Step 2: Ensure git is installed
-
-```bash
-git --version
-```
-
-If missing, this is a blocker. Tell the user: "Git isn't installed yet — I need it to clone your backup. Let me install it first." Use the platform-appropriate install command from Phase 4 (Core Dependencies → git), then verify.
-
-### Step 3: Clone or pull
-
-Check whether `~/.claude` is already a git repo:
-
-```bash
-[ -d "$HOME/.claude/.git" ] && echo "exists" || echo "missing"
-```
-
-If **missing** — clone:
-
-```bash
-git clone <repo-url> ~/.claude
-```
-
-If **exists** — pull:
-
-```bash
-cd ~/.claude && git pull --rebase origin main
-```
-
-If either fails, tell the user what went wrong (wrong URL, no access, no internet) and ask them to check the URL and try again.
-
-### Step 4: Rewrite hardcoded paths
-
-The backup may contain paths from the original machine. Detect the current machine's HOME and project slug, then replace any old values found in the cloned files:
-
-```bash
-NORM_HOME="${HOME//\\//}"
-CURRENT_SLUG=$(echo "$NORM_HOME" | sed 's|[/:]|-|g; s|^-||')
-
-# Detect old HOME from cloned files
-OLD_HOME=$(grep -rh "C:/Users/[^/\"' ]*\|/Users/[^/\"' ]*\|/home/[^/\"' ]*" \
-  ~/.claude/CLAUDE.md ~/.claude/settings.json 2>/dev/null \
-  | grep -o "C:/Users/[^/\"' ]*\|/Users/[^/\"' ]*\|/home/[^/\"' ]*" \
-  | head -1)
-OLD_SLUG=$(echo "$OLD_HOME" | sed 's|[/:]|-|g; s|^-||')
-
-if [[ -n "$OLD_HOME" && "$OLD_HOME" != "$NORM_HOME" ]]; then
-    find ~/.claude -type f \( -name "*.md" -o -name "*.sh" -o -name "*.json" \) \
-        -not -path "*/.git/*" -not -path "*/node_modules/*" \
-        -exec grep -l "$OLD_HOME" {} \; | while read -r file; do
-        sed "s|$OLD_HOME|$NORM_HOME|g" "$file" > "$file.tmp" && mv "$file.tmp" "$file"
-    done
-    echo "  Updated path references: $OLD_HOME → $NORM_HOME"
-fi
-
-if [[ -n "$OLD_SLUG" && "$OLD_SLUG" != "$CURRENT_SLUG" ]]; then
-    find ~/.claude -type f \( -name "*.md" -o -name "*.sh" -o -name "*.json" \) \
-        -not -path "*/.git/*" -not -path "*/node_modules/*" \
-        -exec grep -l "$OLD_SLUG" {} \; | while read -r file; do
-        sed "s|$OLD_SLUG|$CURRENT_SLUG|g" "$file" > "$file.tmp" && mv "$file.tmp" "$file"
-    done
-    echo "  Updated slug references: $OLD_SLUG → $CURRENT_SLUG"
-fi
-```
-
-Tell the user: "I've updated any references to your old device's username."
-
-### Step 5: Apply MCP server config
-
-If `~/.claude/mcp-servers/mcp-config.json` exists and `node` is available, merge it back into `~/.claude.json`:
-
-```bash
-if [[ -f "$HOME/.claude/mcp-servers/mcp-config.json" ]] && command -v node &>/dev/null; then
-    NORM_HOME="${HOME//\\//}"
-    node -e "
-        const fs = require('fs');
-        const mcpConfig = JSON.parse(fs.readFileSync(process.argv[1], 'utf8'));
-        if (Object.keys(mcpConfig).length === 0) { process.exit(0); }
-        const cjPath = process.argv[2];
-        const projectKey = process.argv[3];
-        let cj = {};
-        try { cj = JSON.parse(fs.readFileSync(cjPath, 'utf8')); } catch(e) {}
-        if (!cj.projects) cj.projects = {};
-        if (!cj.projects[projectKey]) cj.projects[projectKey] = {};
-        cj.projects[projectKey].mcpServers = mcpConfig;
-        fs.writeFileSync(cjPath, JSON.stringify(cj, null, 2) + '\n');
-        console.log('  Applied ' + Object.keys(mcpConfig).length + ' MCP server(s).');
-    " "$HOME/.claude/mcp-servers/mcp-config.json" "$HOME/.claude.json" "$NORM_HOME"
-fi
-```
-
-If node isn't available yet, skip this step and tell the user: "I'll re-apply your MCP server config once Node.js is confirmed installed."
-
-### Step 6: Confirm and continue
-
-Tell the user: "Your config is restored from GitHub. Now let me confirm all the tools it needs are installed on this machine."
-
-Proceed to **Phase 0D: Abbreviated Dependency Check**.
-
----
-
-## Phase 0B: Drive Restore
-
-### Step 1: Install rclone if missing
-
-Follow the exact same rclone installation steps as **Phase 4 → Life Dependencies → rclone** — same explanation, same platform commands, same verification (`rclone --version`).
-
-### Step 2: Configure Google Drive
-
-Follow the exact same Google Drive authentication steps as **Phase 4 → Life Dependencies → Google Drive authentication** — same walkthrough, same `rclone config create gdrive drive` command, same verification (`rclone lsd gdrive:`).
-
-If `gdrive:` is already listed in `rclone listremotes`, skip setup and go straight to Step 3.
-
-### Step 3: Ask for Drive root
-
-Ask: "Where does DestinClaude store files on your Google Drive? This is the top-level folder name. (default: Claude)"
-
-Store the answer as `DRIVE_ROOT`. Use `Claude` if the user presses Enter without answering.
-
-### Step 4: Pull data from Drive
-
-Pull in this order. Tell the user what's happening at each step.
-
-**Encyclopedia files:**
-
-```bash
-mkdir -p ~/.claude/encyclopedia
-rclone sync "gdrive:$DRIVE_ROOT/The Journal/System/" ~/.claude/encyclopedia/ 2>/dev/null \
-  && echo "  Encyclopedia synced." \
-  || echo "  WARNING: Encyclopedia sync failed. Run manually: rclone sync 'gdrive:$DRIVE_ROOT/The Journal/System/' ~/.claude/encyclopedia/"
-```
-
-**Personal data** (memory, CLAUDE.md, toolkit config):
-
-```bash
-rclone sync "gdrive:$DRIVE_ROOT/Backup/personal/" ~/.claude/ --update 2>/dev/null \
-  && echo "  Personal data synced." \
-  || echo "  WARNING: Personal data sync failed. Run manually: rclone sync 'gdrive:$DRIVE_ROOT/Backup/personal/' ~/.claude/ --update"
-```
-
-**Conversation transcripts:**
-
-```bash
-mkdir -p ~/.claude/projects
-rclone copy "gdrive:$DRIVE_ROOT/Backup/conversations/" ~/.claude/projects/ --size-only 2>/dev/null \
-  && echo "  Transcripts synced." \
-  || echo "  WARNING: Transcript sync failed. Run manually: rclone copy 'gdrive:$DRIVE_ROOT/Backup/conversations/' ~/.claude/projects/ --size-only"
-```
-
-If any step fails and the user wants to skip it, that's fine — tell them the manual command to run later.
-
-### Step 5: Confirm and continue
-
-Tell the user: "Your data is restored from Google Drive. Now let me confirm all the tools it needs are installed on this machine."
-
-Proceed to **Phase 0D: Abbreviated Dependency Check**.
-
----
-
-## Phase 0C: iCloud Restore
-
-### Step 1: Detect iCloud Drive folder
-
-Check for iCloud Drive in standard locations:
-
-```bash
-ICLOUD_PATH=""
-# macOS
-[[ -d "$HOME/Library/Mobile Documents/com~apple~CloudDocs/DestinClaude" ]] && \
-    ICLOUD_PATH="$HOME/Library/Mobile Documents/com~apple~CloudDocs/DestinClaude"
-# Windows (iCloud for Windows)
-[[ -z "$ICLOUD_PATH" && -d "$HOME/iCloudDrive/DestinClaude" ]] && \
-    ICLOUD_PATH="$HOME/iCloudDrive/DestinClaude"
-# Windows (Microsoft Store version)
-[[ -z "$ICLOUD_PATH" && -d "$HOME/Apple/CloudDocs/DestinClaude" ]] && \
-    ICLOUD_PATH="$HOME/Apple/CloudDocs/DestinClaude"
-```
-
-If not found, ask: "I couldn't find your iCloud Drive folder automatically. Where is it? (Full path to your iCloud Drive DestinClaude folder)"
-
-### Step 2: Verify backup exists
-
-Check if the iCloud backup has data:
-
-```bash
-ls "$ICLOUD_PATH/CLAUDE.md" "$ICLOUD_PATH/memory" "$ICLOUD_PATH/toolkit-state/config.json" 2>/dev/null
-```
-
-If none exist, tell the user: "No DestinClaude backup found in your iCloud Drive. Let's do a fresh install instead." Proceed to Phase 0.5.
-
-### Step 3: Pull data from iCloud
-
-```bash
-mkdir -p ~/.claude/.restore-staging
-cp -r "$ICLOUD_PATH"/* ~/.claude/.restore-staging/ 2>/dev/null
-```
-
-### Step 4: Run migrations
-
-Source `lib/migrate.sh` and run migrations on the staging directory (same as Phase 0A Step 5).
-
-### Step 5: Apply restored data
-
-Apply the staged data to live locations (same process as Phase 0A Step 5 / Phase 0B Step 4).
-
-### Step 6: CLAUDE.md merge
-
-Present the three merge options (merge / use backup / start fresh) — same as Phase 0A.
-
-### Step 7: Confirm and continue
-
-Tell the user: "Your config is restored from iCloud. Now let me confirm all the tools it needs are installed on this machine."
-
-Proceed to **Phase 0D: Abbreviated Dependency Check**.
-
----
-
-## Phase 0D: Abbreviated Dependency Check
-
-*Used only after Phase 0A, 0B, or 0C. Skip this section for fresh installs — they use Phase 4.*
-
-Tell the user: "Let me make sure all the tools your restored config needs are installed on this machine."
-
-Read `~/.claude/toolkit-state/config.json` to determine which layers were previously installed (`installed_layers`).
-
-If `config.json` exists but does not contain a `comfort_level` key (backups from before this feature), default to `"intermediate"` and store it in working state. Do not ask the user — this preserves the pre-comfort-gate behavior. The user can change it on a future re-run of `/setup-wizard`.
-
-Run the dependency checks from **Phase 4** for each relevant layer:
-
-- Always run **Core Dependencies** checks (git, gh CLI, gcloud)
-- Run **Life Dependencies** checks (rclone, Google Drive) only if `"life"` is in `installed_layers` — or if Phase 0B just ran (rclone is already configured)
-- Run **Productivity Dependencies** checks (messaging, Go, Todoist) only if `"productivity"` is in `installed_layers`
-
-For each dependency:
-- If already installed: report ✓ and skip
-- If missing: explain what it is and install it using the same steps as Phase 4
-
-If `toolkit-state/config.json` doesn't exist or can't be read, run all Core checks and ask the user which layers they had installed.
-
-After completing all checks:
-
-Tell the user: "Since your config is restored from backup, I'll skip the personalization step — your name, preferences, and settings are already in place. Let me just verify everything works."
-
-**Skip Phase 1 through Phase 5 entirely.** Proceed directly to **Phase 6: Verification**.
-
----
-
-## Phase 0.5: Comfort Level
-
-*Only for fresh installs. If the user restored from backup (Phase 0A/0B/0C → 0D), this phase was skipped — proceed to Phase 6 as directed by Phase 0D.*
+## Phase 0: Comfort Level
 
 *If this is a re-run and `~/.claude/toolkit-state/config.json` already has a `comfort_level`, pre-select it:* "Last time you chose [beginner/intermediate/power user]. Still feel the same, or want to change?"
 
@@ -351,11 +55,10 @@ If the user chose option 3, run an express setup that skips most interactive pha
 2. **Phase 2 (Conflicts):** Skip if none. Resolve any found conflicts tersely.
 3. **Phase 3 (Layers):** Auto-select all layers (Core + Life + Productivity). No question asked.
 4. **Phase 4 (Dependencies):** Install all dependencies silently. For each tool that needs a browser sign-in (GitHub, Google Drive, gcloud), open the browser without preamble — just say "Sign in to [service] in the browser that just opened." Show a single summary table at the end.
-5. **Phase 5 (Personalization):** Only ask for `USER_NAME`. Use defaults for all other template variables (`DRIVE_ROOT`: "Claude", `TODOIST_PROJECT`: "Claude's Inbox", `JOURNAL_DIR`: "journal", `ENCYCLOPEDIA_DIR`: "encyclopedia"). For `PERSONAL_SYNC_BACKEND`, skip with default ("none") — the user can configure this later. Run all symlink, hook, MCP, and plugin registration steps silently.
-6. **Phase 5b (Desktop App):** Install without asking if the install script exists.
-7. **Phase 6 (Verification):** Show compact pass/fail table only.
+5. **Phase 5 (Personalization):** Only ask for `USER_NAME`. Use defaults for all other template variables (`DRIVE_ROOT`: "Claude", `TODOIST_PROJECT`: "Claude's Inbox", `JOURNAL_DIR`: "journal", `ENCYCLOPEDIA_DIR`: "encyclopedia"). Run all symlink, hook, MCP, and plugin registration steps silently.
+6. **Phase 6 (Verification):** Show compact pass/fail table only.
 
-After express setup, tell the user: "Express setup complete. Run `/setup-wizard` again anytime to customize settings I defaulted (like Google Drive folder name or backup preferences)."
+After express setup, tell the user: "Express setup complete. Run `/setup-wizard` again anytime to customize settings I defaulted (like Google Drive folder name)."
 
 Then proceed to Phase 6 Step 6 (first-run guided experience).
 
@@ -964,52 +667,11 @@ Summarize: "All the tools you need are installed. Now let's personalize everythi
 Fill in template variables, install selected layers, and configure CLAUDE.md.
 
 > **Comfort-level adaptation:**
-> - **Beginner:** Keep all explanatory framing for template variable questions (the "by 'root' I just mean..." style). When asking about `PERSONAL_SYNC_BACKEND`, keep the full tutorial offers and plain-language explanations.
+> - **Beginner:** Keep all explanatory framing for template variable questions (the "by 'root' I just mean..." style).
 > - **Intermediate:** No change (this is the current behavior).
-> - **Power user:** Strip all explanatory framing from template variable questions — ask them rapid-fire with just the variable name and default. Skip the GitHub/sync tutorial offers (just ask the raw question). Example: "Google Drive root folder? (default: Claude)" instead of the multi-line explanation.
+> - **Power user:** Strip all explanatory framing from template variable questions — ask them rapid-fire with just the variable name and default. Example: "Google Drive root folder? (default: Claude)" instead of the multi-line explanation.
 
-### Phase 5.0: Personal Data Backup Setup
-
-Ask the user:
-
-> "Where would you like to back up your personal data? This keeps your memory, preferences, and encyclopedia safe across devices. You can choose more than one."
->
-> - [ ] Google Drive (requires rclone — we set this up in Phase 4 if you chose the Life layer)
-> - [ ] GitHub private repo (free, requires a GitHub account)
-> - [ ] iCloud (requires iCloud app on Windows, built-in on macOS)
->
-> (You can also skip this for now and set it up later with `/restore`)
-
-For each selected backend:
-
-**Google Drive:**
-- Verify rclone and gdrive: remote are configured (should be done in Phase 4 if Life layer selected)
-- If not configured, walk through rclone setup now
-- Store `DRIVE_ROOT` in config.json (from Phase 5.1 template variables, or ask now)
-
-**GitHub:**
-- Ask: "Do you have a private GitHub repo for your config backup? If not, I can help you create one."
-- If creating: `gh repo create <username>/claude-config --private --clone`
-- Store `PERSONAL_SYNC_REPO` in config.json
-
-**iCloud:**
-- Detect iCloud folder (same detection logic as Phase 0C Step 1)
-- If not found on macOS, warn that iCloud Drive may not be enabled
-- If not found on Windows, instruct to install iCloud for Windows app
-- Store `ICLOUD_PATH` in config.json
-
-Store the selected backends as comma-separated `PERSONAL_SYNC_BACKEND` in config.json. Example: `"drive,github"`.
-
-**Run initial sync** to confirm the backend works:
-
-```bash
-# Trigger personal-sync manually to test
-source ~/.claude/hooks/lib/backup-common.sh
-# Touch the debounce marker in the past to force sync
-touch -t 202001010000 ~/.claude/toolkit-state/.sync-marker 2>/dev/null
-```
-
-Tell the user the result: "Backup configured! Your personal data will sync to [backends] automatically."
+> **Sync configuration:** This wizard does NOT configure cloud backup backends. The DestinCode app owns automatic sync — install the app and use its Settings → Sync panel to configure backends. CLI users without the app can run `/sync` to set up backends manually.
 
 ### Step 1: Collect template variables
 
@@ -1034,14 +696,7 @@ What Todoist project should Claude use as your inbox? (default: Claude's Inbox) 
 
 Only ask about variables relevant to the selected layers. Skip `TODOIST_PROJECT` if Productivity isn't selected, skip `DRIVE_ROOT`/`JOURNAL_DIR`/`ENCYCLOPEDIA_DIR` if Life isn't selected.
 
-When asking about `PERSONAL_SYNC_BACKEND`, frame the distinction clearly: "Your toolkit improvements — skills, hooks, and commands — sync to the public DestinClaude repo. That's all system-level code, nothing personal. But your memory (things Claude learns about you), your preferences, and your personal config need a private home so they're backed up and available if you switch devices."
-
-Then present the options:
-1. **Google Drive** — recommended if the user already set up rclone for the Life layer. Set `PERSONAL_SYNC_BACKEND: "drive"`.
-2. **Private GitHub repo** — if the user chose this, check if `gh` is authenticated. If so, offer to create a private repo for them: `gh repo create claude-personal-data --private --clone`. Clone to `~/.claude/toolkit-state/personal-sync-repo/`, set the `personal-sync` remote, and store the URL in `PERSONAL_SYNC_REPO`. If `gh` is not available, ask for a repo URL directly.
-3. **Skip for now** — set `PERSONAL_SYNC_BACKEND: "none"`. Tell them: "No problem — your data stays on this device only. You can set this up later by running `/setup-wizard` again."
-
-Only ask `PERSONAL_SYNC_REPO` if the user chose the GitHub backend.
+Skip any `PERSONAL_SYNC_BACKEND`, `PERSONAL_SYNC_REPO`, or `ICLOUD_PATH` template variables — those are owned by the DestinCode app and the manual `/sync` skill, not the wizard.
 
 ### Step 2: Process template files
 
@@ -1121,7 +776,7 @@ Only run the blocks for layers the user selected in Phase 3.
 mkdir -p ~/.claude/commands
 
 # Core commands (always)
-for cmd in setup-wizard.md contribute.md toolkit.md toolkit-uninstall.md update.md health.md restore.md appupdate.md diagnose.md; do
+for cmd in setup-wizard.md contribute.md toolkit.md toolkit-uninstall.md update.md health.md restore.md diagnose.md; do
   ln -sf "$TOOLKIT_ROOT/core/commands/$cmd" ~/.claude/commands/$cmd
 done
 ```
@@ -1133,7 +788,10 @@ mkdir -p ~/.claude/hooks
 
 # Core hooks (always — skip any the user chose to "keep yours" in Phase 2)
 # NOTE: statusline.sh is NOT a hook — it's configured separately via settings.json "statusLine"
-for hook in check-inbox.sh checklist-reminder.sh contribution-detector.sh done-sound.sh sync.sh session-end-sync.sh session-start.sh title-update.sh todo-capture.sh tool-router.sh worktree-guard.sh write-guard.sh; do
+# Sync decoupling: sync.sh and session-end-sync.sh were removed. Automatic backup is now
+# handled by the DestinCode app. write-registry.sh is the lightweight replacement that
+# keeps the .write-registry.json file fresh for write-guard.sh and checklist-reminder.sh.
+for hook in check-inbox.sh checklist-reminder.sh contribution-detector.sh done-sound.sh write-registry.sh session-start.sh title-update.sh todo-capture.sh tool-router.sh worktree-guard.sh write-guard.sh; do
   ln -sf "$TOOLKIT_ROOT/core/hooks/$hook" ~/.claude/hooks/$hook
 done
 
@@ -1159,8 +817,7 @@ fi
 # Statusline script — symlink to ~/.claude/ (not hooks/)
 ln -sf "$TOOLKIT_ROOT/core/hooks/statusline.sh" ~/.claude/statusline.sh
 
-# Life hooks (if Life layer selected)
-# sync-encyclopedia.sh removed — encyclopedia sync is now handled by the unified sync.sh
+# Life hooks (if Life layer selected) — none currently
 ```
 
 #### 5d: Register hooks in settings.json
@@ -1201,17 +858,11 @@ Hooks must also be registered in `~/.claude/settings.json` under the `hooks` key
     "PostToolUse": [
       {
         "matcher": "Write|Edit",
-        "timeout": 120,
-        "hooks": [{ "type": "command", "command": "bash ~/.claude/hooks/sync.sh" }]
+        "timeout": 10,
+        "hooks": [{ "type": "command", "command": "bash ~/.claude/hooks/write-registry.sh" }]
       },
       {
         "hooks": [{ "type": "command", "command": "bash ~/.claude/hooks/title-update.sh" }]
-      }
-    ],
-    "SessionEnd": [
-      {
-        "timeout": 120,
-        "hooks": [{ "type": "command", "command": "bash ~/.claude/hooks/session-end-sync.sh" }]
       }
     ],
     "Stop": [
@@ -1402,49 +1053,6 @@ Summarize: "Everything is personalized for you — your name, preferences, and s
 
 ---
 
-## Phase 5b: DestinCode Desktop App (Optional)
-
-Offer to install the DestinCode desktop app — a GUI for Claude Code with chat view, tool cards, session management, and status monitoring.
-
-> **Comfort-level adaptation:**
-> - **Beginner:** Explain what the desktop app provides: "Instead of using Claude Code in a terminal, you can use a desktop app with a visual chat interface, clickable tool approvals, and session tabs."
-> - **Intermediate:** Brief description: "DestinCode is an optional GUI for Claude Code."
-> - **Power user:** One-liner: "Install DestinCode desktop app?"
-
-Ask: "Would you like to install the DestinCode desktop app?"
-
-If yes:
-
-1. Run the install script:
-```bash
-bash "$TOOLKIT_ROOT/scripts/install-app.sh"
-```
-
-2. If the script fails (e.g., no release found for this version), inform the user:
-   - "The desktop app isn't available for this version yet. You can install it later by running: `bash ~/.claude/plugins/destinclaude/scripts/install-app.sh`"
-
-3. If successful, the script prints launch instructions for their platform.
-
-If no, skip — they can always install later.
-
----
-
-## Phase 5c: Remote Access (Optional)
-
-If the DestinCode desktop app was installed (Phase 5b), offer remote access setup:
-
-> "Would you like to set up remote access? This lets you use DestinCode from your phone or any other device using Tailscale — a free, secure private network."
->
-> 1. Yes — set it up now
-> 2. No — I'll do this later (you can run `/remote-setup` anytime)
-
-If the user chooses **1**, invoke the remote-setup skill by saying: "Let me run the remote setup skill."
-Then use the Skill tool to invoke `remote-setup`.
-
-If the user chooses **2**, continue to Phase 6.
-
----
-
 ## Phase 6: Verification
 
 Run a health check on everything that was installed.
@@ -1470,7 +1078,7 @@ Run a health check on everything that was installed.
 
 ### Step 2: Life checks (if installed)
 
-- [ ] `rclone lsd gdrive:` returns successfully (Google Drive connected)
+- [ ] `rclone lsd gdrive:` returns successfully (only if rclone is installed — Google Drive sync now lives in the DestinCode app, but rclone is still used by the manual `/sync` skill and the `google-drive` skill)
 - [ ] Encyclopedia template files exist in `~/.claude/<ENCYCLOPEDIA_DIR>/`
 - [ ] Journal directory exists or can be created at `~/.claude/<JOURNAL_DIR>/`
 
@@ -1566,8 +1174,12 @@ Setup complete! Here's what's installed:
 
   Layers: Core, Life, Productivity
   Skills: journaling-assistant, encyclopedia-*, claudes-inbox, skill-creator
-  Hooks: 8 active hooks for file protection and sync
+  Hooks: file protection (write-guard, write-registry), session-start, title-update, etc.
   MCP servers: Todoist, imessages, gmessages (varies by selection)
+
+  Want automatic cloud sync? Install the DestinCode app:
+    https://github.com/itsdestin/destincode/releases
+  Or run /sync from the toolkit anytime to push/pull manually.
 ```
 
 Save the final config state to `~/.claude/toolkit-state/config.json` with `setup_completed: true` and `setup_completed_at: <ISO timestamp>`.

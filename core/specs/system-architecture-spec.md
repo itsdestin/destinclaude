@@ -1,7 +1,7 @@
 # System Design — Spec
 
-**Version:** 1.7
-**Last updated:** 2026-04-07
+**Version:** 1.8
+**Last updated:** 2026-04-09
 **Feature location:** `~/.claude/` (entire system)
 
 ## Purpose
@@ -33,68 +33,64 @@ Canonical architecture reference for the user's Claude Code automation system. F
 | Component | Location | Authoritative Spec |
 |-----------|----------|-------------------|
 | 10 skills (3 layers) | `~/.claude/skills/{name}/` (symlinked from toolkit) | Each skill's `specs/{name}-spec.md` |
-| 16 hooks | `~/.claude/hooks/` (symlinked from toolkit) | `backup-system-spec.md` (sync, session-start, session-end-sync), `write-guard-spec.md`, `worktree-guard-spec.md`, `statusline-spec.md` (title-update), this spec (checklist-reminder, done-sound) |
+| 14 hooks | `~/.claude/hooks/` (symlinked from toolkit) | `backup-system-spec.md` (write-registry, session-start), `write-guard-spec.md`, `worktree-guard-spec.md`, `statusline-spec.md` (title-update), this spec (checklist-reminder, done-sound) |
 | 7 MCP servers | Configured in `~/.claude.json`, definitions in `core/mcp-manifest.json` | `destinclaude-spec.md` (registration); individual servers documented in CLAUDE.md |
 | Statusline | `~/.claude/statusline.sh` + hooks | `statusline-spec.md` |
 | Encyclopedia system | `~/.claude/encyclopedia/` (cache), `gdrive:{DRIVE_ROOT}/The Journal/System/` (source of truth) | `encyclopedia-system-spec.md` |
-| Backup/sync | `core/hooks/sync.sh` + `session-start.sh` | `backup-system-spec.md` |
+| Backup/sync | `core/skills/sync/SKILL.md` (manual) + `core/commands/restore.md` + `core/hooks/write-registry.sh` (write-guard input) | `backup-system-spec.md` |
 | Write guard | `core/hooks/write-guard.sh` | `write-guard-spec.md` |
 | Memory system | `~/.claude/projects/{project-key}/memory/` | `memory-system-spec.md` |
 | Specs system | `core/specs/` (system), `{layer}/skills/{name}/specs/` (skill) | `specs-system-spec.md` |
 
 **Dependency relationships:**
-- `sync.sh` → writes `.write-registry.json` (consumed by `write-guard.sh` and `checklist-reminder.sh`)
-- `session-start.sh` → runs personal data pull, `rclone sync` (encyclopedia), and `check-inbox.sh`
+- `write-registry.sh` (PostToolUse Write|Edit) → writes `.write-registry.json` (consumed by `write-guard.sh` and `checklist-reminder.sh`)
+- `session-start.sh` → rebuilds `config.local.json`, extracts MCP config, runs version check, surfaces unrouted-skill / untracked-project warnings to `.sync-warnings`. Does NOT pull from sync backends — that's the DestinCode app's job.
+- DestinCode app SyncService → owns automatic backend push/pull; toolkit and app share `~/.claude/toolkit-state/config.json` and state files (see `backup-system-spec.md` shared contract)
 - Encyclopedia skills → read from `~/.claude/encyclopedia/` (cache), write to Drive (source of truth)
-- `checklist-reminder.sh` → reads `.write-registry.json` (written by `sync.sh`)
+- `checklist-reminder.sh` → reads `.write-registry.json` (written by `write-registry.sh`)
 - All skills → governed by CLAUDE.md rules, skill-specific specs, and system-architecture.md checklist
 
 ### 2. Data Flow
 
 ```
 Local (~/.claude/)
-  ├── Sync Backends (via sync.sh, PostToolUse Write|Edit, debounced 15 min)
-  │     ├── Drive (gdrive:): skills, specs, plans, hooks, system-backup/
-  │     ├── GitHub (personal repo): skills, specs, plans, hooks, system-backup/
-  │     └── iCloud: same scope
-  │         Note: No local git repo required; cloud backends provide version history
-  │
-  ├── Drive Archive (gdrive:{DRIVE_ROOT}/Backup/)
-  │     ├── Triggered: on each sync cycle (best-effort)
-  │     ├── Scope: specs/, skills/, CLAUDE.md, conversation transcripts
-  │     ├── Format: timestamped folders (MM-DD-YYYY @ TIMEpm)/
-  │     └── Policy: write-only, append-only, no pruning, best-effort
+  ├── Sync Backends (owned by DestinCode app; manual /sync skill is the CLI fallback)
+  │     ├── Drive (gdrive:{DRIVE_ROOT}/Backup/personal/): memory, conversations, system-backup/, skills/
+  │     ├── GitHub (personal-sync-repo): same scope
+  │     └── iCloud ({ICLOUD_PATH}): same scope
+  │         App: pull on launch + background push every 15 min + session-end push
+  │         Toolkit: /sync skill (manual push/pull) and /restore (ad-hoc restore)
+  │         Coordination: app writes ~/.claude/toolkit-state/.app-sync-active marker
   │
   └── Encyclopedia (gdrive:{DRIVE_ROOT}/The Journal/System/)
-        ├── Source of truth: 8 modular files on Drive
-        ├── Local cache: ~/.claude/encyclopedia/ (synced at session start)
+        ├── Source of truth: modular files on Drive (managed by encyclopedia skills + google-drive skill)
+        ├── Local cache: ~/.claude/encyclopedia/
         ├── Read: skills read from local cache
-        ├── Write: skills write to local cache, push to Drive after approval
-        └── Not cached: journal entries, Entry Index, compiled Encyclopedia
+        └── Write: skills write to local cache, push to Drive after approval
 ```
 
 ### 3. Hook Architecture
 
 | Hook | Event | Matcher | Purpose | State Files |
 |------|-------|---------|---------|-------------|
-| `session-start.sh` | SessionStart | `startup` | Git pull, encyclopedia cache sync, inbox check, DestinTip injection | None (reads remote state) |
+| `session-start.sh` | SessionStart | `startup` | Rebuild config.local.json, extract MCP config, run version check, surface unrouted-skill / untracked-project warnings | Writes `.sync-warnings`, `update-status.json` |
 | `contribution-detector.sh` | SessionStart | `startup` | Detect toolkit contributions and offer to submit upstream | None |
 | `write-guard.sh` | PreToolUse | `Write\|Edit` | Block writes when another active session owns the file | Reads `.write-registry.json` |
 | `worktree-guard.sh` | PreToolUse | `Bash` | Block git branch switches in the main plugin directory | None |
 | `tool-router.sh` | PreToolUse | `mcp__claude_ai_Gmail__\|mcp__claude_ai_Google_Calendar__` | Block Claude.ai native Gmail/Calendar MCP tools; redirect to GWS CLI equivalents | None |
-| `sync.sh` | PostToolUse | `Write\|Edit` | Update write registry, debounced sync to configured backends (Drive/GitHub/iCloud) | Writes `.write-registry.json`, `.sync-marker` |
+| `write-registry.sh` | PostToolUse | `Write\|Edit` | Record `{pid, timestamp, content_hash}` for every write so write-guard can detect concurrent sessions | Writes `.write-registry.json` |
 | `title-update.sh` | PostToolUse | `.*` | Prompt Claude to set session topic (10-min throttle) | Reads/writes `~/.claude/topics/marker-{sid}` |
 | `todo-capture.sh` | UserPromptSubmit | `.*` | Capture task mentions from user prompts to Todoist | None |
 | `checklist-reminder.sh` | Stop | `.*` | Remind Claude to verify system change checklist if system files were modified | Reads `.write-registry.json` |
 | `done-sound.sh` | Stop | `.*` | Play a chime sound when Claude finishes | None |
-| `session-end-sync.sh` | SessionEnd | `.*` | Sync current session JSONL + conversation index to configured backends (no debounce) | None |
 | `check-inbox.sh` | (utility) | — | Check inbox providers for items, called by session-start.sh | None |
-| ~~`sync-encyclopedia.sh`~~ | — | — | Removed — encyclopedia sync consolidated into `sync.sh` | — |
+| ~~`sync.sh`~~ | — | — | Removed in v6 of backup-system-spec — automatic sync moved to the DestinCode app | — |
+| ~~`session-end-sync.sh`~~ | — | — | Removed in v6 of backup-system-spec — session-end push moved to the DestinCode app | — |
 | `announcement-fetch.js` | (utility) | — | Fetch broadcast announcements from GitHub repo | Writes `.announcement-cache.json` |
 | `usage-fetch.js` | (utility) | — | Retrieve and cache API usage/rate-limit data | Writes `.usage-cache.json` |
 | `statusline.sh` | (statusLine) | — | Render multi-line status bar for Claude Code | Reads topics, sync-status, caches |
 
-**Execution order within same event:** Hooks fire in the order listed in `settings.json`. For PostToolUse, `sync.sh` (Write|Edit only) fires before `title-update.sh` (all tools).
+**Execution order within same event:** Hooks fire in the order listed in `settings.json`. For PostToolUse, `write-registry.sh` (Write|Edit only) fires before `title-update.sh` (all tools).
 
 ### 4. Session Lifecycle
 
@@ -108,7 +104,7 @@ Local (~/.claude/)
 **Note:** Network sync failures are written to `.sync-warnings` (e.g., `GIT:PULL_FAILED`, `PERSONAL:PULL_FAILED`) and surfaced via the statusline and `/sync` skill rather than blocking session start.
 
 **During:**
-- Every Write|Edit → `write-guard.sh` (PreToolUse) checks for conflicts → `sync.sh` (PostToolUse) updates registry + debounced sync to backends
+- Every Write|Edit → `write-guard.sh` (PreToolUse) checks for conflicts → `write-registry.sh` (PostToolUse) updates the registry so the next write-guard call has fresh data
 - Claude.ai Gmail/Calendar MCP calls → `tool-router.sh` (PreToolUse) blocks and redirects to GWS CLI
 - Every tool use → `title-update.sh` (PostToolUse) throttled topic reminder
 - Skills load their SKILL.md (includes system rules footer)
@@ -117,7 +113,7 @@ Local (~/.claude/)
 **End:**
 - `checklist-reminder.sh` (Stop) checks write registry for system file modifications
 - If system files were touched: injects checklist reminder into Claude's context
-- `session-end-sync.sh` (SessionEnd) syncs current session JSONL + conversation index to configured backends (bypasses debounce)
+- DestinCode app (if running) pushes the current session JSONL on session exit
 
 ### 5. Enforcement Mechanisms
 
@@ -186,3 +182,4 @@ See [GitHub Issues](https://github.com/itsdestin/destinclaude/issues) for known 
 | 2026-03-26 | 1.5 | Added mandate: Claude must never direct users to run commands — all commands run via Bash tool; only GUI interactions (e.g., browser sign-in) are acceptable user actions | Mandate | owner | |
 | 2026-04-05 | 1.6 | Sync consolidation: replaced git-sync.sh + personal-sync.sh with unified sync.sh. Updated component table, dependency relationships, data flow (removed Git section, added multi-backend sync), hook architecture table (2 rows → 1), execution order note, and session lifecycle. | Update | owner | |
 | 2026-04-07 | 1.7 | Added session-end-sync.sh to hook table and session lifecycle End section. Updated hook count 15→16. Parameterized literal gdrive:Claude/ paths to gdrive:{DRIVE_ROOT}/. | Update | owner | |
+| 2026-04-09 | 1.8 | Sync decoupling. Removed sync.sh and session-end-sync.sh from the hook architecture table. Added write-registry.sh as the new lightweight PostToolUse Write|Edit hook. Updated hook count 16→14. Updated component table, dependency relationships, data flow (sync backends now owned by DestinCode app, toolkit retains manual /sync skill + /restore command), session lifecycle (no more background pull). | Update | owner | |

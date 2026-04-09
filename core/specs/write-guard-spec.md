@@ -1,10 +1,10 @@
 # Write Guard — Design Spec
 
-**Version:** 1.3
-**Date:** 2026-04-05
+**Version:** 1.4
+**Date:** 2026-04-09
 **Status:** Approved
 **Related spec:** `backup-system-spec.md`
-**Feature location:** `~/.claude/hooks/write-guard.sh`, registry update in `~/.claude/hooks/sync.sh`
+**Feature location:** `~/.claude/hooks/write-guard.sh`, registry update in `~/.claude/hooks/write-registry.sh`
 
 ## Problem
 
@@ -26,8 +26,7 @@ Optimistic concurrency control via a centralized write registry and a PreToolUse
 | `$PPID` as session identifier | Both PreToolUse and PostToolUse hooks are spawned by the same parent process (the Claude Code session), so `$PPID` is consistent across hook invocations for the same session. Simple and reliable for same-machine detection. | Session ID from `~/.claude/sessions/*.json` (more robust but adds file parsing overhead per hook invocation), environment variable injection (not supported by Claude Code hook system). |
 | SHA-256 truncated to 16 hex chars | Enough to detect changes with negligible collision risk (64 bits), fast to compute via `sha256sum`. | Full SHA-256 (unnecessary — 16 chars is sufficient for change detection), MD5 (weaker but same practical outcome), file size + mtime (not reliable across platforms). |
 | Registry not backed up to Drive | PIDs are machine-local ephemeral state — meaningless across devices. Same category as `.backup-lock/` and `.session-heartbeat`. | Back up registry (would cause spurious conflicts on other machines with different PIDs). |
-| Registry update before debounce in `sync.sh` | The registry must reflect every write immediately. `sync.sh` updates the registry before the debounce check so `write-guard.sh` always has a current entry — even when a sync hasn't run in 15 minutes. | Update after sync (leaves a 15-min window where concurrent writes are undetected). |
-| Registry update in `sync.sh` rather than separate PostToolUse hook | Avoids a second hook script firing on every write. The existing mutex lock serializes writes, protecting the registry from concurrent updates. | Separate PostToolUse hook (cleaner separation but doubles per-write overhead). |
+| Registry update in standalone PostToolUse hook (`write-registry.sh`) | After sync decoupling (April 2026), `sync.sh` no longer exists. The registry update lives in its own lightweight hook so `write-guard.sh` always has fresh data, regardless of whether the DestinCode app or `/sync` skill is running. | Coupling to a sync hook (couples concurrency protection to backup orchestration), no per-write hook (race window between writes). |
 | Protect all tracked files | Negligible overhead (one JSON lookup per write) and simpler than maintaining a separate "protected files" list. | Skills/specs only (most likely conflict targets, but leaves other files unprotected), configurable exclusion list (premature complexity). |
 
 ## Architecture
@@ -35,7 +34,7 @@ Optimistic concurrency control via a centralized write registry and a PreToolUse
 Two components:
 
 1. **`write-guard.sh`** — A PreToolUse hook (fires before Write/Edit) that checks the registry and blocks conflicting writes.
-2. **Registry updates in `sync.sh`** — The existing PostToolUse hook updates the registry after each successful tracked write.
+2. **`write-registry.sh`** — A PostToolUse hook that records `{pid, timestamp, content_hash}` for every tracked write into `~/.claude/.write-registry.json`. Tiny — no network, no debounce, no backend logic.
 
 ### Write Registry
 
@@ -62,8 +61,8 @@ Two components:
 
 **Logic (in order):**
 
-1. **Parse stdin JSON** — extract `tool_name` and `tool_input.file_path`. Normalize backslashes to forward slashes (same normalization as `sync.sh`).
-2. **Tracked file filter** — same whitelist as `sync.sh`. Non-tracked files pass through (exit 0).
+1. **Parse stdin JSON** — extract `tool_name` and `tool_input.file_path`. Normalize backslashes to forward slashes.
+2. **Tracked file filter** — built-in whitelist of file categories worth protecting (memory, CLAUDE.md, settings, mcp.json, skills, hooks, plans, specs, etc.). Non-tracked files pass through (exit 0).
 3. **Read registry** — parse `~/.claude/.write-registry.json`. If no entry for this file, allow (exit 0 — first write ever).
 4. **Same-session check** — if registry PID matches `$PPID`, allow (exit 0 — we're the last writer). Assumption: both PreToolUse and PostToolUse hooks are spawned by the same parent process (the Claude Code session), so `$PPID` is consistent.
 5. **Liveness check** — `tasklist //FI "PID eq $PID"` (Windows-compatible; `kill -0` doesn't work for Windows PIDs in Git Bash). If the other session is dead, allow (exit 0 — stale entry, no conflict).
@@ -74,16 +73,17 @@ Two components:
 
 **Performance:** ~50ms estimated overhead per write (JSON parse + sha256sum + kill -0). To be validated during implementation.
 
-### PostToolUse Registry Update (in `sync.sh`)
+### PostToolUse Registry Update (`write-registry.sh`)
 
-Placed early in the script, right after the path filter passes and before the debounce check:
+A standalone PostToolUse hook fires on every Write|Edit:
 
-1. Compute SHA-256 of written file, truncate to 16 hex chars.
-2. Read existing registry JSON (or start with `{}`).
-3. Upsert the entry: `{filepath: {pid: $PPID, ts: $(date +%s), hash: $HASH}}`.
-4. Write atomically (`.write-registry.json.tmp` + `mv`).
+1. Parse stdin JSON to extract `file_path`.
+2. Compute SHA-256 of written file, truncate to 16 hex chars.
+3. Read existing registry JSON (or start with `{}`).
+4. Upsert the entry: `{filepath: {pid: $PPID, ts: $(date +%s), hash: $HASH}}`.
+5. Write atomically via `atomic_write` from `lib/hook-preamble.sh` (`.tmp.$$` + `mv`).
 
-**Error handling:** If the registry read fails (corrupted JSON, missing file), log to `~/.claude/backup.log` and proceed with the backup — registry failure must not block backups. If the write fails (permissions), log and continue.
+**Error handling:** If the registry read or write fails, the hook exits silently — registry failure must not block tool execution. The DestinCode app's SyncService also updates the registry on its own pushes for symmetric coverage.
 
 ### Hook Configuration
 
@@ -104,17 +104,16 @@ Added to `~/.claude/settings.json` (user-level settings, same file as existing h
 
 ## Scope
 
-- Protects all files matching the `sync.sh` tracked-files whitelist.
-- Same-machine protection only (cross-device is handled by the backup system).
+- Protects all files matching the built-in tracked-files whitelist (memory, CLAUDE.md, settings, mcp.json, skills, hooks, plans, specs, etc.).
+- Same-machine protection only (cross-device sync conflicts are handled by the DestinCode app's "newer wins" semantics).
 - Blocks conflicting writes — does not auto-resolve conflicts.
 
 ## Dependencies
 
 - **Depends on:**
   - `sha256sum` — available in Git Bash on Windows as `sha256sum.exe`
-  - `node` (Node.js) — for parsing stdin JSON (same as `sync.sh`)
+  - `node` (Node.js) — for parsing stdin JSON
   - `tasklist` — for PID liveness check (Windows; `kill -0` doesn't work for Windows PIDs in Git Bash)
-  - `~/.claude/.backup-lock/` — shared mutex with backup system to serialize registry access
   - Claude Code hook system — PreToolUse hook invocation with JSON on stdin; non-zero exit blocks the tool call
 
 - **Depended on by:**
@@ -130,9 +129,9 @@ Added to `~/.claude/settings.json` (user-level settings, same file as existing h
 ## Integration Checklist
 
 - [x] Created `~/.claude/hooks/write-guard.sh`
-- [x] Registry update logic in `sync.sh` (before debounce check)
-- [x] PreToolUse hook entry in `~/.claude/settings.json`
-- [x] `write-guard.sh` in tracked files in `sync.sh` filter (via `*/hooks/*` pattern)
+- [x] Registry update lives in standalone `~/.claude/hooks/write-registry.sh` (PostToolUse Write|Edit)
+- [x] PreToolUse hook entry in `~/.claude/settings.json` (registered via `hooks-manifest.json`)
+- [x] `write-guard.sh` in its own tracked-files whitelist (via `*/hooks/*` pattern)
 - [x] `backup-system-spec.md` updated
 
 ## Known Issues & Planned Updates
@@ -144,6 +143,7 @@ See [GitHub Issues](https://github.com/itsdestin/destinclaude/issues) for known 
 | Date | Version | What changed | Type | Approved by |
 |------|---------|-------------|------|-------------|
 | 2026-03-14 | 1.0 | Initial spec | New | — |
+| 2026-04-09 | 1.4 | Sync decoupling: `sync.sh` was removed. Registry update moved from `sync.sh` into a new standalone `write-registry.sh` PostToolUse hook so write-guard keeps working independently of the DestinCode app. The app's SyncService also updates the registry on its own pushes for symmetric coverage. | Update | owner |
 | 2026-04-05 | 1.3 | Registry update moved from `git-sync.sh` to `sync.sh` as part of sync consolidation. Updated all spec references from git-sync.sh → sync.sh. | Update | owner |
 | 2026-03-15 | 1.2 | Registry update moved from `sync-to-drive.sh` to `git-sync.sh` as part of Git + Drive hybrid migration | Update | — |
 | 2026-03-15 | 1.1 | Windows platform fixes: hardcode registry path (Git Bash `$HOME` → `/c/...` breaks Node.js `readFileSync`), replace `kill -0` with `tasklist` for PID liveness (Git Bash `kill` can't signal Windows PIDs) | Implementation | — |

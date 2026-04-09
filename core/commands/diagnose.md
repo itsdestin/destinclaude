@@ -1,6 +1,6 @@
 ---
 name: diagnose
-description: Run a full system diagnostic — sync health, git status, Drive connectivity, file integrity, debounce state, active sessions, and recent errors. Use when debugging sync issues or when something feels wrong.
+description: Run a full system diagnostic — toolkit health, write registry, app sync coordination, file integrity, active sessions, and recent errors. Use when something feels wrong.
 user-invocable: true
 ---
 
@@ -8,61 +8,60 @@ user-invocable: true
 
 Run each diagnostic section below in sequence. Present all results in a single structured output. Do NOT ask for confirmation between sections — run everything and present the full report.
 
-## 1. Sync Health
+## 1. App Sync Coordination
 
 ```bash
-echo "=== Sync Status ===" && cat ~/.claude/.sync-status 2>/dev/null || echo "(no sync status file)"
-echo "" && echo "=== Sync Warnings ===" && cat ~/.claude/.sync-warnings 2>/dev/null || echo "(no warnings)"
+echo "=== App Sync ===" && if [ -f ~/.claude/toolkit-state/.app-sync-active ]; then echo "DestinCode app is running (PID $(cat ~/.claude/toolkit-state/.app-sync-active 2>/dev/null)) — automatic sync is owned by the app."; else echo "App not detected — sync is manual via /sync skill."; fi
 ```
 
-## 2. Git Status
+## 2. Sync Warnings
 
 ```bash
-echo "=== Git Status ===" && cd ~/.claude && git status --short 2>/dev/null | head -20
-echo "" && echo "Unpushed commits:" && git log --oneline origin/main..HEAD 2>/dev/null | wc -l
-echo "" && echo "Last sync marker:" && if [ -f ~/.claude/toolkit-state/.sync-marker ]; then echo "$(( $(date +%s) - $(cat ~/.claude/toolkit-state/.sync-marker) ))s ago"; else echo "(no marker)"; fi
+echo "=== Sync Warnings ===" && cat ~/.claude/.sync-warnings 2>/dev/null || echo "(no warnings)"
+echo "" && echo "=== Unsynced Projects ===" && cat ~/.claude/.unsynced-projects 2>/dev/null || echo "(none)"
 ```
 
-## 3. Recent Errors
+## 3. Last Backup Metadata
+
+```bash
+echo "=== Last Successful Push ===" && if [ -f ~/.claude/backup-meta.json ]; then cat ~/.claude/backup-meta.json; else echo "(no backup-meta.json yet)"; fi
+```
+
+## 4. Recent Errors
 
 ```bash
 echo "=== Recent Errors (last 15) ===" && grep -E '"level":"(ERROR|WARN)"|\[(ERROR|WARN)\]' ~/.claude/backup.log 2>/dev/null | tail -15
 ```
 
-## 4. Active Sessions
+## 5. Active Sessions
 
 ```bash
 echo "=== Active Sessions ===" && for f in ~/.claude/sessions/*.json 2>/dev/null; do [ -f "$f" ] || continue; pid=$(node -e "try{console.log(JSON.parse(require('fs').readFileSync('$f')).pid)}catch{console.log('?')}" 2>/dev/null); alive=$(kill -0 $pid 2>/dev/null && echo "alive" || echo "dead"); echo "  $(basename $f) PID=$pid ($alive)"; done
 ```
 
-## 5. Debounce State
+## 6. Write Registry (write-guard input)
 
 ```bash
-echo "=== Debounce State ===" && for marker in ~/.claude/toolkit-state/.sync-marker ~/.claude/toolkit-state/.session-sync-marker; do if [ -f "$marker" ]; then age=$(( $(date +%s) - $(cat "$marker") )); echo "  $(basename $marker): ${age}s ago"; else echo "  $(basename $marker): (not set)"; fi; done
+echo "=== Write Registry ===" && if [ -f ~/.claude/.write-registry.json ]; then entries=$(node -e "console.log(Object.keys(JSON.parse(require('fs').readFileSync('$HOME/.claude/.write-registry.json'))).length)" 2>/dev/null); echo "  $entries tracked file(s)"; else echo "  (no registry yet — first Write/Edit will create it)"; fi
+echo "" && echo "=== write-registry.sh ===" && if [ -e ~/.claude/hooks/write-registry.sh ]; then echo "  installed"; else echo "  MISSING — run /update to install"; fi
 ```
 
-## 6. Drive Connectivity
+## 7. Session-Start Debounce
 
 ```bash
-echo "=== Drive Connectivity ===" && if command -v rclone &>/dev/null; then timeout 5 rclone lsd gdrive: --max-depth 0 2>&1 | head -3 || echo "Drive check timed out or failed"; else echo "rclone not installed"; fi
+echo "=== Session-Start Debounce ===" && marker=~/.claude/toolkit-state/.session-sync-marker; if [ -f "$marker" ]; then age=$(( $(date +%s) - $(cat "$marker") )); echo "  ${age}s ago"; else echo "  (not set)"; fi
 ```
 
-## 7. File Integrity
+## 8. File Integrity
 
 ```bash
 echo "=== JSONL Integrity ===" && corrupt=0; total=0; for f in ~/.claude/projects/*/*.jsonl; do [ -f "$f" ] || continue; total=$((total+1)); if tr -d '\0' < "$f" | cmp -s - "$f"; then :; else echo "  NULL BYTES: $(basename $f)"; corrupt=$((corrupt+1)); fi; done; echo "  Scanned: $total files, $corrupt with null bytes"
 ```
 
-## 8. Desktop App
-
-```bash
-echo "=== Desktop Log (last 5 errors) ===" && if [ -f ~/.claude/desktop.log ]; then grep '"level":"ERROR"' ~/.claude/desktop.log 2>/dev/null | tail -5 || echo "(no errors)"; else echo "(no desktop log)"; fi
-```
-
 ## 9. Log Sizes
 
 ```bash
-echo "=== Log Sizes ===" && wc -l ~/.claude/backup.log ~/.claude/statusline.log ~/.claude/desktop.log 2>/dev/null || echo "(some logs missing)"
+echo "=== Log Sizes ===" && wc -l ~/.claude/backup.log ~/.claude/statusline.log 2>/dev/null || echo "(some logs missing)"
 ```
 
 ## 10. Toolkit Version
@@ -74,9 +73,10 @@ echo "=== Toolkit ===" && cat ~/.claude/toolkit-state/update-status.json 2>/dev/
 ## Present Results
 
 After running all sections, present the output as a structured diagnostic report. Highlight any problems found:
+- App sync active + warnings present → mention that backend issues should be debugged in the DestinCode app's Sync panel
 - Sync warnings or errors → suggest `/sync` to investigate
-- Unpushed commits > 0 → git push may be failing
-- Stale debounce markers (>1 hour) → sync may be stuck
+- Missing `write-registry.sh` → suggest `/update`
 - Null-byte files → suggest manual inspection
 - Dead sessions → leftover PIDs from crashed processes
-- Drive connectivity failure → rclone config issue
+
+For backend connectivity issues (Drive auth, GitHub credentials, iCloud path) — these are now owned by the DestinCode app. If the app is running, point the user to its Sync panel. If not, run `/sync` and use its "Test backends" action.
