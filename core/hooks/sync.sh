@@ -72,15 +72,19 @@ if type config_get &>/dev/null; then
     BACKEND=$(config_get "PERSONAL_SYNC_BACKEND" "none")
     DRIVE_ROOT=$(config_get "DRIVE_ROOT" "Claude")
     SYNC_REPO=$(config_get "PERSONAL_SYNC_REPO" "")
+    PERSONAL_DRIVE_REMOTE=$(config_get "PERSONAL_DRIVE_REMOTE" "gdrive")
 elif command -v node &>/dev/null; then
     BACKEND=$(node -e "try{const c=JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'));console.log(c.PERSONAL_SYNC_BACKEND||'none')}catch{console.log('none')}" "$CONFIG_FILE" 2>/dev/null) || BACKEND="none"
     DRIVE_ROOT=$(node -e "try{const c=JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'));console.log(c.DRIVE_ROOT||'Claude')}catch{console.log('Claude')}" "$CONFIG_FILE" 2>/dev/null) || DRIVE_ROOT="Claude"
     SYNC_REPO=$(node -e "try{const c=JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'));console.log(c.PERSONAL_SYNC_REPO||'')}catch{console.log('')}" "$CONFIG_FILE" 2>/dev/null) || SYNC_REPO=""
+    PERSONAL_DRIVE_REMOTE=$(node -e "try{const c=JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'));console.log(c.PERSONAL_DRIVE_REMOTE||'gdrive')}catch{console.log('gdrive')}" "$CONFIG_FILE" 2>/dev/null) || PERSONAL_DRIVE_REMOTE="gdrive"
 else
     BACKEND=$(grep -o '"PERSONAL_SYNC_BACKEND"[[:space:]]*:[[:space:]]*"[^"]*"' "$CONFIG_FILE" 2>/dev/null | head -1 | sed 's/.*"PERSONAL_SYNC_BACKEND"[[:space:]]*:[[:space:]]*"//' | sed 's/"$//' || echo "none")
     DRIVE_ROOT=$(grep -o '"DRIVE_ROOT"[[:space:]]*:[[:space:]]*"[^"]*"' "$CONFIG_FILE" 2>/dev/null | head -1 | sed 's/.*"DRIVE_ROOT"[[:space:]]*:[[:space:]]*"//' | sed 's/"$//' || echo "Claude")
     SYNC_REPO=$(grep -o '"PERSONAL_SYNC_REPO"[[:space:]]*:[[:space:]]*"[^"]*"' "$CONFIG_FILE" 2>/dev/null | head -1 | sed 's/.*"PERSONAL_SYNC_REPO"[[:space:]]*:[[:space:]]*"//' | sed 's/"$//' || echo "")
+    PERSONAL_DRIVE_REMOTE=$(grep -o '"PERSONAL_DRIVE_REMOTE"[[:space:]]*:[[:space:]]*"[^"]*"' "$CONFIG_FILE" 2>/dev/null | head -1 | sed 's/.*"PERSONAL_DRIVE_REMOTE"[[:space:]]*:[[:space:]]*"//' | sed 's/"$//' || echo "gdrive")
 fi
+PERSONAL_DRIVE_REMOTE="${PERSONAL_DRIVE_REMOTE:-gdrive}"
 
 # --- Write registry update (for write-guard) ---
 # Must happen before debounce — registry is updated on every write, not just sync cycles.
@@ -176,7 +180,7 @@ sync_drive() {
         return 1
     fi
 
-    local REMOTE_BASE="gdrive:$DRIVE_ROOT/Backup/personal"
+    local REMOTE_BASE="${PERSONAL_DRIVE_REMOTE}:$DRIVE_ROOT/Backup/personal"
     local SYS_REMOTE="$REMOTE_BASE/system-backup"
     local ERRORS=0
 
@@ -216,7 +220,7 @@ sync_drive() {
             _enc_configured=$(grep -o '"encyclopedia_remote_path"[[:space:]]*:[[:space:]]*"[^"]*"' "$CONFIG_FILE" 2>/dev/null | head -1 | sed 's/.*"encyclopedia_remote_path"[[:space:]]*:[[:space:]]*"//' | sed 's/"$//' || true)
             [[ -n "$_enc_configured" ]] && _enc_remote_path="$_enc_configured"
         fi
-        rclone copy "$CLAUDE_DIR/encyclopedia/" "gdrive:$DRIVE_ROOT/$_enc_remote_path/" \
+        rclone copy "$CLAUDE_DIR/encyclopedia/" "${PERSONAL_DRIVE_REMOTE}:$DRIVE_ROOT/$_enc_remote_path/" \
             --update --max-depth 1 --include "*.md" 2>/dev/null || \
             log_backup "WARN" "Encyclopedia sync to remote failed"
     fi

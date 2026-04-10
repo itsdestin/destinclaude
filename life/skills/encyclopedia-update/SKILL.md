@@ -23,7 +23,7 @@ This skill processes journal entries and routes their contents into eight modula
 
 ## The Eight Modular Files
 
-All files are cached locally at `~/.claude/encyclopedia/` (source of truth: `gdrive:Claude/The Journal/System/`):
+All files are cached locally at `~/.claude/encyclopedia/` (source of truth: `gdrive-personal:Claude/The Journal/System/`):
 
 | # | File | Path | Update pattern |
 |---|------|------|----------------|
@@ -121,8 +121,8 @@ If this is the **first journaling session of the current calendar month** (i.e.,
 List both journal folders:
 
 ```bash
-rclone ls "gdrive:Claude/The Journal/Daily Entries/"
-rclone ls "gdrive:Claude/The Journal/Misc. Entries and Information/"
+rclone ls "gdrive-personal:Claude/The Journal/Daily Entries/"
+rclone ls "gdrive-personal:Claude/The Journal/Misc. Entries and Information/"
 ```
 
 From **Daily Entries**, filter to files with a date in the filename (`YYYY-MM-DD.md`) that is **strictly after** the `Last Updated` date. Skip non-date files.
@@ -134,8 +134,8 @@ If there are no new entries in either folder, update `Last Updated` on all files
 ### 4. Read new entries
 
 ```bash
-rclone cat "gdrive:Claude/The Journal/Daily Entries/YYYY-MM-DD.md"
-rclone cat "gdrive:Claude/The Journal/Misc. Entries and Information/YYYY-MM-DD - Title.md"
+rclone cat "gdrive-personal:Claude/The Journal/Daily Entries/YYYY-MM-DD.md"
+rclone cat "gdrive-personal:Claude/The Journal/Misc. Entries and Information/YYYY-MM-DD - Title.md"
 ```
 
 Read each new entry in chronological order (daily and misc interleaved by date).
@@ -418,19 +418,19 @@ For each modified file, use the Write tool to save to `~/.claude/encyclopedia/[f
 
 After all approved changes have been written to the local cache, push the updated files to Google Drive:
 ```bash
-rclone copy ~/.claude/encyclopedia/ "gdrive:Claude/The Journal/System/"
+rclone copy ~/.claude/encyclopedia/ "gdrive-personal:Claude/The Journal/System/"
 ```
 If rclone fails, warn the user but do not retry — local cache is safe and will be pushed on next successful sync.
 
 **Claude.ai web / Claude app:**
-Render each modified file as formatted markdown and instruct the user to save it to `gdrive:Claude/The Journal/System/`.
+Render each modified file as formatted markdown and instruct the user to save it to `gdrive-personal:Claude/The Journal/System/`.
 
 Confirm all files saved. Brief confirmation — no detailed summary unless asked.
 
 ### 9. Update Entry Index
 
 ```bash
-rclone cat "gdrive:Claude/The Journal/Entry Index.md"
+rclone cat "gdrive-personal:Claude/The Journal/Entry Index.md"
 ```
 
 For each new entry just processed, add a row to the appropriate table (Daily or Misc). Each row contains the date, a brief topic summary (1-2 sentences), and a People column listing all substantively discussed individuals (not groups). Use first names when unambiguous; full names to disambiguate. Only include people who did something, were discussed, or were involved in an event — not passing mentions. Update `Last Updated` in the header.
@@ -440,7 +440,7 @@ cat <<'INDEX_EOF' > /tmp/entry-index.md
 [full entry index content]
 INDEX_EOF
 
-if rclone copyto /tmp/entry-index.md "gdrive:Claude/The Journal/Entry Index.md"; then
+if rclone copyto /tmp/entry-index.md "gdrive-personal:Claude/The Journal/Entry Index.md"; then
     rm /tmp/entry-index.md
     echo "Entry Index saved successfully"
 else
@@ -529,8 +529,8 @@ Save a snapshot of all eight modular files to the archive:
 MONTH=$(date +"%Y-%m")
 
 for file in "Core Identity" "Status Snapshot" "People Database" "Chronicle" "Beliefs and Positions" "Predictions" "Open Threads and Goals" "Preferences and Reference Data"; do
-    rclone copyto "gdrive:Claude/The Journal/System/${file}.md" \
-        "gdrive:Claude/The Journal/System Archive/${MONTH}/${file}.md"
+    rclone copyto "gdrive-personal:Claude/The Journal/System/${file}.md" \
+        "gdrive-personal:Claude/The Journal/System Archive/${MONTH}/${file}.md"
 done
 
 echo "Monthly archive saved to System Archive/${MONTH}/"
@@ -548,14 +548,14 @@ Only run this if:
 
 1. List and read ALL files in both journal folders:
    ```bash
-   rclone ls "gdrive:Claude/The Journal/Daily Entries/"
-   rclone ls "gdrive:Claude/The Journal/Misc. Entries and Information/"
+   rclone ls "gdrive-personal:Claude/The Journal/Daily Entries/"
+   rclone ls "gdrive-personal:Claude/The Journal/Misc. Entries and Information/"
    ```
    Read every file.
 
 2. Also read the existing compiled Encyclopedia if it exists — it serves as a valuable reference for the rebuild, especially for information that predates the journal entries:
    ```bash
-   rclone cat "gdrive:Claude/The Journal/Encyclopedia.md"
+   rclone cat "gdrive-personal:Claude/The Journal/Encyclopedia.md"
    ```
 
 3. Synthesize all eight modular files from scratch:
@@ -584,13 +584,13 @@ When the Update Skill needs to look up prior context (e.g., to verify a contradi
 
 **Start with the Entry Index:**
 ```bash
-rclone cat "gdrive:Claude/The Journal/Entry Index.md"
+rclone cat "gdrive-personal:Claude/The Journal/Entry Index.md"
 ```
 
 **Read specific entries:**
 ```bash
-rclone cat "gdrive:Claude/The Journal/Daily Entries/YYYY-MM-DD.md"
-rclone cat "gdrive:Claude/The Journal/Misc. Entries and Information/YYYY-MM-DD - Title.md"
+rclone cat "gdrive-personal:Claude/The Journal/Daily Entries/YYYY-MM-DD.md"
+rclone cat "gdrive-personal:Claude/The Journal/Misc. Entries and Information/YYYY-MM-DD - Title.md"
 ```
 
 **Claude.ai web / Claude app:**

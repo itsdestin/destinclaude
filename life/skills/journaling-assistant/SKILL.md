@@ -221,14 +221,13 @@ cat << 'EOF' > /tmp/journal-entry.md
 [compiled entry content]
 EOF
 
-rclone mkdir "gdrive:Claude/The Journal/Daily Entries"
-rclone copyto /tmp/journal-entry.md "gdrive:Claude/The Journal/Daily Entries/YYYY-MM-DD.md"
+rclone copyto /tmp/journal-entry.md "gdrive-personal:Claude/The Journal/Daily Entries/YYYY-MM-DD.md"
 rm /tmp/journal-entry.md
 ```
 Confirm the file was saved to Google Drive.
 
 **Claude.ai web / Claude app:**
-Render the full compiled entry as formatted markdown in the chat. Instruct the user to save it as `YYYY-MM-DD.md` to `gdrive:Claude/The Journal/Daily Entries/`.
+Render the full compiled entry as formatted markdown in the chat. Instruct the user to save it as `YYYY-MM-DD.md` to `gdrive-personal:Claude/The Journal/Daily Entries/`.
 
 Then proceed to Step 7 before closing.
 
@@ -335,13 +334,12 @@ cat << 'EOF' > /tmp/misc-entry.md
 [compiled entry content]
 EOF
 
-rclone mkdir "gdrive:Claude/The Journal/Misc. Entries and Information"
-rclone copyto /tmp/misc-entry.md "gdrive:Claude/The Journal/Misc. Entries and Information/YYYY-MM-DD - Short Topic Title.md"
+rclone copyto /tmp/misc-entry.md "gdrive-personal:Claude/The Journal/Misc. Entries and Information/YYYY-MM-DD - Short Topic Title.md"
 rm /tmp/misc-entry.md
 ```
 
 **Claude.ai web / Claude app:**
-Render the compiled entry as formatted markdown and instruct the user to save it as `.md` to `gdrive:Claude/The Journal/Misc. Entries and Information/`.
+Render the compiled entry as formatted markdown and instruct the user to save it as `.md` to `gdrive-personal:Claude/The Journal/Misc. Entries and Information/`.
 
 No calendar step for misc entries.
 
@@ -353,19 +351,19 @@ Confirm both the entry and encyclopedia update are saved, then close.
 
 ## Searching Past Entries
 
-Entries are stored in two subfolders under `gdrive:Claude/The Journal/`:
+Entries are stored in two subfolders under `gdrive-personal:Claude/The Journal/`:
 - **Daily entries:** `Daily Entries/`
 - **Misc entries:** `Misc. Entries and Information/`
 
 **Start with the Entry Index** for topic-based and people-based searching:
 ```
-rclone cat "gdrive:Claude/The Journal/Entry Index.md"
+rclone cat "gdrive-personal:Claude/The Journal/Entry Index.md"
 ```
 
 **Claude Code CLI:**
-- List daily entries: `rclone ls "gdrive:Claude/The Journal/Daily Entries/"`
-- List misc entries: `rclone ls "gdrive:Claude/The Journal/Misc. Entries and Information/"`
-- Read a specific entry: `rclone cat "gdrive:Claude/The Journal/Daily Entries/YYYY-MM-DD.md"`
+- List daily entries: `rclone ls "gdrive-personal:Claude/The Journal/Daily Entries/"`
+- List misc entries: `rclone ls "gdrive-personal:Claude/The Journal/Misc. Entries and Information/"`
+- Read a specific entry: `rclone cat "gdrive-personal:Claude/The Journal/Daily Entries/YYYY-MM-DD.md"`
 
 **Claude.ai web / Claude app:**
 Use the Google Drive connector to browse the appropriate subfolder under `Claude/The Journal/`.

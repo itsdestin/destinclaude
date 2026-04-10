@@ -10,7 +10,7 @@ Always use `rclone` with the `gdrive:` remote for all Google Drive operations. N
 
 ## Remote name
 
-The configured remote is `gdrive:`. Always prefix paths with `gdrive:`.
+The configured remote is `gdrive:` (work Google account — DeMenna). Always prefix paths with `gdrive:`. For personal Google Drive (tjmorin03@gmail.com), use `gdrive-personal:` directly — do NOT use this skill.
 
 Examples:
 - Root of Drive → `gdrive:`

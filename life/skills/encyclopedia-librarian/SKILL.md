@@ -27,7 +27,7 @@ The Librarian produces purpose-built documents from the Encyclopedia system's ei
 
 ## Modular Source Files
 
-All files are cached locally at `~/.claude/encyclopedia/` (source of truth: `gdrive:Claude/The Journal/System/`):
+All files are cached locally at `~/.claude/encyclopedia/` (source of truth: `gdrive-personal:Claude/The Journal/System/`):
 
 | File | Local Path |
 |------|------|
@@ -50,9 +50,9 @@ Use the Google Drive connector to open each file under `Claude/The Journal/Syste
 
 **Journal entries** can also be accessed when deeper primary-source context is needed:
 ```bash
-rclone cat "gdrive:Claude/The Journal/Entry Index.md"
-rclone cat "gdrive:Claude/The Journal/Daily Entries/YYYY-MM-DD.md"
-rclone cat "gdrive:Claude/The Journal/Misc. Entries and Information/YYYY-MM-DD - Title.md"
+rclone cat "gdrive-personal:Claude/The Journal/Entry Index.md"
+rclone cat "gdrive-personal:Claude/The Journal/Daily Entries/YYYY-MM-DD.md"
+rclone cat "gdrive-personal:Claude/The Journal/Misc. Entries and Information/YYYY-MM-DD - Title.md"
 ```
 
 ---
@@ -128,11 +128,11 @@ Deep Search **requires the user's explicit approval before execution**. The Libr
 
 | Source | Location | How to Search |
 |--------|----------|---------------|
-| **Text message histories** | `gdrive:Claude/The Journal/Misc. Entries and Information/Text Messages (03-08-2026)/contacts/*.jsonl` | Read `_index.json` first to identify relevant contacts and date ranges. Then read the relevant JSONL file(s). Each line is `{"t":"...","d":"in/out","m":"..."}`. |
-| **Text message analyses** | `gdrive:Claude/The Journal/Misc. Entries and Information/Text Messages (03-08-2026)/Misc/messages analyses/` | Pre-built thematic analyses (personality, interests, political). Read these before raw JSONL when they cover the topic — they're faster and already synthesized. |
-| **Categorized messages** | `gdrive:Claude/The Journal/Misc. Entries and Information/Text Messages (03-08-2026)/Misc/messages sorted by category/` | Pre-sorted messages by topic (career, interests, political, predictions, values). Check here first for topic-specific deep searches. |
-| **Daily journal entries** | `gdrive:Claude/The Journal/Daily Entries/YYYY-MM-DD.md` | Use the Entry Index (`gdrive:Claude/The Journal/Entry Index.md`) to identify relevant dates, then read specific entries. |
-| **Misc entries & documents** | `gdrive:Claude/The Journal/Misc. Entries and Information/` | Includes political philosophy notes, informational entries, relationship documents, and other reference documents. List the directory to find relevant files. |
+| **Text message histories** | `gdrive-personal:Claude/The Journal/Misc. Entries and Information/Text Messages (03-08-2026)/contacts/*.jsonl` | Read `_index.json` first to identify relevant contacts and date ranges. Then read the relevant JSONL file(s). Each line is `{"t":"...","d":"in/out","m":"..."}`. |
+| **Text message analyses** | `gdrive-personal:Claude/The Journal/Misc. Entries and Information/Text Messages (03-08-2026)/Misc/messages analyses/` | Pre-built thematic analyses (personality, interests, political). Read these before raw JSONL when they cover the topic — they're faster and already synthesized. |
+| **Categorized messages** | `gdrive-personal:Claude/The Journal/Misc. Entries and Information/Text Messages (03-08-2026)/Misc/messages sorted by category/` | Pre-sorted messages by topic (career, interests, political, predictions, values). Check here first for topic-specific deep searches. |
+| **Daily journal entries** | `gdrive-personal:Claude/The Journal/Daily Entries/YYYY-MM-DD.md` | Use the Entry Index (`gdrive-personal:Claude/The Journal/Entry Index.md`) to identify relevant dates, then read specific entries. |
+| **Misc entries & documents** | `gdrive-personal:Claude/The Journal/Misc. Entries and Information/` | Includes political philosophy notes, informational entries, relationship documents, and other reference documents. List the directory to find relevant files. |
 
 ### Search Strategy
 
@@ -288,7 +288,7 @@ Deep search findings get woven into the report structure of whichever template i
 
 **Tone:** Reflective and honest. This is a tool for self-understanding, not a highlight reel. Include the hard parts.
 
-**Archival value:** Period Reviews can be saved alongside the compiled Encyclopedia as focused retrospectives. Offer to save the output to `gdrive:Claude/The Journal/Librarian Reports/Period Reviews/` with a descriptive filename.
+**Archival value:** Period Reviews can be saved alongside the compiled Encyclopedia as focused retrospectives. Offer to save the output to `gdrive-personal:Claude/The Journal/Librarian Reports/Period Reviews/` with a descriptive filename.
 
 ---
 
@@ -375,9 +375,9 @@ Deep search findings get woven into the report structure of whichever template i
 **Don't over-read files.** If a template specifies which sources to read, start with those. Only read additional files if the initial sources are insufficient. Don't read all eight files for a simple Person Briefing.
 
 **Offer to save.** After producing any output, offer to save it to an appropriate location in Google Drive. Suggested paths:
-- Career Briefs: `gdrive:Claude/The Journal/Librarian Reports/Career Briefs/`
-- Period Reviews: `gdrive:Claude/The Journal/Librarian Reports/Period Reviews/`
-- Other: `gdrive:Claude/The Journal/Librarian Reports/`
+- Career Briefs: `gdrive-personal:Claude/The Journal/Librarian Reports/Career Briefs/`
+- Period Reviews: `gdrive-personal:Claude/The Journal/Librarian Reports/Period Reviews/`
+- Other: `gdrive-personal:Claude/The Journal/Librarian Reports/`
 
 **Keep it focused.** The Librarian's value is in producing *targeted* outputs. If the user asks for something that's essentially the full Encyclopedia, suggest using the Compilation Skill instead.
 

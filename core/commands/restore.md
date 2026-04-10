@@ -40,7 +40,7 @@ Ask:
 1. Verify rclone is installed and `gdrive:` remote is configured: `rclone lsd gdrive: 2>/dev/null`
 2. If not configured, walk through rclone setup (same as setup wizard Phase 4 Life Dependencies)
 3. Ask for Drive root folder name (default: "Claude")
-4. Pull: `rclone sync "gdrive:$DRIVE_ROOT/Backup/personal/" "$CLAUDE_DIR/.restore-staging/" --progress`
+4. Pull: `rclone sync "gdrive-personal:$DRIVE_ROOT/Backup/personal/" "$CLAUDE_DIR/.restore-staging/" --progress`
 
 ### Option 2: GitHub
 

@@ -75,8 +75,8 @@ If running in system-driven mode, offer to mine primary sources for unconfirmed 
 Only proceed if the user approves. Use the same Deep Search mechanics as the `encyclopedia-librarian` skill:
 
 ```bash
-rclone ls "gdrive:Claude/The Journal/Daily Entries/"
-rclone ls "gdrive:Claude/The Journal/Misc. Entries and Information/"
+rclone ls "gdrive-personal:Claude/The Journal/Daily Entries/"
+rclone ls "gdrive-personal:Claude/The Journal/Misc. Entries and Information/"
 ```
 
 Read entries selectively based on gaps identified in Step 1a. Findings from Deep Search are **leads to ask about**, not facts to merge.
@@ -123,7 +123,7 @@ Structured questions with prepared follow-ups. Follow the user's energy:
 
 ### A. Interview Entry (Misc Entry)
 
-Saved to: `gdrive:Claude/The Journal/Misc. Entries and Information/YYYY-MM-DD - Interview [Topic].md`
+Saved to: `gdrive-personal:Claude/The Journal/Misc. Entries and Information/YYYY-MM-DD - Interview [Topic].md`
 
 For system-driven sessions, use "Interview - System-Driven Gap Review" as the topic.
 
@@ -164,12 +164,12 @@ cat << 'EOF' > /tmp/interview-entry.md
 [compiled entry content]
 EOF
 
-rclone copyto /tmp/interview-entry.md "gdrive:Claude/The Journal/Misc. Entries and Information/YYYY-MM-DD - Interview [Topic].md"
+rclone copyto /tmp/interview-entry.md "gdrive-personal:Claude/The Journal/Misc. Entries and Information/YYYY-MM-DD - Interview [Topic].md"
 rm /tmp/interview-entry.md
 ```
 
 **Claude.ai web / Claude app:**
-Render the compiled entry as formatted markdown and instruct the user to save it as `.md` to `gdrive:Claude/The Journal/Misc. Entries and Information/`.
+Render the compiled entry as formatted markdown and instruct the user to save it as `.md` to `gdrive-personal:Claude/The Journal/Misc. Entries and Information/`.
 
 ### B. Encyclopedia-Update Invocation
 
@@ -186,7 +186,7 @@ Pass context: the filename of the interview entry just saved.
 After encyclopedia-update completes, update the Entry Index with a row for the interview entry.
 
 ```bash
-rclone cat "gdrive:Claude/The Journal/Entry Index.md"
+rclone cat "gdrive-personal:Claude/The Journal/Entry Index.md"
 ```
 
 Add a row to the Misc Entries table with the date and a brief topic summary. Save the updated index.

@@ -190,26 +190,26 @@ Pull in this order. Tell the user what's happening at each step.
 
 ```bash
 mkdir -p ~/.claude/encyclopedia
-rclone sync "gdrive:$DRIVE_ROOT/The Journal/System/" ~/.claude/encyclopedia/ 2>/dev/null \
+rclone sync "gdrive-personal:$DRIVE_ROOT/The Journal/System/" ~/.claude/encyclopedia/ 2>/dev/null \
   && echo "  Encyclopedia synced." \
-  || echo "  WARNING: Encyclopedia sync failed. Run manually: rclone sync 'gdrive:$DRIVE_ROOT/The Journal/System/' ~/.claude/encyclopedia/"
+  || echo "  WARNING: Encyclopedia sync failed. Run manually: rclone sync 'gdrive-personal:$DRIVE_ROOT/The Journal/System/' ~/.claude/encyclopedia/"
 ```
 
 **Personal data** (memory, CLAUDE.md, toolkit config):
 
 ```bash
-rclone sync "gdrive:$DRIVE_ROOT/Backup/personal/" ~/.claude/ --update 2>/dev/null \
+rclone sync "gdrive-personal:$DRIVE_ROOT/Backup/personal/" ~/.claude/ --update 2>/dev/null \
   && echo "  Personal data synced." \
-  || echo "  WARNING: Personal data sync failed. Run manually: rclone sync 'gdrive:$DRIVE_ROOT/Backup/personal/' ~/.claude/ --update"
+  || echo "  WARNING: Personal data sync failed. Run manually: rclone sync 'gdrive-personal:$DRIVE_ROOT/Backup/personal/' ~/.claude/ --update"
 ```
 
 **Conversation transcripts:**
 
 ```bash
 mkdir -p ~/.claude/projects
-rclone copy "gdrive:$DRIVE_ROOT/Backup/conversations/" ~/.claude/projects/ --size-only 2>/dev/null \
+rclone copy "gdrive-personal:$DRIVE_ROOT/Backup/conversations/" ~/.claude/projects/ --size-only 2>/dev/null \
   && echo "  Transcripts synced." \
-  || echo "  WARNING: Transcript sync failed. Run manually: rclone copy 'gdrive:$DRIVE_ROOT/Backup/conversations/' ~/.claude/projects/ --size-only"
+  || echo "  WARNING: Transcript sync failed. Run manually: rclone copy 'gdrive-personal:$DRIVE_ROOT/Backup/conversations/' ~/.claude/projects/ --size-only"
 ```
 
 If any step fails and the user wants to skip it, that's fine — tell them the manual command to run later.
