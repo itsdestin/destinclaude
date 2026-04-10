@@ -217,7 +217,7 @@ sync_drive() {
             _enc_configured=$(grep -o '"encyclopedia_remote_path"[[:space:]]*:[[:space:]]*"[^"]*"' "$CONFIG_FILE" 2>/dev/null | head -1 | sed 's/.*"encyclopedia_remote_path"[[:space:]]*:[[:space:]]*"//' | sed 's/"$//' || true)
             [[ -n "$_enc_configured" ]] && _enc_remote_path="$_enc_configured"
         fi
-        rclone copy "$CLAUDE_DIR/encyclopedia/" "gdrive:$DRIVE_ROOT/$_enc_remote_path/" \
+        rclone copy "$CLAUDE_DIR/encyclopedia/" "${PERSONAL_DRIVE_REMOTE}:$DRIVE_ROOT/$_enc_remote_path/" \
             --update --max-depth 1 --include "*.md" 2>/dev/null || \
             log_backup "WARN" "Encyclopedia sync to remote failed"
     fi

@@ -18,6 +18,7 @@ BACKEND=$(config_get "PERSONAL_SYNC_BACKEND" "none")
 
 DRIVE_ROOT=$(config_get "DRIVE_ROOT" "Claude")
 SYNC_REPO=$(config_get "PERSONAL_SYNC_REPO" "")
+PERSONAL_DRIVE_REMOTE=$(config_get "PERSONAL_DRIVE_REMOTE" "gdrive")
 
 SLUG=$(get_current_project_slug 2>/dev/null || echo "")
 [[ -z "$SLUG" ]] && exit 0
@@ -39,7 +40,7 @@ _session_end_drive() {
         return 1
     fi
 
-    local REMOTE_BASE="gdrive:$DRIVE_ROOT/Backup/personal/conversations/$SLUG"
+    local REMOTE_BASE="${PERSONAL_DRIVE_REMOTE}:$DRIVE_ROOT/Backup/personal/conversations/$SLUG"
 
     _capture_err "session-end sync $SESSION_ID" \
         rclone copy "$JSONL_FILE" "$REMOTE_BASE/" --checksum || true
@@ -48,7 +49,7 @@ _session_end_drive() {
     if [[ -f "$_INDEX_FILE" ]]; then
         _capture_err "session-end index sync" \
             rclone copyto "$_INDEX_FILE" \
-            "gdrive:$DRIVE_ROOT/Backup/system-backup/conversation-index.json" \
+            "${PERSONAL_DRIVE_REMOTE}:$DRIVE_ROOT/Backup/system-backup/conversation-index.json" \
             --checksum || true
     fi
 }

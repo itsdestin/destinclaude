@@ -347,7 +347,7 @@ _session_sync_background() {
                         local _conv_pull_pid=$!
                         # Conversation index — pull to staging for post-pull merge
                         mkdir -p "$CLAUDE_DIR/toolkit-state/.index-staging"
-                        rclone copy "gdrive:$_DR/Backup/system-backup/conversation-index.json" \
+                        rclone copy "${_PDR}:$_DR/Backup/system-backup/conversation-index.json" \
                             "$CLAUDE_DIR/toolkit-state/.index-staging/" \
                             --checksum 2>/dev/null &
                         wait
