@@ -1,6 +1,6 @@
 ---
 name: theme-builder
-description: Build immersive DestinCode theme packs. Invoke as /theme-builder "your vibe description". Users can start from a general vibe, a specific detailed brief, or by uploading their own wallpaper. Two-phase — concept browser first, then full theme pack generation with assets.
+description: Build immersive DestinCode theme packs. Invoke as /theme-builder "your vibe description". Users can start from a general vibe, a specific detailed brief, or by uploading their own wallpaper. Three-phase — concept browser, then Kit refinement (swap palette/layout/bubble/font/effects/wallpaper/mascots/icons per column), then theme pack finalization.
 ---
 
 # /theme-builder
@@ -11,7 +11,7 @@ Build a custom DestinCode theme pack. Three starting modes:
 - **Specific detailed description** — a longer brief covering palette, fonts, layout, mood, references. Claude follows it precisely.
 - **Upload your own wallpaper** — the user drops in an image and Claude builds the theme around it.
 
-Claude generates concept options in a browser window first — no app changes — then builds a complete theme pack (folder with manifest + assets). The app hot-reloads from the folder.
+Claude generates 3 concept options in a browser window first — no app changes. After the user picks one, they land on the **Kit**, a single-page builder where every part of the theme (palette, chrome, bubble, font, effects, wallpaper, mascots, icons) is a swappable column. Most refinement happens there, not in chat. When the user clicks Build, Claude finalizes the theme pack (folder with manifest + assets) and the app hot-reloads from it.
 
 ### Wallpaper recommendation (ask early)
 
@@ -143,66 +143,104 @@ Use the exact CSS classes from `theme-preview.css`. All colors from CSS custom p
 
 ### Step 5: Tell the User + Quick-Apply
 
-Tell the user the URL and ask them to look while iterating in chat.
-
-**Quick-apply is default.** When the user selects a concept, immediately write a minimal manifest to `_preview`:
+Tell the user the URL. They pick a concept by clicking a card — the server logs a `choice` event. On pick, immediately seed a minimal `_preview`:
 
 ```bash
 mkdir -p ~/.claude/destinclaude-themes/_preview
 ```
 
-Write `manifest.json` with **only** tokens, shape, layout, effects, and font — no asset paths. The app auto-switches to `_preview` and auto-reverts when deleted. This lets the user see the theme live while deciding.
+Write `manifest.json` with tokens, shape, layout, effects, and font from the selected concept — no asset paths yet. The app auto-switches to `_preview` and auto-reverts when the folder is deleted, so the user sees the theme live while Kit-refining.
 
-- Never include asset paths in preview — they don't exist yet
-- Delete `_preview` when done: `rm -rf ~/.claude/destinclaude-themes/_preview`
-
-### Step 5b: Layout Gallery (opt-in)
-
-If the user expresses layout confusion ("I like B's colors but A's layout"), serve the pre-built layout gallery:
-
-```bash
-cp "${screen_dir}/layout-gallery.html" "${screen_dir}/screen.html"
-```
-
-This shows 4 layout templates (Classic, Floating, Minimal, Terminal) with neutral colors so the user evaluates layout shape independently of palette. After they pick, regenerate concepts with their chosen layout.
-
-### Step 6: Iterate
-
-User requests changes → re-render in the browser. Proceed to Phase 2 when they say "build it", "apply it", "go", or similar.
+Then move to Phase 1.5 (the Kit) instead of open-ended chat iteration. Keep the concept browser URL in case the user asks to revisit alternates, but Kit is the default next surface.
 
 ---
 
-## Phase 2 — Theme Pack Generation
+## Phase 1.5 — Kit Refinement
 
-### Phase 2a: Visual Refinement (consolidated single page)
+After concept pick, the user lands on the **Kit** — one page with eight columns they can swap independently. This is the primary authoring surface; most refinement happens here, not in chat.
 
-**Before generating any assets, read the refinement page template:**
+The eight columns:
 
+| Column | Kind | What it does |
+|---|---|---|
+| Palette | preset + override | Swap the 15-token color set |
+| Chrome & Layout | preset + override | `chrome-style` / `input-style` / `header-style` / `statusbar-style` |
+| Bubble Style | preset + override | `bubble-style` preset |
+| Font | preset + override | Swap Google Font, auto-linked on rebuild |
+| Effects | multi + override | Particles (pick one) + overlay textures (vignette / noise / scanlines) |
+| Wallpaper | review + override | Keep the hero image, or describe a change |
+| Mascots | review + override | Keep the 4 mascot variants, or describe changes |
+| Icons & Details | review + override | Keep icon overrides / cursor / scrollbar, or describe changes |
+
+### Step 5a: Generate Baseline Assets
+
+Before rendering Kit, generate the assets Kit needs to show in review columns. Write them into `_preview/assets/` so the live app hot-loads them alongside the manifest, AND copy them to `screen_dir` so Kit can reference them via `/files/`.
+
+1. **Hero wallpaper** — copy the chosen concept's wallpaper to `_preview/assets/wallpaper.<ext>` and `${screen_dir}/wallpaper.<ext>`.
+2. **Mascots** (4 variants, if the theme has them) — read all 4 `scripts/base-mascot-*.svg` templates, follow the **Mascot rendering rules** (white body + `currentColor` stroke, features drawn on top, not cutouts — see Phase 2 Step 4 below for the full ruleset). Write `_preview/assets/mascot-{idle,welcome,shocked,dizzy}.svg` and mirror into `screen_dir`.
+3. **Icon overrides** — only the slots the concept calls for. `_preview/assets/icon-<slot>.svg` + mirror.
+4. **Pattern SVG** — only if the concept has a pattern. `_preview/assets/pattern.svg` + mirror.
+
+Update `_preview/manifest.json` with relative asset paths so the live app reflects the full design. If a concept has no mascot / icon / pattern, just don't generate those — the matching Kit columns hide themselves automatically.
+
+### Step 5b: Stage the Kit Page
+
+```bash
+cp core/skills/theme-builder/scripts/kit-refinement-template.html "${screen_dir}/screen.html"
+cp core/skills/theme-builder/scripts/kit-presets.json "${screen_dir}/kit-presets.json"
 ```
-scripts/screen-refinement-template.html
+
+Fill in these placeholders in `screen.html`:
+
+- `<!-- THEME_NAME -->` — concept's display name.
+- `<!-- GOOGLE_FONTS -->` — `<link>` tags for the concept's font.
+- `<!-- CURRENT_MOCKUP -->` — one `<div class="app-mockup" data-mockup …>` with selected concept's data-attrs and glass vars. Identical shape to concept card mockups; `mockup-render.js` injects the chrome.
+- Each preset-kind column: set `data-current="<preset-id>"` on the `<section>` and fill `CURRENT_<COL>_NAME` / `CURRENT_<COL>_BLURB`. Preset ids come from `kit-presets.json` (e.g. `warm-cozy`, `floating`, `pill`, `nunito`). Use `custom` if the concept doesn't match any preset — no card gets green-highlighted.
+- `effects` column: `data-current-particles="<id>"` and `data-current-overlays="vignette,noise"` (comma-separated list of currently-on overlays).
+- `<!-- WALLPAPER_PREVIEW -->` — `<img src="/files/wallpaper.<ext>">`.
+- `<!-- MASCOT_PREVIEW -->` — 4 `.asset-tile` divs, one per variant, each wrapping the mascot SVG. Leave empty or set `data-hidden="true"` on the column if no mascots.
+- `<!-- ICONS_PREVIEW -->` — icon tiles + cursor + scrollbar strip. Hide column if none.
+
+Everything else renders from `kit-presets.json` at page load — don't inline preset cards.
+
+### Step 5c: Process Kit Submissions
+
+Kit sends a `kit-submit` WebSocket event:
+
+```json
+{
+  "type": "kit-submit",
+  "intent": "rebuild" | "build",
+  "changes": {
+    "palette":  { "action": "preset"|"override"|"keep", "value": "<preset-id>", "note": "..." },
+    "chrome":   { ... },
+    "bubble":   { ... },
+    "font":     { ... },
+    "effects":  { "action": "preset", "particles": "<id>", "overlays": ["vignette","noise"], "note": "..." },
+    "wallpaper":{ "action": "keep"|"change", "note": "brighter, wider" },
+    "mascots":  { ... },
+    "icons":    { ... }
+  }
+}
 ```
 
-Do NOT write the refinement page from scratch — read the template, then fill in the three section placeholders. After the user approves a concept direction, generate all visual assets and render them into the template sections:
+Events flow through the existing WebSocket handler — they appear in server stdout as `{"source":"user-event", "type":"kit-submit", ...}`. Read the server log to see submissions.
 
-**Section 1: Background & Atmosphere** (`<!-- BACKGROUND_CONTENT -->`)
-- Full-width wallpaper preview (download wallpaper first, copy to `screen_dir`, reference as `/files/wallpaper.<ext>`)
-- Pattern tile preview if applicable
-- Glass sample panel overlaid on wallpaper (showing blur + opacity)
-- Particle effect label badge
+On `intent: "rebuild"`:
+1. For each column with `action === "preset"` — apply the matching preset from `kit-presets.json` to `_preview/manifest.json`. Palette preset → copy tokens + shape + suggested font. Chrome preset → copy the `layout` sub-object. Bubble → set `layout.bubble-style`. Font → set `font.family` + `font.google-font-url`.
+2. For each column with `action === "override"` (preset kinds) or `action === "change"` (review kinds) — interpret `note` and regenerate that slice. Palette override → new 15-token set (pipe through `check-contrast.cjs --tokens-json -`). Mascot change → regenerate the 4 SVGs. Wallpaper change → fetch a new hero via `fetch-wallpaper.cjs`.
+3. Re-copy updated assets to `screen_dir` so `/files/` paths serve fresh content.
+4. Rewrite `screen.html` with updated `data-current` attrs and preview blocks. The file-watcher auto-reloads the browser.
 
-**Section 2: Mascot Crossovers** (`<!-- MASCOT_CONTENT -->`)
-- All 3 mascot variants at 120x120px using `.ref-mascot-grid` layout
-- Hide this section (`data-hidden="true"`) if theme has no mascot crossovers
+On `intent: "build"` → proceed to Phase 2 (Finalize & Ship).
 
-**Section 3: Icons & Details** (`<!-- ICONS_CONTENT -->`)
-- Icon overrides at 48x48px using `.ref-icon-grid` layout
-- Cursor SVG at 64x64px if applicable
-- Scrollbar strip mock, `::selection` preview block
-- Hide this section if no icons/cursor/scrollbar
+**Escape hatch:** if the user explicitly asks to "show me more options," copy `concept-page-template.html` back over `screen.html` and regenerate concepts. Default flow stays on Kit.
 
-Set the theme name in `<!-- THEME_NAME -->` and write the completed page to `screen_dir`.
+---
 
-**How it works:** Each section has "Looks good" (default) and "Request changes" toggles. The user reviews all sections, types notes where needed, and clicks "Build Theme Pack". The companion sends a `refinement-submit` WebSocket event with structured approval data. Claude processes: approved sections are done, changed sections get regenerated and the page re-renders. Iterate until all approved, then proceed.
+## Phase 2 — Finalize & Ship
+
+When the Kit user clicks **Build Theme Pack** (intent `"build"`), promote `_preview` to a real theme folder, bake the terminal-view wallpaper, write the final manifest + custom CSS, and run the contrast checker. Most assets already exist in `_preview/assets/` from Kit — you're mostly moving and packaging here, not regenerating.
 
 ### Step 1: Create the Theme Pack Folder
 
@@ -210,10 +248,18 @@ Set the theme name in `<!-- THEME_NAME -->` and write the completed page to `scr
 mkdir -p ~/.claude/destinclaude-themes/<slug>/assets
 ```
 
-### Step 2: Download the Hero Wallpaper
+**Most assets already exist in `_preview/assets/`** from Phase 1.5 baseline generation and Kit rebuilds. Steps 2–4 below are mostly `cp` operations; only regenerate what's missing.
 
-- **User-provided wallpaper:** copy directly to `<slug>/assets/wallpaper.<ext>` and `screen_dir`. Skip web search entirely.
-- **Brand/IP Mode:** WebSearch for official/fan art → WebFetch → save to assets + `screen_dir`. Prefer 1920x1080+.
+### Step 2: Move the Hero Wallpaper
+
+```bash
+cp ~/.claude/destinclaude-themes/_preview/assets/wallpaper.<ext> \
+   ~/.claude/destinclaude-themes/<slug>/assets/wallpaper.<ext>
+```
+
+If somehow the wallpaper isn't in `_preview/assets/` yet (user started with gradient/solid, or Kit never swapped in an image), fall back to:
+- **User-provided wallpaper:** copy directly to `<slug>/assets/wallpaper.<ext>`.
+- **Brand/IP Mode:** WebSearch for official/fan art → WebFetch → save.
 - **Vibe/Abstract Mode:** WebSearch stock photos (Unsplash, Pexels) → WebFetch → save. Or use CSS gradient if no wallpaper needed.
 
 ### Step 2b: Bake the Terminal-View Wallpaper
@@ -239,16 +285,27 @@ Output is ~5–20 KB (blurred low-frequency content compresses ruthlessly well).
 
 If you skip this step, TerminalView falls back to a runtime CSS `filter: blur()` on the sharp wallpaper — visually similar but costs GPU, and is automatically disabled under reduced-effects. Always pre-bake for shipped themes.
 
-### Step 3: Generate SVG Assets
+### Step 3: Move / Generate SVG Assets
 
-Write each SVG to the assets folder. Guidelines:
+Most SVGs are already in `_preview/assets/`. Copy what's there:
+
+```bash
+cp ~/.claude/destinclaude-themes/_preview/assets/*.svg \
+   ~/.claude/destinclaude-themes/<slug>/assets/ 2>/dev/null
+```
+
+Only **generate** SVGs that aren't in `_preview` yet (usually because Kit didn't need them, e.g. cursor, particle shape, scrollbar thumb). Guidelines:
 - **Pattern SVG** (`assets/pattern.svg`): Single seamlessly tiling tile, viewBox ~`0 0 40 40`, single fill color
 - **Particle Shape SVG** (`assets/<name>.svg`): Single centered shape, simple enough for 8-16px render
 - **Icon SVGs** (`assets/icon-<slot>.svg`): 24x24 viewBox, use `currentColor`. Slots: send, new-chat, settings, theme-cycle, close, menu
 - **Cursor SVG** (`assets/cursor.svg`): 32x32 viewBox, hotspot at top-left. Only if it genuinely fits.
 - **Scrollbar SVG** (`assets/scrollbar-thumb.svg`): Vertical, subtle.
 
-### Step 4: Generate Mascot Crossovers
+### Step 4: Move / Generate Mascot Crossovers
+
+Mascots usually already exist in `_preview/assets/mascot-{idle,welcome,shocked,dizzy}.svg` (generated in Phase 1.5 Step 5a, regenerated on Kit mascot-change). The `cp *.svg` in Step 3 already moved them.
+
+Only generate here if the theme needs mascots but `_preview` doesn't have them yet.
 
 **Read all 4 base templates before generating any mascot SVG:**
 ```
@@ -438,6 +495,7 @@ Never use `position: absolute` on layout-flow elements in `custom_css` — the f
 - When generating mascots, ALWAYS read the base templates first for silhouette/proportions, but follow the **Mascot rendering rules** (white body + currentColor stroke, features drawn on top, not cutouts). The base templates' currentColor-fill + cutout-eye pattern fails on most themes.
 - The preview CSS (`theme-preview.css`) and the app's `globals.css` are a CONTRACT — if either changes, both must stay in sync
 - NEVER write the concepts page HTML from scratch — always read `scripts/concept-page-template.html` first and fill in the placeholders. The template owns the page shell, script wiring, and click events.
+- NEVER write the Kit page HTML from scratch — copy `scripts/kit-refinement-template.html` to `screen_dir/screen.html` and fill in the placeholders. The template loads `kit-presets.json` and renders preset cards at runtime — do not inline preset cards.
 
 ### Phase Checklists
 
@@ -452,14 +510,29 @@ Never use `position: absolute` on layout-flow elements in `custom_css` — the f
 - [ ] Concept palette has been piped through `check-contrast.cjs --tokens-json -` — passes all HARD rules before the HTML is written
 - [ ] `on-accent` passes 4.5:1 against `accent`
 
-**Before writing theme pack (Phase 2):**
-- [ ] `scripts/screen-refinement-template.html` has been read and will be used as the page shell
+**Before rendering Kit (Phase 1.5):**
+- [ ] Concept pick has been seeded into `_preview/manifest.json` (tokens + shape + layout + font + effects)
+- [ ] Baseline assets generated into BOTH `_preview/assets/` AND `screen_dir`: wallpaper, mascots (if applicable), icons (if applicable), pattern (if applicable)
+- [ ] `kit-refinement-template.html` copied to `screen_dir/screen.html` and `kit-presets.json` copied to `screen_dir/kit-presets.json`
+- [ ] Placeholders filled: THEME_NAME, GOOGLE_FONTS, CURRENT_MOCKUP, every column's `data-current` + current name/blurb, review columns' asset preview tiles
+- [ ] Columns with no corresponding assets (no mascot, no icons, etc.) are hidden with `data-hidden="true"`
+- [ ] Preset cards NOT inlined — the page renders them from kit-presets.json at load time
+
+**When processing kit-submit (Phase 1.5 rebuild):**
+- [ ] Only columns with `action !== "keep"` are regenerated — don't reprocess unchanged columns
+- [ ] Palette overrides piped through `check-contrast.cjs --tokens-json -` before applying
+- [ ] Updated assets mirrored into BOTH `_preview/assets/` AND `screen_dir`
+- [ ] `screen.html` rewritten with new `data-current` attrs — file-watcher auto-reloads the page
+
+**Before finalizing theme pack (Phase 2):**
+- [ ] Intent from latest kit-submit is `"build"` — user explicitly asked to ship
 - [ ] `scripts/manifest-template.jsonc` has been read before writing manifest.json
 - [ ] `scripts/custom-css-reference.md` has been read before writing custom CSS
-- [ ] Wallpaper copied to BOTH `<slug>/assets/` AND `screen_dir`
+- [ ] Assets moved from `_preview/assets/` → `<slug>/assets/`; wallpaper also still in `screen_dir`
 - [ ] For image themes: `wallpaper-terminal.webp` baked via `prep-terminal-bg.cjs` AND manifest includes `background.terminal-value`
-- [ ] Read base mascot SVGs before generating crossovers, AND follow the Mascot rendering rules (white body + currentColor stroke; features drawn on top, not cutouts; verified distinct at 24 px)
+- [ ] If mascots were regenerated during Kit, they already follow the Mascot rendering rules (white body + currentColor stroke; features drawn on top, not cutouts; verified distinct at 24 px)
 - [ ] Manifest uses relative asset paths only
 - [ ] Bubble blur/opacity are manifest fields, NOT hardcoded in `custom_css`
 - [ ] `body::after` (not `::before`) for pattern overlay
 - [ ] `check-contrast.cjs` passes with no HARD or SURFACE failures
+- [ ] `_preview/` deleted after successful pack creation
