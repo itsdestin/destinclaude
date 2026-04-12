@@ -235,13 +235,34 @@ scripts/base-mascot-shocked.svg    (tall oval eyes, O mouth, arms out)
 scripts/base-mascot-dizzy.svg      (X-X eyes, zigzag mouth, drooped arms)
 ```
 
-Modify the bases to create themed crossover versions. The key constraint: **preserve the core silhouette** (squat body, nub arms, stubby legs, cutout eyes) while adding thematic accessories.
+Modify the bases to create themed crossover versions. The key constraint: **preserve the core silhouette** (squat body, nub arms, stubby legs) while adding thematic accessories.
 
-**What you can do:** Add accessories on top (hats, bows, capes), held items from arms, modify eye details within cutouts, add surface patterns, add appendages (tail, wings), add ambient elements (sparkles, flames, leaves).
+**What you can do:** Add accessories on top (hats, bows, capes), held items from arms, add surface patterns, add appendages (tail, wings), add ambient elements (sparkles, flames, leaves), add whiskers / other brand-specific face details.
 
-**What you must NOT do:** Change basic body proportions, remove eye cutouts, make it unrecognizable.
+**What you must NOT do:** Change basic body proportions, make it unrecognizable.
 
 Write all 4 variants to `<slug>/assets/mascot-{idle,welcome,shocked,dizzy}.svg`.
+
+#### Mascot rendering rules (non-negotiable)
+
+The base templates use `currentColor` for the whole body + dark cutouts for eyes. That model breaks on any theme where the text color ends up close to the surface color — the body goes dark-on-dark and eye cutouts become invisible. Always use this safer pattern instead:
+
+1. **Body: white fill + `currentColor` stroke**, not a `currentColor` fill. A 0.5–0.8 px stroke keeps the outline theme-aware (matches text color) while the white body guarantees contrast on any surface. Example:
+   ```xml
+   <path d="..." fill="#FFFFFF" stroke="currentColor" stroke-width="0.6"/>
+   ```
+2. **Draw eyes and mouth ON TOP of the body, never as cutouts.** Cutouts rely on the body having an opposite-luminance fill to the page background — not true in general themes. Drawn features always render. Use simple primitives:
+   - Squinting `><` → two `<path>` polylines or 3-point lines with `stroke-linecap="round"`
+   - Round / sparkle eyes → `<circle>` or `<ellipse>` filled with `currentColor`, small white `<circle>` highlights on top
+   - Shocked O mouth → `<ellipse>` filled with `currentColor`
+   - X-X eyes → two crossed `<line>` elements per eye, stroked in `currentColor`
+   - Zigzag / squiggle mouth → polyline `<path>` with `stroke-linejoin="round"`
+
+   **Do NOT use self-intersecting paths with `fillRule="evenodd"` for eyes.** They render inconsistently across SVG viewers (one eye can disappear, especially the second cutout in a multi-subpath `<path>`).
+3. **Legs and arms follow the same pattern** — white fill, `currentColor` stroke — so the whole mascot is a cohesive outline-drawing.
+4. **Theme-fixed accents are hardcoded hex, not CSS vars.** A pink skull on a Kuromi theme should be `fill="#FF4FB8"`, not `var(--accent)` — SVG doesn't re-evaluate CSS variables against the app's theme tokens when rendered via `<img>` / `background-image`. If you want a color that recolors with the theme, use `currentColor`; otherwise hardcode.
+5. **Verify at 24 px.** Mascots most commonly render small. Stage all 4 in a browser preview page at 24 / 48 / 80 / 120 px, against canvas / panel / inset backgrounds, and confirm the expressions are distinguishable at 24 px. If any detail disappears at 24 px, simplify it.
+6. **Keep feature positions consistent across variants.** Eyes roughly at `y ≈ 10`, mouth near `y ≈ 13`, hat accessories at `y ≈ 2–4`. Variance between variants should come from shape, not from re-positioning.
 
 ### Step 5: Write the Manifest
 
@@ -391,7 +412,7 @@ Never use `position: absolute` on layout-flow elements in `custom_css` — the f
 - NEVER set `border-radius` on bubble elements in `custom_css` — use `bubble-style` preset and `shape` values
 - Pattern SVGs must tile seamlessly
 - Particle shapes should work at 8-16px
-- When generating mascots, ALWAYS read the base templates first — never create from scratch
+- When generating mascots, ALWAYS read the base templates first for silhouette/proportions, but follow the **Mascot rendering rules** (white body + currentColor stroke, features drawn on top, not cutouts). The base templates' currentColor-fill + cutout-eye pattern fails on most themes.
 - The preview CSS (`theme-preview.css`) and the app's `globals.css` are a CONTRACT — if either changes, both must stay in sync
 - NEVER write the concepts page HTML from scratch — always read `scripts/concept-page-template.html` first and fill in the placeholders. The template owns the page shell, script wiring, and click events.
 
@@ -413,7 +434,7 @@ Never use `position: absolute` on layout-flow elements in `custom_css` — the f
 - [ ] `scripts/manifest-template.jsonc` has been read before writing manifest.json
 - [ ] `scripts/custom-css-reference.md` has been read before writing custom CSS
 - [ ] Wallpaper copied to BOTH `<slug>/assets/` AND `screen_dir`
-- [ ] Read base mascot SVGs before generating crossovers
+- [ ] Read base mascot SVGs before generating crossovers, AND follow the Mascot rendering rules (white body + currentColor stroke; features drawn on top, not cutouts; verified distinct at 24 px)
 - [ ] Manifest uses relative asset paths only
 - [ ] Bubble blur/opacity are manifest fields, NOT hardcoded in `custom_css`
 - [ ] `body::after` (not `::before`) for pattern overlay
