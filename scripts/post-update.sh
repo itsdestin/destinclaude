@@ -2,20 +2,25 @@
 set -euo pipefail
 
 # =============================================================================
-# post-update.sh — Post-merge hook dispatcher for destinclaude toolkit
+# post-update.sh — Post-merge hook dispatcher for destinclaude-core
 #
-# Runs after git merge (via .git/hooks/post-merge) to perform tasks that the
-# /update skill cannot handle because the skill is loaded before the merge.
-# This script is read at execution time (new version) so it knows about newly
-# added hooks and phases.
+# Runs after git merge (via .git/hooks/post-merge). In the decomposed toolkit,
+# most responsibilities (hook reconciliation, MCP registration, plugin registry
+# maintenance, dependency checks, marketplace updates) are owned by the host
+# DestinCode app, which runs reconcilers on install and at launch. This script
+# only handles:
+#   - self-check: verify the core package is present and valid
+#   - migrations: run version-specific data migrations
+#   - verify:     confirm hook scripts exist at the paths settings.json expects
 # =============================================================================
 
 # --- Constants ----------------------------------------------------------------
 
 CLAUDE_HOME="${CLAUDE_HOME:-$HOME/.claude}"
-CONFIG_FILE="$CLAUDE_HOME/toolkit-state/config.json"
+TOOLKIT_ROOT="$HOME/.claude/plugins/destinclaude-core"
+STATE_DIR="$CLAUDE_HOME/toolkit-state"
+MIGRATION_MARKER="$STATE_DIR/last-migrated-version"
 
-# Resolve SCRIPT_DIR to the absolute directory containing this script.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # --- Trap handler -------------------------------------------------------------
@@ -29,7 +34,7 @@ _trap_handler() {
 trap '_trap_handler $LINENO' ERR
 
 # =============================================================================
-# Platform detection
+# Path / platform helpers
 # =============================================================================
 
 PLATFORM=""
@@ -37,38 +42,15 @@ PLATFORM=""
 detect_platform() {
   local uname_out
   uname_out="$(uname -s 2>/dev/null || true)"
-
   case "$uname_out" in
-    Darwin*)
-      PLATFORM="macos"
-      ;;
-    Linux*)
-      PLATFORM="linux"
-      ;;
-    MINGW*|MSYS*|CYGWIN*)
-      PLATFORM="windows"
-      export MSYS=winsymlinks:nativestrict
-      ;;
-    *)
-      # Fallback: check OSTYPE
-      case "${OSTYPE:-}" in
-        darwin*)  PLATFORM="macos"   ;;
-        linux*)   PLATFORM="linux"   ;;
-        msys*|cygwin*|win*) PLATFORM="windows"; export MSYS=winsymlinks:nativestrict ;;
-        *)        PLATFORM="unknown" ;;
-      esac
-      ;;
+    Darwin*)                  PLATFORM="macos"   ;;
+    Linux*)                   PLATFORM="linux"   ;;
+    MINGW*|MSYS*|CYGWIN*)     PLATFORM="windows"; export MSYS=winsymlinks:nativestrict ;;
+    *)                        PLATFORM="unknown" ;;
   esac
 }
 
-# =============================================================================
-# Path helpers
-# =============================================================================
-
-# to_node_path PATH
-# On Windows/MSYS, converts /c/Users/... style paths to C:/Users/... so Node.js
-# (which does not understand MSYS drive paths) can open them.  On other platforms
-# the path is returned unchanged.
+# to_node_path — convert /c/Users/... to C:/Users/... on MSYS so Node can open it.
 to_node_path() {
   local p="$1"
   if command -v cygpath >/dev/null 2>&1; then
@@ -79,1341 +61,22 @@ to_node_path() {
 }
 
 # =============================================================================
-# JSON helpers
-# =============================================================================
-
-# json_read FILE KEY
-# Reads a single string value from a JSON file using node.
-json_read() {
-  local file="$1"
-  local key="$2"
-  local node_file
-  node_file="$(to_node_path "$file")"
-  node -e "
-    try {
-      var d = require('fs').readFileSync(process.argv[1], 'utf8');
-      var obj = JSON.parse(d);
-      var val = obj[process.argv[2]];
-      if (val === undefined || val === null) { process.stderr.write('key not found: ' + process.argv[2] + '\n'); process.exit(1); }
-      process.stdout.write(String(val));
-    } catch(e) { process.stderr.write(e.message + '\n'); process.exit(1); }
-  " "$node_file" "$key"
-}
-
-# json_read_array FILE KEY
-# Reads a JSON array from a JSON file and prints each element on its own line.
-json_read_array() {
-  local file="$1"
-  local key="$2"
-  local node_file
-  node_file="$(to_node_path "$file")"
-  node -e "
-    try {
-      var d = require('fs').readFileSync(process.argv[1], 'utf8');
-      var obj = JSON.parse(d);
-      var arr = obj[process.argv[2]];
-      if (!Array.isArray(arr)) { process.stderr.write('key is not an array: ' + process.argv[2] + '\n'); process.exit(1); }
-      arr.forEach(function(item) { process.stdout.write(String(item) + '\n'); });
-    } catch(e) { process.stderr.write(e.message + '\n'); process.exit(1); }
-  " "$node_file" "$key"
-}
-
-# =============================================================================
-# Config loading
-# =============================================================================
-
-TOOLKIT_ROOT=""
-INSTALLED_LAYERS=()
-
-load_config() {
-  if [ ! -f "$CONFIG_FILE" ]; then
-    emit "FAIL" "config" "config file not found: $CONFIG_FILE"
-    exit 1
-  fi
-
-  LOCAL_CONFIG_FILE="$CLAUDE_HOME/toolkit-state/config.local.json"
-  TOOLKIT_ROOT=""
-  if [ -f "$LOCAL_CONFIG_FILE" ]; then
-      TOOLKIT_ROOT="$(json_read "$LOCAL_CONFIG_FILE" "toolkit_root" 2>/dev/null)" || true
-  fi
-  if [ -z "$TOOLKIT_ROOT" ]; then
-      TOOLKIT_ROOT="$(json_read "$CONFIG_FILE" "toolkit_root")"
-  fi
-
-  # Read installed_layers array into a bash indexed array.
-  # Uses a while-read loop for bash 3.2 compatibility (no mapfile/readarray).
-  INSTALLED_LAYERS=()
-  while IFS= read -r line; do
-    [ -n "$line" ] && INSTALLED_LAYERS+=("$line")
-  done < <(json_read_array "$CONFIG_FILE" "installed_layers")
-}
-
-# =============================================================================
-# Toolkit root discovery
-# =============================================================================
-
-# discover_toolkit_root — derive toolkit root from script location.
-# scripts/post-update.sh lives one level below the toolkit root.
-discover_toolkit_root() {
-  cd "$SCRIPT_DIR/.." && pwd
-}
-
-# =============================================================================
 # Output helpers
 # =============================================================================
 
-# emit STATUS ITEM MESSAGE
-# Prints: [STATUS] item — message
 emit() {
-  local status="$1"
-  local item="$2"
-  local message="$3"
+  local status="$1" item="$2" message="$3"
   printf '[%s] %s \xe2\x80\x94 %s\n' "$status" "$item" "$message"
 }
 
-# emit_section NAME
-# Prints: === NAME ===
-emit_section() {
-  local name="$1"
-  printf '=== %s ===\n' "$name"
-}
-
-# emit_summary TEXT
-# Prints: [INFO] TEXT
-emit_summary() {
-  local text="$1"
-  printf '[INFO] %s\n' "$text"
-}
+emit_section() { printf '=== %s ===\n' "$1"; }
+emit_summary() { printf '[INFO] %s\n' "$1"; }
 
 # =============================================================================
-# Phases
+# Version helpers
 # =============================================================================
 
-phase_self_check() {
-  emit_section "Self-Check"
-
-  local checks_passed=0
-  local checks_failed=0
-
-  # ---- 1. node available -------------------------------------------------------
-  local node_ver
-  if node_ver="$(node --version 2>/dev/null)"; then
-    emit "OK" "node" "found (${node_ver})"
-    checks_passed=$((checks_passed + 1))
-  else
-    emit "FAIL" "node" "not found — node is required"
-    checks_failed=$((checks_failed + 1))
-  fi
-
-  # ---- 2. config.json exists and is parseable ----------------------------------
-  local config_ok=0
-  if [ ! -f "$CONFIG_FILE" ]; then
-    emit "FAIL" "config.json" "not found: $CONFIG_FILE"
-    checks_failed=$((checks_failed + 1))
-  else
-    local node_config
-    node_config="$(to_node_path "$CONFIG_FILE")"
-    if node -e "JSON.parse(require('fs').readFileSync('${node_config}','utf8'))" 2>/dev/null; then
-      emit "OK" "config.json" "valid"
-      checks_passed=$((checks_passed + 1))
-      config_ok=1
-    else
-      emit "FAIL" "config.json" "invalid JSON: $CONFIG_FILE"
-      checks_failed=$((checks_failed + 1))
-    fi
-  fi
-
-  # ---- 3 & 4. toolkit_root exists and contains VERSION; stale check -----------
-  if [ "$config_ok" -eq 1 ]; then
-    local cfg_toolkit_root
-    if cfg_toolkit_root="$(json_read "$CONFIG_FILE" "toolkit_root" 2>/dev/null)"; then
-      if [ -d "$cfg_toolkit_root" ] && [ -f "$cfg_toolkit_root/VERSION" ]; then
-        emit "OK" "toolkit_root" "$cfg_toolkit_root"
-        checks_passed=$((checks_passed + 1))
-      else
-        # Directory missing or no VERSION — compare with discovered root
-        local discovered
-        discovered="$(discover_toolkit_root)"
-        if [ "$cfg_toolkit_root" != "$discovered" ]; then
-          emit "FAIL" "toolkit_root" "stale: config has '$cfg_toolkit_root', script suggests '$discovered'"
-        else
-          emit "FAIL" "toolkit_root" "missing or incomplete: $cfg_toolkit_root (no VERSION file)"
-        fi
-        checks_failed=$((checks_failed + 1))
-      fi
-    else
-      emit "FAIL" "toolkit_root" "key not found in config"
-      checks_failed=$((checks_failed + 1))
-    fi
-
-    # ---- 5. installed_layers is non-empty --------------------------------------
-    local layers=""
-    local layer_count=0
-    while IFS= read -r line; do
-      if [ -n "$line" ]; then
-        layer_count=$((layer_count + 1))
-        if [ -z "$layers" ]; then
-          layers="$line"
-        else
-          layers="${layers}, ${line}"
-        fi
-      fi
-    done < <(json_read_array "$CONFIG_FILE" "installed_layers" 2>/dev/null || true)
-
-    if [ "$layer_count" -gt 0 ]; then
-      emit "OK" "installed_layers" "$layers"
-      checks_passed=$((checks_passed + 1))
-    else
-      emit "FAIL" "installed_layers" "empty or missing — at least one layer required"
-      checks_failed=$((checks_failed + 1))
-    fi
-  fi
-
-  # ---- 6. Windows symlink creation test ----------------------------------------
-  if [ "$PLATFORM" = "windows" ]; then
-    local tmp_target tmp_link
-    tmp_target="$(mktemp)"
-    tmp_link="${tmp_target}.symlink"
-
-    if ln -s "$tmp_target" "$tmp_link" 2>/dev/null && [ -L "$tmp_link" ]; then
-      emit "OK" "symlinks" "creation test passed (windows)"
-      checks_passed=$((checks_passed + 1))
-    else
-      emit "FAIL" "symlinks" "cannot create (Developer Mode may be disabled)"
-      checks_failed=$((checks_failed + 1))
-    fi
-    rm -f "$tmp_target" "$tmp_link"
-  fi
-
-  # ---- Summary -----------------------------------------------------------------
-  emit_summary "${checks_passed} checks passed, ${checks_failed} failed"
-
-  if [ "$checks_failed" -gt 0 ]; then
-    return 1
-  fi
-}
-
-phase_refresh() {
-  # Counters
-  local new_count=0
-  local refreshed_count=0
-  local converted_count=0
-  local skipped_count=0
-  local failed_count=0
-
-  # Ensure target directories exist
-  mkdir -p "$CLAUDE_HOME/hooks" "$CLAUDE_HOME/commands" "$CLAUDE_HOME/skills"
-
-  # ---------------------------------------------------------------------------
-  # Helper: link_file SOURCE TARGET
-  # Creates/refreshes a symlink from TARGET -> SOURCE.
-  # Reports [OK] if already a symlink, [WARN]+converts if a regular file,
-  # [NEW] if it doesn't exist.
-  # Uses only [ -L ] for symlink detection (no readlink comparison).
-  # ---------------------------------------------------------------------------
-  link_file() {
-    local source="$1"
-    local target="$2"
-    local name
-    name="$(basename "$target")"
-
-    if [ -L "$target" ]; then
-      # Already a symlink — refresh in place (ln -sf is idempotent)
-      if ln -sf "$source" "$target" 2>/dev/null; then
-        emit "OK" "$name" "symlink verified"
-        refreshed_count=$((refreshed_count + 1))
-      else
-        emit "FAIL" "$name" "could not refresh symlink"
-        failed_count=$((failed_count + 1))
-      fi
-    elif [ -f "$target" ]; then
-      # Regular file (copy) — convert to symlink if unmodified
-      if ! diff -q "$source" "$target" >/dev/null 2>&1; then
-        emit "WARN" "$name" "copy differs from source — skipping (user may have local edits)"
-        skipped_count=$((skipped_count + 1))
-      elif rm -f "$target" && ln -sf "$source" "$target" 2>/dev/null; then
-        emit "WARN" "$name" "converted regular file to symlink"
-        converted_count=$((converted_count + 1))
-      else
-        emit "FAIL" "$name" "could not convert to symlink"
-        failed_count=$((failed_count + 1))
-      fi
-    else
-      # Does not exist — create new symlink
-      if ln -sf "$source" "$target" 2>/dev/null; then
-        emit "NEW" "$name" "symlink created"
-        new_count=$((new_count + 1))
-      else
-        emit "FAIL" "$name" "could not create symlink"
-        failed_count=$((failed_count + 1))
-      fi
-    fi
-  }
-
-  # ---------------------------------------------------------------------------
-  # Helper: link_dir SOURCE TARGET
-  # Like link_file but uses ln -sfn for directory symlinks.
-  # ---------------------------------------------------------------------------
-  link_dir() {
-    local source="$1"
-    local target="$2"
-    local name
-    name="$(basename "$target")"
-
-    if [ -L "$target" ]; then
-      if ln -sfn "$source" "$target" 2>/dev/null; then
-        emit "OK" "$name" "symlink verified"
-        refreshed_count=$((refreshed_count + 1))
-      else
-        emit "FAIL" "$name" "could not refresh symlink"
-        failed_count=$((failed_count + 1))
-      fi
-    elif [ -d "$target" ] && [ ! -L "$target" ]; then
-      emit "WARN" "$name" "real directory exists — skipping (manual intervention required)"
-      failed_count=$((failed_count + 1))
-    else
-      if ln -sfn "$source" "$target" 2>/dev/null; then
-        emit "NEW" "$name" "symlink created"
-        new_count=$((new_count + 1))
-      else
-        emit "FAIL" "$name" "could not create symlink"
-        failed_count=$((failed_count + 1))
-      fi
-    fi
-  }
-
-  # ===========================================================================
-  # Section 1: Shell Hooks (.sh files, excluding statusline.sh)
-  # ===========================================================================
-  emit_section "Symlink Refresh: Hooks"
-
-  local layer file filename
-  for layer in "${INSTALLED_LAYERS[@]}"; do
-    local hooks_dir="$TOOLKIT_ROOT/$layer/hooks"
-    [ -d "$hooks_dir" ] || continue
-    for file in "$hooks_dir"/*.sh; do
-      [ -f "$file" ] || continue
-      filename="$(basename "$file")"
-      [ "$filename" = "statusline.sh" ] && continue
-      link_file "$file" "$CLAUDE_HOME/hooks/$filename"
-    done
-  done
-
-  # ===========================================================================
-  # Section 2: Utilities (.js files from hooks)
-  # ===========================================================================
-  emit_section "Symlink Refresh: Utilities"
-
-  local js_dir="$TOOLKIT_ROOT/hooks"
-  if [ -d "$js_dir" ]; then
-    for file in "$js_dir"/*.js; do
-      [ -f "$file" ] || continue
-      filename="$(basename "$file")"
-      link_file "$file" "$CLAUDE_HOME/hooks/$filename"
-    done
-  fi
-
-
-  # ===========================================================================
-  # Section 2b: Shared Libraries (lib/ subdirectory)
-  # ===========================================================================
-  emit_section "Symlink Refresh: Shared Libraries"
-
-  local lib_src="$TOOLKIT_ROOT/hooks/lib"
-  if [ -d "$lib_src" ]; then
-    mkdir -p "$CLAUDE_HOME/hooks/lib"
-    for file in "$lib_src"/*.sh; do
-      [ -f "$file" ] || continue
-      filename="$(basename "$file")"
-      link_file "$file" "$CLAUDE_HOME/hooks/lib/$filename"
-    done
-  fi
-
-  # ===========================================================================
-  # Section 2c: Migrations (migrations/ subdirectory)
-  # ===========================================================================
-  emit_section "Symlink Refresh: Migrations"
-
-  local migrations_src="$TOOLKIT_ROOT/hooks/migrations"
-  if [ -d "$migrations_src" ]; then
-    mkdir -p "$CLAUDE_HOME/hooks/migrations"
-    for file in "$migrations_src"/*; do
-      [ -f "$file" ] || continue
-      filename="$(basename "$file")"
-      link_file "$file" "$CLAUDE_HOME/hooks/migrations/$filename"
-    done
-  fi
-
-  # ===========================================================================
-  # Section 3: Statusline
-  # ===========================================================================
-  emit_section "Symlink Refresh: Statusline"
-
-  local statusline_src="$TOOLKIT_ROOT/hooks/statusline.sh"
-  if [ -f "$statusline_src" ]; then
-    link_file "$statusline_src" "$CLAUDE_HOME/statusline.sh"
-  else
-    emit "WARN" "statusline.sh" "source not found: $statusline_src"
-  fi
-
-  # ===========================================================================
-  # Section 4: Commands (.md files from commands)
-  # ===========================================================================
-  emit_section "Symlink Refresh: Commands"
-
-  local commands_dir="$TOOLKIT_ROOT/commands"
-  if [ -d "$commands_dir" ]; then
-    for file in "$commands_dir"/*.md; do
-      [ -f "$file" ] || continue
-      filename="$(basename "$file")"
-      link_file "$file" "$CLAUDE_HOME/commands/$filename"
-    done
-  fi
-
-  # ===========================================================================
-  # Section 5: Skills (directories)
-  # ===========================================================================
-  emit_section "Symlink Refresh: Skills"
-
-  local skill_dir skill_name
-  for layer in "${INSTALLED_LAYERS[@]}"; do
-    local skills_root="$TOOLKIT_ROOT/$layer/skills"
-    [ -d "$skills_root" ] || continue
-    for skill_dir in "$skills_root"/*/; do
-      [ -d "$skill_dir" ] || continue
-      skill_name="$(basename "$skill_dir")"
-      link_dir "$skill_dir" "$CLAUDE_HOME/skills/$skill_name"
-    done
-  done
-
-  # ===========================================================================
-  # Summary
-  # ===========================================================================
-  local summary="${new_count} new, ${refreshed_count} refreshed, ${converted_count} converted, ${failed_count} failed"
-  [ "$skipped_count" -gt 0 ] && summary="${summary}, ${skipped_count} skipped (user-modified copies)"
-  emit_summary "$summary"
-
-  if [ "$failed_count" -gt 0 ]; then
-    return 1
-  fi
-}
-
-_build_known_files() {
-  # Returns a newline-separated list of basenames managed by the toolkit.
-  # Includes: *.sh from each installed layer's hooks/ (excluding statusline.sh)
-  #           *.js from hooks/
-  # Does NOT include statusline.sh (lives at $CLAUDE_HOME/statusline.sh, not hooks/).
-  local known=""
-  local layer file filename
-
-  for layer in "${INSTALLED_LAYERS[@]}"; do
-    local hooks_dir="$TOOLKIT_ROOT/$layer/hooks"
-    [ -d "$hooks_dir" ] || continue
-    for file in "$hooks_dir"/*.sh; do
-      [ -f "$file" ] || continue
-      filename="$(basename "$file")"
-      [ "$filename" = "statusline.sh" ] && continue
-      if [ -z "$known" ]; then
-        known="$filename"
-      else
-        known="${known}
-${filename}"
-      fi
-    done
-  done
-
-  local js_dir="$TOOLKIT_ROOT/hooks"
-  if [ -d "$js_dir" ]; then
-    for file in "$js_dir"/*.js; do
-      [ -f "$file" ] || continue
-      filename="$(basename "$file")"
-      if [ -z "$known" ]; then
-        known="$filename"
-      else
-        known="${known}
-${filename}"
-      fi
-    done
-  fi
-
-  printf '%s' "$known"
-}
-
-phase_orphans() {
-  emit_section "Orphan Detection"
-
-  local known_files
-  known_files="$(_build_known_files)"
-
-  local orphan_count=0
-  local file filename
-
-  for file in "$CLAUDE_HOME/hooks/"*; do
-    [ -d "$file" ] && continue
-    { [ -f "$file" ] || [ -L "$file" ]; } || continue
-    filename="$(basename "$file")"
-    if ! echo "$known_files" | grep -qxF "$filename"; then
-      emit "ORPHAN" "$filename" "not in toolkit manifest"
-      orphan_count=$((orphan_count + 1))
-    fi
-  done
-
-  # Also scan skills directory for orphans
-  if [ -d "$CLAUDE_HOME/skills" ]; then
-    local known_skills=""
-    local layer
-    for layer in "${INSTALLED_LAYERS[@]}"; do
-      local skill_dir="$TOOLKIT_ROOT/$layer/skills"
-      if [ -d "$skill_dir" ]; then
-        local s
-        for s in "$skill_dir"/*/; do
-          [ -d "$s" ] && known_skills="$known_skills$(basename "$s")\n"
-        done
-      fi
-    done
-    # Also include core skills
-    if [ -d "$TOOLKIT_ROOT/skills" ]; then
-      local s
-      for s in "$TOOLKIT_ROOT/skills"/*/; do
-        [ -d "$s" ] && known_skills="$known_skills$(basename "$s")\n"
-      done
-    fi
-
-    local skill
-    for skill in "$CLAUDE_HOME/skills"/*/; do
-      [ -d "$skill" ] || continue
-      local skill_name
-      skill_name="$(basename "$skill")"
-      if ! printf '%b' "$known_skills" | grep -qxF "$skill_name"; then
-        if [ -L "$skill" ]; then
-          # Symlink not in manifest = stale toolkit artifact
-          emit "ORPHAN" "skills/$skill_name" "stale symlink — not in toolkit manifest"
-          orphan_count=$((orphan_count + 1))
-        else
-          emit "SKIP" "skills/$skill_name" "user-managed skill (not a toolkit symlink)"
-        fi
-      fi
-    done
-  fi
-
-  if [ "$orphan_count" -gt 0 ]; then
-    emit_summary "${orphan_count} orphan(s) found — awaiting user decision"
-  else
-    emit_summary "no orphans found"
-  fi
-}
-
-phase_remove_orphan() {
-  local filename="${1:-}"
-
-  if [ -z "$filename" ]; then
-    emit "FAIL" "remove-orphan" "no filename specified"
-    exit 1
-  fi
-
-  local target="$CLAUDE_HOME/hooks/$filename"
-
-  # Safety check 1: file must exist
-  if [ ! -f "$target" ] && [ ! -L "$target" ]; then
-    emit "FAIL" "$filename" "not found at $target"
-    exit 1
-  fi
-
-  # Safety check 2: must NOT be in the known toolkit set
-  local known_files
-  known_files="$(_build_known_files)"
-  if echo "$known_files" | grep -qxF "$filename"; then
-    emit "FAIL" "$filename" "is a toolkit hook, refusing to delete"
-    exit 1
-  fi
-
-  # Safe to remove
-  if rm "$target"; then
-    emit "OK" "$filename" "removed"
-  else
-    emit "FAIL" "$filename" "could not remove"
-    exit 1
-  fi
-}
-
-phase_verify() {
-  local ok_count=0
-  local warn_count=0
-  local fail_count=0
-
-  # ===========================================================================
-  # Section 1: File Freshness
-  # ===========================================================================
-  emit_section "Verify: File Freshness"
-
-  # Helper: check_file_freshness NAME TARGET
-  # Checks if target exists and whether it is a symlink or a regular file copy.
-  _check_freshness() {
-    local name="$1"
-    local target="$2"
-
-    if [ -L "$target" ]; then
-      emit "OK" "$name" "symlink"
-      ok_count=$((ok_count + 1))
-    elif [ -f "$target" ] || [ -d "$target" ]; then
-      emit "WARN" "$name" "copy, not symlink"
-      warn_count=$((warn_count + 1))
-    else
-      emit "FAIL" "$name" "missing"
-      fail_count=$((fail_count + 1))
-    fi
-  }
-
-  # --- Shell hooks (.sh, excluding statusline.sh) ---
-  local layer file filename
-  for layer in "${INSTALLED_LAYERS[@]}"; do
-    local hooks_dir="$TOOLKIT_ROOT/$layer/hooks"
-    [ -d "$hooks_dir" ] || continue
-    for file in "$hooks_dir"/*.sh; do
-      [ -f "$file" ] || continue
-      filename="$(basename "$file")"
-      [ "$filename" = "statusline.sh" ] && continue
-      _check_freshness "$filename" "$CLAUDE_HOME/hooks/$filename"
-    done
-  done
-
-  # --- JS utilities from hooks ---
-  local js_dir="$TOOLKIT_ROOT/hooks"
-  if [ -d "$js_dir" ]; then
-    for file in "$js_dir"/*.js; do
-      [ -f "$file" ] || continue
-      filename="$(basename "$file")"
-      _check_freshness "$filename" "$CLAUDE_HOME/hooks/$filename"
-    done
-  fi
-
-  # --- Shared libraries (lib/ subdirectory) ---
-  local lib_src="$TOOLKIT_ROOT/hooks/lib"
-  if [ -d "$lib_src" ]; then
-    for file in "$lib_src"/*.sh; do
-      [ -f "$file" ] || continue
-      filename="$(basename "$file")"
-      _check_freshness "lib/$filename" "$CLAUDE_HOME/hooks/lib/$filename"
-    done
-  fi
-
-  # --- Migrations (migrations/ subdirectory) ---
-  local migrations_src="$TOOLKIT_ROOT/hooks/migrations"
-  if [ -d "$migrations_src" ]; then
-    for file in "$migrations_src"/*; do
-      [ -f "$file" ] || continue
-      filename="$(basename "$file")"
-      _check_freshness "migrations/$filename" "$CLAUDE_HOME/hooks/migrations/$filename"
-    done
-  fi
-
-  # --- Statusline ---
-  local statusline_src="$TOOLKIT_ROOT/hooks/statusline.sh"
-  if [ -f "$statusline_src" ]; then
-    _check_freshness "statusline.sh" "$CLAUDE_HOME/statusline.sh"
-  fi
-
-  # --- Commands (.md from commands) ---
-  local commands_dir="$TOOLKIT_ROOT/commands"
-  if [ -d "$commands_dir" ]; then
-    for file in "$commands_dir"/*.md; do
-      [ -f "$file" ] || continue
-      filename="$(basename "$file")"
-      _check_freshness "$filename" "$CLAUDE_HOME/commands/$filename"
-    done
-  fi
-
-  # --- Skills (directories from each layer) ---
-  local skill_dir skill_name
-  for layer in "${INSTALLED_LAYERS[@]}"; do
-    local skills_root="$TOOLKIT_ROOT/$layer/skills"
-    [ -d "$skills_root" ] || continue
-    for skill_dir in "$skills_root"/*/; do
-      [ -d "$skill_dir" ] || continue
-      skill_name="$(basename "$skill_dir")"
-      _check_freshness "$skill_name" "$CLAUDE_HOME/skills/$skill_name"
-    done
-  done
-
-  # ===========================================================================
-  # Section 2: Settings Registration
-  # ===========================================================================
-  emit_section "Verify: Settings Registration"
-
-  local settings_file="$CLAUDE_HOME/settings.json"
-  if [ ! -f "$settings_file" ]; then
-    emit "FAIL" "settings.json" "file not found"
-    fail_count=$((fail_count + 1))
-  else
-    local node_settings node_manifest_path
-    node_settings="$(to_node_path "$settings_file")"
-    node_manifest_path="$(to_node_path "$TOOLKIT_ROOT/hooks/hooks-manifest.json")"
-
-    # Use node to check all expected hook registrations in one call.
-    # Output: one line per check, format: OK|FAIL <tab> trigger <tab> hookname <tab> detail
-    local node_output
-    node_output="$(node -e "
-      var fs = require('fs');
-      var settingsPath = process.argv[1];
-      var manifestPath = process.argv[2];
-      var settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
-      var hooks = settings.hooks || {};
-
-      // Build expected registrations from hooks manifest, with hardcoded fallback
-      var manifest;
-      try {
-        manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-      } catch(e) {
-        manifest = null;
-      }
-
-      var expected = [];
-      if (manifest) {
-        for (var trigger in manifest.hooks) {
-          manifest.hooks[trigger].forEach(function(h) {
-            if (!h.required) return; // Skip optional hooks
-            var file = h.command.split('/').pop();
-            expected.push([trigger, h.matcher || '.*', file]);
-          });
-        }
-      } else {
-        // Legacy fallback — keep the existing hardcoded list
-        expected = [
-          ['SessionStart',      'startup',    'session-start.sh'],
-          ['SessionStart',      'startup',    'contribution-detector.sh'],
-          ['PreToolUse',        'Write|Edit', 'write-guard.sh'],
-          ['PreToolUse',        'Bash|Agent', 'worktree-guard.sh'],
-          ['PostToolUse',       'Write|Edit', 'sync.sh'],
-          ['PostToolUse',       '.*',         'title-update.sh'],
-          ['UserPromptSubmit',  '.*',         'todo-capture.sh'],
-          ['Stop',              '.*',         'checklist-reminder.sh'],
-          ['Stop',              '.*',         'done-sound.sh'],
-          ['SessionEnd',        '.*',         'session-end-sync.sh']
-        ];
-      }
-
-      expected.forEach(function(row) {
-        var trigger = row[0];
-        var expectedMatcher = row[1];
-        var hookFile = row[2];
-        var found = false;
-        var foundMatcher = '';
-
-        var entries = hooks[trigger];
-        if (Array.isArray(entries)) {
-          for (var i = 0; i < entries.length; i++) {
-            var entry = entries[i];
-            var hooksArr = entry.hooks || [];
-            for (var j = 0; j < hooksArr.length; j++) {
-              var cmd = hooksArr[j].command || '';
-              if (cmd.indexOf(hookFile) !== -1) {
-                found = true;
-                foundMatcher = entry.matcher || '';
-                break;
-              }
-            }
-            if (found) break;
-          }
-        }
-
-        if (found) {
-          console.log('OK\t' + trigger + '\t' + hookFile + '\tregistered (matcher: ' + foundMatcher + ')');
-        } else {
-          console.log('FAIL\t' + trigger + '\t' + hookFile + '\tnot found');
-        }
-      });
-
-      // Check statusLine
-      var sl = settings.statusLine;
-      if (sl && sl.command) {
-        // Extract the file path referenced in the command and check it exists
-        var parts = sl.command.split(/\\s+/);
-        var slPath = parts[parts.length - 1];
-        // Attempt to resolve — try the raw path first
-        var slExists = false;
-        try { fs.accessSync(slPath); slExists = true; } catch(e) {}
-        if (slExists) {
-          console.log('OK\tstatusLine\tstatusLine\tconfigured and file exists');
-        } else {
-          console.log('WARN\tstatusLine\tstatusLine\tconfigured but file not accessible at ' + slPath);
-        }
-      } else {
-        console.log('FAIL\tstatusLine\tstatusLine\tnot configured in settings.json');
-      }
-    " "$node_settings" "$node_manifest_path" 2>/dev/null || echo "FAIL	settings.json	node	settings verification script failed")"
-
-    # Parse node output and emit results
-    while IFS= read -r line; do
-      [ -z "$line" ] && continue
-      local status trigger hookname detail
-      status="$(echo "$line" | cut -f1)"
-      trigger="$(echo "$line" | cut -f2)"
-      hookname="$(echo "$line" | cut -f3)"
-      detail="$(echo "$line" | cut -f4)"
-
-      emit "$status" "$trigger" "$hookname $detail"
-      case "$status" in
-        OK)   ok_count=$((ok_count + 1)) ;;
-        WARN) warn_count=$((warn_count + 1)) ;;
-        FAIL) fail_count=$((fail_count + 1)) ;;
-      esac
-    done <<EOF
-$node_output
-EOF
-  fi
-
-  # ===========================================================================
-  # Section 3: Feature Pipeline
-  # ===========================================================================
-  emit_section "Verify: Feature Pipeline"
-
-  # 1. Session Naming
-  if [ -f "$CLAUDE_HOME/hooks/title-update.sh" ] || [ -L "$CLAUDE_HOME/hooks/title-update.sh" ]; then
-    if [ -d "$CLAUDE_HOME/topics" ]; then
-      emit "OK" "Session Naming" "title-update.sh installed, topics/ exists"
-      ok_count=$((ok_count + 1))
-    else
-      emit "WARN" "Session Naming" "title-update.sh installed, topics/ missing (created on first use)"
-      warn_count=$((warn_count + 1))
-    fi
-  else
-    emit "FAIL" "Session Naming" "title-update.sh missing from hooks"
-    fail_count=$((fail_count + 1))
-  fi
-
-  # 2. Sync Status
-  if [ -f "$CLAUDE_HOME/hooks/sync.sh" ] || [ -L "$CLAUDE_HOME/hooks/sync.sh" ]; then
-    emit "OK" "Sync Status" "sync.sh installed"
-    ok_count=$((ok_count + 1))
-  else
-    emit "FAIL" "Sync Status" "sync.sh missing from hooks"
-    fail_count=$((fail_count + 1))
-  fi
-
-  # 3. Announcements
-  if [ -f "$CLAUDE_HOME/hooks/announcement-fetch.js" ] || [ -L "$CLAUDE_HOME/hooks/announcement-fetch.js" ]; then
-    emit "OK" "Announcements" "announcement-fetch.js installed"
-    ok_count=$((ok_count + 1))
-  else
-    emit "FAIL" "Announcements" "announcement-fetch.js missing from hooks"
-    fail_count=$((fail_count + 1))
-  fi
-
-  # 4. Version Check
-  if [ -f "$CLAUDE_HOME/toolkit-state/update-status.json" ]; then
-    emit "OK" "Version Check" "update-status.json exists"
-    ok_count=$((ok_count + 1))
-  else
-    emit "WARN" "Version Check" "update-status.json missing (created on first update check)"
-    warn_count=$((warn_count + 1))
-  fi
-
-  # 5. Rate Limits
-  if [ -f "$CLAUDE_HOME/hooks/usage-fetch.js" ] || [ -L "$CLAUDE_HOME/hooks/usage-fetch.js" ]; then
-    emit "OK" "Rate Limits" "usage-fetch.js installed"
-    ok_count=$((ok_count + 1))
-  else
-    emit "FAIL" "Rate Limits" "usage-fetch.js missing from hooks"
-    fail_count=$((fail_count + 1))
-  fi
-
-  # 6. Statusline
-  if [ -f "$CLAUDE_HOME/statusline.sh" ] || [ -L "$CLAUDE_HOME/statusline.sh" ]; then
-    # Check settings.json has statusLine entry (quick grep; node already checked above)
-    if [ -f "$CLAUDE_HOME/settings.json" ] && grep -q '"statusLine"' "$CLAUDE_HOME/settings.json" 2>/dev/null; then
-      emit "OK" "Statusline" "statusline.sh installed, settings.json configured"
-      ok_count=$((ok_count + 1))
-    else
-      emit "WARN" "Statusline" "statusline.sh installed, but settings.json missing statusLine entry"
-      warn_count=$((warn_count + 1))
-    fi
-  else
-    emit "FAIL" "Statusline" "statusline.sh missing"
-    fail_count=$((fail_count + 1))
-  fi
-
-  # ===========================================================================
-  # Summary
-  # ===========================================================================
-  emit_summary "${ok_count} OK, ${warn_count} WARN, ${fail_count} FAIL"
-
-  if [ "$fail_count" -gt 0 ]; then
-    return 1
-  fi
-}
-
-phase_mcps() {
-  emit_section "MCP Servers"
-
-  local manifest_file="$TOOLKIT_ROOT/mcp-manifest.json"
-  local claude_json="$HOME/.claude.json"
-
-  if [ ! -f "$manifest_file" ]; then
-    emit "FAIL" "mcp-manifest" "not found: $manifest_file"
-    return 1
-  fi
-
-  if [ ! -f "$claude_json" ]; then
-    emit "WARN" "claude.json" "not found: $claude_json — cannot check registrations"
-    return 0
-  fi
-
-  local node_manifest node_claude_json
-  node_manifest="$(to_node_path "$manifest_file")"
-  node_claude_json="$(to_node_path "$claude_json")"
-
-  node -e "
-    var fs = require('fs');
-    var platform = '${PLATFORM}';
-
-    var manifest;
-    try {
-      manifest = JSON.parse(fs.readFileSync('${node_manifest}', 'utf8'));
-    } catch(e) {
-      process.stderr.write('Failed to parse mcp-manifest.json: ' + e.message + '\n');
-      process.exit(1);
-    }
-
-    var claudeObj;
-    try {
-      claudeObj = JSON.parse(fs.readFileSync('${node_claude_json}', 'utf8'));
-    } catch(e) {
-      process.stderr.write('Failed to parse .claude.json: ' + e.message + '\n');
-      process.exit(1);
-    }
-
-    // Collect all mcpServers keys by walking the entire object tree.
-    var registered = {};
-    function collectMcpKeys(obj) {
-      if (!obj || typeof obj !== 'object') return;
-      if (Array.isArray(obj)) { obj.forEach(collectMcpKeys); return; }
-      if (obj.mcpServers && typeof obj.mcpServers === 'object' && !Array.isArray(obj.mcpServers)) {
-        Object.keys(obj.mcpServers).forEach(function(k) { registered[k] = true; });
-      }
-      Object.keys(obj).forEach(function(k) { collectMcpKeys(obj[k]); });
-    }
-    collectMcpKeys(claudeObj);
-
-    var newAuto = 0;
-    var newManual = 0;
-
-    manifest.forEach(function(entry) {
-      var name = entry.name;
-      var entryPlatform = entry.platform || 'all';
-      var auto = entry.auto === true;
-
-      if (entryPlatform !== 'all' && entryPlatform !== platform) {
-        process.stdout.write('[SKIP] ' + name + ' \xe2\x80\x94 wrong platform (' + entryPlatform + ')\n');
-        return;
-      }
-
-      if (registered[name]) {
-        process.stdout.write('[OK] ' + name + ' \xe2\x80\x94 registered\n');
-      } else if (auto) {
-        process.stdout.write('[NEW] ' + name + ' \xe2\x80\x94 available (auto-install, run /health)\n');
-        newAuto++;
-      } else {
-        process.stdout.write('[INFO] ' + name + ' \xe2\x80\x94 available (requires setup, run /setup-wizard)\n');
-        newManual++;
-      }
-    });
-
-    if (newAuto === 0 && newManual === 0) {
-      process.stdout.write('[INFO] all platform MCPs registered\n');
-    } else {
-      var parts = [];
-      if (newAuto > 0) parts.push(newAuto + ' auto-install available');
-      if (newManual > 0) parts.push(newManual + ' requiring manual setup');
-      process.stdout.write('[INFO] ' + parts.join(', ') + '\n');
-    }
-  "
-}
-
-phase_plugins() {
-  emit_section "Marketplace Plugins"
-
-  local manifest_file="$TOOLKIT_ROOT/plugins-manifest.json"
-  local settings_file="$CLAUDE_HOME/settings.json"
-
-  # Post-decomposition: plugins-manifest.json is retired. The app's marketplace
-  # owns plugin installation now, so this phase becomes a no-op when the manifest
-  # is absent. Kept as a graceful skip so legacy installs still pass /update.
-  if [ ! -f "$manifest_file" ]; then
-    emit "OK" "plugins-manifest" "retired — marketplace owns plugin installation"
-    return 0
-  fi
-
-  if [ ! -f "$settings_file" ]; then
-    emit "WARN" "settings.json" "not found: $settings_file — cannot check registrations"
-    return 0
-  fi
-
-  local node_manifest node_settings
-  node_manifest="$(to_node_path "$manifest_file")"
-  node_settings="$(to_node_path "$settings_file")"
-
-  node -e "
-    var fs = require('fs');
-
-    var manifest;
-    try {
-      manifest = JSON.parse(fs.readFileSync('${node_manifest}', 'utf8'));
-    } catch(e) {
-      process.stderr.write('Failed to parse plugins-manifest.json: ' + e.message + '\n');
-      process.exit(1);
-    }
-
-    var settingsObj;
-    try {
-      settingsObj = JSON.parse(fs.readFileSync('${node_settings}', 'utf8'));
-    } catch(e) {
-      process.stderr.write('Failed to parse settings.json: ' + e.message + '\n');
-      process.exit(1);
-    }
-
-    var enabled = settingsObj.enabledPlugins || {};
-    var unregistered = 0;
-
-    manifest.forEach(function(plugin) {
-      if (enabled[plugin]) {
-        process.stdout.write('[OK] ' + plugin + ' \xe2\x80\x94 registered\n');
-      } else {
-        process.stdout.write('[NEW] ' + plugin + ' \xe2\x80\x94 not registered\n');
-        unregistered++;
-      }
-    });
-
-    if (unregistered === 0) {
-      process.stdout.write('[INFO] all plugins registered\n');
-    } else {
-      process.stdout.write('[INFO] ' + unregistered + ' unregistered plugin(s) found\n');
-    }
-  "
-}
-
-# =============================================================================
-# Phase: marketplace-plugins — update marketplace-installed plugins
-# =============================================================================
-
-phase_marketplace_plugins() {
-  emit_section "Marketplace Plugin Updates"
-
-  local skills_config="$CLAUDE_HOME/destincode-skills.json"
-  local plugins_dir="$CLAUDE_HOME/plugins"
-  local cache_dir="$CLAUDE_HOME/destincode-marketplace-cache"
-
-  if [ ! -f "$skills_config" ]; then
-    emit "SKIP" "marketplace" "no destincode-skills.json found"
-    return 0
-  fi
-
-  local node_config
-  node_config="$(to_node_path "$skills_config")"
-
-  # Read installed_plugins from config
-  local installed
-  installed="$(node -e "
-    var d = JSON.parse(require('fs').readFileSync('${node_config}','utf8'));
-    var p = d.installed_plugins || {};
-    Object.keys(p).forEach(function(k) {
-      var meta = p[k];
-      console.log(k + '\t' + (meta.sourceType||'') + '\t' + (meta.sourceRef||''));
-    });
-  " 2>/dev/null)" || true
-
-  if [ -z "$installed" ]; then
-    emit "INFO" "marketplace" "no marketplace plugins installed"
-    return 0
-  fi
-
-  local updated_count=0
-  local failed_count=0
-  local skipped_count=0
-
-  # Update marketplace repo cache first (used by "local" source plugins)
-  if [ -d "$cache_dir/claude-plugins-official" ]; then
-    if git -C "$cache_dir/claude-plugins-official" pull --ff-only &>/dev/null; then
-      emit "OK" "cache" "marketplace repo updated"
-    else
-      emit "WARN" "cache" "marketplace repo pull failed — local plugins may be stale"
-    fi
-  fi
-
-  while IFS=$'\t' read -r plugin_id source_type source_ref; do
-    [ -z "$plugin_id" ] && continue
-    local plugin_dir="$plugins_dir/$plugin_id"
-
-    if [ ! -d "$plugin_dir" ]; then
-      emit "WARN" "$plugin_id" "directory missing — skipping"
-      skipped_count=$((skipped_count + 1))
-      continue
-    fi
-
-    case "$source_type" in
-      local)
-        # Re-copy from updated marketplace cache
-        if [ -n "$source_ref" ] && [ -d "$cache_dir/claude-plugins-official/$source_ref" ]; then
-          rm -rf "$plugin_dir"
-          cp -r "$cache_dir/claude-plugins-official/$source_ref" "$plugin_dir"
-          emit "UPDATED" "$plugin_id" "refreshed from marketplace cache"
-          updated_count=$((updated_count + 1))
-        else
-          emit "WARN" "$plugin_id" "source path not found in cache: $source_ref"
-          failed_count=$((failed_count + 1))
-        fi
-        ;;
-      url)
-        if [ -d "$plugin_dir/.git" ]; then
-          if git -C "$plugin_dir" pull --ff-only &>/dev/null; then
-            emit "UPDATED" "$plugin_id" "pulled latest"
-            updated_count=$((updated_count + 1))
-          else
-            emit "WARN" "$plugin_id" "git pull failed — may need re-install"
-            failed_count=$((failed_count + 1))
-          fi
-        else
-          emit "SKIP" "$plugin_id" "not a git repo — cannot update"
-          skipped_count=$((skipped_count + 1))
-        fi
-        ;;
-      git-subdir)
-        emit "SKIP" "$plugin_id" "git-subdir plugins need re-install to update"
-        skipped_count=$((skipped_count + 1))
-        ;;
-      *)
-        emit "SKIP" "$plugin_id" "unknown source type: $source_type"
-        skipped_count=$((skipped_count + 1))
-        ;;
-    esac
-  done <<< "$installed"
-
-  echo ""
-  if [ $updated_count -gt 0 ]; then
-    emit "INFO" "marketplace" "$updated_count plugin(s) updated"
-  fi
-  if [ $failed_count -gt 0 ]; then
-    emit "WARN" "marketplace" "$failed_count plugin(s) failed to update"
-  fi
-  if [ $skipped_count -gt 0 ] && [ $updated_count -eq 0 ] && [ $failed_count -eq 0 ]; then
-    emit "INFO" "marketplace" "$skipped_count plugin(s) skipped"
-  fi
-}
-
-# =============================================================================
-# Phase: deps — check runtime dependencies for all installed plugin hooks
-# =============================================================================
-
-phase_deps() {
-  emit_section "Plugin Dependencies"
-
-  local plugins_cache="$CLAUDE_HOME/plugins/cache"
-  local settings_file="$CLAUDE_HOME/settings.json"
-  local node_settings
-  node_settings="$(to_node_path "$settings_file")"
-  local node_cache
-  node_cache="$(to_node_path "$plugins_cache")"
-
-  if [ ! -f "$settings_file" ]; then
-    emit "WARN" "deps" "settings.json not found — cannot check plugin dependencies"
-    return 0
-  fi
-
-  if [ ! -d "$plugins_cache" ]; then
-    emit "INFO" "deps" "no marketplace plugins installed"
-    return 0
-  fi
-
-  # Use node to:
-  # 1. Read settings.json to find enabled plugins
-  # 2. For each enabled plugin, find its latest installed version's hooks.json
-  # 3. Extract command executables from hook definitions
-  # 4. Deduplicate and return the list of (executable, plugin, events) tuples
-  local dep_list
-  dep_list="$(node -e "
-    var fs = require('fs'), path = require('path');
-
-    var settings;
-    var settingsPath = process.argv[2];
-    var cachePath = process.argv[3];
-    try { settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8')); }
-    catch(e) { process.exit(0); }
-
-    var enabled = settings.enabledPlugins || {};
-    var cache = cachePath;
-    var deps = {};  // executable -> {plugins: Set, events: Set}
-
-    Object.keys(enabled).forEach(function(pluginId) {
-      if (!enabled[pluginId]) return;  // disabled plugin
-      var shortName = pluginId.split('@')[0];
-      var pluginDir = path.join(cache, pluginId.split('@')[1] || '', shortName);
-
-      // Find the latest version directory
-      var versions;
-      try { versions = fs.readdirSync(pluginDir); } catch(e) { return; }
-
-      // Try each version dir for hooks.json
-      var hooksData = null;
-      for (var i = versions.length - 1; i >= 0; i--) {
-        var hooksFile = path.join(pluginDir, versions[i], 'hooks', 'hooks.json');
-        try {
-          hooksData = JSON.parse(fs.readFileSync(hooksFile, 'utf8'));
-          break;
-        } catch(e) { continue; }
-      }
-      if (!hooksData || !hooksData.hooks) return;
-
-      Object.keys(hooksData.hooks).forEach(function(event) {
-        var hookList = hooksData.hooks[event];
-        if (!Array.isArray(hookList)) return;
-        hookList.forEach(function(entry) {
-          var innerHooks = entry.hooks || [];
-          innerHooks.forEach(function(h) {
-            if (!h.command) return;
-            // Extract executable: first token
-            var cmd = h.command.trim();
-            // Strip leading quotes
-            cmd = cmd.replace(/^\"/g, '');
-            var exe = cmd.split(/\\s+/)[0];
-            if (!exe) return;
-            // Skip commands where the executable itself is a plugin-relative path
-            if (exe.indexOf('CLAUDE_PLUGIN_ROOT') >= 0 || exe.indexOf('PLUGIN_ROOT') >= 0) return;
-            // Skip absolute/relative paths and common built-in executables
-            if (exe.startsWith('/') || exe.startsWith('.') || (/^[A-Z]:/.test(exe))) return;
-            if (['bash','sh','node','npx','cmd','cmd.exe','powershell.exe'].indexOf(exe) >= 0) return;
-
-            if (!deps[exe]) deps[exe] = {plugins: {}, events: {}};
-            deps[exe].plugins[shortName] = true;
-            deps[exe].events[event] = true;
-          });
-        });
-      });
-    });
-
-    // Also check toolkit hooks from settings.json
-    var settingsHooks = settings.hooks || {};
-    Object.keys(settingsHooks).forEach(function(event) {
-      var entries = settingsHooks[event];
-      if (!Array.isArray(entries)) return;
-      entries.forEach(function(entry) {
-        var hookList = entry.hooks || [];
-        hookList.forEach(function(h) {
-          if (!h.command) return;
-          var cmd = h.command.trim().replace(/^\"/g, '');
-          var exe = cmd.split(/\\s+/)[0];
-          if (!exe) return;
-          if (exe.indexOf('CLAUDE_PLUGIN_ROOT') >= 0 || exe.indexOf('PLUGIN_ROOT') >= 0) return;
-          if (exe.startsWith('/') || exe.startsWith('.') || (/^[A-Z]:/.test(exe))) return;
-          if (['bash','sh','node','npx','cmd','cmd.exe','powershell.exe'].indexOf(exe) >= 0) return;
-          if (!deps[exe]) deps[exe] = {plugins: {}, events: {}};
-          deps[exe].plugins['(settings.json)'] = true;
-          deps[exe].events[event] = true;
-        });
-      });
-    });
-
-    // Also check MCP servers from ~/.claude.json
-    try {
-      var homeDir = require('os').homedir();
-      var claudeJson = JSON.parse(fs.readFileSync(path.join(homeDir, '.claude.json'), 'utf8'));
-      var projKey = homeDir.replace(/\\\\/g, '/');
-      var proj = (claudeJson.projects || {})[projKey] || claudeJson;
-      var mcps = proj.mcpServers || {};
-      Object.keys(mcps).forEach(function(name) {
-        var mcp = mcps[name];
-        var exe = mcp.command_windows || mcp.command;
-        if (!exe) return;
-        // Skip absolute paths, common builtins, and variable references
-        if (exe.startsWith('/') || exe.startsWith('.') || (/^[A-Z]:/.test(exe))) return;
-        if (exe.indexOf('CLAUDE_PLUGIN_ROOT') >= 0 || exe.indexOf('{{') >= 0) return;
-        if (['bash','sh','node','npx','cmd','cmd.exe','powershell.exe'].indexOf(exe) >= 0) return;
-        if (!deps[exe]) deps[exe] = {plugins: {}, events: {}};
-        deps[exe].plugins['mcp:' + name] = true;
-        deps[exe].events['mcp-server'] = true;
-      });
-    } catch(e) {}
-
-    Object.keys(deps).forEach(function(exe) {
-      var d = deps[exe];
-      var plugins = Object.keys(d.plugins).join(',');
-      var events = Object.keys(d.events).join(',');
-      console.log(exe + '\t' + plugins + '\t' + events);
-    });
-  " "${node_settings}" "${node_cache}" 2>/dev/null)" || true
-
-  if [ -z "$dep_list" ]; then
-    emit "INFO" "deps" "no external dependencies found"
-    return 0
-  fi
-
-  local missing_count=0
-  local ok_count=0
-  local missing_info=""
-
-  while IFS=$'\t' read -r exe plugins events; do
-    [ -z "$exe" ] && continue
-    if command -v "$exe" &>/dev/null; then
-      local version_str
-      version_str="$("$exe" --version 2>/dev/null | head -1 || echo "found")"
-      emit "OK" "$exe" "$version_str (used by: $plugins)"
-      ok_count=$((ok_count + 1))
-    else
-      emit "MISSING" "$exe" "required by: $plugins (hooks: $events)"
-      missing_count=$((missing_count + 1))
-      missing_info="${missing_info}${exe}\t${plugins}\t${events}\n"
-    fi
-  done <<< "$dep_list"
-
-  if [ "$missing_count" -gt 0 ]; then
-    echo ""
-    emit "WARN" "deps" "$missing_count missing dependency/dependencies — affected hooks will show errors"
-    # Print install suggestions
-    printf '%b' "$missing_info" | while IFS=$'\t' read -r exe plugins events; do
-      [ -z "$exe" ] && continue
-      local install_cmd=""
-      case "$exe" in
-        python|python3)
-          case "$PLATFORM" in
-            windows) install_cmd="winget install Python.Python.3.13" ;;
-            macos)   install_cmd="brew install python3" ;;
-            linux)   install_cmd="sudo apt install python3  # or your distro's package manager" ;;
-          esac
-          ;;
-        uvx|uv)
-          install_cmd="pip install uv  # or: curl -LsSf https://astral.sh/uv/install.sh | sh"
-          ;;
-        rclone)
-          case "$PLATFORM" in
-            windows) install_cmd="winget install Rclone.Rclone" ;;
-            macos)   install_cmd="brew install rclone" ;;
-            linux)   install_cmd="curl https://rclone.org/install.sh | sudo bash" ;;
-          esac
-          ;;
-        go)
-          case "$PLATFORM" in
-            windows) install_cmd="winget install GoLang.Go" ;;
-            macos)   install_cmd="brew install go" ;;
-            linux)   install_cmd="sudo apt install golang-go" ;;
-          esac
-          ;;
-        powershell)
-          install_cmd="(built into Windows — check PATH)"
-          ;;
-        *)
-          install_cmd="(no auto-install suggestion available)"
-          ;;
-      esac
-      emit "FIX" "$exe" "$install_cmd"
-    done
-    return 1
-  else
-    emit_summary "all $ok_count dependencies satisfied"
-    return 0
-  fi
-}
-
-# version_gt A B
-# Returns 0 (true) if A > B, 1 (false) otherwise.
-# Uses node for portable semver comparison (sort -V is GNU-only, fails on macOS stock).
+# version_gt A B — returns 0 (true) if A > B. Portable (sort -V is GNU-only).
 version_gt() {
   if command -v node &>/dev/null; then
     node -e "const[a,b]=process.argv.slice(1).map(v=>v.split('.').map(Number));for(let i=0;i<3;i++){if((a[i]||0)>(b[i]||0))process.exit(0);if((a[i]||0)<(b[i]||0))process.exit(1)}process.exit(1)" "$1" "$2"
@@ -1424,220 +87,234 @@ version_gt() {
   fi
 }
 
-phase_migrations() {
-  local from_ver="${1:-}"
-  local to_ver="${2:-}"
+read_current_version() {
+  # Read VERSION file from the core package. Empty string if missing.
+  if [ -f "$TOOLKIT_ROOT/VERSION" ]; then
+    tr -d '[:space:]' < "$TOOLKIT_ROOT/VERSION"
+  else
+    printf ''
+  fi
+}
 
-  # Guard: need both version bounds
-  if [ -z "$from_ver" ] || [ -z "$to_ver" ]; then
-    emit "INFO" "migrations" "skipped — no version range provided"
-    return
+read_last_migrated() {
+  if [ -f "$MIGRATION_MARKER" ]; then
+    tr -d '[:space:]' < "$MIGRATION_MARKER"
+  else
+    printf ''
+  fi
+}
+
+write_last_migrated() {
+  mkdir -p "$STATE_DIR"
+  printf '%s\n' "$1" > "$MIGRATION_MARKER"
+}
+
+# =============================================================================
+# Phases
+# =============================================================================
+
+# ---- phase_self_check --------------------------------------------------------
+# Verify that the destinclaude-core package is present and structurally valid.
+# Requirements (kept intentionally minimal — the app owns higher-level health):
+#   - node is on PATH (migrations + helpers need it)
+#   - TOOLKIT_ROOT exists
+#   - VERSION file exists inside TOOLKIT_ROOT
+#   - essential subdirs (hooks/) are present
+phase_self_check() {
+  emit_section "Self-Check"
+
+  local passed=0 failed=0
+  local node_ver
+
+  if node_ver="$(node --version 2>/dev/null)"; then
+    emit "OK" "node" "found (${node_ver})"
+    passed=$((passed + 1))
+  else
+    emit "FAIL" "node" "not found — node is required"
+    failed=$((failed + 1))
   fi
 
-  local migrations_dir="$TOOLKIT_ROOT/scripts/migrations"
-
-  # Guard: directory must exist and contain at least one .sh file
-  if [ ! -d "$migrations_dir" ]; then
-    emit "INFO" "migrations" "no migrations needed (${from_ver} → ${to_ver})"
-    return
+  if [ -d "$TOOLKIT_ROOT" ]; then
+    emit "OK" "toolkit_root" "$TOOLKIT_ROOT"
+    passed=$((passed + 1))
+  else
+    emit "FAIL" "toolkit_root" "missing: $TOOLKIT_ROOT"
+    failed=$((failed + 1))
   fi
 
-  # Collect .sh files; check if any exist
-  local has_any=0
-  local f
-  for f in "$migrations_dir"/*.sh; do
-    [ -f "$f" ] && has_any=1 && break
-  done
-
-  if [ "$has_any" -eq 0 ]; then
-    emit "INFO" "migrations" "no migrations needed (${from_ver} → ${to_ver})"
-    return
+  if [ -f "$TOOLKIT_ROOT/VERSION" ]; then
+    emit "OK" "VERSION" "$(read_current_version)"
+    passed=$((passed + 1))
+  else
+    emit "FAIL" "VERSION" "missing: $TOOLKIT_ROOT/VERSION"
+    failed=$((failed + 1))
   fi
 
-  # Gather applicable migration versions into a newline-delimited string,
-  # then sort using portable numeric-field split (sort -V is GNU-only).
-  local applicable_versions=""
-  for f in "$migrations_dir"/*.sh; do
-    [ -f "$f" ] || continue
-    local fname
-    fname="$(basename "$f" .sh)"
-    # Apply if fname > from_ver AND fname <= to_ver
-    # i.e. version_gt fname from_ver  AND  NOT version_gt fname to_ver
-    if version_gt "$fname" "$from_ver" && ! version_gt "$fname" "$to_ver"; then
-      if [ -z "$applicable_versions" ]; then
-        applicable_versions="$fname"
-      else
-        applicable_versions="${applicable_versions}
-${fname}"
-      fi
+  # Essential subdirs — the flat package ships hooks/ alongside skills/ commands/
+  local d
+  for d in hooks skills commands; do
+    if [ -d "$TOOLKIT_ROOT/$d" ]; then
+      emit "OK" "$d/" "present"
+      passed=$((passed + 1))
+    else
+      emit "FAIL" "$d/" "missing: $TOOLKIT_ROOT/$d"
+      failed=$((failed + 1))
     fi
   done
 
-  if [ -z "$applicable_versions" ]; then
-    emit "INFO" "migrations" "no migrations needed (${from_ver} → ${to_ver})"
-    return
+  emit_summary "${passed} checks passed, ${failed} failed"
+  [ "$failed" -eq 0 ]
+}
+
+# ---- phase_migrations --------------------------------------------------------
+# Run version-specific data migrations. Each migration is a .sh file named
+# after the target version (e.g., 3.1.0.sh) under $TOOLKIT_ROOT/scripts/migrations/.
+# A migration is applied if its version is strictly greater than the last
+# migrated version and less than or equal to the current VERSION.
+phase_migrations() {
+  emit_section "Migrations"
+
+  local current_ver from_ver
+  current_ver="$(read_current_version)"
+  if [ -z "$current_ver" ]; then
+    emit "SKIP" "migrations" "no VERSION file — cannot compute migration range"
+    return 0
   fi
 
-  # Sort versions and run each migration in order
-  local sorted_versions
-  sorted_versions="$(printf '%s\n' "$applicable_versions" | sort -t. -k1,1n -k2,2n -k3,3n)"
+  from_ver="$(read_last_migrated)"
+  # First run after decomposition: treat unknown baseline as 0.0.0 so every
+  # migration runs once, then the marker pins subsequent runs.
+  [ -z "$from_ver" ] && from_ver="0.0.0"
 
+  if [ "$from_ver" = "$current_ver" ]; then
+    emit "OK" "migrations" "up to date (${current_ver})"
+    return 0
+  fi
+
+  local migrations_dir="$TOOLKIT_ROOT/scripts/migrations"
+  if [ ! -d "$migrations_dir" ]; then
+    emit "INFO" "migrations" "no migrations dir (${from_ver} -> ${current_ver})"
+    write_last_migrated "$current_ver"
+    return 0
+  fi
+
+  # Collect applicable migration versions.
+  local applicable="" f fname
+  for f in "$migrations_dir"/*.sh; do
+    [ -f "$f" ] || continue
+    fname="$(basename "$f" .sh)"
+    if version_gt "$fname" "$from_ver" && ! version_gt "$fname" "$current_ver"; then
+      applicable="${applicable}${fname}
+"
+    fi
+  done
+
+  if [ -z "$applicable" ]; then
+    emit "OK" "migrations" "none applicable (${from_ver} -> ${current_ver})"
+    write_last_migrated "$current_ver"
+    return 0
+  fi
+
+  # Sort and execute in ascending version order.
+  local sorted version
+  sorted="$(printf '%s' "$applicable" | sort -t. -k1,1n -k2,2n -k3,3n)"
   export TOOLKIT_ROOT CLAUDE_HOME PLATFORM
 
-  local version
   while IFS= read -r version; do
     [ -z "$version" ] && continue
-    local migration_file="$migrations_dir/${version}.sh"
     emit_section "Migration ${version}"
-    bash "$migration_file"
+    bash "$migrations_dir/${version}.sh"
   done <<EOF
-$sorted_versions
+$sorted
 EOF
+
+  write_last_migrated "$current_ver"
+  emit_summary "migrations applied through ${current_ver}"
 }
 
-# ---------------------------------------------------------------------------
-# Phase: settings-migrate — Reconcile settings.json against hooks-manifest.json
-# ---------------------------------------------------------------------------
-phase_settings_migrate() {
-  emit_section "SETTINGS RECONCILIATION"
+# ---- phase_verify ------------------------------------------------------------
+# Confirm that every hook script settings.json references actually exists on
+# disk. Under the decomposed layout, hooks live at
+#   ~/.claude/plugins/destinclaude-core/hooks/
+# and settings.json commands point at those absolute paths. We don't rewrite
+# settings here (the app owns that); we just flag drift.
+phase_verify() {
+  emit_section "Verify: Hook Scripts"
 
-  local MANIFEST="$TOOLKIT_ROOT/hooks/hooks-manifest.json"
-  local SETTINGS="$HOME/.claude/settings.json"
+  local settings="$CLAUDE_HOME/settings.json"
+  local ok=0 fail=0
 
-  if [[ ! -f "$MANIFEST" ]]; then
-    emit "SKIP" "hooks-manifest.json" "not found — skipping settings reconciliation"
-    return 0
+  if [ ! -f "$settings" ]; then
+    emit "FAIL" "settings.json" "not found: $settings"
+    return 1
   fi
 
-  if [[ ! -f "$SETTINGS" ]]; then
-    emit "SKIP" "settings.json" "not found — run setup-wizard first"
-    return 0
-  fi
+  local node_settings
+  node_settings="$(to_node_path "$settings")"
 
-  local _result
-  _result=$(node -e "
-const fs = require('fs');
-const manifest = JSON.parse(fs.readFileSync('$(to_node_path "$MANIFEST")', 'utf8'));
-const settingsPath = '$(to_node_path "$SETTINGS")';
-const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
-
-if (!settings.hooks) settings.hooks = {};
-const changes = [];
-
-for (const [trigger, desired] of Object.entries(manifest.hooks)) {
-  if (!settings.hooks[trigger]) settings.hooks[trigger] = [];
-  const triggerEntries = settings.hooks[trigger];
-
-  for (const want of desired) {
-    const hookFile = want.command.split('/').pop();
-
-    // Find existing entry by command substring (the hook filename)
-    let found = null;
-    let foundIn = null;
-    for (const group of triggerEntries) {
-      for (const h of (group.hooks || [])) {
-        if (h.command && h.command.includes(hookFile)) {
-          found = h;
-          foundIn = group;
-          break;
-        }
-      }
-      if (found) break;
+  # Ask node to enumerate every hook command across every trigger. Output is
+  # tab-separated: <trigger>\t<command>. We then resolve each command to a
+  # filesystem path and stat it.
+  local node_output
+  node_output="$(node -e "
+    var fs = require('fs');
+    var s = JSON.parse(fs.readFileSync(process.argv[1], 'utf8'));
+    var hooks = s.hooks || {};
+    Object.keys(hooks).forEach(function(trigger) {
+      (hooks[trigger] || []).forEach(function(entry) {
+        (entry.hooks || []).forEach(function(h) {
+          if (h && h.command) console.log(trigger + '\t' + h.command);
+        });
+      });
+    });
+    if (s.statusLine && s.statusLine.command) {
+      console.log('statusLine\t' + s.statusLine.command);
     }
-
-    if (!found) {
-      if (!want.required) continue;  // Don't add optional hooks that aren't registered
-      const entry = { hooks: [{ type: 'command', command: want.command }] };
-      if (want.matcher) entry.matcher = want.matcher;
-      if (want.timeout != null) entry.hooks[0].timeout = want.timeout;
-      triggerEntries.push(entry);
-      changes.push('[NEW] ' + trigger + ': ' + hookFile);
-    } else {
-      // EXISTS: check for missing/low properties
-      if (want.timeout != null && found.timeout == null) {
-        found.timeout = want.timeout;
-        changes.push('[UPDATED] ' + hookFile + ': added timeout=' + want.timeout + 's');
-      } else if (want.timeout != null && found.timeout != null && found.timeout < want.timeout) {
-        changes.push('[ENFORCED] ' + hookFile + ': timeout raised from ' + found.timeout + 's to ' + want.timeout + 's (manifest minimum)');
-        found.timeout = want.timeout;
-      }
-      if (want.matcher && foundIn && !foundIn.matcher) {
-        foundIn.matcher = want.matcher;
-        changes.push('[UPDATED] ' + hookFile + ': added matcher=' + want.matcher);
-      }
-    }
-  }
-}
-
-if (changes.length > 0) {
-  const tmp = settingsPath + '.tmp.' + process.pid;
-  fs.writeFileSync(tmp, JSON.stringify(settings, null, 2) + '\\n');
-  fs.renameSync(tmp, settingsPath);
-}
-
-console.log(JSON.stringify(changes));
-" 2>&1) || {
-    emit "FAIL" "settings-migrate" "node script failed"
+  " "$node_settings" 2>/dev/null)" || {
+    emit "FAIL" "settings.json" "could not parse"
     return 1
   }
 
-  # Parse and display results
-  local _line
-  while IFS= read -r _line; do
-    [[ -z "$_line" || "$_line" == "[]" ]] && continue
-    emit "INFO" "settings.json" "$_line"
-  done < <(echo "$_result" | node -e "
-    let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{
-      try{JSON.parse(d).forEach(l=>console.log(l))}catch{console.log(d)}
-    });
-  " 2>/dev/null)
+  local line trigger command path_candidate
+  while IFS= read -r line; do
+    [ -z "$line" ] && continue
+    trigger="$(printf '%s' "$line" | cut -f1)"
+    command="$(printf '%s' "$line" | cut -f2)"
 
-  if echo "$_result" | grep -q '^\[\]$'; then
-    emit "OK" "settings.json" "all hooks match manifest"
-  fi
+    # Hook command is usually "bash /abs/path/script.sh" or just a path.
+    # Take the last whitespace-separated token as the candidate file.
+    path_candidate="$(printf '%s' "$command" | awk '{print $NF}')"
 
-  return 0
+    if [ -f "$path_candidate" ] || [ -L "$path_candidate" ]; then
+      emit "OK" "$trigger" "$(basename "$path_candidate")"
+      ok=$((ok + 1))
+    else
+      emit "FAIL" "$trigger" "missing file: $path_candidate"
+      fail=$((fail + 1))
+    fi
+  done <<EOF
+$node_output
+EOF
+
+  emit_summary "${ok} OK, ${fail} FAIL"
+  [ "$fail" -eq 0 ]
 }
 
+# ---- phase_post_update -------------------------------------------------------
+# Composite phase run by the post-merge git hook. Dispatches the three
+# surviving phases in order and aggregates exit status.
 phase_post_update() {
-  local from_ver="${1:-}"
-  local to_ver="${2:-}"
-  local overall_exit=0
+  local overall=0
 
-  phase_self_check || overall_exit=1
+  phase_self_check || overall=1
   echo ""
 
-  if [ -n "$from_ver" ] && [ -n "$to_ver" ]; then
-    phase_migrations "$from_ver" "$to_ver" || overall_exit=1
-  else
-    emit_summary "migrations skipped — no version range provided"
-  fi
+  phase_migrations || overall=1
   echo ""
 
-  phase_refresh || overall_exit=1
-  echo ""
+  phase_verify || overall=1
 
-  phase_settings_migrate || overall_exit=1
-  echo ""
-
-  phase_orphans || overall_exit=1
-  echo ""
-
-  phase_verify || overall_exit=1
-  echo ""
-
-  phase_mcps || overall_exit=1
-  echo ""
-
-  phase_plugins || overall_exit=1
-  echo ""
-
-  phase_marketplace_plugins || overall_exit=1
-  echo ""
-
-  phase_deps || overall_exit=1
-
-  return $overall_exit
+  return $overall
 }
 
 # =============================================================================
@@ -1648,51 +325,13 @@ main() {
   detect_platform
 
   local phase="${1:-}"
-
-  # self-check validates config itself; all other phases need config loaded first
-  if [ "$phase" != "self-check" ]; then
-    load_config
-  fi
-
   case "$phase" in
-    self-check)
-      phase_self_check
-      ;;
-    refresh)
-      phase_refresh
-      ;;
-    orphans)
-      phase_orphans
-      ;;
-    remove-orphan)
-      phase_remove_orphan "${2:-}"
-      ;;
-    settings-migrate)
-      phase_settings_migrate
-      ;;
-    verify)
-      phase_verify
-      ;;
-    mcps)
-      phase_mcps
-      ;;
-    plugins)
-      phase_plugins
-      ;;
-    marketplace-plugins)
-      phase_marketplace_plugins
-      ;;
-    deps)
-      phase_deps
-      ;;
-    migrations)
-      phase_migrations "${2:-}" "${3:-}"
-      ;;
-    post-update)
-      phase_post_update "${2:-}" "${3:-}"
-      ;;
+    self-check)   phase_self_check ;;
+    migrations)   phase_migrations ;;
+    verify)       phase_verify ;;
+    post-update)  phase_post_update ;;
     *)
-      emit "FAIL" "unknown phase: ${1:-}" "use: self-check|refresh|settings-migrate|orphans|remove-orphan|verify|mcps|plugins|marketplace-plugins|deps|migrations|post-update"
+      emit "FAIL" "unknown phase: ${phase}" "use: self-check|migrations|verify|post-update"
       exit 2
       ;;
   esac
