@@ -1,0 +1,170 @@
+{
+  "_comment": "Preset cards rendered as clickable options in the Kit refinement page. Each column's `presets` array is rendered by the browser at runtime — Claude only sets the `current` values when writing screen.html. Keep swatch/sample data self-contained so the page works without extra asset fetches.",
+
+  "palette": [
+    {
+      "id": "warm-cozy",
+      "name": "Warm Cozy",
+      "blurb": "Amber on deep brown — autumn, tavern, firelit",
+      "swatches": ["#1A100A", "#231509", "#2D1C0C", "#E8A94E", "#F5E6D0"],
+      "dark": true
+    },
+    {
+      "id": "neon-cyber",
+      "name": "Neon Cyber",
+      "blurb": "Hot magenta on near-black blue — cyberpunk, Y2K",
+      "swatches": ["#08080F", "#11111A", "#181825", "#FF2E88", "#EDEBFF"],
+      "dark": true
+    },
+    {
+      "id": "dark-noir",
+      "name": "Dark Noir",
+      "blurb": "Crimson on near-black — noir, grim, ritualistic",
+      "swatches": ["#0B0A0A", "#141212", "#1C1919", "#D94444", "#E8DDDD"],
+      "dark": true
+    },
+    {
+      "id": "earth-forest",
+      "name": "Earth Forest",
+      "blurb": "Moss green on deep earth — cottagecore, herbalist",
+      "swatches": ["#0F130C", "#171C13", "#1E2619", "#7BA85A", "#E4E8D9"],
+      "dark": true
+    },
+    {
+      "id": "midnight-space",
+      "name": "Midnight Space",
+      "blurb": "Cyan on deep indigo — space, midnight, ocean",
+      "swatches": ["#0A0E1F", "#121732", "#1B2246", "#4DD8FF", "#D8E4FF"],
+      "dark": true
+    },
+    {
+      "id": "pastel-soft",
+      "name": "Pastel Soft",
+      "blurb": "Soft lavender on cream — kawaii, paper, spring",
+      "swatches": ["#FAF5F2", "#F2EAE8", "#EBDFDE", "#9B7AC4", "#3D2F4A"],
+      "dark": false
+    }
+  ],
+
+  "chrome": [
+    {
+      "id": "default",
+      "name": "Classic",
+      "blurb": "Standard top header, bottom input — the default app layout",
+      "layout": { "chrome-style": "default", "input-style": "default", "header-style": "default", "statusbar-style": "default" }
+    },
+    {
+      "id": "floating",
+      "name": "Floating",
+      "blurb": "Header, input, and status bars float as detached rounded cards",
+      "layout": { "chrome-style": "floating", "input-style": "floating", "header-style": "default", "statusbar-style": "default" }
+    },
+    {
+      "id": "minimal",
+      "name": "Minimal",
+      "blurb": "Header hidden, thin status bar, input as a single line",
+      "layout": { "chrome-style": "default", "input-style": "minimal", "header-style": "minimal", "statusbar-style": "minimal" }
+    },
+    {
+      "id": "terminal",
+      "name": "Terminal",
+      "blurb": "Monospace-forward, input styled as a shell prompt",
+      "layout": { "chrome-style": "default", "input-style": "terminal", "header-style": "default", "statusbar-style": "default" }
+    }
+  ],
+
+  "bubble": [
+    {
+      "id": "default",
+      "name": "Rounded",
+      "blurb": "Standard rounded rectangles — safe default",
+      "value": "default"
+    },
+    {
+      "id": "pill",
+      "name": "Pill",
+      "blurb": "Heavily rounded, radius-2xl — soft, cozy",
+      "value": "pill"
+    },
+    {
+      "id": "flat",
+      "name": "Flat",
+      "blurb": "Minimal rounding — architectural, brutalist",
+      "value": "flat"
+    },
+    {
+      "id": "bordered",
+      "name": "Bordered",
+      "blurb": "Outlined rectangles — terminal, sketch, diagram",
+      "value": "bordered"
+    }
+  ],
+
+  "font": [
+    {
+      "id": "nunito",
+      "name": "Nunito",
+      "blurb": "Warm rounded sans — cozy, friendly",
+      "family": "'Nunito', 'Cascadia Mono', monospace",
+      "google-font-url": "https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap",
+      "sample": "Aa Bb Cc 123"
+    },
+    {
+      "id": "inter",
+      "name": "Inter",
+      "blurb": "Neutral modern sans — versatile default",
+      "family": "'Inter', 'Cascadia Mono', monospace",
+      "google-font-url": "https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap",
+      "sample": "Aa Bb Cc 123"
+    },
+    {
+      "id": "jetbrains",
+      "name": "JetBrains Mono",
+      "blurb": "Monospace — terminal, developer, grid",
+      "family": "'JetBrains Mono', monospace",
+      "google-font-url": "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap",
+      "sample": "Aa Bb Cc 123"
+    },
+    {
+      "id": "merriweather",
+      "name": "Merriweather",
+      "blurb": "Warm serif — literary, vintage, hearth",
+      "family": "'Merriweather', serif",
+      "google-font-url": "https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&display=swap",
+      "sample": "Aa Bb Cc 123"
+    },
+    {
+      "id": "orbitron",
+      "name": "Orbitron",
+      "blurb": "Geometric display — cyber, neon, sci-fi",
+      "family": "'Orbitron', 'Cascadia Mono', monospace",
+      "google-font-url": "https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700&display=swap",
+      "sample": "Aa Bb Cc 123"
+    },
+    {
+      "id": "caveat",
+      "name": "Caveat",
+      "blurb": "Handwritten — journal, notebook, personal",
+      "family": "'Caveat', cursive",
+      "google-font-url": "https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&display=swap",
+      "sample": "Aa Bb Cc 123"
+    }
+  ],
+
+  "effects": {
+    "_comment": "Multi-pick rather than single-pick. Particles are mutually exclusive (one type); vignette/noise/scanlines are independent toggles with intensity.",
+    "particles": [
+      { "id": "none", "name": "None", "blurb": "No floating particles" },
+      { "id": "dust", "name": "Dust", "blurb": "Slow drifting motes — cozy, atmospheric" },
+      { "id": "rain", "name": "Rain", "blurb": "Downward streaks — moody, noir" },
+      { "id": "snow", "name": "Snow", "blurb": "Gentle falling flakes — winter, calm" },
+      { "id": "ember", "name": "Ember", "blurb": "Rising sparks — fire, warmth, danger" },
+      { "id": "custom", "name": "Custom Shape", "blurb": "Describe a shape — Claude draws the SVG" }
+    ],
+    "overlays": [
+      { "id": "vignette", "name": "Vignette", "blurb": "Darkened corners — cinematic framing", "default-intensity": 0.2 },
+      { "id": "noise", "name": "Noise", "blurb": "Subtle grain — film, paper, texture", "default-intensity": 0.03 },
+      { "id": "scanlines", "name": "Scan Lines", "blurb": "Horizontal CRT lines — retro, terminal", "default-intensity": 1 }
+    ]
+  }
+}
