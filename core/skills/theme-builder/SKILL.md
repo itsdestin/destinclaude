@@ -34,8 +34,10 @@ Most themes use a wallpaper. **Always recommend the user provide their own** —
 - **User provides one wallpaper** — use as the visual anchor for all 3 concepts. Differentiate concepts through palette, overlay tint, and effects — not by swapping the wallpaper.
 - **User wants Claude to find them** — **narrow the direction first.** A prompt like "KPop Demon Hunters" or "Studio Ghibli" branches many ways. Searching blindly wastes a second round course-correcting. Instead:
 
-  1. Sketch the axes that actually vary for this prompt. Typical ones: **Medium** (realistic / illustration / animated / painterly), **Tone** (dark / bright / neon), **Subject** (main character / full cast / environment / abstract), **Scene energy** (action / atmospheric / iconic pose).
-  2. Propose **3 starting directions** as named bundles (e.g. *"A — main character, dark action; B — full cast, bright promo; C — environment, atmospheric"*). Two axes per bundle is enough.
+  **Medium default (tell the user):** Unless the prompt explicitly calls for photography (e.g. "real photo", "photograph", "photorealistic"), default to non-photographic art — illustration, digital painting, sketch, watercolor, or animation stills. Before proposing directions, say something like: *"I'll default to illustrated/artistic styles rather than real photos — let me know if you'd prefer photography instead."*
+
+  1. Sketch the axes that actually vary for this prompt. Typical ones: **Medium** (illustration / digital painting / watercolor / sketch / animation still — default; or realistic photo if user directs), **Tone** (dark / bright / neon), **Subject** (main character / full cast / environment / abstract), **Scene energy** (action / atmospheric / iconic pose).
+  2. Propose **3 starting directions** as named bundles (e.g. *"A — main character, dark action; B — full cast, bright promo; C — environment, atmospheric"*). Two axes per bundle is enough. Each bundle should reflect the art-first default in its medium unless overridden.
   3. Wait for user to pick, merge, or override. Only then search.
 
   After confirm, download **3 separate wallpapers** (one per concept) before rendering concepts.
