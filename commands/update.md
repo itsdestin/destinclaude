@@ -6,11 +6,7 @@ Check for and install updates to the DestinClaude toolkit.
 
 ## Steps
 
-0. **Resolve TOOLKIT_ROOT.** Read `~/.claude/toolkit-state/config.local.json` and extract the `toolkit_root` value. This is the authoritative path to the active plugin installation — rebuilt every session start by `session-start.sh`. Store as `TOOLKIT_ROOT` and use it as the working directory for ALL subsequent git and file operations.
-   ```bash
-   node -e "console.log(JSON.parse(require('fs').readFileSync(process.argv[1],'utf8')).toolkit_root)" "$HOME/.claude/toolkit-state/config.local.json"
-   ```
-   If the file doesn't exist or `toolkit_root` is null, fall back to `~/.claude/toolkit-state/config.json`. If neither has it: "Can't determine toolkit location — run `/health` to diagnose."
+0. **Resolve TOOLKIT_ROOT.** The decomposed toolkit installs to a fixed path — set `TOOLKIT_ROOT="$HOME/.claude/plugins/destinclaude"` and use it as the working directory for ALL subsequent git and file operations. If the directory doesn't exist, tell the user: "Can't find destinclaude at $TOOLKIT_ROOT — run `/health` to diagnose."
 
 1. **Read current version.** Read `$TOOLKIT_ROOT/VERSION`. Store this as `CURRENT_VERSION`. You will need it later as the pre-merge version.
 
