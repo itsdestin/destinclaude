@@ -11,7 +11,7 @@
  *   node prep-terminal-bg.cjs <input-wallpaper> <output-path> [--blur N] [--brightness N]
  *
  * Defaults:
- *   --blur 14          Gaussian blur sigma (pixels). Subtle — softens
+ *   --blur 8           Gaussian blur sigma (pixels). Subtle — softens
  *                      high-frequency detail (fine text, sharp edges) without
  *                      turning the wallpaper into a featureless color field.
  *   --brightness 0.86  Multiplier applied to every pixel. Slight darkening
@@ -33,7 +33,7 @@ const path = require('path');
 
 function parseArgs(argv) {
   const positional = [];
-  const flags = { blur: 14, brightness: 0.86 };
+  const flags = { blur: 8, brightness: 0.86 };
   for (let i = 2; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--blur') flags.blur = parseFloat(argv[++i]);

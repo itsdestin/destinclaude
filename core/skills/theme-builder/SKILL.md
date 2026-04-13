@@ -277,7 +277,7 @@ If somehow the wallpaper isn't in `_preview/assets/` yet (user started with grad
 
 ### Step 2b: Bake the Terminal-View Wallpaper
 
-Only for `type: "image"` themes. TerminalView renders a subtly blurred + darkened version of the wallpaper behind xterm so fine wallpaper detail doesn't fight with the terminal text. Default blur is 14px sigma + brightness 0.86 — enough to soften sharp detail and take the edge off bright wallpapers, while xterm sits at 0.82 opacity on top so the color still reads through. Skip this step for gradient/solid themes.
+Only for `type: "image"` themes. TerminalView renders a subtly blurred + darkened version of the wallpaper behind xterm so fine wallpaper detail doesn't fight with the terminal text. Default blur is 8px sigma + brightness 0.86 — a gentle soften that preserves wallpaper character, paired with xterm sitting at 0.6 opacity on top so the wallpaper reads clearly through the terminal. Skip this step for gradient/solid themes.
 
 ```bash
 node scripts/prep-terminal-bg.cjs \
