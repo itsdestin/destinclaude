@@ -4,35 +4,38 @@ All feature specifications. Skill specs live in their skill folder; system specs
 
 | Feature | Type | Spec Location | Version |
 |---------|------|--------------|---------|
-| Specs System | system | core/specs/specs-system-spec.md | 3.2 |
-| DestinClaude Toolkit | system | core/specs/destinclaude-spec.md | 2.8 |
-| System Architecture | system | core/specs/system-architecture-spec.md | 1.6 |
-| Backup & Sync | system | core/specs/backup-system-spec.md | 5.0 |
-| Remote Access | system | core/specs/remote-access-spec.md | 1.0 |
-| Write Guard | system | core/specs/write-guard-spec.md | 1.3 |
-| Worktree Guard | system | core/specs/worktree-guard-spec.md | 1.0 |
-| Memory System | system | core/specs/memory-system-spec.md | 1.2 |
-| Personal Data Sync | system | core/specs/personal-sync-spec.md | 2.3 (retired) |
-| Conversation Index | system | core/specs/conversation-index-spec.md | 1.0 |
-| Statusline | system | core/specs/statusline-spec.md | 1.10 |
-| DestinTip | system | core/specs/destintip-spec.md | 1.2 |
-| Landing Page | system | core/specs/landing-page-spec.md | 1.4 |
-| Output Styles | system | core/specs/output-styles-spec.md | 1.0 |
-| Encyclopedia System | skill | life/skills/encyclopedia-update/specs/encyclopedia-system-spec.md | 1.0 |
-| Journaling Assistant | skill | life/skills/journaling-assistant/specs/journaling-assistant-spec.md | 1.4 |
-| Encyclopedia Update | skill | life/skills/encyclopedia-update/specs/encyclopedia-update-spec.md | 1.4 |
-| Encyclopedia Compile | skill | life/skills/encyclopedia-compile/specs/encyclopedia-compile-spec.md | 1.1 |
-| Encyclopedia Interviewer | skill | life/skills/encyclopedia-interviewer/specs/encyclopedia-interviewer-spec.md | 1.1 |
-| Encyclopedia Librarian | skill | life/skills/encyclopedia-librarian/specs/encyclopedia-librarian-spec.md | 1.2 |
-| Skill Creator | skill | productivity/skills/skill-creator/specs/skill-creator-spec.md | 1.0 |
-| Google Drive | skill | life/skills/google-drive/specs/google-drive-spec.md | 1.1 |
-| Claude's Inbox | skill | productivity/skills/claudes-inbox/specs/claudes-inbox-spec.md | 3.0 |
-| Fork File | skill | life/skills/fork-file/specs/fork-file-spec.md | 1.0 |
-| Setup Wizard | skill | core/skills/setup-wizard/specs/setup-wizard-spec.md | 1.1 |
-| Theme Builder | skill | core/skills/theme-builder/SKILL.md | 1.0 |
-| Sync | skill | core/skills/sync/SKILL.md | 1.0 |
+| Specs System | system | specs/specs-system-spec.md | 3.2 |
+| DestinClaude Toolkit | system | specs/destinclaude-spec.md | 3.0 |
+| System Architecture | system | specs/system-architecture-spec.md | 1.6 |
+| Backup & Sync | system | specs/backup-system-spec.md | 5.0 |
+| Remote Access | system | specs/remote-access-spec.md | 1.0 |
+| Write Guard | system | specs/write-guard-spec.md | 1.3 |
+| Worktree Guard | system | specs/worktree-guard-spec.md | 1.0 |
+| Memory System | system | specs/memory-system-spec.md | 1.2 |
+| Personal Data Sync | system | specs/personal-sync-spec.md | 2.3 (retired) |
+| Conversation Index | system | specs/conversation-index-spec.md | 1.0 |
+| Statusline | system | specs/statusline-spec.md | 1.10 |
+| DestinTip | system | specs/destintip-spec.md | 1.2 |
+| Landing Page | system | specs/landing-page-spec.md | 1.4 |
+| Output Styles | system | specs/output-styles-spec.md | 1.0 |
+| Setup Wizard | skill | skills/setup-wizard/specs/setup-wizard-spec.md | 2.0 |
 | Theme System | desktop (destincode repo) | destincode/desktop/docs/theme-spec.md | 1.0 |
 | Transcript Watcher | desktop (destincode repo) | destincode/desktop/docs/transcript-watcher-spec.md | 1.2 |
+
+## Moved to marketplace packages
+
+The following skills were extracted from the core toolkit in the phase-3 decomposition and now ship as optional marketplace packages. Their specs live in those packages' repos, not here.
+
+| Skill | Former Location |
+|-------|-----------------|
+| Encyclopedia (update, compile, interviewer, librarian, system) | formerly `life/skills/encyclopedia-*` |
+| Journaling Assistant | formerly `life/skills/journaling-assistant` |
+| Google Drive | formerly `life/skills/google-drive` |
+| Fork File | formerly `life/skills/fork-file` |
+| Skill Creator | formerly `productivity/skills/skill-creator` |
+| Claude's Inbox | formerly `productivity/skills/claudes-inbox` |
+| Theme Builder | formerly `core/skills/theme-builder` |
+| Sync | formerly `core/skills/sync` |
 
 ## External Admin Tooling
 

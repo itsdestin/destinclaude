@@ -1,161 +1,166 @@
 # DestinClaude Toolkit — Spec
 
-**Version:** 2.9
-**Last updated:** 2026-04-07
+**Version:** 3.0
+**Last updated:** 2026-04-14
 **Feature location:** `~/.claude/plugins/destinclaude/` (toolkit root)
 
 ## Purpose
 
-Canonical reference for the DestinClaude toolkit as a published, installable product. Documents the bootstrap/install flow, setup wizard behavior, component registration mechanism, dependency chain, and known gaps between the author's desktop environment and what the toolkit actually configures during installation.
+Canonical reference for the DestinClaude toolkit as a published, installable product. Documents what the toolkit is after the phase-3 decomposition, how it is installed (via the DestinCode desktop/Android app), what ships in core vs. extracted marketplace packages, and how runtime reconciliation works.
 
-Individual features (skills, hooks, MCP servers) have their own specs — this spec covers the toolkit-level view: how it gets onto a user's machine and what works (and doesn't) after setup.
+Individual features have their own specs in `specs/` or inside their skill directory — this spec covers the toolkit-level view.
 
 ## User Mandates
 
-- (2026-03-16) The bootstrap installer and setup wizard must be non-destructive — never overwrite, delete, or modify existing user files without explicit permission. Always back up before changing anything.
-- (2026-03-16) Component registration must use symlinks into `~/.claude/skills/`, `~/.claude/commands/`, and `~/.claude/hooks/` — NOT `enabledPlugins` path-based entries, which are silently ignored by Claude Code.
+- The DestinCode app is the sole supported installer and lifecycle manager for the toolkit. The toolkit must be installable, updatable, and removable entirely through the app. (2026-04-14, supersedes the 2026-03-16 symlink-registration mandate.)
+- The toolkit must be non-destructive. The app's reconcilers are the only components authorized to mutate `~/.claude/settings.json`, and they must never remove a user-added hook or MCP server. Prune rules apply only to entries the toolkit itself owns. (2026-04-14)
+- Pure-CLI install (no DestinCode app) is explicitly unsupported for the end-user experience. A future "CLI Compatibility" skill may be published to document the manual install/update path for users without the app; until then, users without the app are directed to install it. (2026-04-14)
 
 ## Design Decisions
 
 | Decision | Rationale | Alternatives considered |
 |----------|-----------|----------------------|
-| Symlink-based registration for local components (not `enabledPlugins` paths) | Claude Code's `enabledPlugins` only supports `"name@marketplace": true` format for local paths — those are silently ignored. Symlinks into standard auto-discovery dirs (`~/.claude/skills/`, etc.) work reliably across platforms | `enabledPlugins` with paths (rejected: silently ignored), `--plugin-dir` flag (rejected: per-session only), local marketplace (rejected: over-engineered for current scope) |
-| `enabledPlugins` for marketplace plugins | Marketplace plugins (superpowers, context7, etc.) use `"name@marketplace": true` in `settings.json` and are downloaded automatically by Claude Code — no local binary or symlink needed | Skipping marketplace plugins entirely (rejected: superpowers provides core workflow discipline that new installs benefit from immediately), manual post-install docs (rejected: users won't read them) |
-| Homebrew installed by default on Mac | Nearly every Mac dependency (node, gh, rclone, gcloud, go) uses `brew install`. Installing Homebrew first simplifies all downstream steps to one-liners | Ask user to choose (rejected: added friction for non-technical users), direct .pkg downloads (rejected: inconsistent install paths, harder to update) |
-| Bootstrap script + setup wizard (two-phase install) | Bootstrap handles prerequisites and cloning (can run via `curl \| bash`). Setup wizard handles interactive decisions (layer selection, personalization, conflict resolution) that require Claude | Single script (rejected: can't do interactive Claude conversation), wizard-only (rejected: can't install prerequisites without Claude running) |
-| Root-level `skills/` and `commands/` mirror core | Bootstrap needs to symlink setup-wizard before the full setup runs. Root-level dirs provide a stable reference without depending on layer structure | Symlink directly to `core/` (current approach after fix), hardcoded paths (rejected: fragile) |
-| Beginner-friendly auth walkthroughs | Users may be non-technical. Every auth step (gcloud, gh, rclone, Todoist) is written as a click-by-click walkthrough with plain-English explanations of what each tool is and why it's needed | Terse developer-style instructions (rejected: confused non-technical testers), links to external docs (rejected: context-switching loses users) |
-| Symlinks required, no copy fallback | Copy-based installs caused persistent file drift: installed copies diverged from toolkit source, edits landed on the wrong side, updates silently failed to propagate, and bidirectional conflicts were unresolvable. Requiring symlinks eliminates this entire class of bugs. On Windows, Developer Mode + `MSYS=winsymlinks:nativestrict` are prerequisites — the installer enables Developer Mode automatically and fails with a clear error if it can't. | Copy fallback (rejected v1.4: caused 6+ months of silent drift bugs — stale skills, lost user edits, bidirectional conflicts in production), copy-only (rejected: doesn't track upstream changes) |
-| Auto-enable Developer Mode on Windows | Windows symlinks require Developer Mode (a registry flag). Both installers (bash + PowerShell) check this and auto-enable it via UAC elevation before creating symlinks. If the user declines UAC, the install fails with instructions to enable Developer Mode manually — no copy fallback. | Prompt-only without enabling (rejected: adds friction, most users would say yes anyway), skip symlinks on Windows entirely (rejected: the entire registration system depends on symlinks), graceful copy fallback (rejected v1.4: root cause of file drift bugs) |
-| Auto-tag on `plugin.json` version bump | Two-workflow chain: `auto-tag.yml` watches for `plugin.json` version changes on master and creates a git tag; `release.yml` fires on `v*` tag pushes and creates a GitHub Release with changelog notes. Eliminates manual tagging — bumping the version is the only release step | Manual `git tag && git push --tags` (rejected: easy to forget, caused v1.1.2–v1.1.4 to ship without releases), single workflow that both tags and releases (rejected: separating concerns is cleaner and each workflow stays simple), GitHub Release UI (rejected: doesn't create tags for `/update` to discover) |
+| Single flat core; no `core/`, `life/`, `productivity/` layers | The three-layer model was an artifact of the conversational setup-wizard's "choose what to install" phase. Once the app owns install (decomposition v3), users don't pick layers — the app installs the toolkit as one unit and lets the user add optional marketplace packages. Flattening removes a level of indirection from every path in the repo. | Keep layers for logical grouping only (rejected: creates drift between path structure and mental model), move layers into marketplace packages (partial: extracted skills DID become marketplace packages — the layer dirs were redundant) |
+| App-owned reconciliation via `hook-reconciler`, `mcp-reconciler`, `integration-reconciler` | The old model (setup-wizard installs everything; `/update` refreshes symlinks) broke on every plugin reorg. Desired-state reconciliation driven by `hooks-manifest.json` / `mcp-manifest.json` / `plugin.json` survives reorgs automatically. The app re-runs reconcilers on every launch so "just restart the app" is a valid repair. | Symlink-based registration with `/update` orchestration (rejected v2.3.2: caused 8+ hook entries to go stale and break silently on decomposition; required a separate phased migration script that was itself fragile) |
+| Prune rule: remove plugin-owned entries whose target file is gone, never user-added ones | Reconcilers must be self-healing — if a hook is dropped from the manifest in a future release, reconciliation should clean up existing installs' `settings.json`. Scoping the prune to entries whose command path is inside a known plugin root and whose file is missing distinguishes "we dropped this hook" from "user added their own hook." | Blanket "remove any hook whose file is missing" (rejected: could delete user-added hooks referencing out-of-repo paths during temporary conditions), explicit "ever-registered" tracking file (rejected: extra state to maintain; the plugin-root + file-exists rule is sufficient) |
+| No `~/.claude/{hooks,commands,skills}/` symlinks | Claude Code v2.1+ discovers plugin commands/skills via `plugin.json` inside each `enabledPlugin`'s root. Symlinking those directories was a pre-v2.1 compatibility mechanism that no longer does anything except accumulate tombstones when the toolkit restructures. The app's `cleanupOrphanSymlinks()` sweep removes legacy symlinks from existing installs. | Continue creating symlinks for parity with old `/health` checks (rejected: pure technical debt), symlink only the setup-wizard (rejected: wizard isn't CLI-discoverable anymore, per the next decision) |
+| Setup-wizard is a CLI fallback intake, not the install conductor | Post-decomposition the app conducts install. The surviving SKILL.md is a three-question intake (name, comfort level, sync backend) that writes profile data and delegates everything else. See `skills/setup-wizard/specs/setup-wizard-spec.md`. | Keep full Phase 0–6 wizard (rejected: unmaintainable in parallel with the app installer; the two paths drifted), remove the skill entirely (rejected: the 3-question intake captures useful profile data that lives in config, distinct from install state) |
+| Auto-tag on root `plugin.json` version bump | Bumping `plugin.json` version on master is the single release trigger. `auto-tag.yml` creates the `vX.Y.Z` tag; the DestinCode app's own release workflows consume it downstream. | Manual tagging (rejected: forgotten too often), tag from VERSION file (rejected: `plugin.json.version` is what Claude Code reads, so keeping it canonical avoids drift) |
 
 ## Current Implementation
 
-### 1. Install Flow
+### 1. What ships in the toolkit
+
+The toolkit repo root is flat — no more `core/`, `life/`, `productivity/`:
 
 ```
-User runs: curl -fsSL .../install.sh | bash
-  │
-  ├── Detect OS (macOS / Linux / Windows)
-  ├── Install Homebrew (macOS only, if missing)
-  ├── Install Node.js (via brew on Mac, apt/dnf on Linux)
-  ├── Check for git
-  ├── Install Claude Code (npm install -g)
-  ├── Clone toolkit → ~/.claude/plugins/destinclaude/
-  ├── Enable Developer Mode (Windows only, via UAC elevation)
-  ├── Symlink /setup-wizard command + setup-wizard skill
-  ├── Verify symlinks (fallback to copy if broken)
-  └── Print "Run: claude → /setup-wizard"
-
-User runs: claude → /setup-wizard
-  │
-  ├── Phase 1: Environment inventory
-  ├── Phase 2: Conflict resolution (backup + merge/keep/replace)
-  ├── Phase 3: Layer selection (core/life/productivity/modules)
-  ├── Phase 4: Dependency installation (git, gh, gcloud, rclone, go, todoist)
-  ├── Phase 5: Personalization (templates, CLAUDE.md, symlinks, hooks, MCP)
-  ├── Phase 6: Verification (health checks on all installed components)
-  └── Show /toolkit reference card (first look at all features)
+destinclaude/
+├── plugin.json                 ← version + manifest Claude Code reads
+├── VERSION                     ← release target (matches plugin.json.version)
+├── hooks/
+│   ├── hooks-manifest.json     ← declares which hooks are "required", with matchers/timeouts
+│   ├── session-start.sh
+│   ├── write-guard.sh
+│   ├── worktree-guard.sh
+│   ├── tool-router.sh
+│   ├── statusline.sh
+│   ├── lib/                    ← shared helpers sourced by hooks
+│   └── migrations/             ← one-shot data migrations indexed by version
+├── commands/
+│   ├── update.md
+│   ├── health.md
+│   ├── diagnose.md
+│   └── restore.md
+├── skills/
+│   ├── setup-wizard/           ← CLI-fallback intake (see setup-wizard-spec.md)
+│   └── remote-setup/           ← companion skill for remote-access config
+├── scripts/
+│   ├── post-update.sh          ← phase dispatcher (self-check | migrations | verify | post-update)
+│   ├── install-app.sh          ← bootstraps the DestinCode app install (one-time)
+│   └── migrations/             ← shell migration runner
+├── specs/                      ← system specs (this doc, etc.)
+├── templates/                  ← CLAUDE.md fragments merged at install time
+└── mcp-manifest.json           ← declares optional MCP servers the reconciler may register
 ```
 
-### 2. Component Registration
+### 2. Install flow (app-conducted)
 
-**Local toolkit components** (skills, commands, hooks) are registered via symlinks into Claude Code's auto-discovery directories:
+```
+User installs DestinCode app (.exe/.dmg/.AppImage/.apk) — the app bundles and self-installs its
+        platform dependencies (Node on desktop, Termux + package bundle on Android).
 
-| Component type | Source location | Symlink target |
-|---------------|----------------|---------------|
-| Skills | `{layer}/skills/{name}/` | `~/.claude/skills/{name}` |
-| Commands | `core/commands/{name}.md` | `~/.claude/commands/{name}.md` |
-| Hooks | `{layer}/hooks/{name}.sh` | `~/.claude/hooks/{name}.sh` |
-| Utility scripts | `core/hooks/{name}.js` | `~/.claude/hooks/{name}.js` |
-| Statusline | `core/hooks/statusline.sh` | `~/.claude/statusline.sh` (NOT in hooks/) |
+App first-launch flow (prerequisite-installer.ts):
+  ├── If Claude Code CLI not present → install via npm
+  ├── If toolkit not present at ~/.claude/plugins/destinclaude/ →
+  │        git clone itsdestin/destinclaude into that path
+  ├── Write the four Claude Code registries (see PITFALLS) so the plugin is enabled
+  └── Trigger app startup reconciliation (below)
 
-**Utility scripts** (`announcement-fetch.js`, `usage-fetch.js`) are not hooks themselves but are called by hooks as sibling files. They must be installed alongside hooks so they can be found at runtime. Hook scripts use a two-step discovery: (1) read `toolkit_root` from config, (2) fall back to symlink resolution.
-
-Hook trigger-point registration is written to `~/.claude/settings.json` under the `hooks` key. Each hook entry uses the nested `hooks` array format: `{ "matcher": "...", "hooks": [{ "type": "command", "command": "bash ~/.claude/hooks/foo.sh" }] }`. The `command` property must NOT be placed directly on the entry object — it must be inside the `hooks` array. The statusline is **not** a hook — it requires a separate `statusLine` config entry in `settings.json`:
-
-```json
-{ "statusLine": { "type": "command", "command": "bash ~/.claude/statusline.sh" } }
+App startup (every launch, via main.ts):
+  ├── install-hooks.js          ← registers the app's OWN hooks (relay.js, title-update.sh, etc.)
+  ├── reconcileIntegrations()   ← regenerates ~/.claude/integration-context.md from plugin manifests
+  ├── reconcileHooks()          ← merges plugin hooks-manifest.json into settings.json,
+  │                               updates stale paths, prunes dead plugin-owned entries,
+  │                               enforces MAX timeout, never removes user-added hooks
+  ├── cleanupOrphanSymlinks()   ← unlinks legacy ~/.claude/{hooks,commands,skills}/ symlinks
+  │                               pointing into deleted plugin subtrees
+  └── reconcileMcp()            ← merges auto:true, platform-matching entries from
+                                  mcp-manifest.json into ~/.claude.json mcpServers
 ```
 
-**Marketplace plugins** are registered separately via `enabledPlugins` in `~/.claude/settings.json`. The setup wizard (Phase 5, Step 5f) merges 13 recommended plugins into this key. Claude Code downloads them automatically on first use — no local binary or symlink needed:
+No `~/.claude/{hooks,commands,skills}/` symlinks are created or maintained. Commands and skills are discovered by Claude Code directly from the plugin root via `plugin.json`.
 
-```json
-{ "enabledPlugins": { "superpowers@claude-plugins-official": true, "context7@claude-plugins-official": true, ... } }
-```
+### 3. Component surface
 
-### 3. Layers and Components
+| Kind | Source | How it loads |
+|------|--------|--------------|
+| Plugin manifest | `plugin.json` | Claude Code reads it based on `enabledPlugins["destinclaude@destincode"]: true` in `~/.claude/settings.json` |
+| Skills | `skills/<name>/SKILL.md` | Claude Code auto-discovers via `plugin.json` |
+| Commands | `commands/<name>.md` | Same |
+| Hooks | `hooks/*.sh`, `hooks/*.js` | Registered into `~/.claude/settings.json` by the app's HookReconciler, keyed on `hooks-manifest.json` |
+| Statusline | `hooks/statusline.sh` | Registered via `statusLine` entry in `~/.claude/settings.json` by the app |
+| MCP servers | declared in `mcp-manifest.json` | Registered into `~/.claude.json` by the app's McpReconciler; only `auto: true` entries matching the current platform |
+| CLAUDE.md fragments | `templates/claude-md-fragments/*.md` | Merged into `~/.claude/CLAUDE.md` between wrapped markers during install |
 
-| Layer | Skills | Commands | Hooks | MCP Servers |
-|-------|--------|----------|-------|-------------|
-| Core | setup-wizard, remote-setup, theme-builder | setup-wizard, toolkit, contribute, toolkit-uninstall, update, health, restore | checklist-reminder, contribution-detector, sync, session-start, session-end-sync, title-update, todo-capture, tool-router, write-guard + lib/backup-common.sh, lib/migrate.sh, migrations/ + statusline (separate config) | — |
-| Life | encyclopedia-compile, encyclopedia-interviewer, encyclopedia-librarian, encyclopedia-update, fork-file, google-drive, journaling-assistant | — | — | — |
-| Productivity | claudes-inbox, skill-creator | — | — | todoist, gmessages, windows-control (Windows) |
-| Modules | (optional domain-specific add-ons) | — | — | — |
+### 4. Marketplace extension model
 
-### 4. Dependencies by Layer
+Features that were previously in `life/` and `productivity/` now ship as optional marketplace packages installed via the DestinCode app's marketplace UI:
 
-| Dependency | Layer | Required? | Install method (Mac) |
-|-----------|-------|-----------|---------------------|
-| Homebrew | All (Mac) | Yes | Auto-installed by bootstrap |
-| Node.js | All | Yes | `brew install node` |
-| git | All | Yes | Xcode CLI tools |
-| gh CLI | Core | Strongly recommended | `brew install gh` |
-| gcloud CLI | Core | Optional | `brew install --cask google-cloud-sdk` |
-| rclone | Life | Yes | `brew install rclone` |
-| Go | Productivity | Yes (for gmessages) | `brew install go` |
+| Former location | Marketplace package | Purpose |
+|-----------------|---------------------|---------|
+| `life/skills/journaling-assistant` | `destinclaude-journal` (planned) | Daily journaling flow |
+| `life/skills/encyclopedia-*` | `destinclaude-encyclopedia` (planned) | Personal knowledge base |
+| `life/skills/google-drive` | `destinclaude-drive` (planned) | Drive-backed storage |
+| `life/skills/fork-file` | `destinclaude-fork-file` (planned) | File-versioning utility |
+| `productivity/skills/claudes-inbox` | `destinclaude-inbox` (planned) | Task inbox |
+| `productivity/skills/skill-creator` | `destinclaude-skill-creator` (planned) | Custom skill authoring |
+| `core/skills/theme-builder` | `destinclaude-themes` | Theme creation (ships with desktop app today) |
+| `core/skills/sync` | `destinclaude-sync` (planned) | Cross-device sync |
+| Output styles | `destinclaude-output-styles` (planned) | Comfort-level tonality |
+| Messaging (iMessage / gmessages / windows-control MCPs) | `destinclaude-messaging` (planned) | Platform messaging integrations |
 
-### 5. CLAUDE.md Fragments
+Each marketplace package ships its own `hooks-manifest.json` / `mcp-manifest.json` / `plugin.json`. The app's reconcilers walk every installed plugin's manifests, so marketplace packages get the same reconciliation guarantees as core.
 
-The toolkit ships CLAUDE.md fragment templates in `core/templates/claude-md-fragments/`. Each fragment is merged into the user's `~/.claude/CLAUDE.md` during setup (Phase 5 Step 4), wrapped in markers for clean updates on re-install:
+### 5. CLI compatibility (planned, not current)
 
-| Fragment | Purpose |
-|----------|---------|
-| `installed-skills.md` | Skill table populated by setup wizard based on selected layers |
-| `mcp-servers.md` | MCP server table populated based on configured servers |
-| `specs-system.md` | Specs system rules (mandates, versioning, governance) |
-| `system-change-protocol.md` | Mandatory checklist for modifying system features |
-| `error-guidance.md` | Instructs Claude to show `★ Tip` blocks when errors occur and the user seems unsure |
+Pure-CLI users (no DestinCode app) have no supported install path in this release. A future "CLI Compatibility" skill may be published that:
 
-### 6. User Experience Features
+- Walks Claude (not the user) through the install/update sequence
+- Reimplements the app's reconciliation logic as a shell script set for CLI-only operation
+- Documents the contract between the toolkit and the ambient Claude Code install (settings paths, manifest formats, version expectations)
 
-**`/toolkit` command** — Full reference card showing all installed features, trigger phrases, hooks, and commands. Always includes an "AVAILABLE (not installed)" section listing layers/modules the user doesn't have, with descriptions. When a user asks about a feature from an uninstalled layer, Claude explains which layer it belongs to and offers `/setup-wizard`.
-
-**DestinTip** — Adaptive toolkit hint system. At session start, selects up to 4 tips from a catalog (`core/data/destintip-catalog.json`) based on comfort level, usage history, and rotation. Injects them into Claude's system prompt via `additionalContext`. Claude weaves `★ DestinTip` hints naturally into conversation when relevant. Replaces the old periodic `/toolkit` reminder. See `core/specs/destintip-spec.md`.
-
-**Error guidance tips** — CLAUDE.md fragment that instructs Claude to occasionally show a `★ Tip` block when errors occur, reassuring non-technical users that Claude can likely fix the problem if they say "go ahead and fix it" or "propose some solutions." Throttled to ~once per 5 errors, suppressed for technical users.
-
-**Contribute policy** — The `/contribute` command and contribution-detector agent exist for organic discovery, but contributing is NOT promoted during setup. The setup completion message and gh auth success message focus on the user's features, not upstream contributions. New users should explore before being asked to give back.
+This skill is explicitly **not** a rebuild of the old conversational setup-wizard — it is a tool that Claude uses to do what the app would have done.
 
 ## Dependencies
 
-- **Depends on:** Claude Code (skill/command/hook auto-discovery, settings.json hook registration), git, Node.js, platform package manager (Homebrew on Mac)
-- **Depended on by:** All toolkit skills, hooks, and commands — this spec documents how they get installed
+- Depends on: the DestinCode desktop/Android app (bundles Claude Code, conducts install, runs reconcilers on every launch), git, Claude Code CLI (discovery + hook execution), Node (for hook `.js` utilities)
+- Depended on by: All published marketplace packages (they rely on the core hooks, reconciler semantics, and manifest contracts this spec defines)
 
 ## Known Issues & Planned Updates
 
-See [GitHub Issues](https://github.com/itsdestin/destinclaude/issues) for known issues and planned updates.
+See [GitHub Issues](https://github.com/itsdestin/destinclaude/issues).
 
 ## Change Log
 
 | Date | Version | What changed | Type |
 |------|---------|-------------|------|
-| 2026-04-07 | 2.9 | Added theme-builder to Core skills, session-end-sync to Core hooks in Layers and Components table. | Update |
-| 2026-04-05 | 2.8 | Sync consolidation: replaced git-sync + personal-sync hooks with unified sync hook in Core layer component table. | Update |
-| 2026-03-23 | 2.7 | Backup system refactor: added lib/ directory (backup-common.sh, migrate.sh), migrations/ directory, /restore command. iCloud now supported as third personal-sync backend. Multi-backend support. See backup-system-refactor-design (03-22-2026). | Update |
-| 2026-03-20 | 2.5 | Replaced periodic `/toolkit` reminder with DestinTip — adaptive hint system using catalog-based tip selection, comfort-level filtering, and session rotation. See `core/specs/destintip-spec.md`. | Update |
-| 2026-03-20 | 2.4 | Eliminated copy-based installs. Symlinks are now required — no fallback. Bootstrap installers (bash + PowerShell) require Developer Mode on Windows and fail with clear error if unavailable. Bash installer sets `MSYS=winsymlinks:nativestrict` for real Windows symlinks. Setup wizard copy fallback removed. `/update` verifies symlinks instead of diffing copies. `session-start.sh` copy-refresh replaced with symlink verification. Added skills to `/update` refresh scope. Major bump: architectural change to install model. | Update |
-| 2026-03-18 | 2.3 | Fixed hook distribution pipeline: `/update` now refreshes hooks + utility scripts, sibling discovery uses config-based `toolkit_root` with symlink fallback, utility scripts added to install list, post-update verification with visual statusline check added. Documented utility scripts as a component type. | Update |
-| 2026-03-18 | 2.2 | Added auto-tag workflow Design Decision. Two-workflow release chain: `auto-tag.yml` (version bump → tag) + `release.yml` (tag → GitHub Release). | Update |
-| 2026-03-18 | 2.1 | PowerShell installer auto-enables Developer Mode on Windows for symlink support. Added Design Decision entry. Updated install flow diagram. Bash installer now detects Developer Mode and nudges toward PowerShell when it's off. | Update |
-| 2026-03-18 | 2.0 | Phase 6 connectivity probes: replace registration/existence checks with JSON-RPC initialize handshake tests for all stdio MCP servers and a POST probe for todoist. Windows gmessages now uses pre-built binary (no Go required). Updated mcp-manifest.json setup_note for gmessages. Major bump: behavioral change to verification flow. | Update |
-| 2026-03-18 | 1.9 | Corrected stale Mac desktop control gap — macOS resolved in v1.1.0 via macos-automator/home-mcp/apple-events; Linux still open. Updated Known Issues and Planned Updates accordingly. | Fix |
-| 2026-03-18 | 1.8 | Add marketplace plugin registration to setup wizard (Phase 5 Step 5f + Phase 6 check): 14 plugins via `enabledPlugins`. Document in Component Registration section and Design Decisions. Partially resolve "superpowers in repo" planned item. | Update |
-| 2026-03-17 | 1.7 | Inbox processing: add 5 planned updates (difficulty options, superpowers in repo, restore from Drive, setup wizard tips, iCloud support) | Inbox |
-| 2026-03-17 | 1.6 | Ported MCP server configs from author's desktop: added windows-control (Windows), verified todoist and gmessages configs, included pre-built gmessages.exe binary, removed gmail-extended (deprecated), updated mcp-servers.md template fragment | Update |
-| 2026-03-17 | 1.5 | Usability review: added /health command, fixed uninstall marker mismatch, improved wizard phase summaries and first-run experience, added messaging and /contribute to known issues with planned extraction, improved template variable prompts and rclone fallback guidance, fixed PowerShell installer instructions | Update |
-| 2026-03-16 | 1.4 | Documented CLAUDE.md fragments system, /toolkit reference card + periodic reminder, error guidance tips, contribute policy. Updated install flow diagram. Synced with CHANGELOG v1.0.1. | Update |
-| 2026-03-16 | 1.3 | Added /toolkit command. Reverted premature MCP "resolved" claims — configs are untested templates, not working setups. Toned down upstream contribution pressure. Added MCP audit to planned updates. | Update |
-| 2026-03-16 | 1.2 | Added design decisions for beginner-friendly walkthroughs and symlink fallback, documented root-level copy sync gap | Update |
-| 2026-03-16 | 1.1 | Statusline is not a hook — documented as separate component type with own config entry in settings.json. gh CLI upgraded to strongly recommended. | Update |
-| 2026-03-16 | 1.0 | Initial spec — documents install flow, registration mechanism, dependency chain, and known MCP gaps | New |
+| 2026-04-14 | 3.0 | **Decomposition v3.** Three-layer model retired; repo flattened (no core/, life/, productivity/). App-owned reconciliation replaces setup-wizard + /update as the install model. `~/.claude/{hooks,commands,skills}/` symlinks retired; cleanup module sweeps legacy orphans. HookReconciler adds a prune pass for dropped plugin-owned entries. Setup-wizard reduced to CLI-fallback intake. CLI-only install explicitly unsupported (future "CLI Compatibility" skill planned). Extracted skills documented as marketplace packages. Supersedes 2026-03-16 symlink-registration mandate. | Major |
+| 2026-04-07 | 2.9 | Added theme-builder to Core skills, session-end-sync to Core hooks. | Update |
+| 2026-04-05 | 2.8 | Sync consolidation: unified sync hook. | Update |
+| 2026-03-23 | 2.7 | Backup system refactor (lib/, migrations/, /restore, iCloud). | Update |
+| 2026-03-20 | 2.5 | DestinTip replaces periodic /toolkit reminder. | Update |
+| 2026-03-20 | 2.4 | Eliminated copy-based installs; symlinks required. | Update |
+| 2026-03-18 | 2.3 | Fixed hook distribution pipeline. | Update |
+| 2026-03-18 | 2.2 | Auto-tag workflow. | Update |
+| 2026-03-18 | 2.1 | PowerShell installer auto-enables Developer Mode. | Update |
+| 2026-03-18 | 2.0 | Phase 6 connectivity probes (MCP JSON-RPC handshake). | Update |
+| 2026-03-18 | 1.9 | Mac desktop control gap corrected. | Fix |
+| 2026-03-18 | 1.8 | Marketplace plugin registration added. | Update |
+| 2026-03-17 | 1.7 | Inbox planned updates. | Inbox |
+| 2026-03-17 | 1.6 | Author's MCP server configs ported. | Update |
+| 2026-03-17 | 1.5 | Usability review. | Update |
+| 2026-03-16 | 1.4 | CLAUDE.md fragments system documented. | Update |
+| 2026-03-16 | 1.3 | /toolkit command added. | Update |
+| 2026-03-16 | 1.2 | Beginner-friendly walkthroughs, symlink fallback. | Update |
+| 2026-03-16 | 1.1 | Statusline documented as separate from hooks. | Update |
+| 2026-03-16 | 1.0 | Initial spec. | New |
