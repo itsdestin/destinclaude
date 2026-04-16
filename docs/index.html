@@ -568,9 +568,9 @@
   .cycler-word-1,
   .cycler-word-2,
   .cycler-word-3 { animation-name: bump-through; }
-  .cycler-word-1 { animation-delay: 0.3s;  color: color-mix(in srgb, var(--title-highlight) 100%, #fff 0%); }
-  .cycler-word-2 { animation-delay: 2.3s;  color: color-mix(in srgb, var(--title-highlight) 80%, #fff 20%); }
-  .cycler-word-3 { animation-delay: 4.3s;  color: color-mix(in srgb, var(--title-highlight) 75%, #000 25%); }
+  .cycler-word-1 { animation-delay: 1.3s;  color: color-mix(in srgb, var(--title-highlight) 100%, #fff 0%); }
+  .cycler-word-2 { animation-delay: 3.1s;  color: color-mix(in srgb, var(--title-highlight) 80%, #fff 20%); }
+  .cycler-word-3 { animation-delay: 4.9s;  color: color-mix(in srgb, var(--title-highlight) 75%, #000 25%); }
   /* Final word: enters at the same pace as the others, then stays pinned
      (fill-mode: forwards on bump-final holds the final keyframe forever).
      The text-stroke adds extra optical weight on top of font-weight 900 —
@@ -578,7 +578,7 @@
      "display headline" territory so "Yours." lands with real impact. */
   .cycler-word-4 {
     animation-name: bump-final;
-    animation-delay: 6.3s;
+    animation-delay: 6.7s;
     font-style: italic;
     font-weight: 900;
     letter-spacing: -0.02em;
@@ -3166,19 +3166,19 @@
       }
     }
 
-    // Hero-synced theme swap. Timings are shifted ~200ms AFTER each word's
-    // settle-point so the View Transition snapshot captures the h1 during
-    // the word's static hold phase. The 0.9s crossfade then completes
-    // before the next word starts to bump out — the frozen snapshot is
-    // indistinguishable from the live word sitting still.
+    // Hero-synced theme swap. Page opens on creme with blank "Make Claude"
+    // for ~1s, then cycling begins. Words are spaced 1.8s apart (slightly
+    // faster than the original 2.0s). Swap timings are shifted ~0.4s AFTER
+    // each word's settle-point so the View Transition snapshot captures
+    // the h1 during its static hold phase.
     //
-    // Word settle times: 0.7s / 2.7s / 4.7s / 6.7s
-    // Word exit starts:  2.0s / 4.0s / 6.0s / never (Yours rests)
+    // Word delays (CSS): 1.3s / 3.1s / 4.9s / 6.7s  (1.8s spacing)
+    // Word settle times:  1.7s / 3.5s / 5.3s / 7.1s  (delay + 0.4s)
     var HERO_THEME_SEQUENCE = [
-      { theme: 'midnight',         at:  700 },
-      { theme: 'halftone',         at: 2700 },
-      { theme: 'strawberry-kitty', at: 4700 },
-      { theme: 'creme',            at: 6700 }
+      { theme: 'midnight',         at: 1700 },
+      { theme: 'halftone',         at: 3500 },
+      { theme: 'strawberry-kitty', at: 5300 },
+      { theme: 'creme',            at: 7100 }
     ];
     var heroSyncCancelled = false;
     var heroSyncTimers = [];
@@ -3239,8 +3239,9 @@
         return;
       }
 
-      // Measure word widths and pin the cycler to word-1 for the opening frame
-      // so "Make Claude " sits centered with the correct gap before Useful. lands.
+      // Measure word widths and pre-set cycler to word-1's width so
+      // "Make Claude" sits in its final position from the first frame
+      // (no slide when "Useful." drops in — it's already in place).
       var widths = measureCyclerWords();
       if (widths.length) setCyclerWidth(widths[0]);
 
@@ -3257,11 +3258,11 @@
       });
 
       // Release intro-mode after the final "Yours." crossfade completes
-      // (6700ms swap + 900ms transition = 7600ms, +100ms buffer).
+      // (7100ms swap + 900ms transition = 8000ms, +100ms buffer).
       var exitId = setTimeout(function() {
         if (heroSyncCancelled) return;
         exitIntroMode();
-      }, 7700);
+      }, 8100);
       heroSyncTimers.push(exitId);
     }
 
@@ -3274,10 +3275,10 @@
       applyTheme(next);
     }
 
-    // Apply stored theme on first paint so initial frames aren't a flash of midnight,
-    // then kick off the hero-synced cycle. Initial apply is instant (applyThemeRaw)
-    // so we don't fire a dip-fade before the first frame renders.
-    applyThemeRaw(getStoredTheme());
+    // Always open on creme — the hero intro shows blank "Make Claude" on a
+    // warm creme background for ~1s before cycling begins. Instant apply
+    // (applyThemeRaw) so we don't fire a crossfade before the first frame.
+    applyThemeRaw('creme');
     runHeroThemeSync();
 
     // Bind both toggle buttons
