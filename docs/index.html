@@ -3,24 +3,24 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DestinCode — Claude Code on Every Device</title>
+<title>YouCoded — Claude Code on Every Device</title>
 <meta name="description" content="An open-source app that puts Claude Code into a real chat UI with themes, a marketplace for skills and games, and multiplayer mini-games. Windows, macOS, Linux, Android.">
 
 <!-- OG / Social Meta Tags -->
-<meta property="og:title" content="DestinCode — Claude Code on Every Device">
+<meta property="og:title" content="YouCoded — Claude Code on Every Device">
 <meta property="og:description" content="An open-source app that puts Claude Code into a real chat UI with themes, a marketplace for skills and games, and multiplayer mini-games.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://itsdestin.github.io/destinclaude/">
 <meta property="og:image" content="https://itsdestin.github.io/destinclaude/og-image.png">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="DestinCode — Claude Code on Every Device">
+<meta name="twitter:title" content="YouCoded — Claude Code on Every Device">
 <meta name="twitter:description" content="An open-source app that puts Claude Code into a real chat UI with themes, a marketplace for skills and games, and multiplayer mini-games.">
 <meta name="twitter:image" content="https://itsdestin.github.io/destinclaude/og-image.png">
 
 <link rel="icon" href="favicon-light.svg" id="favicon">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,700;1,800;1,900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
   * { -webkit-tap-highlight-color: transparent; }
@@ -62,32 +62,32 @@
     --title-highlight: #88B4D8;
   }
 
-  /* ===== CRÈME — warm parchment, neutral tones, linen texture ===== */
+  /* ===== CRÈME — warm white-to-creme gradient with a dusty-rose accent ===== */
   [data-theme="creme"] {
-    --bg-deep: #F0E6D6;
-    --bg-surface: #EBE1D1;
-    --bg-card: #ffffff;
-    --bg-card-hover: #faf5ed;
-    --text-primary: #2C2418;
-    --text-secondary: #5C4F3E;
-    --text-dim: #7A6E5D;
-    --text-muted: #9E9283;
-    --text-faint: #BEB3A4;
-    --accent: #3D3229;
-    --accent-glow: rgba(61, 50, 41, 0.08);
-    --accent-glow-strong: rgba(61, 50, 41, 0.22);
-    --accent-subtle: rgba(61, 50, 41, 0.04);
-    --accent-warm: #564537;
-    --cyan: #564537;
-    --cyan-glow: rgba(86, 69, 55, 0.06);
-    --yellow: #8a7a66;
-    --border: #CBBFAD;
-    --border-accent: rgba(61, 50, 41, 0.25);
-    --border-dim: rgba(203, 191, 173, 0.5);
-    --selection-bg: rgba(61, 50, 41, 0.15);
-    --selection-fg: #2C2418;
+    --bg-deep: #FBF6EC;
+    --bg-surface: #F4EADB;
+    --bg-card: #FFFFFF;
+    --bg-card-hover: #FBF5EA;
+    --text-primary: #2A211A;
+    --text-secondary: #564A3C;
+    --text-dim: #7D7060;
+    --text-muted: #A69A89;
+    --text-faint: #C8BDAC;
+    --accent: #C2796B;
+    --accent-glow: rgba(194, 121, 107, 0.14);
+    --accent-glow-strong: rgba(194, 121, 107, 0.32);
+    --accent-subtle: rgba(194, 121, 107, 0.06);
+    --accent-warm: #D58E80;
+    --cyan: #8A7360;
+    --cyan-glow: rgba(138, 115, 96, 0.08);
+    --yellow: #B89B76;
+    --border: #E3D6BF;
+    --border-accent: rgba(194, 121, 107, 0.30);
+    --border-dim: rgba(227, 214, 191, 0.55);
+    --selection-bg: rgba(194, 121, 107, 0.22);
+    --selection-fg: #2A211A;
     --heading-shadow: none;
-    --title-highlight: #9E9283;
+    --title-highlight: #C2796B;
   }
 
   /* ===== HALFTONE DIMENSION — cyberpunk manga ===== */
@@ -118,9 +118,52 @@
     --title-highlight: #e8234a;
   }
 
+  /* ===== STRAWBERRY KITTY — pastel rose, berry accents, sweet & soft ===== */
+  [data-theme="strawberry-kitty"] {
+    --bg-deep: #F8D7DE;
+    --bg-surface: #FCE4E9;
+    --bg-card: #FFF1F3;
+    --bg-card-hover: #FFE5EA;
+    --text-primary: #3A1420;
+    --text-secondary: #5C2235;
+    --text-dim: #7E3850;
+    --text-muted: #A3627A;
+    --text-faint: #C9959F;
+    --accent: #D94E6B;
+    --accent-glow: rgba(217, 78, 107, 0.18);
+    --accent-glow-strong: rgba(217, 78, 107, 0.38);
+    --accent-subtle: rgba(217, 78, 107, 0.08);
+    --accent-warm: #F27495;
+    --cyan: #B33952;
+    --cyan-glow: rgba(179, 57, 82, 0.10);
+    --yellow: #F2B1C0;
+    --border: #E09AA8;
+    --border-accent: rgba(217, 78, 107, 0.38);
+    --border-dim: rgba(224, 154, 168, 0.5);
+    --selection-bg: rgba(217, 78, 107, 0.30);
+    --selection-fg: #FFFFFF;
+    --heading-shadow: none;
+    --title-highlight: #D94E6B;
+  }
+
   ::selection { background: var(--selection-bg); color: var(--selection-fg); }
 
-  html { scroll-behavior: smooth; }
+  html { scroll-behavior: smooth; scrollbar-gutter: stable; }
+
+  /* Theme swap: cross-fade the whole document via View Transitions. The
+     hero word-cycler stays in the root snapshot (no view-transition-name)
+     so it doesn't ghost against itself across the swap — but the swaps
+     are timed in the JS (HERO_THEME_SEQUENCE) to fire during the word's
+     static hold phase, so the 0.9s snapshot freeze is indistinguishable
+     from the live word sitting still. */
+  @keyframes theme-fade-in  { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes theme-fade-out { from { opacity: 1; } to { opacity: 0; } }
+  ::view-transition-old(root) { animation: 0.9s cubic-bezier(0.22, 1, 0.36, 1) theme-fade-out both; }
+  ::view-transition-new(root) { animation: 0.9s cubic-bezier(0.22, 1, 0.36, 1) theme-fade-in both; }
+  @media (prefers-reduced-motion: reduce) {
+    ::view-transition-old(root),
+    ::view-transition-new(root) { animation-duration: 0s; }
+  }
 
   body {
     font-family: var(--font-display);
@@ -161,21 +204,37 @@
   }
   :root body::after { opacity: 0; }
 
-  /* Crème background — subtle diagonal linen + warm gradient */
+  /* Crème background — soft white-to-creme gradient with dusty-rose glow + cozy dot pattern */
   [data-theme="creme"] body::before {
-    background: linear-gradient(160deg, #F0E6D6 0%, #e8dcc8 30%, #F0E6D6 50%, #ece0ce 75%, #F0E6D6 100%);
+    background:
+      radial-gradient(ellipse at 20% 10%, rgba(194, 121, 107, 0.10) 0%, transparent 55%),
+      radial-gradient(ellipse at 85% 80%, rgba(213, 142, 128, 0.08) 0%, transparent 60%),
+      linear-gradient(165deg, #FFFBF3 0%, #FBF6EC 35%, #F4EADB 70%, #EFE1CA 100%);
     opacity: 1;
   }
   [data-theme="creme"] body::after {
-    background-image: repeating-linear-gradient(
-      -45deg,
-      transparent,
-      transparent 1px,
-      rgba(44, 36, 24, 0.018) 1px,
-      rgba(44, 36, 24, 0.018) 2px
-    );
-    background-size: 8px 8px;
+    background-image:
+      radial-gradient(circle at 1px 1px, rgba(194, 121, 107, 0.10) 1px, transparent 0),
+      repeating-linear-gradient(-45deg, transparent, transparent 2px, rgba(44, 36, 24, 0.012) 2px, rgba(44, 36, 24, 0.012) 3px);
+    background-size: 18px 18px, 10px 10px;
     opacity: 1;
+  }
+
+  /* Strawberry Kitty background — berry wallpaper + pattern overlay */
+  [data-theme="strawberry-kitty"] body::before {
+    background:
+      radial-gradient(ellipse at 25% 15%, rgba(255,255,255,0.30) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 85%, rgba(217,78,107,0.22) 0%, transparent 60%),
+      linear-gradient(160deg, rgba(253,231,237,0.35) 0%, rgba(248,215,222,0.25) 45%, rgba(245,199,210,0.35) 100%),
+      url('assets/strawberry-kitty-wallpaper.webp') center center / cover no-repeat,
+      #F8D7DE;
+    background-blend-mode: screen, multiply, normal, normal, normal;
+    opacity: 1;
+  }
+  [data-theme="strawberry-kitty"] body::after {
+    background-image: url('assets/strawberry-kitty-pattern.svg');
+    background-size: 180px 180px;
+    opacity: 0.22;
   }
 
   /* Halftone background — gradient + dot pattern */
@@ -317,6 +376,15 @@
   }
   .nav-logo:hover { color: var(--text-primary); }
   .nav-icon { width: 22px; height: 22px; }
+  .nav-logo-text { display: inline-flex; flex-direction: column; line-height: 1; }
+  .nav-logo-sub {
+    font-size: 0.55rem;
+    font-weight: 500;
+    color: var(--text-dim);
+    letter-spacing: 0.02em;
+    margin-top: 3px;
+    white-space: nowrap;
+  }
 
   .nav-links {
     display: flex;
@@ -361,10 +429,51 @@
      24 → tagline → 32 → CTAs → 48 → highlights row → 64 bottom. Each gap is
      deliberate so the section reads with a clear musical beat instead of the
      old choppy "tight box / gap / close / gap" cadence. */
-  .hero { padding: 56px 0 64px; text-align: center; }
+  .hero {
+    padding: 56px 0 64px;
+    text-align: center;
+    /* Flex layout always on so the h1 stays optically centered within the
+       hero regardless of height — lets the intro→normal transition glide
+       smoothly instead of snapping from flex-centered to block-padding.
+       Explicit min-height: 0 (not auto) is required for the intro collapse
+       to interpolate — `calc(100vh - nav) → auto` does not transition. */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
+    transition: min-height 0.9s cubic-bezier(0.22, 1, 0.36, 1),
+                padding 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+  }
 
-  /* Small mono kicker — "DESTINCODE" wordmark sitting above the H1. Replaces
-     the old framed title-box, which made the brand name feel quarantined. */
+  /* Intro mode: page opens with the hero headline locked to the viewport.
+     Nav stays visible (and the background/theme shows through). Everything
+     else on the page fades out until the final "Yours." beat, at which
+     point body.intro-mode is removed and the rest of the page fills in. */
+  body.intro-mode { overflow: hidden; }
+  body.intro-mode .hero {
+    min-height: calc(100vh - var(--nav-height));
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+  body.intro-mode > *:not(.nav):not(.hero) {
+    opacity: 0;
+    pointer-events: none;
+  }
+  /* Transition the body-level siblings (sections, footer, floating CTAs) back
+     in when intro-mode lifts. The delay lets the hero start collapsing first
+     so content fades in behind/below the descending headline rather than
+     popping up into it. */
+  body > *:not(.nav):not(.hero) {
+    transition: opacity 0.8s ease 0.35s;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    body.intro-mode { overflow: auto; }
+    body.intro-mode .hero { min-height: 0; padding: 56px 0 64px; }
+    body.intro-mode > *:not(.nav):not(.hero) { opacity: 1; pointer-events: auto; }
+  }
+
+  /* Legacy mono kicker — no longer rendered in the hero (the brand name now
+     lives inside the cycling H1). Kept for potential reuse elsewhere. */
   .hero-kicker {
     font-family: var(--font-mono);
     font-size: 0.78rem;
@@ -385,6 +494,126 @@
   }
 
   .title-accent { color: var(--title-highlight); }
+
+  /* Bump-through cycler for the hero headline. Each word enters from below,
+     overshoots and settles with a micro-bounce, holds, then gets bumped up
+     and out by the next word. The final word ("Yours.") is italic and stays
+     pinned forever — the sequence is one-shot, not a loop.
+
+     Structure note: the visible sizer reserves width + establishes the
+     baseline for the outer word-cycler, so the headline's baseline lines up
+     cleanly with "Make Claude". The overflow:hidden clipping lives on an
+     inner stage (.cycler-stage) so it doesn't drop the baseline — putting
+     overflow:hidden on an inline-block is a well-known CSS baseline bug. */
+  .word-cycler {
+    position: relative;
+    display: inline-block;
+    vertical-align: baseline;
+    line-height: inherit;
+    /* Width is driven by JS (--cycler-width) so the cycler matches the
+       currently-active word's natural width. Because .hero text-align is
+       center, a transition on width here slides the whole "Make Claude X"
+       line smoothly to re-center on each word-switch. Fallback to the
+       static sizer width until JS measures (prevents zero-width flash). */
+    width: var(--cycler-width, auto);
+    transition: width 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .cycler-sizer {
+    /* Inline zero-width placeholder — keeps "Useful." contributing to the
+       line-box baseline/height so .word-cycler doesn't collapse. Uses
+       overflow:visible (not hidden) because overflow:hidden on inline-block
+       re-anchors the baseline to the bottom margin edge instead of the text
+       baseline, which floats the cycled words above "Make Claude". The
+       overflowing text is painted invisibly via visibility:hidden. */
+    display: inline-block;
+    width: 0;
+    overflow: visible;
+    visibility: hidden;
+    white-space: nowrap;
+  }
+  .cycler-stage {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: -0.1em;
+    bottom: -0.15em;
+    /* Vertical-only clipping: inset(0 …) clips top/bottom at the stage
+       edges (hides words bumping in from below and out above), while
+       -50vw on the right extends the clip far past the stage boundary
+       so words are never cut off horizontally during the cycler width
+       transition. overflow:hidden would clip both axes equally. */
+    clip-path: inset(0 -50vw 0 0);
+    pointer-events: none;
+  }
+  .cycler-word {
+    position: absolute;
+    left: 0;
+    top: 0.1em;
+    /* Left-aligned against "Make Claude " — each word hugs the left edge
+       of the cycler with one space gap. The whole line re-centers via the
+       outer cycler width transition, not per-word text-align. */
+    width: max-content;
+    text-align: left;
+    white-space: nowrap;
+    line-height: inherit;
+    opacity: 0;
+    transform: translateY(110%);
+    animation-duration: 2s;
+    animation-fill-mode: forwards;
+    animation-iteration-count: 1;
+    animation-timing-function: linear;
+    will-change: transform, opacity;
+  }
+  /* Words 1–3 bump through: enter with overshoot, settle, hold, bumped out. */
+  .cycler-word-1,
+  .cycler-word-2,
+  .cycler-word-3 { animation-name: bump-through; }
+  .cycler-word-1 { animation-delay: 0.3s;  color: color-mix(in srgb, var(--title-highlight) 100%, #fff 0%); }
+  .cycler-word-2 { animation-delay: 2.3s;  color: color-mix(in srgb, var(--title-highlight) 80%, #fff 20%); }
+  .cycler-word-3 { animation-delay: 4.3s;  color: color-mix(in srgb, var(--title-highlight) 75%, #000 25%); }
+  /* Final word: enters at the same pace as the others, then stays pinned
+     (fill-mode: forwards on bump-final holds the final keyframe forever).
+     The text-stroke adds extra optical weight on top of font-weight 900 —
+     DM Sans at 900 italic is heavy, and the 1.25px stroke pushes it into
+     "display headline" territory so "Yours." lands with real impact. */
+  .cycler-word-4 {
+    animation-name: bump-final;
+    animation-delay: 6.3s;
+    font-style: italic;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    color: var(--title-highlight);
+    -webkit-text-stroke: 1.25px var(--title-highlight);
+    paint-order: stroke fill;
+  }
+
+  @keyframes bump-through {
+    0%    { transform: translateY(110%); opacity: 0; }
+    10%   { transform: translateY(-9%);  opacity: 1; }
+    16%   { transform: translateY(3%);   opacity: 1; }
+    20%   { transform: translateY(0);    opacity: 1; }
+    85%   { transform: translateY(0);    opacity: 1; }
+    92%   { transform: translateY(4%);   opacity: 1; }
+    100%  { transform: translateY(-110%); opacity: 0; }
+  }
+
+  @keyframes bump-final {
+    0%    { transform: translateY(110%); opacity: 0; }
+    10%   { transform: translateY(-9%);  opacity: 1; }
+    16%   { transform: translateY(3%);   opacity: 1; }
+    20%   { transform: translateY(0);    opacity: 1; }
+    100%  { transform: translateY(0);    opacity: 1; }
+  }
+
+  /* Reduced-motion: skip the animation, pin "Yours." as the static final. */
+  @media (prefers-reduced-motion: reduce) {
+    .cycler-word { animation: none; }
+    .cycler-word-1,
+    .cycler-word-2,
+    .cycler-word-3,
+    .cycler-word-4 { display: none; }
+    .cycler-word-5 { opacity: 1; transform: none; }
+  }
 
   .hero-tagline {
     font-size: 1.2rem;
@@ -567,7 +796,7 @@
   .demo-section { padding: 16px 0; }
 
   /* ═══════════════════════════════════════════════════════════════════
-     Shared app mockup CSS — matches real DestinCode component styling.
+     Shared app mockup CSS — matches real YouCoded component styling.
      Uses --m-* tokens so both animated (.demo-app) and static (.mock-frame)
      mockups share the same rules. The animated demo aliases --demo-* to --m-*.
      ═══════════════════════════════════════════════════════════════════ */
@@ -578,9 +807,16 @@
     overflow: hidden;
     border: 1px solid var(--border);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px var(--accent-glow);
+    width: 100%;
     max-width: 680px;
     margin: 0 auto;
     position: relative;
+    /* Fixed height + flex column so the frame never grows as animated
+       bubbles/tool cards load in. Internal .demo-chat gets flex:1 and
+       overflow:hidden below, which caps the content to this box. */
+    height: 480px;
+    display: flex;
+    flex-direction: column;
     /* Midnight initial state — aliased to --m-* for shared CSS */
     --m-canvas: #0D1117; --m-panel: #161B22; --m-inset: #21262D;
     --m-accent: #B1BAC4; --m-on-accent: #0D1117;
@@ -609,6 +845,15 @@
     border: 1px solid var(--border);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px var(--accent-glow);
     position: relative;
+    /* Match .demo-app so every showcase mockup is the same rectangle.
+       Internal .mock-chat flexes to fill the remaining space between the
+       header and the input/status bars, and clips any overflow. */
+    width: 100%;
+    max-width: 680px;
+    margin: 0 auto;
+    height: 480px;
+    display: flex;
+    flex-direction: column;
   }
 
   /* --- Theme palettes for static mocks --- */
@@ -841,7 +1086,12 @@
 
   /* ═══ CHAT AREA ═══ */
   .demo-chat, .mock-chat {
-    min-height: 260px;
+    /* Fills the fixed-height .demo-app/.mock-frame between header and
+       input/status bars. overflow:hidden clips any content overflow so
+       mid-animation growth never pushes the outer frame. */
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
     padding: 16px 16px;
     display: flex;
     flex-direction: column;
@@ -860,6 +1110,11 @@
     font-size: 14px;
     line-height: 1.5;
     font-family: var(--font-mono);
+    /* Mono fonts + long file paths can otherwise force the bubble's
+       min-content width to exceed the chat column and grow the mockup
+       horizontally as new content appears mid-animation. */
+    overflow-wrap: anywhere;
+    min-width: 0;
     transition: opacity 0.4s, transform 0.4s, background 1.8s, color 1.8s, border-radius 1.8s, box-shadow 1.8s, backdrop-filter 1.8s;
   }
 
@@ -917,9 +1172,204 @@
     width: 14px; height: 14px;
     flex-shrink: 0;
     display: flex; align-items: center; justify-content: center;
+    color: var(--m-fg-muted);
   }
-  .mock-tool-icon.check { color: #4CAF50; font-weight: 700; font-size: 13px; }
+  .mock-tool-icon.check { color: var(--m-fg-2); }
   .mock-tool-icon.spinner { color: var(--m-fg-muted); }
+  .mock-tool-icon-svg {
+    width: 14px; height: 14px;
+    opacity: 0.6;
+  }
+
+  /* Braille spinner — mirrors the real app's BrailleSpinner component
+     (10-frame cycle at ~80ms per frame, used for running tool-call state).
+     Pure CSS so no JS timers required in the demo mockups. */
+  .mock-braille-spinner {
+    display: inline-block;
+    width: 1em;
+    text-align: center;
+    font-family: var(--font-mono);
+    line-height: 1;
+    color: var(--m-accent);
+  }
+  .mock-braille-spinner::before {
+    content: '\2807';
+    animation: mock-braille 0.8s steps(1) infinite;
+  }
+  @keyframes mock-braille {
+    0%   { content: '\280B'; }
+    10%  { content: '\2819'; }
+    20%  { content: '\2839'; }
+    30%  { content: '\2838'; }
+    40%  { content: '\283C'; }
+    50%  { content: '\2834'; }
+    60%  { content: '\2826'; }
+    70%  { content: '\2827'; }
+    80%  { content: '\2807'; }
+    90%  { content: '\280F'; }
+  }
+
+  /* ═══ MARKETPLACE MOCKUP — matches the redesigned MarketplaceScreen ═══
+     No session header — a sticky filter bar replaces it, with multi-group
+     chip filters on the left and a small search field on the right. Body
+     is a hero/featured slot + horizontal rails of unified cards. */
+  .mock-mp-filterbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    background: var(--m-panel);
+    border-bottom: 1px solid var(--m-edge);
+    flex-shrink: 0;
+    position: relative;
+    z-index: 2;
+  }
+  .mock-mp-filtergroups {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+  }
+  .mock-mp-chipgroup { display: inline-flex; gap: 4px; flex-shrink: 0; }
+  .mock-chip-sm {
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: var(--m-inset);
+    border: 1px solid var(--m-edge);
+    color: var(--m-fg-dim);
+    font-size: 10px;
+    font-weight: 500;
+    white-space: nowrap;
+    line-height: 1.3;
+  }
+  .mock-chip-sm.active {
+    background: var(--m-accent);
+    color: var(--m-on-accent);
+    border-color: transparent;
+    font-weight: 600;
+  }
+  .mock-mp-divider {
+    width: 1px;
+    height: 14px;
+    background: var(--m-edge);
+    flex-shrink: 0;
+  }
+  .mock-mp-search {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    background: var(--m-inset);
+    border: 1px solid var(--m-edge);
+    color: var(--m-fg-muted);
+    font-size: 10px;
+    flex-shrink: 0;
+    width: 120px;
+  }
+  .mock-mp-search svg {
+    width: 11px; height: 11px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+    flex-shrink: 0;
+  }
+
+  .mock-mp-body { padding: 12px !important; gap: 10px !important; }
+  .mock-mp-hero {
+    padding: 14px 16px;
+    border-radius: var(--m-radius-lg, 12px);
+    border: 1px solid color-mix(in srgb, var(--m-accent) 45%, transparent);
+    background:
+      linear-gradient(135deg, color-mix(in srgb, var(--m-accent) 18%, transparent) 0%, transparent 65%),
+      var(--m-inset);
+    position: relative;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .mock-mp-hero-label {
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    font-weight: 700;
+    color: var(--m-accent);
+    margin-bottom: 3px;
+    text-transform: uppercase;
+  }
+  .mock-mp-hero-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--m-fg);
+    margin-bottom: 4px;
+  }
+  .mock-mp-hero-blurb {
+    font-size: 11px;
+    color: var(--m-fg-dim);
+    line-height: 1.4;
+    margin-bottom: 6px;
+  }
+  .mock-mp-hero-meta { font-size: 10px; color: var(--m-fg-muted); }
+
+  .mock-mp-rail-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 0 2px;
+    margin-top: 4px;
+  }
+  .mock-mp-rail-title { font-size: 12px; font-weight: 600; color: var(--m-fg); }
+  .mock-mp-rail-cta { font-size: 10px; color: var(--m-accent); font-weight: 500; }
+  .mock-mp-rail {
+    display: flex;
+    gap: 6px;
+    overflow: hidden;
+    padding-bottom: 2px;
+  }
+  .mock-mp-card {
+    flex: 0 0 125px;
+    background: var(--m-inset);
+    border: 1px solid var(--m-edge);
+    border-radius: var(--m-radius-md, 8px);
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .mock-mp-card-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--m-fg);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .mock-mp-card-meta {
+    font-size: 9px;
+    color: var(--m-fg-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .mock-mp-card-pill {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 999px;
+    font-size: 9px;
+    font-weight: 500;
+    align-self: flex-start;
+    margin-top: 2px;
+  }
+  .mock-mp-card-pill.installed {
+    background: rgba(76,175,80,0.15);
+    color: #4CAF50;
+    border: 1px solid rgba(76,175,80,0.25);
+  }
+  .mock-mp-card-pill.install {
+    background: color-mix(in srgb, var(--m-accent) 15%, transparent);
+    color: var(--m-accent);
+    border: 1px solid color-mix(in srgb, var(--m-accent) 30%, transparent);
+  }
 
   .mock-tool-sep {
     color: var(--m-fg-faint);
@@ -955,17 +1405,6 @@
     transition: opacity 0.4s, transform 0.4s;
   }
   .demo-tool-card.show { opacity: 1; transform: translateY(0); }
-
-  .demo-spinner {
-    display: inline-block;
-    width: 12px; height: 12px;
-    border: 2px solid var(--m-fg-muted);
-    border-top-color: var(--m-accent);
-    border-radius: 50%;
-    animation: demo-spin 0.8s linear infinite;
-    transition: border-color 1.8s;
-  }
-  @keyframes demo-spin { to { transform: rotate(360deg); } }
 
   /* ═══ INPUT BAR — matches real app: outer container + inner form ═══ */
   .demo-inputbar, .mock-inputbar {
@@ -1143,6 +1582,12 @@
 
   .showcase-item.reverse { direction: rtl; }
   .showcase-item.reverse > * { direction: ltr; }
+  /* Grid items default to min-width: auto (= min-content) which lets long
+     mono-font bubble text or tool-detail strings push the grid track wider
+     than 1fr. Pinning min-width:0 forces the cell to honor the 1fr share,
+     and the .demo-app/.mock-frame inside then fill their cell without
+     growing when mid-animation content appears. */
+  .showcase-item > * { min-width: 0; }
 
   .showcase-text { display: flex; flex-direction: column; gap: 12px; }
 
@@ -1552,6 +1997,53 @@
     text-align: center;
   }
 
+  /* --- GALLERY (scrollable strip) --- */
+  .gallery-section { padding: 16px 0 40px; }
+  .gallery-scroll {
+    display: flex;
+    gap: 16px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 24px 48px;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+  }
+  .gallery-scroll::-webkit-scrollbar { height: 10px; }
+  .gallery-scroll::-webkit-scrollbar-track { background: transparent; }
+  .gallery-scroll::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--text-dim) 40%, transparent);
+    border-radius: 10px;
+  }
+  .gallery-item {
+    flex: 0 0 auto;
+    width: 360px;
+    height: 240px;
+    border-radius: var(--radius-md, 12px);
+    border: 1px solid var(--border);
+    background: color-mix(in srgb, var(--bg-card) 70%, transparent);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    scroll-snap-align: start;
+    overflow: hidden;
+  }
+  .gallery-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .gallery-placeholder {
+    background-image:
+      linear-gradient(135deg,
+        color-mix(in srgb, var(--title-highlight) 8%, transparent),
+        color-mix(in srgb, var(--bg-card) 70%, transparent));
+  }
+  @media (max-width: 640px) {
+    .gallery-scroll { padding: 20px 20px; }
+    .gallery-item { width: 280px; height: 190px; }
+  }
+
   /* --- FAQ --- */
   .faq-section { padding: 16px 0; }
 
@@ -1816,7 +2308,7 @@
   }
 </style>
 </head>
-<body>
+<body class="intro-mode">
 
   <!-- Overlay effects -->
   <div class="scanlines"></div>
@@ -1826,14 +2318,16 @@
   <nav class="nav" role="navigation" aria-label="Main navigation">
     <div class="nav-inner">
       <a href="#" class="nav-logo">
-        <img src="favicon-dark.svg" alt="DestinCode" class="nav-icon theme-icon-img" width="22" height="22">
-        <span>Destin<span style="color: var(--title-highlight)">Code</span></span>
+        <img src="favicon-dark.svg" alt="YouCoded" class="nav-icon theme-icon-img" width="22" height="22">
+        <span class="nav-logo-text">
+          <span>You<span style="color: var(--title-highlight)">Coded</span></span>
+          <span class="nav-logo-sub">For Claude Code by Anthropic</span>
+        </span>
       </a>
       <ul class="nav-links" id="nav-links">
         <li><a href="#about">About</a></li>
         <li><a href="#demo">Demo</a></li>
         <li><a href="#features">Features</a></li>
-        <li class="android-gate"><a href="#android">Android</a></li>
         <li><a href="#download">Download</a></li>
         <li><a href="#faq">FAQ</a></li>
         <li class="nav-theme-desktop">
@@ -1856,9 +2350,18 @@
   <!-- HERO -->
   <header class="hero" id="top">
     <div class="container">
-      <p class="hero-kicker animate animate-d1">DestinCode</p>
-      <h1 class="animate animate-d1">Claude, but <span class="title-accent">yours</span>.</h1>
-      <p class="hero-tagline animate animate-d2">A more personal, more customizable Claude — with themes, a skill marketplace, multiplayer mini-games, and remote access from any browser. Runs on Windows, macOS, Linux, and Android. Powered by <a href="https://docs.anthropic.com/en/docs/claude-code">Claude Code</a>. Open source.</p>
+      <h1 class="animate animate-d1">
+        Make Claude
+        <span class="word-cycler" aria-label="Useful, Fun, Cute, Yours.">
+          <span class="cycler-sizer" aria-hidden="true">Useful.</span>
+          <span class="cycler-stage" aria-hidden="true">
+            <span class="cycler-word cycler-word-1">Useful.</span>
+            <span class="cycler-word cycler-word-2">Fun.</span>
+            <span class="cycler-word cycler-word-3">Cute.</span>
+            <span class="cycler-word cycler-word-4">Yours.</span>
+          </span>
+        </span>
+      </h1>
     </div>
   </header>
 
@@ -1866,11 +2369,11 @@
   <section id="about">
     <div class="container">
       <p class="section-label reveal">What is this?</p>
-      <h2 class="section-title reveal">More than a chat window.</h2>
+      <h2 class="section-title reveal">More than a chatbot.</h2>
       <div class="intro-box reveal">
-        <p>DestinCode is a full app for <a href="https://docs.anthropic.com/en/docs/claude-code">Claude Code</a> — Anthropic's AI agent that can <strong>create and edit files</strong>, <strong>search the web</strong>, <strong>run terminal commands</strong>, and <strong>navigate your screen</strong>. Think of it as the desktop and mobile home Claude Code deserves — with a chat UI you can theme, a marketplace full of downloadable themes, skills, games, and integrations, multiplayer mini-games for the downtime, and remote web access from any browser on your network.</p>
-        <p>The optional <a href="https://github.com/itsdestin/destinclaude">DestinClaude toolkit</a> <span class="toolkit-badge">add-on</span> takes it further. Journal about your day and it pulls out tasks, calendar events, and details worth remembering — no templates, no forms. Over time, Claude builds a searchable personal encyclopedia: who you met, what you discussed, the context you always forget. Snap a screenshot of a flyer, and the event lands on your calendar. Mention a deadline in passing, and it shows up in your task list. <strong>You just talk. The structure happens on its own.</strong></p>
-        <p class="permission-note">Nothing happens without your permission. DestinCode will always ask before taking any action.</p>
+        <p>YouCoded is an add-on of sorts for <a href="https://docs.anthropic.com/en/docs/claude-code">Claude Code</a>, a powerful agentic AI tool from Anthropic that can <strong>create and edit any type of file</strong>, <strong>search the web</strong>, <strong>run terminal commands</strong>, and <strong>navigate your screen</strong>. While Claude Code was designed for coding, YouCoded turns it into something else entirely — a fully capable and customizable agentic AI assistant that doesn't require you to know how to use AI or understand what "agentic" means. With YouCoded, you can teach Claude to navigate emails from any provider, read and summarize your texts, rebuild your spreadsheets, help you study, and more. You get the most intriguing and intuitive form of AI available today, all without needing to become a fratty tech-bro to do it.</p>
+        <p>YouCoded combines that powerful AI with a themeable chat UI, a community <a href="https://github.com/itsdestin/destinclaude">marketplace</a> <span class="toolkit-badge">WeCoded</span> to share and download "skills" (instructions that give your Claude new abilities), multiplayer mini-games, custom integrations with external services, and remote access from any browser.</p>
+        <p class="permission-note">Nothing happens without your permission. YouCoded will always ask before taking any action.</p>
       </div>
     </div>
   </section>
@@ -1889,7 +2392,7 @@
           <div class="showcase-text">
             <span class="showcase-label">Theme Builder</span>
             <h3 class="showcase-title">Build a theme just by describing it.</h3>
-            <p class="showcase-desc">Tell Claude the vibe you want and it builds a full theme — wallpapers, glassmorphism, custom colors, particle effects, mascot characters, custom icons. Share it with friends or publish it to the DestinClaude Marketplace for anyone to download.</p>
+            <p class="showcase-desc">Tell Claude the vibe you want and it builds full UI themes with custom wallpapers, colors, particle effects, icons, and mascot characters. Imagine "Liquid Glass", but built by a single guy in his bedroom who still outdid Apple's entire visual design team. Share your themes directly with friends or publish them to the WeCoded Marketplace for anyone to download.</p>
           </div>
           <div class="demo-app reveal" id="demo-app">
             <div class="demo-wallpaper"></div>
@@ -1930,7 +2433,7 @@
                 <!-- Tool cards inside assistant bubble — matches real app structure -->
                 <div class="demo-tool-card mock-tool-card" data-delay="2400">
                   <div class="mock-tool-card-header">
-                    <div class="mock-tool-icon spinner"><span class="demo-spinner" id="demo-tool-spinner"></span></div>
+                    <div class="mock-tool-icon spinner"><span class="mock-braille-spinner" id="demo-tool-spinner"></span></div>
                     <span class="mock-tool-sep">|</span>
                     <span class="mock-tool-label" id="demo-tool-label">Write</span>
                     <span class="mock-tool-detail" id="demo-tool-text">manifest.json</span>
@@ -1939,7 +2442,7 @@
                 </div>
                 <div class="demo-tool-card mock-tool-card" data-delay="3200" id="demo-tool-2" style="display:none;">
                   <div class="mock-tool-card-header">
-                    <div class="mock-tool-icon check">&#10003;</div>
+                    <div class="mock-tool-icon check"><svg class="mock-tool-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9" stroke-width="1.5"/><path d="M8 12.5 L11 15.5 L16.5 9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
                     <span class="mock-tool-sep">|</span>
                     <span class="mock-tool-label">Write</span>
                     <span class="mock-tool-detail">Golden Sunbreak installed &mdash; applying</span>
@@ -1973,84 +2476,103 @@
           </div>
         </div>
 
-        <!-- DestinClaude Marketplace -->
+        <!-- WeCoded Marketplace -->
         <div class="showcase-item reverse reveal">
           <div class="showcase-text">
-            <span class="showcase-label">DestinClaude Marketplace</span>
+            <span class="showcase-label">WeCoded Marketplace</span>
             <h3 class="showcase-title">Browse, share, and download everything that makes the app yours.</h3>
-            <p class="showcase-desc">Themes, skills, integrations, multiplayer games, status bar instruments, and buddies that tag along with your theme — all in one place. Install what you want, share what you build. The marketplace is how DestinCode stays fun, social, and personal instead of feeling like another boring AI tool.</p>
-            <p class="showcase-desc" style="margin-top: 8px; font-size: 0.8rem; color: var(--text-dim);">Coming soon: native app modules — imagine your texts, emails, or calendar showing up in a themed panel right alongside the chat window. Your AI assistant stops being a separate tool and becomes the center of how you actually work and hang out.</p>
+            <p class="showcase-desc">Themes, skills, and integrations — all in one place. Install what you want, then share what you build. The marketplace is the core of how YouCoded stays fun, social, and personal instead of feeling like another boring AI tool.</p>
+            <p class="showcase-desc" style="margin-top: 8px; font-size: 0.8rem; color: var(--text-dim);">Coming soon: custom buddies that provide floating access to Claude across apps, custom status bar instruments, and native app modules (imagine your texts, emails, or calendar showing up in a themed panel right alongside the chat window). The WeCoded marketplace improves every day, and improves more quickly as more users join the ecosystem.</p>
           </div>
           <div class="mock-frame mock-midnight reveal">
             <div class="mock-wallpaper"></div>
-            <div class="mock-header">
-              <div class="mock-settings-btn"><svg viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></div>
-              <div class="mock-session-strip">
-                <div class="mock-session-pill"><div class="mock-session-dot"></div><span class="mock-session-name">Session 1</span></div>
-                <svg class="mock-session-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+            <!-- Marketplace filter bar — replaces the session header. Multi-group
+                 chip filters left (Type / Vibe / Meta) + small search right. -->
+            <div class="mock-mp-filterbar">
+              <div class="mock-mp-filtergroups">
+                <div class="mock-mp-chipgroup">
+                  <span class="mock-chip-sm active">Plugins</span>
+                  <span class="mock-chip-sm">Themes</span>
+                </div>
+                <span class="mock-mp-divider"></span>
+                <div class="mock-mp-chipgroup">
+                  <span class="mock-chip-sm">School</span>
+                  <span class="mock-chip-sm active">Work</span>
+                  <span class="mock-chip-sm">Creative</span>
+                  <span class="mock-chip-sm">Personal</span>
+                </div>
+                <span class="mock-mp-divider"></span>
+                <div class="mock-mp-chipgroup">
+                  <span class="mock-chip-sm">New</span>
+                  <span class="mock-chip-sm">Popular</span>
+                  <span class="mock-chip-sm">Destin's picks</span>
+                </div>
               </div>
-              <div class="mock-header-right">
-                <div class="mock-toggle-group">
-                  <div class="mock-toggle-btn active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 5 L20 5 A2 2 0 0 1 22 7 L22 15 A2 2 0 0 1 20 17 L10 17 L6 20 L7 17 L4 17 A2 2 0 0 1 2 15 L2 7 A2 2 0 0 1 4 5 Z" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M8.5 11 L8.5 11.01" stroke-width="2.5" stroke-linecap="round"/><path d="M12 11 L12 11.01" stroke-width="2.5" stroke-linecap="round"/><path d="M15.5 11 L15.5 11.01" stroke-width="2.5" stroke-linecap="round"/></svg></div>
-                  <div class="mock-toggle-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 4 L20 4 A2 2 0 0 1 22 6 L22 18 A2 2 0 0 1 20 20 L4 20 A2 2 0 0 1 2 18 L2 6 A2 2 0 0 1 4 4 Z" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 9 L10 12 L6 15" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 15 L17 15" stroke-width="2" stroke-linecap="round"/></svg></div>
-                </div>
-                <div class="mock-games-btn-wrap"><div class="mock-games-btn"><svg viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="3"/><circle cx="8" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="16" cy="12" r="1.5" fill="currentColor" stroke="none"/><line x1="11" y1="10" x2="13" y2="10"/></svg><div class="mock-games-dot"></div></div></div>
-              </div>
-            </div>
-            <div class="mock-chat" style="padding: 12px; gap: 8px; min-height: 260px;">
-              <!-- Category pills -->
-              <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 4px;">
-                <span class="mock-chip" style="background: var(--m-accent); color: var(--m-on-accent); border-color: transparent; font-weight: 600;">All</span>
-                <span class="mock-chip">Themes</span>
-                <span class="mock-chip">Skills</span>
-                <span class="mock-chip">Games</span>
-                <span class="mock-chip">Integrations</span>
-              </div>
-              <!-- Marketplace items -->
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
-                <div style="background: var(--m-inset); border: 1px solid var(--m-edge); border-radius: var(--m-radius-md, 8px); padding: 10px;">
-                  <div style="font-size: 12px; font-weight: 600; color: var(--m-fg); margin-bottom: 2px;">Golden Sunbreak</div>
-                  <div style="font-size: 10px; color: var(--m-fg-muted); margin-bottom: 6px;">Theme &middot; wallpaper + buddy</div>
-                  <span class="mock-status-pill" style="font-size: 10px; background: rgba(76,175,80,0.15); color: #4CAF50; border-color: rgba(76,175,80,0.25);">Installed</span>
-                </div>
-                <div style="background: var(--m-inset); border: 1px solid var(--m-edge); border-radius: var(--m-radius-md, 8px); padding: 10px;">
-                  <div style="font-size: 12px; font-weight: 600; color: var(--m-fg); margin-bottom: 2px;">Connect Four</div>
-                  <div style="font-size: 10px; color: var(--m-fg-muted); margin-bottom: 6px;">Game &middot; multiplayer</div>
-                  <span class="mock-status-pill" style="font-size: 10px; background: rgba(76,175,80,0.15); color: #4CAF50; border-color: rgba(76,175,80,0.25);">Installed</span>
-                </div>
-                <div style="background: var(--m-inset); border: 1px solid var(--m-edge); border-radius: var(--m-radius-md, 8px); padding: 10px;">
-                  <div style="font-size: 12px; font-weight: 600; color: var(--m-fg); margin-bottom: 2px;">Google Calendar</div>
-                  <div style="font-size: 10px; color: var(--m-fg-muted); margin-bottom: 6px;">Integration &middot; MCP</div>
-                  <span class="mock-status-pill" style="font-size: 10px; background: rgba(136,180,216,0.15); color: var(--m-accent); border-color: rgba(136,180,216,0.25);">Install</span>
-                </div>
-                <div style="background: var(--m-inset); border: 1px solid var(--m-edge); border-radius: var(--m-radius-md, 8px); padding: 10px;">
-                  <div style="font-size: 12px; font-weight: 600; color: var(--m-fg); margin-bottom: 2px;">Writing Coach</div>
-                  <div style="font-size: 10px; color: var(--m-fg-muted); margin-bottom: 6px;">Skill &middot; by @destin</div>
-                  <span class="mock-status-pill" style="font-size: 10px; background: rgba(136,180,216,0.15); color: var(--m-accent); border-color: rgba(136,180,216,0.25);">Install</span>
-                </div>
-                <div style="background: var(--m-inset); border: 1px solid var(--m-edge); border-radius: var(--m-radius-md, 8px); padding: 10px;">
-                  <div style="font-size: 12px; font-weight: 600; color: var(--m-fg); margin-bottom: 2px;">Halftone Dimension</div>
-                  <div style="font-size: 10px; color: var(--m-fg-muted); margin-bottom: 6px;">Theme &middot; cyberpunk manga</div>
-                  <span class="mock-status-pill" style="font-size: 10px; background: rgba(136,180,216,0.15); color: var(--m-accent); border-color: rgba(136,180,216,0.25);">Install</span>
-                </div>
-                <div style="background: var(--m-inset); border: 1px solid var(--m-edge); border-radius: var(--m-radius-md, 8px); padding: 10px;">
-                  <div style="font-size: 12px; font-weight: 600; color: var(--m-fg); margin-bottom: 2px;">Todoist Sync</div>
-                  <div style="font-size: 10px; color: var(--m-fg-muted); margin-bottom: 6px;">Integration &middot; MCP</div>
-                  <span class="mock-status-pill" style="font-size: 10px; background: rgba(136,180,216,0.15); color: var(--m-accent); border-color: rgba(136,180,216,0.25);">Install</span>
-                </div>
+              <div class="mock-mp-search">
+                <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <span>Search</span>
               </div>
             </div>
-            <div class="mock-inputbar">
-              <div class="mock-input-inner">
-                <div class="mock-input-icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
-                <div class="mock-input-text">Search marketplace&hellip;</div>
+            <!-- Discovery body: featured hero + rail of cards -->
+            <div class="mock-chat mock-mp-body">
+              <div class="mock-mp-hero">
+                <div class="mock-mp-hero-label">Featured</div>
+                <div class="mock-mp-hero-title">Civic Report</div>
+                <div class="mock-mp-hero-blurb">Turn any city council agenda into a plain-English briefing &mdash; who's voting on what, what it costs you, and where to show up.</div>
+                <div class="mock-mp-hero-meta">Skill &middot; by @destin &middot; civic</div>
               </div>
-            </div>
-            <div class="mock-statusbar">
-              <span class="mock-model-chip opus">Opus 1M</span>
-              <span class="mock-status-pill">6 installed &middot; 150+ available</span>
-              <span class="mock-status-pill mock-status-spacer">midnight</span>
-              <div class="mock-customize-btn"><svg viewBox="0 0 24 24"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg></div>
+              <div class="mock-mp-rail-head">
+                <span class="mock-mp-rail-title">Destin's picks</span>
+                <span class="mock-mp-rail-cta">See all &rarr;</span>
+              </div>
+              <div class="mock-mp-rail">
+                <div class="mock-mp-card">
+                  <div class="mock-mp-card-title">Journaling Assistant</div>
+                  <div class="mock-mp-card-meta">Skill &middot; personal</div>
+                  <span class="mock-mp-card-pill installed">Installed</span>
+                </div>
+                <div class="mock-mp-card">
+                  <div class="mock-mp-card-title">Writing Coach</div>
+                  <div class="mock-mp-card-meta">Skill &middot; creative</div>
+                  <span class="mock-mp-card-pill install">Install</span>
+                </div>
+                <div class="mock-mp-card">
+                  <div class="mock-mp-card-title">Todoist Inbox</div>
+                  <div class="mock-mp-card-meta">Skill &middot; productivity</div>
+                  <span class="mock-mp-card-pill install">Install</span>
+                </div>
+                <div class="mock-mp-card">
+                  <div class="mock-mp-card-title">Encyclopedia</div>
+                  <div class="mock-mp-card-meta">Skill &middot; personal</div>
+                  <span class="mock-mp-card-pill installed">Installed</span>
+                </div>
+              </div>
+              <div class="mock-mp-rail-head">
+                <span class="mock-mp-rail-title">New this week</span>
+                <span class="mock-mp-rail-cta">See all &rarr;</span>
+              </div>
+              <div class="mock-mp-rail">
+                <div class="mock-mp-card">
+                  <div class="mock-mp-card-title">Strawberry Kitty</div>
+                  <div class="mock-mp-card-meta">Theme &middot; pastel</div>
+                  <span class="mock-mp-card-pill install">Install</span>
+                </div>
+                <div class="mock-mp-card">
+                  <div class="mock-mp-card-title">Civic Report</div>
+                  <div class="mock-mp-card-meta">Skill &middot; civic</div>
+                  <span class="mock-mp-card-pill install">Install</span>
+                </div>
+                <div class="mock-mp-card">
+                  <div class="mock-mp-card-title">Halftone Dimension</div>
+                  <div class="mock-mp-card-meta">Theme &middot; manga</div>
+                  <span class="mock-mp-card-pill install">Install</span>
+                </div>
+                <div class="mock-mp-card">
+                  <div class="mock-mp-card-title">Google Calendar</div>
+                  <div class="mock-mp-card-meta">Skill &middot; MCP</div>
+                  <span class="mock-mp-card-pill install">Install</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -2058,9 +2580,9 @@
         <!-- Journaling — Midnight theme mockup -->
         <div class="showcase-item reveal">
           <div class="showcase-text">
-            <span class="showcase-label">Journaling <span class="toolkit-badge">add-on</span></span>
+            <span class="showcase-label">Journaling &amp; Personal History <span class="toolkit-badge">WeCoded</span></span>
             <h3 class="showcase-title">Talk about your day. The structure happens on its own.</h3>
-            <p class="showcase-desc">Just start talking — about work, people, whatever's on your mind. Claude asks follow-up questions, pulls out tasks and calendar events, and builds a searchable journal over time. No templates, no forms. You talk, it organizes.</p>
+            <p class="showcase-desc">Just start talking — about work, people, whatever's on your mind. Claude asks follow-up questions, pulls out tasks and calendar events without you having to ask, indexes information about your friends and family, and slowly builds a searchable history of your life. Want to remember a friend's birthday, your wife's favorite color, or what you had for lunch last Thursday? Just ask Claude. Have a big meeting tomorrow with colleagues you haven't seen lately? Have Claude prepare a briefing, entirely based on information you've previously provided. No templates, no forms — you talk, it organizes. All information is stored in your personal Google Drive, iCloud, or GitHub account. Must be downloaded from the marketplace.</p>
           </div>
           <div class="mock-frame mock-midnight reveal">
             <div class="mock-wallpaper"></div>
@@ -2076,10 +2598,11 @@
               <div class="mock-bubble user">let's journal. today was a lot — had that meeting with Sarah about the nonprofit rebrand, then spent the afternoon prepping my talk for Friday.</div>
               <div class="mock-bubble assistant">Got it. How did the meeting with Sarah go? Any decisions made on the direction?</div>
               <div class="mock-bubble user">yeah, we're going with the warm palette. she wants a first draft by March 28th. oh, and remind me — I need to email Jake the slide deck before my talk.</div>
-              <div class="mock-tool-card"><div class="mock-tool-card-header"><div class="mock-tool-icon check">&#10003;</div><span class="mock-tool-sep">|</span><span class="mock-tool-detail"> Created task: "Email Jake slide deck" — due Friday morning</span></div></div>
-              <div class="mock-tool-card"><div class="mock-tool-card-header"><div class="mock-tool-icon check">&#10003;</div><span class="mock-tool-sep">|</span><span class="mock-tool-detail"> Created task: "Nonprofit rebrand first draft" — due March 28</span></div></div>
-              <div class="mock-tool-card"><div class="mock-tool-card-header"><div class="mock-tool-icon check">&#10003;</div><span class="mock-tool-sep">|</span><span class="mock-tool-detail"> Updated Encyclopedia: Sarah &rarr; nonprofit rebrand collaboration</span></div></div>
-              <div class="mock-bubble assistant">All captured. The slide deck task is set for Friday morning so you'll see it before your talk. What else happened today — anything outside of work?</div>
+              <div class="mock-bubble assistant">All captured. The slide deck task is set for Friday morning so you'll see it before your talk.
+                <div class="mock-tool-card"><div class="mock-tool-card-header"><div class="mock-tool-icon check"><svg class="mock-tool-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9" stroke-width="1.5"/><path d="M8 12.5 L11 15.5 L16.5 9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span class="mock-tool-sep">|</span><span class="mock-tool-detail"> Created task: "Email Jake slide deck" — due Friday morning</span></div></div>
+                <div class="mock-tool-card"><div class="mock-tool-card-header"><div class="mock-tool-icon check"><svg class="mock-tool-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9" stroke-width="1.5"/><path d="M8 12.5 L11 15.5 L16.5 9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span class="mock-tool-sep">|</span><span class="mock-tool-detail"> Created task: "Nonprofit rebrand first draft" — due March 28</span></div></div>
+                <div class="mock-tool-card"><div class="mock-tool-card-header"><div class="mock-tool-icon check"><svg class="mock-tool-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9" stroke-width="1.5"/><path d="M8 12.5 L11 15.5 L16.5 9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span class="mock-tool-sep">|</span><span class="mock-tool-detail"> Updated Encyclopedia: Sarah &rarr; nonprofit rebrand collaboration</span></div></div>
+              </div>
             </div>
             <div class="mock-inputbar">
               <div class="mock-input-inner">
@@ -2101,9 +2624,9 @@
         <!-- Personal Librarian Brief — Halftone theme mockup -->
         <div class="showcase-item reverse reveal">
           <div class="showcase-text">
-            <span class="showcase-label">Personal Librarian <span class="toolkit-badge">add-on</span></span>
-            <h3 class="showcase-title">Brief me on anyone. Pull together everything about anything.</h3>
-            <p class="showcase-desc">The Librarian mines your journal, texts, and encyclopedia to produce targeted briefings — before a meeting, a job application, or just because you forgot the details. Career briefs, person profiles, topic deep dives, six-month reviews. All from data you already have.</p>
+            <span class="showcase-label">Cross-Device Backup &amp; Sync</span>
+            <h3 class="showcase-title">Start anywhere. Pick up everywhere.</h3>
+            <p class="showcase-desc">Your skills, conversations, themes, and settings are automatically backed up to your preferred provider — Google Drive, iCloud, or GitHub — every 15 minutes, then downsynced to your other Windows, macOS, Linux, and Android devices. Switch machines mid-thought without losing a beat. Doubles as a full restore-from-backup when you set up a new device. Not something Claude Code does natively.</p>
           </div>
           <div class="mock-frame mock-halftone-dim reveal">
             <div class="mock-wallpaper"></div>
@@ -2116,11 +2639,12 @@
               </div>
             </div>
             <div class="mock-chat">
-              <div class="mock-bubble user">brief me on Sarah — I have a call with her tomorrow and I can't remember half of what we've discussed</div>
-              <div class="mock-tool-card"><div class="mock-tool-card-header"><div class="mock-tool-icon check">&#10003;</div><span class="mock-tool-sep">|</span><span class="mock-tool-detail"> Reading encyclopedia: People Database</span></div></div>
-              <div class="mock-tool-card"><div class="mock-tool-card-header"><div class="mock-tool-icon check">&#10003;</div><span class="mock-tool-sep">|</span><span class="mock-tool-detail"> Searching journal entries for "Sarah"</span></div></div>
-              <div class="mock-tool-card"><div class="mock-tool-card-header"><div class="mock-tool-icon check">&#10003;</div><span class="mock-tool-sep">|</span><span class="mock-tool-detail"> Deep searching text messages</span></div></div>
-              <div class="mock-bubble assistant"><strong>Sarah Chen — Person Briefing</strong><br><br><strong>Who:</strong> Creative director at Bright Futures Nonprofit. Met at the Austin Design Conference (Oct 2025). Connected through mutual friend Jake.<br><br><strong>Current project:</strong> Nonprofit rebrand — you're collaborating on the visual identity. Decided on warm palette (March 18). First draft due March 28.<br><br><strong>Recent context:</strong> She texted you last week about moving the deadline to April 2. You haven't responded yet.<br><br><strong>Personal notes:</strong> Has a daughter named Lily (age 7). Mentioned she's training for a half marathon. Prefers morning meetings.</div>
+              <div class="mock-bubble user">sync status?</div>
+              <div class="mock-bubble assistant">
+                <div class="mock-tool-card"><div class="mock-tool-card-header"><div class="mock-tool-icon check"><svg class="mock-tool-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9" stroke-width="1.5"/><path d="M8 12.5 L11 15.5 L16.5 9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span class="mock-tool-sep">|</span><span class="mock-tool-detail"> Reading backup manifest from Google Drive</span></div></div>
+                <div class="mock-tool-card"><div class="mock-tool-card-header"><div class="mock-tool-icon check"><svg class="mock-tool-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9" stroke-width="1.5"/><path d="M8 12.5 L11 15.5 L16.5 9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span class="mock-tool-sep">|</span><span class="mock-tool-detail"> Comparing local state &rarr; cloud state</span></div></div>
+                <div style="margin-top: 10px;"><strong>All caught up.</strong><br><br><strong>Last backup:</strong> 3 minutes ago &middot; Google Drive<br><strong>Next backup:</strong> in 12 minutes (auto, every 15m)<br><br><strong>Synced across:</strong><br>&bull; Desktop (Windows) &mdash; current<br>&bull; MacBook &mdash; last seen 2h ago<br>&bull; Pixel 8 &mdash; last seen 20m ago<br><br><strong>In sync:</strong> 47 conversations &middot; 12 skills &middot; 3 themes &middot; settings<br><br>Anything you start here will be on your phone next time you open it.</div>
+              </div>
             </div>
             <div class="mock-inputbar">
               <div class="mock-input-inner">
@@ -2144,7 +2668,7 @@
           <div class="showcase-text">
             <span class="showcase-label">Multiplayer Games</span>
             <h3 class="showcase-title">Play with friends while Claude works.</h3>
-            <p class="showcase-desc">Claude Code takes time on big tasks. Instead of staring at a spinner, challenge a friend to Connect 4 right inside the app. Real-time multiplayer, in-game chat, powered by Cloudflare. More games coming.</p>
+            <p class="showcase-desc">Claude Code can take time on big tasks. Instead of staring at a spinner and twiddling your thumbs, challenge your friends to a game of Connect 4 right inside the app while you wait. The goal is to take the boring tasks we all use AI for (studying, working, etc.) and make them slightly more fun by allowing us to do them with friends. Real-time multiplayer, in-game chat, powered by Cloudflare. More games coming, soon to be opened to community-built games in the marketplace.</p>
           </div>
           <div class="mock-frame mock-golden reveal">
             <div class="mock-wallpaper"></div>
@@ -2160,10 +2684,11 @@
               <!-- Chat side (Claude working in background) -->
               <div class="mock-game-chat">
                 <div class="mock-bubble user" style="font-size:0.72rem;">refactor the authentication module to use JWT tokens instead of sessions</div>
-                <div class="mock-bubble assistant" style="font-size:0.72rem;">I'll refactor the auth module. This will touch several files — let me start by reading the current implementation.</div>
-                <div class="mock-tool-card"><div class="mock-tool-card-header"><div class="mock-tool-icon check">&#10003;</div><span class="mock-tool-sep">|</span><span class="mock-tool-detail"> Reading auth/session-manager.ts</span></div></div>
-                <div class="mock-tool-card"><div class="mock-tool-card-header"><div class="mock-tool-icon check">&#10003;</div><span class="mock-tool-sep">|</span><span class="mock-tool-detail"> Reading auth/middleware.ts</span></div></div>
-                <div class="mock-tool-card"><div class="mock-tool-card-header"><div class="mock-tool-icon spinner"><span class="demo-spinner"></span></div><span class="mock-tool-sep">|</span><span class="mock-tool-label">Write</span><span class="mock-tool-detail">auth/jwt-provider.ts&hellip;</span></div></div>
+                <div class="mock-bubble assistant" style="font-size:0.72rem;">I'll refactor the auth module. This will touch several files — let me start by reading the current implementation.
+                  <div class="mock-tool-card"><div class="mock-tool-card-header"><div class="mock-tool-icon check"><svg class="mock-tool-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9" stroke-width="1.5"/><path d="M8 12.5 L11 15.5 L16.5 9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span class="mock-tool-sep">|</span><span class="mock-tool-detail"> Reading auth/session-manager.ts</span></div></div>
+                  <div class="mock-tool-card"><div class="mock-tool-card-header"><div class="mock-tool-icon check"><svg class="mock-tool-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9" stroke-width="1.5"/><path d="M8 12.5 L11 15.5 L16.5 9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span class="mock-tool-sep">|</span><span class="mock-tool-detail"> Reading auth/middleware.ts</span></div></div>
+                  <div class="mock-tool-card"><div class="mock-tool-card-header"><div class="mock-tool-icon spinner"><span class="mock-braille-spinner"></span></div><span class="mock-tool-sep">|</span><span class="mock-tool-label">Write</span><span class="mock-tool-detail">auth/jwt-provider.ts&hellip;</span></div></div>
+                </div>
               </div>
               <!-- Game panel -->
               <div class="mock-game-panel">
@@ -2212,92 +2737,134 @@
 
   <div class="container"><div class="divider"></div></div>
 
-  <!-- FEATURES -->
+  <!-- FEATURES — collapsible accordion -->
   <section id="features">
     <div class="container">
       <p class="section-label reveal">What you get</p>
       <h2 class="section-title reveal">Everything the app gives you.</h2>
-      <div class="features-grid">
-        <div class="feature-card reveal reveal-d1">
-          <div class="feature-icon"><svg viewBox="0 0 24 24"><path d="M12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2C17.5,2 22,6 22,11A6,6 0 0,1 16,17H14.2C13.9,17 13.7,17.2 13.7,17.5C13.7,17.6 13.8,17.7 13.8,17.8C14.2,18.3 14.4,18.9 14.4,19.5C14.5,20.9 13.4,22 12,22M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C12.3,20 12.5,19.8 12.5,19.5C12.5,19.3 12.4,19.2 12.4,19.1C12,18.6 11.8,18.1 11.8,17.5C11.8,16.1 12.9,15 14.3,15H16A4,4 0 0,0 20,11C20,7.1 16.4,4 12,4M6.5,10C7.3,10 8,10.7 8,11.5C8,12.3 7.3,13 6.5,13C5.7,13 5,12.3 5,11.5C5,10.7 5.7,10 6.5,10M9.5,6C10.3,6 11,6.7 11,7.5C11,8.3 10.3,9 9.5,9C8.7,9 8,8.3 8,7.5C8,6.7 8.7,6 9.5,6M14.5,6C15.3,6 16,6.7 16,7.5C16,8.3 15.3,9 14.5,9C13.7,9 13,8.3 13,7.5C13,6.7 13.7,6 14.5,6M17.5,10C18.3,10 19,10.7 19,11.5C19,12.3 18.3,13 17.5,13C16.7,13 16,12.3 16,11.5C16,10.7 16.7,10 17.5,10Z"/></svg></div>
-          <h3>Themes &amp; Buddies</h3>
-          <p>Wallpapers, glassmorphism, particles, custom icons, and buddies — characters that tag along with your theme. Share them with friends or build your own with <code>/theme-builder</code>.</p>
+      <div class="faq-list">
+        <div class="faq-item reveal">
+          <button class="faq-question" aria-expanded="false">
+            Claude Code on Android
+            <span class="faq-chevron">&#9660;</span>
+          </button>
+          <div class="faq-answer" role="region">
+            <div class="faq-answer-inner">YouCoded runs the <strong>full terminal-based Claude Code binary</strong> natively on Android — something no other app (including Anthropic's own official mobile app) does. You get all of Claude Code's real agentic abilities on your phone, without the jank and limitations of the official mobile experience. A real Linux shell, bash, Node.js, Python, and git all run on-device, installed automatically on first launch. Every skill, theme, hook, and integration you set up on your desktop works on your phone too.</div>
+          </div>
         </div>
-        <div class="feature-card reveal reveal-d2">
-          <div class="feature-icon"><svg viewBox="0 0 24 24"><path d="M11 15H6L13 1V9H18L11 23V15Z"/></svg></div>
-          <h3>DestinClaude Marketplace</h3>
-          <p>Themes, skills, games, integrations, buddies, and more — 150+ items and growing. Install what you want, share what you build.</p>
+        <div class="faq-item reveal">
+          <button class="faq-question" aria-expanded="false">
+            Better-than-native Remote Access
+            <span class="faq-chevron">&#9660;</span>
+          </button>
+          <div class="faq-answer" role="region">
+            <div class="faq-answer-inner">YouCoded offers two flavors of remote: mirror the exact UI you'd see on desktop or mobile into any browser for live input/output, or jack the Android app's native UI directly into your desktop's backend so the phone becomes a thin client with a full local-feeling experience. Claude Code has remote access from Anthropic, but it's mega janky — ours is significantly better-than-native. Includes built-in anti-sleep features to keep your computer awake and ready when you're remoting in.</div>
+          </div>
         </div>
-        <div class="feature-card reveal reveal-d3">
-          <div class="feature-icon"><svg viewBox="0 0 24 24"><path d="M6,9H8V11H10V13H8V15H6V13H4V11H6V9M18.5,9A1.5,1.5 0 0,1 20,10.5A1.5,1.5 0 0,1 18.5,12A1.5,1.5 0 0,1 17,10.5A1.5,1.5 0 0,1 18.5,9M15.5,12A1.5,1.5 0 0,1 17,13.5A1.5,1.5 0 0,1 15.5,15A1.5,1.5 0 0,1 14,13.5A1.5,1.5 0 0,1 15.5,12M17,5A7,7 0 0,1 24,12A7,7 0 0,1 17,19C15.04,19 13.27,18.2 12,16.9C10.73,18.2 8.96,19 7,19A7,7 0 0,1 0,12A7,7 0 0,1 7,5H17M7,7A5,5 0 0,0 2,12A5,5 0 0,0 7,17C8.64,17 10.09,16.21 11,15H13C13.91,16.21 15.36,17 17,17A5,5 0 0,0 22,12A5,5 0 0,0 17,7H7Z"/></svg></div>
-          <h3>Multiplayer Games</h3>
-          <p>Play with friends while Claude works. Because waiting for AI doesn't have to be boring.</p>
+        <div class="faq-item reveal">
+          <button class="faq-question" aria-expanded="false">
+            Cross-Device Sync &amp; Restore
+            <span class="faq-chevron">&#9660;</span>
+          </button>
+          <div class="faq-answer" role="region">
+            <div class="faq-answer-inner">Automatic up-sync and down-sync across every device you use, plus full restore-from-backup when you set up a new machine. Conversation history, skills you've built (not just marketplace installs), themes, and settings all travel with you. Pick your backend: Google Drive, iCloud, or GitHub. Native Claude Code does none of this.</div>
+          </div>
         </div>
-        <div class="feature-card reveal reveal-d4">
-          <div class="feature-icon"><svg viewBox="0 0 24 24"><path d="M17,19H7V5H17M17,1H7C5.89,1 5,1.89 5,3V21A2,2 0 0,0 7,23H17A2,2 0 0,0 19,21V3C19,1.89 18.1,1 17,1Z"/></svg></div>
-          <h3>Runs Everywhere</h3>
-          <p>Windows, macOS, Linux, Android — plus remote access from any web browser. Your setup follows you.</p>
+        <div class="faq-item reveal">
+          <button class="faq-question" aria-expanded="false">
+            Themes, Wallpapers &amp; Buddies
+            <span class="faq-chevron">&#9660;</span>
+          </button>
+          <div class="faq-answer" role="region">
+            <div class="faq-answer-inner">A full theming engine tied into every part of the UI — wallpapers, glassmorphism surfaces, particle effects, custom icon sets, and <em>buddies</em>, little mascot characters that tag along with a theme. Build your own from a vibe prompt using <code>/theme-builder</code>, share them with friends directly, or publish to the WeCoded marketplace. Dark, light, halftone, and pastel families included out of the box. Unlike most apps, every mockup, header, bubble, button, and border respects the active theme.</div>
+          </div>
         </div>
-        <div class="feature-card reveal reveal-d5">
-          <div class="feature-icon"><svg viewBox="0 0 24 24"><path d="M21,4H3A2,2 0 0,0 1,6V19A2,2 0 0,0 3,21H21A2,2 0 0,0 23,19V6A2,2 0 0,0 21,4M3,19V6H11V19H3M21,19H13V6H21V19M14,9.5H20V11H14V9.5M14,12H20V13.5H14V12M14,14.5H20V16H14V14.5Z"/></svg></div>
-          <h3>Journaling &amp; Encyclopedia <span class="toolkit-badge">add-on</span></h3>
-          <p>Talk about your day and it gets organized automatically. Over time, Claude builds a living record of your life.</p>
+        <div class="faq-item reveal">
+          <button class="faq-question" aria-expanded="false">
+            WeCoded Community Marketplace
+            <span class="faq-chevron">&#9660;</span>
+          </button>
+          <div class="faq-answer" role="region">
+            <div class="faq-answer-inner">A first-party marketplace for everything that makes the app yours: <strong>skills</strong> (reusable instructions that teach Claude new abilities), <strong>themes</strong>, <strong>games</strong>, and <strong>integrations</strong>. 150+ items and growing, with a curated hero slot, rotating rails (Destin's picks, New this week, Popular), and full publishing tooling so anyone can ship their own. Entries submitted upstream stay upstream; community-built entries live alongside without conflict.</div>
+          </div>
         </div>
-        <div class="feature-card reveal reveal-d6">
-          <div class="feature-icon"><svg viewBox="0 0 24 24"><path d="M22.61,19L13.53,9.91C14.46,7.57 14,4.81 12.09,2.91C9.79,0.61 6.21,0.4 3.66,2.26L7.5,6.11L6.08,7.5L2.25,3.69C0.39,6.23 0.6,9.82 2.9,12.11C4.76,13.97 7.47,14.46 9.79,13.59L18.9,22.7C19.29,23.09 19.92,23.09 20.31,22.7L22.61,20.4C23,20 23,19.39 22.61,19M19.61,20.59L10.15,11.13C9.54,11.58 8.86,11.85 8.15,11.95C6.79,12.15 5.36,11.74 4.32,10.7C3.37,9.76 2.93,8.5 3,7.26L6.09,10.35L10.33,6.11L7.24,3C8.5,2.95 9.73,3.39 10.68,4.33C11.76,5.41 12.17,6.9 11.92,8.29C11.8,9 11.5,9.66 11.04,10.25L20.5,19.7L19.61,20.59Z"/></svg></div>
-          <h3>Tasks &amp; Messaging <span class="toolkit-badge">add-on</span></h3>
-          <p>Process your Todoist inbox, read and send texts, manage your calendar — all through conversation.</p>
+        <div class="faq-item reveal">
+          <button class="faq-question" aria-expanded="false">
+            Skills &amp; External Integrations
+            <span class="faq-chevron">&#9660;</span>
+          </button>
+          <div class="faq-answer" role="region">
+            <div class="faq-answer-inner">Skills are small, shareable packages — a short instructions file plus any helper code — that permanently teach Claude new behaviors. Install from the marketplace or create your own through conversation using <code>/skill-creator</code>. Paired with 18+ external integrations: Google Drive, Docs, Sheets, Slides, Calendar, Gmail, Messages, iMessage, iCloud, Apple Notes, Reminders, Calendar, Mail, Todoist, GitHub, Chrome, Safari, and Canva. Your data stays in your own accounts — YouCoded just orchestrates.</div>
+          </div>
+        </div>
+        <div class="faq-item reveal">
+          <button class="faq-question" aria-expanded="false">
+            Multiplayer Mini-Games
+            <span class="faq-chevron">&#9660;</span>
+          </button>
+          <div class="faq-answer" role="region">
+            <div class="faq-answer-inner">Real-time multiplayer games built right into the app so long-running agent work doesn't feel like thumb-twiddling. Connect 4 ships today with in-game chat, invite links, and cross-platform play (desktop vs. phone vs. browser). Powered by Cloudflare Durable Objects / PartyKit for near-zero latency. More games coming, and the marketplace will soon accept community-built games alongside skills and themes.</div>
+          </div>
+        </div>
+        <div class="faq-item reveal">
+          <button class="faq-question" aria-expanded="false">
+            Permission &amp; Safety Controls
+            <span class="faq-chevron">&#9660;</span>
+          </button>
+          <div class="faq-answer" role="region">
+            <div class="faq-answer-inner">YouCoded always asks before Claude takes any action — file edits, shell commands, network calls, anything. Three permission modes built in: <strong>Normal</strong> (ask for every non-trivial action), <strong>Bypass</strong> (trust everything, for experienced users), and <strong>Plan</strong> (read-only exploration). Per-action allowlists, destructive-command guardrails, and a clear visual status dot at all times. Runs entirely locally by default — no data leaves your machine except the prompt text you explicitly send to Claude.</div>
+          </div>
+        </div>
+        <div class="faq-item reveal">
+          <button class="faq-question" aria-expanded="false">
+            Quality of Life Features
+            <span class="faq-chevron">&#9660;</span>
+          </button>
+          <div class="faq-answer" role="region">
+            <div class="faq-answer-inner">
+              Small things that add up to a much nicer day-to-day than the raw terminal:
+              <ul style="margin: 10px 0 0; padding-left: 20px; line-height: 1.7;">
+                <li>Automatic session naming, so your history is actually searchable</li>
+                <li>Multi-window Chrome-like browsing and navigation between conversations</li>
+                <li>Custom searchable menu for resuming past conversations</li>
+                <li>Status lights and custom sounds when Claude is waiting on you or finishes a response</li>
+                <li>Additional custom hotkeys for session navigation and common actions</li>
+                <li>Both full-terminal (themed) and clean chat views, switchable on the fly</li>
+                <li>Session flagging: <em>Complete</em> hides sessions, <em>Priority</em> sorts to the top, <em>Helpful</em> is informational — more custom flags coming</li>
+                <li>Custom quick chips above the input bar for prompts or skills you use regularly (journal every day? add a quick chip)</li>
+                <li>Themeable status bar widgets with context %, theme switcher, git branch, model selection, permissions mode — and more coming</li>
+                <li>Readable tool cards instead of the terminal's wall of inscrutable text</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div class="faq-item reveal">
+          <button class="faq-question" aria-expanded="false">
+            Uses Your Existing Claude Subscription
+            <span class="faq-chevron">&#9660;</span>
+          </button>
+          <div class="faq-answer" role="region">
+            <div class="faq-answer-inner">No separate API key, no per-token billing, no hidden costs. YouCoded signs in with your existing <a href="https://claude.ai/upgrade">Claude Pro or Max plan</a> and uses your subscription for everything the app does. If you already pay Anthropic for Claude, you pay nothing more to use YouCoded. Pro handles most light-to-medium workloads; Max gives you Opus-tier reasoning and the larger context window for big projects.</div>
+          </div>
         </div>
       </div>
-      <p class="features-note reveal">Features marked <span class="toolkit-badge" style="margin-left: 2px;">add-on</span> require the free <a href="https://github.com/itsdestin/destinclaude">DestinClaude toolkit</a>, installable from within the app.</p>
     </div>
   </section>
 
   <div class="container"><div class="divider"></div></div>
 
   <!-- ORIGIN STORY -->
-  <section class="origin-story-section">
+  <section class="origin-story-section" id="story">
     <div class="container">
+      <p class="section-label reveal">Story</p>
+      <h2 class="section-title reveal">How we got here.</h2>
       <div class="origin-story reveal">
-        <p class="origin-story-text">Every line of DestinCode was written through conversation with Claude — by <strong>someone who has never written code</strong>. Every feature, every platform port, every theme, every multiplayer game. The entire cross-platform app, built and maintained without a single line typed by hand. If that sounds ambitious, that's the point.</p>
+        <p class="origin-story-text">Honestly? I really just wanted to journal. I built the Journaling and Life History system now available in the marketplace, and pretty quickly realized I wanted to share it with friends. However, the idea of opening "Claude Code" in the terminal scared away most of my friends almost immediately. I realized that the idea of advanced agentic AI is still rather new to most people, and that persuading them to adopt my fancy new journaling system would require it to be <em>much</em> more accessible and user-friendly. Towards this end, I kind of just&hellip; kept adding things. And now we're here.</p>
+        <p class="origin-story-text" style="margin-top: 16px;">Every line of YouCoded was written through conversation with Claude by me, <strong>someone who has never written code</strong>. Every feature, every platform port, every theme, every multiplayer game. The entire app was built, and is currently maintained, without a single line typed by hand.</p>
         <a href="https://github.com/itsdestin" target="_blank" class="origin-story-link">Built by Destin &rarr;</a>
       </div>
     </div>
   </section>
-
-  <!-- ANDROID & MOBILE — only shown to Android browser visitors -->
-  <div class="android-gate" id="android-gate">
-  <div class="container"><div class="divider"></div></div>
-
-  <section class="android-section" id="android">
-    <div class="container">
-      <p class="section-label reveal">Your pocket</p>
-      <h2 class="section-title reveal">Full Claude Code. On your phone.</h2>
-      <div class="android-pitch reveal">
-        <p class="android-lead">This isn't a watered-down mobile companion. DestinCode on Android runs the <strong>real Claude Code binary</strong> natively on your device — same skills, same plugins, same power as desktop.</p>
-        <p>Everything you set up on your computer works on your phone too. Themes, marketplace skills, hooks, slash commands — all of it. Start a project on your laptop, pick it up on Android during your commute, then continue at your desk. Your setup follows you.</p>
-        <div class="android-stack">
-          <div class="android-stack-item">
-            <strong>Full environment</strong>
-            A real Linux shell runs on-device — bash, Node.js, Python, git, and more, installed and managed automatically on first launch.
-          </div>
-          <div class="android-stack-item">
-            <strong>Native + familiar</strong>
-            Native Android for file pickers, QR scanning, and device integration. The chat UI is the same interface you use on desktop.
-          </div>
-          <div class="android-stack-item">
-            <strong>Your plugins travel</strong>
-            Every skill, theme, hook, and MCP server you install on desktop works on Android too. No separate setup needed.
-          </div>
-          <div class="android-stack-item">
-            <strong>iPhone?</strong>
-            An iOS app isn't currently possible — Claude Code requires a native Linux environment that Apple doesn't allow on iPhone. But you can use DestinCode from your iPhone's browser by connecting to any computer running the app via remote access. Same full UI, just over your network.
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-  </div>
 
   <div class="container"><div class="divider"></div></div>
 
@@ -2315,7 +2882,7 @@
           <div class="prereq-header">
             <h3>Anthropic</h3>
           </div>
-          <p>A Claude Pro ($20/mo) or Max ($100&ndash;200/mo) subscription for Claude Code, which powers everything in DestinCode. The app itself is free &mdash; you're paying for the AI.</p>
+          <p>A Claude Pro ($20/mo) or Max ($100&ndash;200/mo) subscription for Claude Code, which powers everything in YouCoded. The app itself is free &mdash; you're paying for the AI.</p>
           <a href="https://claude.ai/upgrade" target="_blank" class="prereq-link">Subscribe to Claude &rarr;</a>
         </div>
         <div class="prereq-card reveal reveal-d2">
@@ -2326,7 +2893,7 @@
           <div class="prereq-header">
             <h3>Google or Apple</h3>
           </div>
-          <p>The DestinClaude toolkit stores your personal data in your own Google Drive or iCloud account.</p>
+          <p>WeCoded marketplace skills store your personal data in your own Google Drive or iCloud account.</p>
           <a href="https://accounts.google.com/signup" target="_blank" class="prereq-link">Create Google Account &rarr;</a>
         </div>
         <div class="prereq-card reveal reveal-d3">
@@ -2337,32 +2904,32 @@
           <div class="prereq-header">
             <h3>GitHub</h3>
           </div>
-          <p>Required to receive toolkit updates. Sign up with your Google or Apple account.</p>
+          <p>Required to receive marketplace updates. Sign up with your Google or Apple account.</p>
           <a href="https://github.com/signup" target="_blank" class="prereq-link">Create GitHub Account &rarr;</a>
         </div>
       </div>
       <div class="integrations-section reveal">
-        <h3 class="integrations-title">Available Integrations</h3>
-        <p class="integrations-intro">The DestinClaude toolkit can link with all of the following services:</p>
+        <h3 class="integrations-title">Available Integrations <span class="toolkit-badge">WeCoded</span></h3>
+        <p class="integrations-intro">With skills from the WeCoded marketplace, YouCoded can link with all of the following services:</p>
         <div class="integrations-tags">
-          <button class="integration-tag" tabindex="0" data-desc="DestinClaude can automatically back up your journal entries, Encyclopedia, and system files to Google Drive — keeping everything safe and synced across sessions."><img class="tag-icon" src="icons/google-drive.svg" alt="">Google Drive</button>
-          <button class="integration-tag" tabindex="0" data-desc="DestinClaude can create, read, and edit documents — drafting cover letters, memos, reports, and more directly in Google Docs."><img class="tag-icon" src="icons/google-docs.svg" alt="">Google Docs</button>
-          <button class="integration-tag" tabindex="0" data-desc="DestinClaude can create and analyze spreadsheets — building trackers, organizing data, and working with structured information in Google Sheets."><img class="tag-icon" src="icons/google-sheets.svg" alt="">Google Sheets</button>
-          <button class="integration-tag" tabindex="0" data-desc="DestinClaude can create and edit slide decks and visual presentations in Google Slides."><img class="tag-icon" src="icons/google-slides.svg" alt="">Google Slides</button>
-          <button class="integration-tag" tabindex="0" data-desc="DestinClaude can read and create events on your Google Calendar. Mention an appointment in conversation or screenshot a flyer, and it can get scheduled automatically."><img class="tag-icon" src="icons/google-calendar.svg" alt="">Google Calendar</button>
-          <button class="integration-tag" tabindex="0" data-desc="DestinClaude can search your inbox, read threads, and compose replies in Gmail — all without leaving the app."><img class="tag-icon" src="icons/gmail.svg" alt="">Gmail</button>
-          <button class="integration-tag" tabindex="0" data-desc="DestinClaude can read your SMS and RCS conversations and send texts on your behalf through Google Messages."><img class="tag-icon" src="icons/google-messages.svg" alt="">Google Messages</button>
-          <button class="integration-tag" tabindex="0" data-desc="DestinClaude can access your Apple Messages conversations and send texts through iMessage."><img class="tag-icon" src="icons/imessage.svg" alt="">iMessage</button>
-          <button class="integration-tag" tabindex="0" data-desc="DestinClaude can automatically back up your journal entries, Encyclopedia, and system files to iCloud Drive — keeping everything safe and synced across sessions."><img class="tag-icon" src="icons/icloud.svg" alt="">iCloud</button>
-          <button class="integration-tag" tabindex="0" data-desc="DestinClaude can read your existing Apple Notes and create new ones for quick reference and capture."><img class="tag-icon" src="icons/apple-notes.svg" alt="">Apple Notes</button>
-          <button class="integration-tag" tabindex="0" data-desc="DestinClaude can add items to your Apple Reminders lists and help you keep track of things to do."><img class="tag-icon" src="icons/apple-reminders.svg" alt="">Apple Reminders</button>
-          <button class="integration-tag" tabindex="0" data-desc="DestinClaude can read and create events on your Apple Calendar. Mention an appointment in conversation or screenshot a flyer, and it can get scheduled automatically."><img class="tag-icon" src="icons/apple-calendar.svg" alt="">Apple Calendar</button>
-          <button class="integration-tag" tabindex="0" data-desc="DestinClaude can search your inbox, read threads, and compose replies through Apple Mail."><img class="tag-icon" src="icons/apple-mail.svg" alt="">Apple Mail</button>
-          <button class="integration-tag" tabindex="0" data-desc="DestinClaude can manage your task list, process inbox items captured from your phone, create tasks from conversations, and help you stay on top of priorities."><img class="tag-icon" src="icons/todoist.svg" alt="">Todoist</button>
-          <button class="integration-tag" tabindex="0" data-desc="DestinClaude can receive toolkit updates and sync your configuration through GitHub, keeping your installation current with the latest features and fixes."><img class="tag-icon" src="icons/github.svg" alt="">GitHub</button>
-          <button class="integration-tag" tabindex="0" data-desc="DestinClaude can navigate websites, fill out forms, take screenshots, and interact with web pages through Chrome."><img class="tag-icon" src="icons/chrome.svg" alt="">Chrome</button>
-          <button class="integration-tag" tabindex="0" data-desc="DestinClaude can navigate websites, fill out forms, take screenshots, and interact with web pages through Safari."><img class="tag-icon" src="icons/safari.svg" alt="">Safari</button>
-          <button class="integration-tag" tabindex="0" data-desc="DestinClaude can generate graphics, edit presentations, and work with visual content directly in Canva."><img class="tag-icon" src="icons/canva.svg" alt="">Canva</button>
+          <button class="integration-tag" tabindex="0" data-desc="YouCoded can automatically back up your journal entries, Encyclopedia, and system files to Google Drive — keeping everything safe and synced across sessions."><img class="tag-icon" src="icons/google-drive.svg" alt="">Google Drive</button>
+          <button class="integration-tag" tabindex="0" data-desc="YouCoded can create, read, and edit documents — drafting cover letters, memos, reports, and more directly in Google Docs."><img class="tag-icon" src="icons/google-docs.svg" alt="">Google Docs</button>
+          <button class="integration-tag" tabindex="0" data-desc="YouCoded can create and analyze spreadsheets — building trackers, organizing data, and working with structured information in Google Sheets."><img class="tag-icon" src="icons/google-sheets.svg" alt="">Google Sheets</button>
+          <button class="integration-tag" tabindex="0" data-desc="YouCoded can create and edit slide decks and visual presentations in Google Slides."><img class="tag-icon" src="icons/google-slides.svg" alt="">Google Slides</button>
+          <button class="integration-tag" tabindex="0" data-desc="YouCoded can read and create events on your Google Calendar. Mention an appointment in conversation or screenshot a flyer, and it can get scheduled automatically."><img class="tag-icon" src="icons/google-calendar.svg" alt="">Google Calendar</button>
+          <button class="integration-tag" tabindex="0" data-desc="YouCoded can search your inbox, read threads, and compose replies in Gmail — all without leaving the app."><img class="tag-icon" src="icons/gmail.svg" alt="">Gmail</button>
+          <button class="integration-tag" tabindex="0" data-desc="YouCoded can read your SMS and RCS conversations and send texts on your behalf through Google Messages."><img class="tag-icon" src="icons/google-messages.svg" alt="">Google Messages</button>
+          <button class="integration-tag" tabindex="0" data-desc="YouCoded can access your Apple Messages conversations and send texts through iMessage."><img class="tag-icon" src="icons/imessage.svg" alt="">iMessage</button>
+          <button class="integration-tag" tabindex="0" data-desc="YouCoded can automatically back up your journal entries, Encyclopedia, and system files to iCloud Drive — keeping everything safe and synced across sessions."><img class="tag-icon" src="icons/icloud.svg" alt="">iCloud</button>
+          <button class="integration-tag" tabindex="0" data-desc="YouCoded can read your existing Apple Notes and create new ones for quick reference and capture."><img class="tag-icon" src="icons/apple-notes.svg" alt="">Apple Notes</button>
+          <button class="integration-tag" tabindex="0" data-desc="YouCoded can add items to your Apple Reminders lists and help you keep track of things to do."><img class="tag-icon" src="icons/apple-reminders.svg" alt="">Apple Reminders</button>
+          <button class="integration-tag" tabindex="0" data-desc="YouCoded can read and create events on your Apple Calendar. Mention an appointment in conversation or screenshot a flyer, and it can get scheduled automatically."><img class="tag-icon" src="icons/apple-calendar.svg" alt="">Apple Calendar</button>
+          <button class="integration-tag" tabindex="0" data-desc="YouCoded can search your inbox, read threads, and compose replies through Apple Mail."><img class="tag-icon" src="icons/apple-mail.svg" alt="">Apple Mail</button>
+          <button class="integration-tag" tabindex="0" data-desc="YouCoded can manage your task list, process inbox items captured from your phone, create tasks from conversations, and help you stay on top of priorities."><img class="tag-icon" src="icons/todoist.svg" alt="">Todoist</button>
+          <button class="integration-tag" tabindex="0" data-desc="YouCoded can receive marketplace updates and sync your configuration through GitHub, keeping your installation current with the latest features and fixes."><img class="tag-icon" src="icons/github.svg" alt="">GitHub</button>
+          <button class="integration-tag" tabindex="0" data-desc="YouCoded can navigate websites, fill out forms, take screenshots, and interact with web pages through Chrome."><img class="tag-icon" src="icons/chrome.svg" alt="">Chrome</button>
+          <button class="integration-tag" tabindex="0" data-desc="YouCoded can navigate websites, fill out forms, take screenshots, and interact with web pages through Safari."><img class="tag-icon" src="icons/safari.svg" alt="">Safari</button>
+          <button class="integration-tag" tabindex="0" data-desc="YouCoded can generate graphics, edit presentations, and work with visual content directly in Canva."><img class="tag-icon" src="icons/canva.svg" alt="">Canva</button>
           <span class="integration-tag soon">More coming soon...</span>
         </div>
         <div class="integration-desc" id="integration-desc"></div>
@@ -2377,7 +2944,7 @@
   <section class="download-section" id="download">
     <div class="container">
       <p class="section-label reveal">Get started</p>
-      <h2 class="section-title reveal">Download DestinCode</h2>
+      <h2 class="section-title reveal">Download YouCoded</h2>
       <div class="download-grid reveal">
         <!-- href is set dynamically by latest-release fetch below; releases page is the safe fallback.
              The .download-card-icon wrapper anchors each card visually and matches .feature-icon. -->
@@ -2410,7 +2977,7 @@
           </div>
         </a>
       </div>
-      <p class="download-note reveal">Free and open source. Just bring your <a href="https://claude.ai/upgrade" target="_blank">Claude Pro or Max</a> plan.<br>On iPhone? Use DestinCode from Safari by connecting to any computer running the app via remote access.</p>
+      <p class="download-note reveal">Free and open source. Just bring your <a href="https://claude.ai/upgrade" target="_blank">Claude Pro or Max</a> plan.<br>On iPhone? Use YouCoded from Safari by connecting to any computer running the app via remote access.</p>
     </div>
   </section>
 
@@ -2428,7 +2995,7 @@
             <span class="faq-chevron">&#9660;</span>
           </button>
           <div class="faq-answer" role="region">
-            <div class="faq-answer-inner">Claude.ai is a chat website. DestinCode is a full app built on <strong>Claude Code</strong> — a different, more powerful mode of Claude that can create files, run terminal commands, manage your computer, and interact with external services. Think of claude.ai as texting Claude, and DestinCode as giving Claude hands. On top of that, DestinCode adds custom themes, a marketplace full of downloadable skills, games, and integrations, multiplayer mini-games, remote access, and (with the optional toolkit) journaling, a personal encyclopedia, and messaging integrations that claude.ai doesn't have. The goal is to make AI feel fun, social, and personal — not like another boring productivity tool.</div>
+            <div class="faq-answer-inner">Claude.ai is a chat website. YouCoded is an app built on top of <strong>Claude Code</strong> — a more powerful form of Claude that can create files, run terminal commands, manage your computer, and interact more meaningfully with a wider range of external services. Think of claude.ai as texting Claude, and YouCoded as giving Claude hands (with themes, a marketplace, games, and remote access layered on top).</div>
           </div>
         </div>
         <div class="faq-item reveal">
@@ -2437,7 +3004,7 @@
             <span class="faq-chevron">&#9660;</span>
           </button>
           <div class="faq-answer" role="region">
-            <div class="faq-answer-inner">Everything DestinCode and its toolkit create — journal entries, your Encyclopedia, tasks — is stored in <strong>your own</strong> Google Drive or iCloud account. Nothing is sent to third-party servers beyond the services you explicitly connect. Your data stays yours.</div>
+            <div class="faq-answer-inner">Everything YouCoded and your installed WeCoded skills create — journal entries, your Encyclopedia, tasks — is stored in <strong>your own</strong> Google Drive or iCloud account. While data is temporarily sent to Claude/Anthropic to make the actual AI work, the long-term storage of your data is fully managed by you. YouCoded only collects skills, themes, and other marketplace entries &mdash; and only if you choose to share them.</div>
           </div>
         </div>
         <div class="faq-item reveal">
@@ -2446,7 +3013,7 @@
             <span class="faq-chevron">&#9660;</span>
           </button>
           <div class="faq-answer" role="region">
-            <div class="faq-answer-inner">The $20 goes to Anthropic for a Claude Pro subscription, which gives you access to Claude Code — the AI that powers everything. DestinCode itself is free and open source. You're paying for the AI, not the app.</div>
+            <div class="faq-answer-inner">The $20 goes to Anthropic for a Claude Pro subscription, which gives you access to Claude Code — the AI that powers everything. YouCoded itself is free and open source. You're paying for the AI, not the app.</div>
           </div>
         </div>
         <div class="faq-item reveal">
@@ -2455,7 +3022,7 @@
             <span class="faq-chevron">&#9660;</span>
           </button>
           <div class="faq-answer" role="region">
-            <div class="faq-answer-inner">Windows, macOS, Linux, and Android are all fully supported with native apps. You can also access DestinCode remotely from any web browser. Apple ecosystem integrations (iMessage, Apple Notes, etc.) are only available on macOS.</div>
+            <div class="faq-answer-inner">Windows, macOS, Linux, and Android are all fully supported with native apps. You can also access YouCoded remotely from any web browser. Apple ecosystem integrations (iMessage, Apple Notes, etc.) are only available on macOS.</div>
           </div>
         </div>
         <div class="faq-item reveal">
@@ -2464,28 +3031,47 @@
             <span class="faq-chevron">&#9660;</span>
           </button>
           <div class="faq-answer" role="region">
-            <div class="faq-answer-inner">Not at all. DestinCode was built entirely by a non-developer using Claude Code itself. The app is designed for everyone — students, professionals, anyone who uses AI regularly. If you can send a text message, you can use DestinCode.</div>
+            <div class="faq-answer-inner">Not at all. YouCoded was built entirely by a non-developer using Claude Code itself. The app is designed for everyone — students, professionals, and anyone else who uses AI regularly. If you can use ChatGPT, you can use YouCoded.</div>
           </div>
         </div>
         <div class="faq-item reveal">
           <button class="faq-question" aria-expanded="false">
-            Can I make my own themes?
+            I've heard bad things about "agentic" AI. Is it safe?
             <span class="faq-chevron">&#9660;</span>
           </button>
           <div class="faq-answer" role="region">
-            <div class="faq-answer-inner">Yes — just describe the vibe you want and Claude builds it. Use <code>/theme-builder</code> inside the app. Themes support wallpapers, glassmorphism, particle effects, mascots, custom icons, and more. You can share your themes with friends or publish them to the community marketplace.</div>
+            <div class="faq-answer-inner">YouCoded always asks for permission before taking actions, so it's hard to break things accidentally. Claude is also, in my personal experience, much less prone to errors and hallucinations than models like ChatGPT and Gemini. However, AI is still prone to mistakes. Claude's permission settings should prevent those mistakes from being translated into action, but you should always monitor your AI assistant when in use to verify it's acting as intended. You should be especially cautious when taking advantage of "Bypass Permissions" mode, which allows Claude to act without your input.</div>
           </div>
         </div>
         <div class="faq-item reveal">
           <button class="faq-question" aria-expanded="false">
-            What if I break something?
+            Who built this?
             <span class="faq-chevron">&#9660;</span>
           </button>
           <div class="faq-answer" role="region">
-            <div class="faq-answer-inner">DestinCode always asks for permission before taking actions, so it's hard to break things accidentally. If something does go wrong, the system uses git version control under the hood — you can always roll back.</div>
+            <div class="faq-answer-inner">So far, it's just me (Destin). However, my intention is for this open-source project to become something we all build together. I believe one of the greatest potential goods of AI comes from its ability to revolutionize the world of open-source software. This project is just one example of what AI can allow us to create: an app owned by nobody, improved by everybody &mdash; all without anyone needing to learn how to code or even understand what "open-source" is. No profit motive, no ulterior incentives &mdash; just people making cool shit and sharing it with other people :)</div>
           </div>
         </div>
       </div>
+    </div>
+  </section>
+
+  <div class="container"><div class="divider"></div></div>
+
+  <!-- GALLERY — scrollable image strip (images added later) -->
+  <section class="gallery-section" id="gallery">
+    <div class="container">
+      <p class="section-label reveal">Gallery</p>
+      <h2 class="section-title reveal">See what people have built.</h2>
+    </div>
+    <div class="gallery-scroll reveal" id="gallery-scroll">
+      <!-- Placeholder tiles — replace with <img> tags once images are ready -->
+      <div class="gallery-item gallery-placeholder"></div>
+      <div class="gallery-item gallery-placeholder"></div>
+      <div class="gallery-item gallery-placeholder"></div>
+      <div class="gallery-item gallery-placeholder"></div>
+      <div class="gallery-item gallery-placeholder"></div>
+      <div class="gallery-item gallery-placeholder"></div>
     </div>
   </section>
 
@@ -2494,8 +3080,8 @@
     <div class="container">
       <div class="footer-inner">
         <a href="#top" class="footer-logo">
-          <img src="favicon-dark.svg" alt="DestinCode" class="nav-icon theme-icon-img" width="20" height="20">
-          <span>Destin<span style="color: var(--title-highlight)">Code</span></span>
+          <img src="favicon-dark.svg" alt="YouCoded" class="nav-icon theme-icon-img" width="20" height="20">
+          <span>You<span style="color: var(--title-highlight)">Coded</span></span>
         </a>
         <div class="footer-links">
           <a href="https://github.com/itsdestin/destincode" target="_blank">
@@ -2505,7 +3091,7 @@
           <a href="https://github.com/itsdestin" target="_blank">Built by Destin</a>
           <span class="prereq-badge free" style="font-size: 0.7rem;">Open Source</span>
         </div>
-        <p class="footer-legal">MIT License &middot; DestinCode is an independent, community-built project. Not affiliated with, endorsed by, or officially supported by Anthropic.</p>
+        <p class="footer-legal">MIT License &middot; YouCoded is an independent, community-built project. Not affiliated with, endorsed by, or officially supported by Anthropic.</p>
       </div>
     </div>
   </footer>
@@ -2517,18 +3103,25 @@
   <button class="back-to-top" id="back-to-top" aria-label="Back to top">&uarr;</button>
 
   <script>
-    // --- Theme cycling: midnight → creme → halftone → midnight ---
-    var THEMES = ['midnight', 'creme', 'halftone'];
-    // Icons: ☾ moon (next=creme shows sun), ☀ sun (next=halftone shows diamond), ◆ diamond (next=midnight shows moon)
-    // SVG strings for theme toggle icons — each shows what the NEXT theme is.
-    // Using inline SVGs instead of unicode glyphs so they render identically
-    // across Windows, macOS, and Android.
+    // Disable browser scroll restoration and pin to top so every refresh
+    // replays the hero intro from the beginning, regardless of where the
+    // user was scrolled before reloading.
+    if ('scrollRestoration' in history) { history.scrollRestoration = 'manual'; }
+    window.scrollTo(0, 0);
+
+    // --- Theme cycling: midnight → creme → halftone → strawberry-kitty → midnight ---
+    // The hero headline animation also swaps themes in sync (Useful=midnight,
+    // Fun=halftone, Cute=strawberry-kitty, Yours=creme), ending rested on creme.
+    // Manual toggle cancels any pending hero-driven swaps so user intent wins.
+    var THEMES = ['midnight', 'creme', 'halftone', 'strawberry-kitty'];
+    // SVG icons shown on the toggle button — each represents the NEXT theme.
     var THEME_ICONS = {
       midnight: '<svg viewBox="0 0 24 24" width="16" height="16"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="currentColor"/></svg>',
       creme: '<svg viewBox="0 0 24 24" width="16" height="16"><circle cx="12" cy="12" r="4" fill="currentColor"/><path d="M12 2v3m0 14v3M4.22 4.22l2.12 2.12m11.32 11.32l2.12 2.12M2 12h3m14 0h3M4.22 19.78l2.12-2.12m11.32-11.32l2.12-2.12" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>',
-      halftone: '<svg viewBox="0 0 24 24" width="16" height="16"><path d="M12,1L9,9L1,12L9,15L12,23L15,15L23,12L15,9L12,1Z" fill="currentColor"/></svg>'
+      halftone: '<svg viewBox="0 0 24 24" width="16" height="16"><path d="M12,1L9,9L1,12L9,15L12,23L15,15L23,12L15,9L12,1Z" fill="currentColor"/></svg>',
+      'strawberry-kitty': '<svg viewBox="0 0 24 24" width="16" height="16"><path d="M12 21s-7-4.5-9.5-9a5 5 0 0 1 9.5-3 5 5 0 0 1 9.5 3C19 16.5 12 21 12 21z" fill="currentColor"/></svg>'
     };
-    var THEME_ATTRS = { midnight: null, creme: 'creme', halftone: 'halftone' };
+    var THEME_ATTRS = { midnight: null, creme: 'creme', halftone: 'halftone', 'strawberry-kitty': 'strawberry-kitty' };
     var htmlEl = document.documentElement;
 
     function getStoredTheme() {
@@ -2537,14 +3130,19 @@
       return 'midnight';
     }
 
-    function applyTheme(theme) {
+    function applyThemeRaw(theme) {
       if (THEME_ATTRS[theme]) {
         htmlEl.setAttribute('data-theme', THEME_ATTRS[theme]);
       } else {
         htmlEl.removeAttribute('data-theme');
       }
-      // Update favicon + all DC icons per theme
-      var faviconMap = { midnight: 'favicon-dark.svg', creme: 'favicon-light.svg', halftone: 'favicon-halftone.svg' };
+      // Update favicon + all site icons per theme
+      var faviconMap = {
+        midnight: 'favicon-dark.svg',
+        creme: 'favicon-light.svg',
+        halftone: 'favicon-halftone.svg',
+        'strawberry-kitty': 'favicon-kitty.svg'
+      };
       var src = faviconMap[theme] || 'favicon-dark.svg';
       var favicon = document.getElementById('favicon');
       if (favicon) favicon.href = src;
@@ -2558,7 +3156,117 @@
       });
     }
 
+    // Cross-fade themes via the View Transitions API. Falls back to instant
+    // swap on browsers without support (older Safari/Firefox).
+    function applyTheme(theme) {
+      if (document.startViewTransition) {
+        document.startViewTransition(function() { applyThemeRaw(theme); });
+      } else {
+        applyThemeRaw(theme);
+      }
+    }
+
+    // Hero-synced theme swap. Timings are shifted ~200ms AFTER each word's
+    // settle-point so the View Transition snapshot captures the h1 during
+    // the word's static hold phase. The 0.9s crossfade then completes
+    // before the next word starts to bump out — the frozen snapshot is
+    // indistinguishable from the live word sitting still.
+    //
+    // Word settle times: 0.7s / 2.7s / 4.7s / 6.7s
+    // Word exit starts:  2.0s / 4.0s / 6.0s / never (Yours rests)
+    var HERO_THEME_SEQUENCE = [
+      { theme: 'midnight',         at:  700 },
+      { theme: 'halftone',         at: 2700 },
+      { theme: 'strawberry-kitty', at: 4700 },
+      { theme: 'creme',            at: 6700 }
+    ];
+    var heroSyncCancelled = false;
+    var heroSyncTimers = [];
+
+    function exitIntroMode() {
+      document.body.classList.remove('intro-mode');
+    }
+
+    function cancelHeroSync() {
+      heroSyncCancelled = true;
+      heroSyncTimers.forEach(function(id) { clearTimeout(id); });
+      heroSyncTimers = [];
+      // If the user hits the theme toggle mid-intro, let the rest of the page fill in.
+      exitIntroMode();
+    }
+
+    // Measure each cycler word at its natural rendered size. Clones the word
+    // into the h1 (so font / weight / italic / text-stroke inherit correctly),
+    // strips animation + positioning so it takes intrinsic width, reads it,
+    // then removes the clone. Returns pixel widths in DOM order (word-1..N).
+    function measureCyclerWords() {
+      var cycler = document.querySelector('.word-cycler');
+      if (!cycler) return [];
+      var words = cycler.querySelectorAll('.cycler-word');
+      var widths = [];
+      words.forEach(function(w) {
+        var clone = w.cloneNode(true);
+        clone.style.cssText =
+          'position:absolute;left:-9999px;top:0;display:inline-block;' +
+          'width:auto;opacity:1;transform:none;animation:none;' +
+          'white-space:nowrap;visibility:hidden;';
+        cycler.appendChild(clone);
+        widths.push(clone.getBoundingClientRect().width);
+        cycler.removeChild(clone);
+      });
+      return widths;
+    }
+
+    // Drive the cycler's width as a CSS custom property so the whole
+    // "Make Claude X" line re-centers smoothly on each word-switch
+    // (hero text-align:center + width transition on .word-cycler).
+    // +4px buffer accounts for -webkit-text-stroke on "Yours." (stroke
+    // adds to paint width but not the layout box that getBoundingClientRect
+    // measures) and subpixel rounding across fonts/platforms.
+    function setCyclerWidth(px) {
+      var cycler = document.querySelector('.word-cycler');
+      if (cycler) cycler.style.setProperty('--cycler-width', (px + 4) + 'px');
+    }
+
+    function runHeroThemeSync() {
+      // Respect reduced-motion — the hero pins on Yours., so we also rest on creme immediately
+      // and skip the intro lockout so the full page is available from first paint.
+      var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (reduced) {
+        applyTheme('creme');
+        localStorage.setItem('dc-theme', 'creme');
+        exitIntroMode();
+        return;
+      }
+
+      // Measure word widths and pin the cycler to word-1 for the opening frame
+      // so "Make Claude " sits centered with the correct gap before Useful. lands.
+      var widths = measureCyclerWords();
+      if (widths.length) setCyclerWidth(widths[0]);
+
+      HERO_THEME_SEQUENCE.forEach(function(step, i) {
+        var id = setTimeout(function() {
+          if (heroSyncCancelled) return;
+          applyTheme(step.theme);
+          localStorage.setItem('dc-theme', step.theme);
+          // Re-center the line on each word's arrival. Index matches the
+          // HERO_THEME_SEQUENCE → cycler-word order 1:1.
+          if (widths[i]) setCyclerWidth(widths[i]);
+        }, step.at);
+        heroSyncTimers.push(id);
+      });
+
+      // Release intro-mode after the final "Yours." crossfade completes
+      // (6700ms swap + 900ms transition = 7600ms, +100ms buffer).
+      var exitId = setTimeout(function() {
+        if (heroSyncCancelled) return;
+        exitIntroMode();
+      }, 7700);
+      heroSyncTimers.push(exitId);
+    }
+
     function cycleTheme() {
+      cancelHeroSync();
       var current = getStoredTheme();
       var nextIdx = (THEMES.indexOf(current) + 1) % THEMES.length;
       var next = THEMES[nextIdx];
@@ -2566,8 +3274,11 @@
       applyTheme(next);
     }
 
-    // Apply on load
-    applyTheme(getStoredTheme());
+    // Apply stored theme on first paint so initial frames aren't a flash of midnight,
+    // then kick off the hero-synced cycle. Initial apply is instant (applyThemeRaw)
+    // so we don't fire a dip-fade before the first frame renders.
+    applyThemeRaw(getStoredTheme());
+    runHeroThemeSync();
 
     // Bind both toggle buttons
     document.getElementById('theme-toggle').addEventListener('click', cycleTheme);
@@ -2589,7 +3300,7 @@
       // Reset — clear theme, hide elements, restore spinner
       app.classList.remove('theme-golden');
       tool2.style.display = 'none';
-      if (spinner) { spinner.className = 'demo-spinner'; }
+      if (spinner) { spinner.className = 'mock-braille-spinner'; }
       if (toolLabel) { toolLabel.textContent = 'Write'; }
       if (toolText) { toolText.textContent = 'manifest.json'; }
       if (themePill) { themePill.textContent = 'midnight'; }
@@ -2608,10 +3319,15 @@
         if (delay) setTimeout(function() { el.classList.add('show'); }, delay);
       });
 
-      // Spinner completes — swap icon to checkmark
+      // Spinner completes — swap icon to CheckIcon SVG (matches real app).
       setTimeout(function() {
         if (spinner) {
-          spinner.outerHTML = '<span style="color:#4CAF50;font-weight:700;font-size:13px;">&#10003;</span>';
+          spinner.outerHTML =
+            '<svg class="mock-tool-icon-svg" viewBox="0 0 24 24" fill="none" ' +
+            'stroke="currentColor" style="color:var(--m-fg-2);">' +
+            '<circle cx="12" cy="12" r="9" stroke-width="1.5"/>' +
+            '<path d="M8 12.5 L11 15.5 L16.5 9" stroke-width="2" ' +
+            'stroke-linecap="round" stroke-linejoin="round"/></svg>';
         }
         if (toolText) { toolText.textContent = 'manifest.json — complete'; }
       }, 3800);
