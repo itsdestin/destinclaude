@@ -1,6 +1,24 @@
 # Changelog
 
-All notable changes to DestinClaude will be documented in this file.
+All notable changes to YouCoded Core will be documented in this file.
+
+## [1.0.1] - 2026-04-15
+
+### Fixed
+- **Landing page marketplace link** — Footer/intro link now points to `itsdestin/wecoded-marketplace` (was incorrectly pointing to `itsdestin/youcoded-core` after the rebrand sed pass).
+- **Reference icon SVGs** — `icon-light-reference.svg` and `icon-dark-reference.svg` now show "YC" instead of the leftover "D" from the old monogram.
+
+## [1.0.0] - 2026-04-15
+
+Rebrand release. DestinClaude is now YouCoded Core. All identifiers, paths, URLs, and user-visible strings updated. See `itsdestin/youcoded-core` (formerly `itsdestin/destinclaude`) on GitHub.
+
+### Changed
+- **Repo renamed** — `itsdestin/destinclaude` → `itsdestin/youcoded-core`.
+- **Install path** — `~/.claude/plugins/destinclaude/` → `~/.claude/plugins/youcoded-core/`.
+- **Plugin name** — `destinclaude` → `youcoded-core`.
+- **Bootstrap installer** — `bootstrap/install.sh` + `install.ps1` clone from the new URL and install to the new path; banner and messages rebranded.
+- **Hooks manifest** — All `~/.claude/plugins/destinclaude/...` paths in `hooks/hooks-manifest.json` retargeted to the new install dir.
+- **Commands** — `/health`, `/update`, `/restore`, `/diagnose` updated to reference the new repo and paths.
 
 ## [2.4.0] - 2026-04-15
 
