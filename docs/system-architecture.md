@@ -45,14 +45,12 @@ Hooks are bash scripts that run automatically in response to Claude Code events.
 | `session-end-sync.sh` | SessionEnd | Ensures all conversation JSONL files are backed up on session exit (bypasses debounce) |
 | `done-sound.sh` | Stop | Plays audio notification when Claude finishes a task (cross-platform) |
 | `lib/hook-preamble.sh` | (sourced library) | Shared hook infrastructure: trap handlers, cleanup registration, error capture, portable timeout, log rotation, atomic writes |
-| `lib/backup-common.sh` | (sourced library) | Shared utilities: debounce, logging, config reading, symlink ownership detection |
-| `lib/migrate.sh` | (sourced library) | Backup schema migration runner — reads backup-meta.json, runs sequential vN-to-vN+1 scripts |
 
 **Hook composition:** If a user already has hooks at the same trigger points, the setup wizard offers to merge logic (preserving both) or let the user choose which to keep. The backup system ensures nothing is lost.
 
 **Hook settings manifest:** `core/hooks/hooks-manifest.json` declares the desired state for all hook registrations in `settings.json`. The `/update` command's `settings-migrate` phase reconciles the user's settings against this manifest — adding new hooks, updating properties, and enforcing minimum timeouts (MAX of user value and manifest value).
 
-**Shared libraries:** `core/hooks/lib/` contains sourced utilities (`hook-preamble.sh`, `backup-common.sh`, `migrate.sh`) that are not hooks themselves but are loaded by hooks at runtime. `core/hooks/migrations/` contains schema migration scripts and the v1 baseline definition.
+**Shared libraries:** `core/hooks/lib/` contains sourced utilities (`hook-preamble.sh`) that are not hooks themselves but are loaded by hooks at runtime.
 
 **File permissions:** All `.sh` hook scripts must be committed with the execute bit set (`100755` in git). Without this, macOS and Linux users get "Permission denied" errors when Claude Code invokes the hooks. Windows git does not enforce file permissions, so this is invisible during development on Windows — always verify with `git ls-files -s core/hooks/*.sh` before releasing. Use `git update-index --chmod=+x <file>` on Windows to set the bit.
 

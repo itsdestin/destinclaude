@@ -63,17 +63,9 @@ Check for and install updates to the YouCoded toolkit.
 
    # Shared libraries
    mkdir -p ~/.claude/hooks/lib
-   for lib in hook-preamble.sh backup-common.sh migrate.sh; do
+   for lib in hook-preamble.sh; do
      [ -f "$TOOLKIT_ROOT/core/hooks/lib/$lib" ] && ln -sf "$TOOLKIT_ROOT/core/hooks/lib/$lib" ~/.claude/hooks/lib/$lib
    done
-
-   # Migration scripts
-   if [ -d "$TOOLKIT_ROOT/core/hooks/migrations" ]; then
-     mkdir -p ~/.claude/hooks/migrations
-     for migration in "$TOOLKIT_ROOT/core/hooks/migrations"/*; do
-       [ -f "$migration" ] && ln -sf "$migration" ~/.claude/hooks/migrations/$(basename "$migration")
-     done
-   fi
 
    # Statusline script (lives at ~/.claude/, not in hooks/)
    ln -sf "$TOOLKIT_ROOT/core/hooks/statusline.sh" ~/.claude/statusline.sh

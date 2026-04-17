@@ -7,13 +7,10 @@ All feature specifications. Skill specs live in their skill folder; system specs
 | Specs System | system | specs/specs-system-spec.md | 3.2 |
 | YouCoded Toolkit | system | specs/youcoded-core-spec.md | 3.0 |
 | System Architecture | system | specs/system-architecture-spec.md | 1.6 |
-| Backup & Sync | system | specs/backup-system-spec.md | 5.0 |
 | Remote Access | system | specs/remote-access-spec.md | 1.0 |
 | Write Guard | system | specs/write-guard-spec.md | 1.3 |
 | Worktree Guard | system | specs/worktree-guard-spec.md | 1.0 |
 | Memory System | system | specs/memory-system-spec.md | 1.2 |
-| Personal Data Sync | system | specs/personal-sync-spec.md | 2.3 (retired) |
-| Conversation Index | system | specs/conversation-index-spec.md | 1.0 |
 | Statusline | system | specs/statusline-spec.md | 1.10 |
 | DestinTip | system | specs/destintip-spec.md | 1.2 |
 | Landing Page | system | specs/landing-page-spec.md | 1.4 |
